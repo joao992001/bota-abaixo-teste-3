@@ -21,7 +21,7 @@ poço até a **Fundação** (subsolo escuro, 3 lajes sobre o vazio, bate-estaca,
 |---|---|---|---|---|
 | 1 | Térreo (`terreo`) — Início | [`cenas/terreo.md`](cenas/terreo.md) | início da partida | APROVADO |
 | 2 | Fundação (`fundacao`) — **Rota Total** (≥ 90% na verificação) | [`cenas/fundacao.md`](cenas/fundacao.md) | a obra cede inteira, todos caem pelo poço | APROVADO (cena) · rota v2 a implementar |
-| 2 | **Fachada (`fachada`) — Rota Moderada** (50–90% na verificação) | [`cenas/fachada.md`](cenas/fachada.md) | só a frente do prédio desaba: a laje inclina para a rua e todos escorregam até os andaimes da fachada | APROVADO (conceito, 2026-11-26) · falta a fotografia conceitual |
+| 2 | **Fachada (`fachada`) — Rota Moderada** (50–90% na verificação) | [`cenas/fachada.md`](cenas/fachada.md) | só a frente do prédio desaba: a laje inclina para a rua e todos escorregam até os andaimes da fachada | APROVADO (conceito e fotografia, 2026-11-26) · implementação na D5 |
 
 Inventários: [`eventos.md`](eventos.md) · [`perigos_mecanismos.md`](perigos_mecanismos.md) · [`spells.md`](spells.md) ·
 [`skins.md`](skins.md) · decisões, lições e testes: [`decisoes_testes.md`](decisoes_testes.md).

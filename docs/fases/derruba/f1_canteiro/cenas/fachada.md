@@ -6,9 +6,9 @@
 | Luta pendurada nos andaimes da fachada + balancins; cair na rua = KO | `APROVADO` 2026-11-26 |
 | Chegada: só a frente do prédio desaba, a laje inclina para a rua, todos escorregam até os andaimes | `APROVADO` 2026-11-26 |
 | **Andaime Cede** (era "V4") | `APROVADO` 2026-11-26 — é **perigo da cena (M13)**, não evento (regra A14) |
-| Números, posições e arte abaixo | `PROPOSTO` — fecham na fotografia conceitual (passo 2 do método) |
+| Fotografia conceitual e storyboard da chegada | `APROVADO` 2026-11-26 (`art/out/fase1_fachada.png`, `etapa_c/c7`) |
 
-> **Fotografia conceitual feita (2026-11-26), aguardando aprovação:** `art/out/fase1_fachada.png` (gerador
+> **Fotografia conceitual APROVADA (2026-11-26):** `art/out/fase1_fachada.png` (gerador
 > `art/src/cenarios/fase1_fachada.py`). Storyboard da chegada: `art/out/etapa_c/c7_storyboard_rotas.png`. Nada disto está no jogo.
 
 **Conceito:** destruição moderada → a obra não cai inteira; **só a frente do prédio desaba**. A laje do Térreo inclina

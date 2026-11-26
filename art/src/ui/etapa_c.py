@@ -709,7 +709,7 @@ def tela_storyboard():
         ("APROVADO", "Rota Moderada: o lado da rua cede → laje inclina → andaimes da fachada."),
         ("PROPOSTA", "Aviso na tela muda por rota: “A OBRA VAI CEDER!” × “A LAJE VAI ESCORREGAR!”."),
         ("APROVADO", "Cena da Rota Moderada = FACHADA (2026-11-26)."),
-        ("DECIDIR", "Aprovar a fotografia da Fachada (art/out/fase1_fachada.png)."),
+        ("APROVADO", "Fotografia da Fachada e este storyboard (2026-11-26)."),
     ])
     return page(b, n)
 
