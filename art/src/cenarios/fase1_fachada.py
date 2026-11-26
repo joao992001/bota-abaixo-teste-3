@@ -2,6 +2,7 @@
 Ficha: docs/fases/derruba/f1_canteiro/cenas/fachada.md. Mesmo estilo e peças da prancha da Fase 1 (fase1_prancha.py).
 Luta pendurada nos andaimes da frente do prédio, fim de tarde; cair na rua = KO. Tela de jogo 40×22 tiles.
 Rodar: python3 art/src/cenarios/fase1_fachada.py → art/out/fase1_fachada.png
+      python3 art/src/cenarios/fase1_fachada.py --jogo → art/out/game/fase1/e3_longe.png, e3_palco.png (camadas da cena 3)
 """
 import os
 import random
@@ -242,7 +243,45 @@ def cena(com_tags=True):
     return doc(W, H, out, rough(seed=41, scale=0.8, freq=0.05))
 
 
+# ---------------------------------------------------------------- camadas de JOGO (D5): o que é parado vira PNG da cena 3
+def andaime_jogo():
+    """Montantes, contraventos, telas e escadas + a prancha de BAIXO (base fixa, tiles da linha 18). As pranchas de cima
+    são peças destrutíveis desenhadas pelo jogo (modes/canteiro.gd)."""
+    keep = dict(PRANCHAS)
+    PRANCHAS.update({"L4": [], "L3": [], "L2": [], "L1": keep["L1"]})
+    try:
+        out = andaime()
+    finally:
+        PRANCHAS.clear()
+        PRANCHAS.update(keep)
+    return out
+
+
+def e3_longe():
+    return sky() + city() + grua()
+
+
+def e3_palco():
+    return fachada() + rua() + andaime_jogo() + laje_torta()
+
+
+def jogo():
+    out = os.path.join(ROOT, "art/out/game/fase1")
+    src = os.path.join(ROOT, "art/src/cenarios/svg/fase1_jogo")
+    os.makedirs(out, exist_ok=True)
+    os.makedirs(src, exist_ok=True)
+    h3 = 21 * T
+    for i, (name, fn) in enumerate((("e3_longe", e3_longe), ("e3_palco", e3_palco))):
+        body = fn()
+        queue(doc(W, h3, f'<g filter="url(#rough)">{body}</g>', rough(seed=70 + i, scale=0.8, freq=0.05)),
+              f"{src}/{name}.svg", f"{out}/{name}.png", W, h3, 1)
+    print("fachada (jogo):", render_all())
+
+
 def main():
+    if "--jogo" in sys.argv:
+        jogo()
+        return
     src = os.path.join(ROOT, "art/src/cenarios/svg/fase1")
     os.makedirs(src, exist_ok=True)
     queue(cena(), f"{src}/fachada.svg", os.path.join(ROOT, "art/out/fase1_fachada.png"), W, H, 0.75)

@@ -525,6 +525,7 @@ func demolicao_test() -> void:
 	await selecao_test()
 	await perfil_test()
 	await eventos_cenas_test()
+	await fachada_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -1743,7 +1744,7 @@ func mapa_test() -> void:
 	var por := {1: [], 2: [], 3: []}
 	for d in mecs:
 		por[int(d["etapa"])].append(d["id"])
-	check(mecs.size() == 8 and por[1] == ["M1", "M2", "M4", "M5"] and por[2] == ["M6", "M7", "M8", "M9"], "mecanismos instanciados na cena certa (%s)" % str(por))
+	check(mecs.size() == 13 and por[1] == ["M1", "M2", "M4", "M5"] and por[2] == ["M6", "M7", "M8", "M9"] and por[3] == ["M10", "M10b", "M11", "M12", "M13"], "mecanismos instanciados na cena certa (%s)" % str(por))
 	check(MapaReg.rota("derruba", "canteiro_obras", 1, "total") == 2 and MapaReg.rota("derruba", "canteiro_obras", 1, "moderada") == 3 and not MapaReg.tem_proxima("derruba", "canteiro_obras", 2) and not MapaReg.tem_proxima("derruba", "canteiro_obras", 3), "Térreo → Fundação (total) ou Fachada (moderada); as duas são as últimas")
 	var bad := {"mode_id": "derruba", "topologia": 4, "spells_permitidas": ["S99"], "eventos_permitidos": [], "cenas": [
 		{"id": "a", "ordem": 1, "nivel": 1, "eventos": ["G02"], "mecanismos": [{"id": "X"}], "rota_total": "a", "rota_moderada": null}]}
@@ -2125,6 +2126,72 @@ func eventos_cenas_test() -> void:
 	check(not ev.is_active("G13") and is_equal_approx(ct.progresso(2), p0), "G13 termina e a viga gerada não mexe no manômetro (%.0f%%)" % (ct.progresso(2) * 100.0))
 	ev.manual = false
 	main.event_level = 0
+
+## D5: cena 3 do Canteiro, a FACHADA (rota moderada): perigos M10–M13, os 11 eventos do mapa e bots lutando sem cair
+## à toa no vão do meio (que dá na rua = KO). --so=fachada
+func fachada_test() -> void:
+	print("== Fachada (cena 3)")
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.add_bot()
+	main.add_bot()
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 6
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	main.countdown = 0.0
+	var et = main.demo.etapas
+	et.ativo = false
+	et.pular_para(3)
+	var lv = main.level
+	var a3: Rect2 = lv.etapa_rect(3)
+	await frames(90)
+	check(et.etapa == 3 and lv.area == a3 and main.robots.all(func(r): return a3.has_point(r.position)), "pular para a cena 3: área, KO e todos os robôs na Fachada")
+	var ct = main.demo.canteiro
+	var pr: Array = ct.parts.filter(func(p): return p["kind"] == "prancha" and int(p["etapa"]) == 3)
+	check(pr.size() == 9 and ct.progresso(3) == 0.0, "9 pranchas de andaime destrutíveis; manômetro da Fachada em 0%")
+	ct.damage(pr[0], 1, pr[0]["rect"].get_center())
+	check(ct.progresso(3) > 0.0, "dano numa prancha conta na destruição da Fachada (%.1f%%)" % (ct.progresso(3) * 100.0))
+	var mc = main.demo.mecs
+	var by := {}
+	for inst in mc.list:
+		if int(inst["etapa"]) == 3:
+			by[inst["d"]["id"]] = inst
+	var y0: float = by["M10"]["s"]["y"]
+	await frames(60 * 5)
+	check(absf(float(by["M10"]["s"]["y"]) - y0) > 10.0, "M10 balancim sobe e desce (%.0f → %.0f)" % [y0, by["M10"]["s"]["y"]])
+	var fases := {}
+	for k in 60 * 8:
+		await frames(1)
+		fases[String(by["M11"]["s"].get("phase", ""))] = true
+	check(fases.has("aviso") and fases.has("bate"), "M11 guincho: avisa e desce o palete (%s)" % str(fases.keys()))
+	by["M13"]["s"]["t"] = float(by["M13"]["d"]["ciclo_s"])
+	await frames(5)
+	var alvo = by["M13"]["s"].get("alvo")
+	check(alvo != null and alvo["warn_t"] > 0.0, "M13 Andaime Cede: uma prancha ganha a fita zebrada")
+	var w := 0
+	while alvo != null and not alvo["fallen"] and w < 600:
+		await frames(1)
+		w += 1
+	check(alvo != null and alvo["fallen"], "...e cede no fim do aviso (%.1f s)" % (w / 60.0))
+	var ev = main.events
+	main.event_level = 2
+	var ids: Array = MapaReg.manifesto("derruba", "canteiro_obras")["eventos_permitidos"].filter(func(e): return not String(e).begins_with("V"))
+	var falta: Array = ids.filter(func(id): return not ev.eligible(ev.ev(id)))
+	check(falta.is_empty(), "Fachada: os 11 eventos do mapa podem acontecer (faltam: %s)" % str(falta))
+	main.event_level = 0
+	main.self_falls = 0
+	main.fall_log.clear()
+	for i in main.players.size():
+		main.demo.lives[i] = 99
+	for k in 60 * 45:
+		await frames(1)
+	check(main.self_falls <= 1, "bots lutam 45 s na Fachada quase sem cair sozinhos (%d: %s)" % [main.self_falls, str(main.fall_log)])
 
 ## Mecanismos da Fase 1 (catálogo M1–M9): cada um faz o que promete e responde à marretada.
 func mecanismos_test() -> void:

@@ -356,8 +356,9 @@ func _draw_art() -> void:
 	_draw_ropes_and_planks()
 	_draw_scaffolds()
 	var sem_arte := int(props.get("sem_arte_de", rows))   # fase com cena desenhada (modes/cena.gd): estas linhas não usam caixote
+	var sem_arte_col := int(props.get("sem_arte_col", cols))   # idem por coluna (Fachada do Canteiro, à direita)
 	for y in mini(rows, sem_arte):
-		for x in cols:
+		for x in mini(cols, sem_arte_col):
 			var c := Vector2i(x, y)
 			var pos := Vector2(x * T, y * T)
 			match ch_at(c):

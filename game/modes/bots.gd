@@ -127,6 +127,8 @@ func _robot_of(dev: String):
 	return main.robots[i]
 
 func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
+	if r.drop_t > 0.0 and not r.is_on_floor():
+		return {"dir": 0}   # descendo pendurado no guindaste (renascimento): espera pousar
 	var L = main.level
 	var demo = main.demo
 	var pos: Vector2 = r.position

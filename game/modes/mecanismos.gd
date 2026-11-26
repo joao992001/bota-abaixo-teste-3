@@ -111,6 +111,7 @@ func update(dt: float) -> void:
 			"tubos": _tubos(inst, dt)
 			"serra": _serra(inst, dt)
 			"bate_estaca": _bate_estaca(inst, dt)
+			"cede": _cede(inst, dt)
 			"agua": _agua(inst, dt)
 			"vagonete": _vagonete(inst, dt)
 			"gerador": _gerador(inst, dt)
@@ -296,6 +297,37 @@ func _bate_estaca(inst: Dictionary, dt: float) -> void:
 			if r.rect().intersects(hr) and not s["hit"].has(r.pid):
 				s["hit"][r.pid] = true
 				r.take_hit(1 if r.position.x >= float(d["x"]) else -1, "mec_estaca", -1)
+
+## M13 Andaime Cede (Fachada, aprovado 2026-11-26): de tempos em tempos uma prancha da cena ganha fita zebrada e, no fim
+## do aviso, cede inteira (passa pelo aviso final normal do canteiro: treme, range e cai).
+func _cede(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var ct = main.demo.canteiro
+	if ct == null or not is_instance_valid(ct):
+		return
+	var p = s.get("alvo")
+	if p != null:
+		if p["fallen"]:
+			s["alvo"] = null
+			return
+		p["warn_t"] = maxf(float(p["warn_t"]) - dt, 0.0)
+		if fmod(float(s["t"]), 0.9) < dt:
+			Audio.play("pistao_aviso", 0.8, -6.0)
+		if p["warn_t"] <= 0.0:
+			ct.damage(p, 99, p["rect"].get_center())
+			s["alvo"] = null
+		return
+	if float(s["t"]) < float(d["ciclo_s"]):
+		return
+	s["t"] = 0.0
+	var cands: Array = ct.parts.filter(func(q): return q["kind"] == "prancha" and int(q["etapa"]) == int(inst["etapa"]) and not q["fallen"] and q["warn_t"] <= 0.0 and q.get("evt", "") == "" and q["crit_t"] <= 0.0)
+	if cands.is_empty():
+		return
+	var q: Dictionary = cands[main.rng.randi_range(0, cands.size() - 1)]
+	q["warn_t"] = float(d["aviso_s"])
+	s["alvo"] = q
+	main.float_text(q["rect"].get_center() + Vector2(0, -70), "O ANDAIME VAI CEDER!", Color("#f2c84b"))
 
 func _agua(inst: Dictionary, dt: float) -> void:
 	var d: Dictionary = inst["d"]
@@ -487,6 +519,18 @@ func _draw() -> void:
 				var w := float(d["largura"])
 				var y: float = s["y"]
 				var mast := float(d["mastro"])
+				if String(d.get("estilo", "")) == "balancim":   # M10: plataforma suspensa por cabos (Fachada)
+					var cy := float(d.get("cabo_y", y - 400.0))
+					for cx in [x + 20.0, x + w - 20.0]:
+						draw_line(Vector2(cx, cy), Vector2(cx, y), Color("#4a4f5c"), 4.0, true)
+						draw_rect(Rect2(cx - 14, y - 86, 28, 34), Color("#6b7783"))
+						draw_circle(Vector2(cx, y - 69), 7.0, Color("#f2c84b"))
+					draw_rect(Rect2(x, y, w, 18), Color("#f2c84b"))
+					draw_rect(Rect2(x, y + 18, w, 8), INK)
+					draw_polyline(PackedVector2Array([Vector2(x, y), Vector2(x, y - 54), Vector2(x + w, y - 54), Vector2(x + w, y)]), Color("#8d98a4"), 5.0)
+					for k in range(1, 4):
+						draw_line(Vector2(x + k * w / 4.0, y - 52), Vector2(x + k * w / 4.0, y), Color("#8d98a4"), 2.5)
+					continue
 				draw_rect(Rect2(mast - 10, float(d["topo"]) - 60, 20, float(d["base"][1]) - float(d["topo"]) + 60), Color("#8d98a4"))
 				for yy in range(int(float(d["topo"]) - 50), int(float(d["base"][1])), 24):
 					draw_line(Vector2(mast - 10, yy), Vector2(mast + 10, yy + 12), Color("#6b7783"), 3.0)
@@ -556,6 +600,25 @@ func _draw() -> void:
 				draw_texture_rect(tex["m_bancada"], Rect2(p + Vector2(-55, -34), Vector2(110, 40)), false)
 				if s.get("warn", false) and fmod(t, 0.2) < 0.1:
 					draw_circle(p + Vector2(48, -30), 6.0, Color("#d94a3a"))
+			"bate_estaca" when String(d.get("estilo", "")) == "guincho":   # M11: guincho na prancha de cima, palete balançando
+				var x := float(d["x"])
+				var ch := float(d["chao"])
+				var hy: float = s.get("y", float(d["topo"]))
+				var px := float(d["poste"])
+				var arm_y := float(d["alvo"][1]) + 10.0
+				draw_rect(Rect2(px - 10, arm_y, 20, float(d["alvo"][1]) + float(d["alvo"][3]) - arm_y), Color("#6b7783"))
+				draw_line(Vector2(px, arm_y), Vector2(x + 20, arm_y), Color("#6b7783"), 14.0)
+				draw_circle(Vector2(px + 6, arm_y + 80), 24.0, Color("#8d98a4"))
+				draw_circle(Vector2(px + 6, arm_y + 80), 9.0, INK)
+				var sw := sin(t * 2.2) * 6.0 if s.get("phase", "") != "bate" else 0.0
+				draw_line(Vector2(x + 10, arm_y), Vector2(x + sw, hy), Color("#4a4f5c"), 4.0, true)
+				draw_rect(Rect2(x - 70 + sw, hy + 70, 140, 16), Color("#8a5a2b"))
+				for rr in 3:
+					for cc in 4:
+						draw_rect(Rect2(x - 66 + sw + cc * 33, hy + 50 - rr * 20, 31, 18), Color("#c8643c"))
+						draw_rect(Rect2(x - 66 + sw + cc * 33, hy + 50 - rr * 20, 31, 18), Color("#9a4a2a"), false, 2.0)
+				var warn: bool = s.get("phase", "") == "aviso"
+				draw_rect(Rect2(x - 70, ch - 6, 140, 8), Color(0.85, 0.29, 0.23, 0.9 if warn and fmod(t, 0.2) < 0.1 else 0.5))
 			"bate_estaca":
 				# máquina inteira apoiada no piso (esteira + cabine + mastro até a roldana); o martelo sobe e desce
 				# pendurado no cabo, na frente do mastro

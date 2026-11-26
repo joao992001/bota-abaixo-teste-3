@@ -365,7 +365,74 @@
    "rota_moderada": null,
    "rota_total": null,
    "eventos": [],
-   "mecanismos": [],
+   "mecanismos": [
+    {
+     "id": "M10",
+     "tipo": "elevador",
+     "estilo": "balancim",
+     "base": [
+      3870,
+      864
+     ],
+     "topo": 512,
+     "mastro": 0,
+     "cabo_y": 202,
+     "largura": 324,
+     "espera_s": 2.0,
+     "move_s": 2.5
+    },
+    {
+     "id": "M10b",
+     "tipo": "elevador",
+     "estilo": "balancim",
+     "base": [
+      5012,
+      1152
+     ],
+     "topo": 512,
+     "mastro": 0,
+     "cabo_y": 202,
+     "largura": 300,
+     "espera_s": 2.0,
+     "move_s": 3.0,
+     "fase_s": 2.5
+    },
+    {
+     "id": "M11",
+     "tipo": "bate_estaca",
+     "estilo": "guincho",
+     "x": 4800,
+     "poste": 4544,
+     "topo": 256,
+     "chao": 640,
+     "ciclo_s": 7,
+     "aviso_s": 1.2,
+     "alvo": [
+      4504,
+      234,
+      80,
+      150
+     ]
+    },
+    {
+     "id": "M12",
+     "tipo": "serra",
+     "pos": [
+      3616,
+      1152
+     ],
+     "ligada_s": 2,
+     "desligada_s": 4,
+     "bancada": true
+    },
+    {
+     "id": "M13",
+     "tipo": "cede",
+     "ciclo_s": 25,
+     "aviso_s": 2.5,
+     "fase_s": 7
+    }
+   ],
    "estruturas": {
     "pranchas": [
      [

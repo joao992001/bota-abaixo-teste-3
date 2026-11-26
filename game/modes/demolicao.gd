@@ -593,6 +593,8 @@ func respawn(r, ahead := false) -> void:
 					if o != r and o.alive:
 						dmin = minf(dmin, o.position.distance_to(p))
 				dmin += main.rng.randf_range(0, 200)
+				if not (_firm(lv, c + Vector2i.LEFT) and _firm(lv, c + Vector2i.RIGHT)):
+					dmin -= 500.0   # beira de buraco: só se não houver lugar melhor (bots caíam no vão logo ao voltar)
 				if rule() == "fuga" and ahead and fx != null and is_instance_valid(fx):
 					dmin = -p.distance_to(fx.scroll_center)   # bolha: volta no meio da tela
 				elif rule() == "fuga":

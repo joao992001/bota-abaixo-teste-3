@@ -141,7 +141,7 @@ static func validar(m: Dictionary) -> Array:
 			if not lib.has(e):
 				err.append("cena %s: evento inexistente na biblioteca: %s" % [c["id"], e])
 		for d in c.get("mecanismos", []):
-			if not (d.has("pos") or d.has("x") or d.has("base")):
+			if not (d.has("pos") or d.has("x") or d.has("base") or String(d.get("tipo", "")) == "cede"):   # cede escolhe a peça
 				err.append("cena %s: mecanismo %s sem posição" % [c["id"], d.get("id", "?")])
 	# v2: árvore de cenas por nível (3 = 1→2, 7 = 1→2→4); cada cena não-final tem as DUAS rotas para o nível seguinte;
 	# destino pode ser uma cena pendente (aprovada, ainda não implementada).

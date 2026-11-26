@@ -234,6 +234,22 @@ func _chega() -> void:
 			if not lv.area.grow(64).has_point(r.position) or r.position.y < lv.area.position.y + 140.0:   # ficou fora ou em cima do teto: nasce embaixo
 				main.demo.respawn(r)
 
+## Testes/vitrines: leva a luta direto para a cena n (sem transição): área, KO e câmera passam para ela; todos renascem lá.
+func pular_para(n: int) -> void:
+	var lv = main.level
+	state = "etapa"
+	etapa = n
+	destino = -1
+	if not n in visitadas:
+		visitadas.append(n)
+	lv.etapa_n = n
+	lv.area = lv.etapa_rect(n)
+	lv.ko_off = false
+	_nova_cena()
+	for r in main.robots:
+		if r.alive:
+			main.demo.respawn(r)
+
 ## Nascimento na cena atual (nascimentos 1–4 na cena 1, 5–8 na cena 2, 9–12 na 3…).
 func spawn_index(i: int) -> int:
 	return i + 4 * (etapa - 1)

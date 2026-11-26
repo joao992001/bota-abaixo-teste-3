@@ -944,14 +944,23 @@ func _poco_viga_rect() -> Rect2:
 		return Rect2()
 	var lv = main.level
 	var h := String(lv.prop("buraco%d" % (_etapa() - 1), "")).split(",")
-	if h.size() < 2:
-		return Rect2()
-	var x0 := float(h[0]) * T
-	var x1 := float(h[1]) * T
+	var x0 := float(h[0]) * T if h.size() >= 2 else 0.0
+	var x1 := float(h[1]) * T if h.size() >= 2 else -1.0
 	for p in ct.parts:
 		if p["kind"] == "estaca" and int(p["etapa"]) == _etapa() and not p["fallen"] and p["rect"].position.x >= x0 and p["rect"].end.x <= x1:
 			var r: Rect2 = p["rect"]
 			return Rect2(r.position.x, r.position.y - 4 * T, r.size.x, 26)
+	# Fachada: a grua pendura a viga sobre uma prancha com espaço livre acima (nada entre a viga e a prancha)
+	for p in ct.parts:
+		if p["kind"] == "prancha" and int(p["etapa"]) == _etapa() and not p["fallen"]:
+			var r: Rect2 = p["rect"]
+			var vr := Rect2(r.position.x, r.position.y - 3 * T, r.size.x, 26)
+			var livre: bool = vr.position.y > main.level.area.position.y + T
+			for q in ct.parts:
+				if q != p and not q["fallen"] and q["rect"].intersects(Rect2(vr.position.x, vr.position.y - T, vr.size.x, r.position.y - vr.position.y + T - 2)):
+					livre = false
+			if livre:
+				return vr
 	return Rect2()
 
 func _beam_pick(ct) -> Variant:

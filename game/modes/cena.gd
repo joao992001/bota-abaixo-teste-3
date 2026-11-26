@@ -10,6 +10,7 @@ var main: Node
 var key := "fase1"
 var a1 := Rect2()
 var a2 := Rect2()
+var a3 := Rect2()          # Fachada (cena 3, rota moderada), à direita do Térreo
 var t := 0.0
 var tex := {}
 var clouds: Array = []     # {x, y, s, v, small}
@@ -26,7 +27,9 @@ func setup(m: Node) -> void:
 	key = String(m.level.prop("cena", "fase1"))
 	a1 = m.level.etapa_rect(1)
 	a2 = m.level.etapa_rect(2)
-	for n in ["e1_longe", "e1_perto", "e1_frente", "e2_fundo", "e2_palco", "nuvem", "nuvem_p", "balde",
+	if String(m.level.prop("etapa3", "")) != "":
+		a3 = m.level.etapa_rect(3)
+	for n in ["e3_longe", "e3_palco", "e1_longe", "e1_perto", "e1_frente", "e2_fundo", "e2_palco", "nuvem", "nuvem_p", "balde",
 			"carrinho_grua", "npc_tabua", "npc_carrinho", "npc", "npc_lanterna"]:
 		tex[n] = Data.tex("%s/%s" % [key, n])
 	_rng.seed = 77
@@ -108,6 +111,9 @@ func _draw() -> void:
 		_draw_e2()   # desenha a terra e o poço por cima do fundo da etapa 2
 	else:
 		_between()
+	if a3.size.x > 0.0 and v.intersects(a3):   # Fachada: céu/cidade/grua com paralaxe + parede, andaimes e rua
+		_layer("e3_longe", a3, 0.1, 0.04)
+		_layer("e3_palco", a3, 0.0, 0.0)
 
 ## Terra entre as etapas com o POÇO aberto no buraco (por onde todos caem): dos lados terra, no meio a luz do dia
 ## descendo até o teto quebrado da Fundação. Mundo fixo (sem paralaxe), para casar com o buraco do teto.
