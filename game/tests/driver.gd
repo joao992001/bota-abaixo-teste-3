@@ -535,6 +535,8 @@ func demolicao_test() -> void:
 	await moderada_test()
 	await limpa_test()
 	await mecanismos_test()
+	await renascer_test()
+	await transicao_test()
 	await imagens_test()
 
 func menus_test() -> void:

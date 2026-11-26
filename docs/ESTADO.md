@@ -16,8 +16,16 @@ pranchas `art/out/recompensas/r1–r3`; luta que não vale = carimbo NÃO CONTOU
 Vitrine das telas: `--menus=DIR` (capturas `m8*` pausa, `m11_fim_*`). Ambiente pessoal `bota-abaixo-teste-3` criado com setup
 (Godot + RTK + cairosvg) — confirmar na próxima sessão nova que ele sobe pronto.
 
-**PRÓXIMO PASSO:** o usuário jogar/avaliar as telas novas (gerar `.exe` se ele pedir: `tools/exportar.sh`). Depois: playtest
-para calibrar os números PROVISÓRIOS (P1 tempos, P3 gangorra, P4/P6 Projetos) e testar os limiares 30%/70%.
+**Avaliação de gameplay (2026-11-26, `docs/avaliacoes/2026-11-26_gameplay/AVALIACAO.md`): ETAPA 1 FEITA** — renascimento
+seguro (`--so=renascer`), recompensas só com confirmação, transições orgânicas (`--so=transicao`, câmera aproxima na queda),
+desempenho (G03/eventos sem varrer o mapa todo; temas antigos fora do pré-carregamento; texturas aquecidas; medidor
+`--perf-canteiro` com xvfb), bots com pausas (`bots.pausa`). Respostas assumidas (usuário não respondeu): invulnerável 3 s ao
+voltar; qualquer jogador confirma as recompensas.
+
+**PRÓXIMO PASSO:** o usuário testar a etapa 1 no `.exe`. Depois a **ETAPA 2 (combate)**: golpe pesado com vontade de usar, golpe
+leve com animação que acompanha, arte/animação dos robôs mais articulada (prancha + vídeo ANTES do código) e destruição natural
+pela luta (arremesso/crítico quebram o cenário; dá para "se segurar" e destruir menos). Pendentes antigos: limiares 30%/70%,
+números PROVISÓRIOS (P1, P3, P4/P6).
 
 ---
 ### Histórico (sessões anteriores)
