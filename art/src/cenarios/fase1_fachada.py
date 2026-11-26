@@ -262,7 +262,8 @@ def e3_longe():
 
 
 def e3_palco():
-    return fachada() + rua() + andaime_jogo() + laje_torta()
+    # a laje torta NÃO vai na camada: no jogo é a própria laje do Térreo que vira rampa (desenhada por modes/cena.gd)
+    return fachada() + rua() + andaime_jogo()
 
 
 def jogo():

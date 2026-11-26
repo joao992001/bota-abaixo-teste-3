@@ -152,53 +152,108 @@ func _aviso(tipo: String) -> void:
 		ct.warn_all(st_t, etapa)
 
 ## A cena inteira desaba: começa a queda para a próxima.
-## ROTA MODERADA (storyboard aprovado, art/out/etapa_c/c7): só a frente cede, a laje inclina para a rua e todos
-## ESCORREGAM num arco até as pranchas da cena de destino (ao lado), com a câmera abrindo para mostrar as duas.
-## Sem controle e sem dano; cada um pousa num ponto diferente com piso firme (nunca teletransporte).
+## ROTA MODERADA (storyboard aprovado, art/out/etapa_c/c7; refeita pela avaliação do usuário 2026-11-26): só a frente
+## cede e a LAJE do Térreo vira RAMPA — escorrega para a rua e inclina até apoiar a ponta na prancha da cena de destino
+## (a "laje torta" da Fachada). Quem está fora dela é jogado em cima pelo tremor; todos vão junto enquanto ela inclina e
+## depois ESCORREGAM por ela (poeira) até as pranchas. A câmera acompanha. Sem controle e sem dano; nada de voar.
 var _deslize_dur := 0.0
+const RAMPA_LEN := 1536.0
+var rampa := {}            # {a0, b0, a1, b1} (topo da laje: ponta esquerda e direita, antes e depois de inclinar)
+var _fases := [0.6, 1.4, 1.6, 0.5]   # tremor/joga na laje · laje escorrega e inclina · deslizam · pulinho para a prancha
 
-func _alvos_deslize(a2: Rect2, n: int) -> Array:
-	var lv = main.level
-	var cand := []
-	for row in range(int(a2.position.y / 64.0) + 2, int(a2.end.y / 64.0)):
-		for col in range(int(a2.position.x / 64.0) + 1, int(a2.end.x / 64.0) - 1):
-			var c := Vector2i(col, row)
-			if lv.is_solid(c) and lv.is_solid(c + Vector2i.LEFT) and lv.is_solid(c + Vector2i.RIGHT) \
-					and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)):
-				cand.append(Vector2(col * 64.0 + 32.0, row * 64.0))
-	if cand.is_empty():
+## Pose da laje (topo): [ponta esquerda, ponta direita] para k = 0 (no Térreo) … 1 (apoiada na Fachada).
+func rampa_pose(k: float) -> Array:
+	if rampa.is_empty():
 		return []
-	cand.sort_custom(func(p, q): return p.y < q.y if absf(p.y - q.y) > 1.0 else p.x < q.x)   # pranchas de cima primeiro
-	var alto: Array = cand.filter(func(p): return p.y <= cand[0].y + 1.0)
-	var usa: Array = alto if alto.size() >= n * 2 else cand
-	var out := []
-	for i in n:
-		out.append(usa[int((i + 0.5) * usa.size() / float(n))])
-	return out
+	var e := k * k * (3.0 - 2.0 * k)
+	return [rampa["a0"].lerp(rampa["a1"], e), rampa["b0"].lerp(rampa["b1"], e)]
+
+## Laje parada na Fachada (cena 3 alcançada ou visível): pose final. Usada pelo desenho da cena.
+func rampa_final(a2: Rect2) -> void:
+	var ct = _ct()
+	var lv = main.level
+	var y0 := 13.0 * 64.0
+	var x0 := 8.0 * 64.0
+	if ct != null:
+		y0 = float(ct.LAJE_Y) * 64.0
+		x0 = float(ct.SEG_X[0]) * 64.0 if not ct.SEG_X.is_empty() else x0
+	# ponta de baixo: em cima da prancha do 3º andar da Fachada, perto da borda esquerda (mesma "laje torta" da fotografia)
+	var b1 := Vector2(a2.position.x + 600.0, a2.position.y + 10.0 * 64.0)
+	var ang := deg_to_rad(13.0)
+	var a1 := b1 - Vector2(cos(ang), sin(ang)) * RAMPA_LEN
+	rampa = {"a0": Vector2(x0, y0), "b0": Vector2(x0 + RAMPA_LEN, y0), "a1": a1, "b1": b1}
+
+## Para o desenho da cena: pose atual da laje-rampa ([] = não há). Na transição, a pose animada; na Fachada, a final.
+func rampa_desenho() -> Array:
+	var lv = main.level
+	if String(lv.prop("etapa3", "")) == "":
+		return []
+	if state == "queda" and rota == "moderada" and not rampa.is_empty():
+		return rampa_pose(clampf((st_t - _fases[0]) / _fases[1], 0.0, 1.0))
+	if rampa.is_empty():
+		rampa_final(lv.etapa_rect(3))
+	return rampa_pose(1.0) if (etapa == 3 or state == "etapa") else []
+
+func _no_topo(u: float, pose: Array) -> Vector2:
+	return pose[0].lerp(pose[1], clampf(u, 0.0, 1.0))
 
 func _desliza(dt: float) -> void:
 	st_t += dt
-	var k := clampf(st_t / _deslize_dur, 0.0, 1.0)
-	var e := k * k * (3.0 - 2.0 * k)
+	var t0: float = _fases[0]
+	var t1: float = t0 + _fases[1]
+	var t2: float = t1 + _fases[2]
+	var t3: float = t2 + _fases[3]
+	var pose := rampa_pose(clampf((st_t - t0) / _fases[1], 0.0, 1.0))
+	main.shake(2.5 if st_t < t1 else 0.8)
 	for r in main.robots:
-		if not r.alive or not r.has_meta("desliza"):
+		if not r.alive or not r.has_meta("rampa"):
 			continue
-		var pth: Array = r.get_meta("desliza")
-		var p0: Vector2 = pth[0]
-		var p1: Vector2 = pth[1]
-		var ctrl := Vector2((p0.x + p1.x) * 0.5, minf(p0.y, p1.y) - 360.0)
-		var pos := p0.lerp(ctrl, e).lerp(ctrl.lerp(p1, e), e)
+		var m: Dictionary = r.get_meta("rampa")
+		var u0: float = m["u"]
+		var pos: Vector2
+		if st_t < t0:   # tremor: quem não está na laje é jogado em cima dela (arco curto)
+			var k := st_t / t0
+			var dst := _no_topo(u0, pose)
+			pos = m["p0"].lerp(dst, k) + Vector2(0, -120.0 * sin(PI * k))
+		elif st_t < t1:   # a laje escorrega e inclina; todos vão junto
+			pos = _no_topo(u0, pose)
+		elif st_t < t2:   # deslizam pela laje (acelerando), cada um com um pequeno atraso
+			var k: float = clampf((st_t - t1 - float(m["atraso"])) / maxf(float(_fases[2]) - float(m["atraso"]), 0.1), 0.0, 1.0)
+			pos = _no_topo(u0 + (1.0 - u0) * k * k, pose)
+			if k > 0.05 and fmod(st_t + m["atraso"], 0.1) < dt:
+				main.dust(pos, 0.5)
+		elif st_t < t3:   # sai da ponta da laje e pousa na prancha
+			var k: float = (st_t - t2) / float(_fases[3])
+			pos = pose[1].lerp(m["alvo"], k) + Vector2(0, -70.0 * sin(PI * k))
+		else:
+			pos = m["alvo"] - Vector2(0, 4)
+			if not m.get("pousou", false):
+				m["pousou"] = true
+				main.dust(pos, 1.0)
+		r.position = pos
+		r.velocity = Vector2.ZERO
+		r.facing = 1
 		r.invuln = maxf(r.invuln, 0.5)
-		if k < 1.0:
-			r.position = pos
-			r.velocity = Vector2.ZERO
-			r.reset_physics_interpolation()
-		elif r.has_meta("desliza"):
-			r.position = p1 - Vector2(0, 4)
-			r.velocity = Vector2.ZERO
-			r.remove_meta("desliza")
-	if st_t >= _deslize_dur + 0.4:
+		r.reset_physics_interpolation()
+	if st_t >= t3 + 0.35:
+		for r in main.robots:
+			if r.has_meta("rampa"):
+				r.remove_meta("rampa")
 		_chega()
+
+## Pontos de pouso na prancha onde a laje apoia (à direita da ponta), espalhados.
+func _alvos_rampa(a2: Rect2, n: int) -> Array:
+	var lv = main.level
+	var row := int(round(rampa["b1"].y / 64.0))
+	var cand := []
+	for col in range(int(rampa["b1"].x / 64.0) + 1, int(a2.end.x / 64.0) - 1):
+		var c := Vector2i(col, row)
+		if lv.is_solid(c) and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)):
+			cand.append(Vector2(col * 64.0 + 32.0, row * 64.0))
+	var out := []
+	for i in n:
+		out.append(cand[mini(i * 2, cand.size() - 1)] if not cand.is_empty() else rampa["b1"] + Vector2(60.0 + i * 90.0, 0))
+	return out
 
 func _desaba() -> void:
 	var lv = main.level
@@ -206,7 +261,9 @@ func _desaba() -> void:
 	st_t = 0.0
 	var ct = _ct()
 	if ct != null:
+		ct.laje_vira_rampa = rota == "moderada"   # a laje não vira entulho: ela é a rampa (desenhada pela cena)
 		ct.collapse_all(etapa)
+		ct.laje_vira_rampa = false
 	main.events.stop_all()
 	lv.ko_off = true
 	lv.area = lv.etapa_rect(etapa).merge(lv.etapa_rect(destino))
@@ -217,18 +274,21 @@ func _desaba() -> void:
 	var g: float = float(Data.ctrl["gravity"]) * float(cfg["gravidade_queda"])
 	var vivos: Array = main.robots.filter(func(r): return r.alive)
 	_deslize_dur = 0.0
-	if rota == "moderada" and absf(a2.position.y - lv.etapa_rect(etapa).position.y) < a2.size.y * 0.5:   # destino AO LADO: escorrega
-		_deslize_dur = float(cfg.get("deslize_s", 2.4))
-		var alvos := _alvos_deslize(a2, vivos.size())
-		vivos.sort_custom(func(p, q): return p.position.x < q.position.x)
+	if rota == "moderada" and absf(a2.position.y - lv.etapa_rect(etapa).position.y) < a2.size.y * 0.5:   # destino AO LADO: a laje vira rampa
+		rampa_final(a2)
+		_deslize_dur = 1.0
+		vivos.sort_custom(func(p, q): return p.position.x > q.position.x)   # quem está mais perto da rua chega primeiro
+		var alvos := _alvos_rampa(a2, vivos.size())
 		for i in vivos.size():
 			var r = vivos[i]
 			r.hanging = false
 			r.invuln = maxf(r.invuln, 1.0)
 			r.spell_lock = true
-			r.set_meta("desliza", [r.position, alvos[i] if i < alvos.size() else a2.get_center()])
+			var u := clampf((r.position.x - rampa["a0"].x) / RAMPA_LEN, 0.08, 0.85)
+			r.set_meta("rampa", {"u": u, "p0": r.position, "alvo": alvos[i], "atraso": i * 0.12})
 		_fim_desaba(vivos, a2)
 		main.demo.banner = ""
+		Audio.play("terremoto", 0.8, 0.0)
 		return
 	for i in vivos.size():
 		var r = vivos[i]

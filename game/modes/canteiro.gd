@@ -29,6 +29,7 @@ var main: Node
 var cfg: Dictionary
 var parts: Array = []          # {kind, rect, hp, max, nucleo, body, state, crit_t, warn_t, fallen, shake, idx}
 var owner_of := {}             # Vector2i -> part (para bots e para agarrar a borda)
+var laje_vira_rampa := false   # rota moderada: a laje sai sem entulho (vira a rampa da transição)
 var debris: Array = []         # pedaços caindo {tex, rect, pos, vel, rot, spin, t}
 var crumbs: Array = []         # pedrinhas {pos, vel, t}
 var prev_speed := {}
@@ -284,6 +285,8 @@ func _collapse(p: Dictionary) -> void:
 					"rot": 0.0, "spin": randf_range(-1.2, 1.2), "t": 0.0})
 			if p["kind"] == "grelha" and not quiet:
 				main.float_text(r.get_center() + Vector2(0, -60), "O POÇO ABRIU!", Color("#f2c84b"))
+		"laje" when laje_vira_rampa:
+			pass
 		"laje":
 			for k in 8:
 				var px := r.position.x + 20 + (k % 4) * 64 + randf_range(-8, 8)

@@ -29,6 +29,7 @@ func setup(m: Node) -> void:
 	a2 = m.level.etapa_rect(2)
 	if String(m.level.prop("etapa3", "")) != "":
 		a3 = m.level.etapa_rect(3)
+	tex["laje_0"] = Data.tex("canteiro/laje_0")
 	for n in ["e3_longe", "e3_palco", "e1_longe", "e1_perto", "e1_frente", "e2_fundo", "e2_palco", "nuvem", "nuvem_p", "balde",
 			"carrinho_grua", "npc_tabua", "npc_carrinho", "npc", "npc_lanterna"]:
 		tex[n] = Data.tex("%s/%s" % [key, n])
@@ -107,13 +108,48 @@ func _draw() -> void:
 	var v := _view()
 	if v.intersects(a1):
 		_draw_e1()
-	if v.intersects(a2):
+	var et = main.demo.etapas if main.demo != null else null
+	var lado: bool = et != null and is_instance_valid(et) and (et.etapa == 3 or (et.state == "queda" and et.rota == "moderada"))
+	if lado:   # rota moderada / Fachada: a Fundação (e a terra do poço) não aparece, nem com a câmera aberta
+		var ce := Rect2(v.position.x, a1.end.y - 40.0, v.size.x, maxf(v.end.y - a1.end.y + 40.0, 0.0))
+		if ce.size.y > 0.0:
+			draw_rect(ce, Color("#cfe9ee"))   # o "vazio" embaixo do Térreo vira céu (sem faixa escura)
+		if a3.size.x > 0.0 and v.position.y < a3.position.y:   # acima da Fachada (mais baixa no mundo): céu do fim de tarde
+			draw_rect(Rect2(a3.position.x - 400.0, v.position.y, a3.size.x + 800.0, a3.position.y - v.position.y + 60.0), Color("#f3b07f"))
+	elif v.intersects(a2):
 		_draw_e2()   # desenha a terra e o poço por cima do fundo da etapa 2
-	else:
+	else:   # rota moderada / Fachada: a terra do poço da Fundação não aparece (ficava "boiando" na tela)
 		_between()
 	if a3.size.x > 0.0 and v.intersects(a3):   # Fachada: céu/cidade/grua com paralaxe + parede, andaimes e rua
 		_layer("e3_longe", a3, 0.1, 0.04)
 		_layer("e3_palco", a3, 0.0, 0.0)
+	_draw_rampa()
+
+## A laje do Térreo que virou rampa até a Fachada (rota moderada): mesma arte da laje, inclinada, com ferros na ponta.
+func _draw_rampa() -> void:
+	var et = main.demo.etapas if main.demo != null else null
+	if et == null or not is_instance_valid(et) or a3.size.x <= 0.0:
+		return
+	var pose: Array = et.rampa_desenho()
+	if pose.is_empty():
+		return
+	var na_fachada: bool = et.etapa == 3 or et.state == "queda"
+	if not na_fachada:
+		return
+	var tx: Texture2D = tex.get("laje_0")
+	var ang: float = (pose[1] - pose[0]).angle()
+	var n := 6
+	var seg: float = pose[0].distance_to(pose[1]) / n
+	draw_set_transform(pose[0], ang)
+	for i in n:
+		if tx != null:
+			draw_texture_rect(tx, Rect2(i * seg - 12.0, -12.0, seg + 24.0, 160.0), false)
+		else:
+			draw_rect(Rect2(i * seg, 0, seg, 128), Color("#d8ccb6"))
+	for k in 5:   # ferragem pendurada embaixo da ponta quebrada
+		var x := 40.0 + k * 52.0
+		draw_line(Vector2(x, 124), Vector2(x - 6, 150 + (k % 3) * 12), Color("#7a6f62"), 4.0)
+	draw_set_transform(Vector2.ZERO)
 
 ## Terra entre as etapas com o POÇO aberto no buraco (por onde todos caem): dos lados terra, no meio a luz do dia
 ## descendo até o teto quebrado da Fundação. Mundo fixo (sem paralaxe), para casar com o buraco do teto.

@@ -11,7 +11,7 @@
 > **IMPLEMENTADA NO JOGO (D5, 2026-11-26):** colunas 44–83 do `levels/canteiro_obras.lvl` (`etapa3`), pranchas
 > destrutíveis (`canteiro.gd`, kind `prancha`; a de baixo é base fixa em tiles), perigos M10 balancins (elevador estilo
 > balancim), M11 guincho (bate_estaca estilo guincho), M12 serra, M13 Andaime Cede (tipo `cede`), os 11 eventos (G13 = viga
-> da grua) e a chegada pela rota moderada (deslize em arco, câmera vai junto; `etapas._desliza`). Testes `--so=fachada,moderada`;
+> da grua) e a chegada pela rota moderada — REFEITA 2026-11-26 pela avaliação do usuário: a laje do Térreo vira RAMPA (escorrega para a rua e inclina até apoiar na prancha do 3º andar), os robôs vão junto e depois deslizam por ela até as pranchas; a câmera acompanha (`etapas._desliza`, `rampa_pose`). A Fachada fica 8 linhas abaixo do Térreo no mundo para a rampa descer. Testes `--so=fachada,moderada`;
 > GIF `art/out/fase1_rota_moderada.gif`; vitrine `ROTA=moderada … -- --fase=DIR`.
 > **Fotografia conceitual APROVADA (2026-11-26):** `art/out/fase1_fachada.png` (gerador
 > `art/src/cenarios/fase1_fachada.py`). Storyboard da chegada: `art/out/etapa_c/c7_storyboard_rotas.png`. Nada disto está no jogo.
