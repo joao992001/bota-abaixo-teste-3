@@ -592,7 +592,8 @@
           "partida_valida_min_s": 60,
           "pontos_partida": 1,
           "pontos_cena_nova": 2,
-          "pontos_por_mapa": 6
+          "pontos_por_mapa": 6,
+          "resultados_cronometro_s": 15
         }
       },
       {

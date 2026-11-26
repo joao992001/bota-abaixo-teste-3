@@ -7,7 +7,9 @@ const Obra := preload("res://ui/obra.gd")
 const RobotVis := preload("res://player/robot_visual.gd")
 
 const MENU_ITEMS := ["JOGAR", "LABORATÓRIO", "COMO JOGAR", "OPÇÕES", "SAIR"]
-const PAUSE_ITEMS := ["CONTINUAR", "REINICIAR PARTIDA", "MENU PRINCIPAL"]
+const PAUSE_ITEMS := ["CONTINUAR", "REINICIAR PARTIDA", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MENU PRINCIPAL"]   # A23
+var pause_conf := -1   # opção da pausa esperando "tem certeza?" (A26); -1 = nenhuma
+var pause_sim := false
 const STAR_GOALS := [3, 5, 7]
 
 var main: Node
@@ -206,20 +208,43 @@ func abrir_mapas() -> void:
 	adj_sel = 0
 	main.state = main.S.ARENAS
 
-## Pausa (dentro da partida): Start/Enter abre; navega com ▲▼.
+## Pausa (dentro da partida): Start/Enter abre; navega com ▲▼. Sair da luta (reiniciar, configurar, selecionar, menu)
+## pede confirmação (A26) e não conta para gangorra nem Projetos.
 func update_pause() -> void:
-	pause_sel = posmod(pause_sel + move_v(), PAUSE_ITEMS.size())
+	if pause_conf >= 0:
+		if move_h() != 0 or move_v() != 0:
+			pause_sim = not pause_sim
+			Audio.play("menu_mover")
+		if pressed("back") or (confirm() and not pause_sim):
+			pause_conf = -1
+			Audio.play("menu_voltar")
+		elif confirm():
+			var k := pause_conf
+			pause_conf = -1
+			_pausa_executa(k)
+		return
+	var v := move_v()
+	if v != 0:
+		Audio.play("menu_mover")
+	pause_sel = posmod(pause_sel + v, PAUSE_ITEMS.size())
 	if pressed("back"):
 		main.paused = false
 	elif confirm():
-		match pause_sel:
-			0: main.paused = false
-			1:
-				main.paused = false
-				main.start_match()
-			2:
-				main.paused = false
-				main.go_menu()
+		Audio.play("menu_ok")
+		if pause_sel == 0:
+			main.paused = false
+		else:
+			pause_conf = pause_sel
+			pause_sim = false
+
+func _pausa_executa(k: int) -> void:
+	main.paused = false
+	Audio.play("menu_ok")
+	match k:
+		1: main.start_match()
+		2: main.resultado_escolhe(1)   # configurar mapa
+		3: main.resultado_escolhe(2)   # selecionar mapa
+		4: main.go_menu()
 
 # ---------------------------------------------------------------- desenho
 func draw(ci: CanvasItem) -> void:
@@ -638,17 +663,76 @@ func _draw_options(ci: CanvasItem) -> void:
 func _bar(v: int) -> String:
 	return "■".repeat(v) + "□".repeat(10 - v)
 
+## Pausa nova (prancha art/out/recompensas/r4_pausa.png): placas na viga da grua + prancheta com a partida em andamento.
 func _draw_pause(ci: CanvasItem) -> void:
-	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.1, 0.25, 0.3, 0.55))
-	Kit.ribbon(ci, Rect2(610, 180, 700, 128), "PAUSA", 64)
-	if not main.lost_pads.is_empty():
-		var r := Rect2(460, 40, 1000, 120)
-		Kit.paper(ci, r, Color(1, 0.86, 0.82))
-		var who := ", ".join(main.lost_pads.map(func(i): return "P%d" % (i + 1)))
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 52), "CONTROLE DESCONECTADO: %s" % who, 38, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 94), "Reconecte (USB ou Bluetooth) ou aperte START em outro controle", 24, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.1, 0.22, 0.27, 0.62))
+	ci.draw_line(Vector2(700, -4), Vector2(700, 120), Color("#4a4f5c"), 5.0)
+	var vg := Rect2(420, 120, 560, 50)
+	ci.draw_rect(vg, Color("#3a3f4a"))
+	ci.draw_rect(Rect2(vg.position + Vector2(0, 14), Vector2(vg.size.x, 20)), Color("#4a5060"))
+	for k in 8:
+		ci.draw_circle(vg.position + Vector2(30 + k * 71, 25), 5.0, Color("#6b7380"))
+	Obra.corrente(ci, 520, vg.end.y - 4, 196)
+	Obra.corrente(ci, 880, vg.end.y - 4, 196)
+	Obra.placa(ci, Vector2(700, 190), 520, 110, "PAUSA", true, 0.0, 54)
+	var y := 340.0
+	var prev := 290.0
 	for i in PAUSE_ITEMS.size():
-		_button(ci, Rect2(610, 380 + i * 140, 700, 100), PAUSE_ITEMS[i], pause_sel == i)
+		var on := pause_sel == i
+		var w := 500.0 if on else 440.0
+		var h := 96.0 if on else 80.0
+		Obra.corrente(ci, 700 - w / 2.0 + 40, prev, y + 8)
+		Obra.corrente(ci, 700 + w / 2.0 - 40, prev, y + 8)
+		Obra.placa(ci, Vector2(700, y), w, h, PAUSE_ITEMS[i], on, (sin(t * 3.0) * 0.03) if on else 0.0, 40 if on else 34)
+		prev = y + h - 10.0
+		y += h + 30.0
+	# prancheta: a partida em andamento
+	var folha := Obra.prancheta(ci, Rect2(1120, 220, 640, 620), "PARTIDA", Color("#e0841e"))
+	var et = main.demo.etapas if main.demo != null else null
+	var lid := String(main.level.id)
+	var mf: Dictionary = MapaReg.manifesto(main.game_mode, lid)
+	var cena := "—"
+	if et != null and is_instance_valid(et):
+		cena = String(MapaReg.cena(main.game_mode, lid, et.etapa).get("nome", "—"))
+	var lt := int(main.demo.luta_t) if main.demo != null else 0
+	var n_eng: int = main.spells_on.values().filter(func(x): return x).size() if main.spells_mapa == main.arena_choice else 0
+	var evs: Array = main.selecao.eventos_do_mapa() if not mf.is_empty() else []
+	var n_ev: int = evs.filter(func(id): return main.events.enabled.get(id, true)).size()
+	var rows := [["Mapa", String(mf.get("nome", lid))], ["Cena", cena], ["Tempo de luta", "%d:%02d" % [lt / 60, lt % 60]],
+		["Engenhocas", ("%d ligadas" % n_eng) if n_eng > 0 else "todas"], ["Eventos", "%d · %s" % [n_ev, EVENT_LEVELS[main.event_level].to_lower()]]]
+	for i in rows.size():
+		var yy := folha.position.y + 52 + i * 62
+		Kit.text(ci, Vector2(folha.position.x + 22, yy), rows[i][0], 26, Kit.SOFT)
+		Kit.text(ci, Vector2(folha.position.x, yy), rows[i][1], 28, Kit.INK, HORIZONTAL_ALIGNMENT_RIGHT, folha.size.x - 22)
+	var vmax: int = maxi(main.demo.lives_setting, 1) if main.demo != null else 4
+	for i in main.players.size():
+		var x: float = folha.position.x + 30 + i * 145
+		Obra.chip(ci, Vector2(x, folha.position.y + 380), i + 1)
+		var vivas := int(main.demo.lives.get(i, 0)) if main.demo != null else 0
+		for k in mini(vmax, 6):
+			var c := Vector2(x + 10 + k * 22, folha.position.y + 450)
+			ci.draw_circle(c, 9.0, Color("#e5484d") if k < vivas else Color("#d9d2c4"))
+			ci.draw_arc(c, 9.0, 0.0, TAU, 16, Kit.INK, 3.0)
+	ci.draw_style_box(Obra._sb(Color("#fbe3dc"), 12, 4), Rect2(1140, 870, 600, 70))
+	Kit.text(ci, Vector2(1140, 898), "Reiniciar / Configurar / Selecionar / Menu: abandona a luta", 19, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, 600)
+	Kit.text(ci, Vector2(1140, 924), "(sem gangorra e sem Projetos) — pede confirmação", 19, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, 600)
+	if not main.lost_pads.is_empty():
+		var r := Rect2(460, 10, 1000, 100)
+		ci.draw_style_box(Obra._sb(Color(1, 0.86, 0.82), 12, 5), r)
+		var who := ", ".join(main.lost_pads.map(func(i): return "P%d" % (i + 1)))
+		Kit.text(ci, Vector2(r.position.x, r.position.y + 46), "CONTROLE DESCONECTADO: %s" % who, 34, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		Kit.text(ci, Vector2(r.position.x, r.position.y + 82), "Reconecte (USB ou Bluetooth) ou aperte START em outro controle", 22, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	Obra.dica(ci, "▲▼ escolher  ·  PULAR confirmar  ·  START volta à luta")
+	if pause_conf >= 0:   # "tem certeza?" (A26)
+		ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(Kit.INK, 0.45))
+		var r2 := Rect2(560, 360, 800, 330)
+		Obra.quadro(ci, r2)
+		ci.draw_style_box(Obra._sb(Obra.CREAM, 8, 4), r2.grow(-22))
+		Kit.text(ci, Vector2(r2.position.x, r2.position.y + 92), PAUSE_ITEMS[pause_conf] + "?", 44, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, r2.size.x)
+		Kit.text(ci, Vector2(r2.position.x, r2.position.y + 140), "A luta atual é abandonada (não conta para", 24, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, r2.size.x)
+		Kit.text(ci, Vector2(r2.position.x, r2.position.y + 172), "a gangorra nem para os Projetos).", 24, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, r2.size.x)
+		Obra.placa(ci, Vector2(r2.position.x + 230, r2.position.y + 210), 260.0 if not pause_sim else 220.0, 80, "NÃO", not pause_sim, 0.0, 38)
+		Obra.placa(ci, Vector2(r2.position.x + 570, r2.position.y + 210), 260.0 if pause_sim else 220.0, 80, "SIM, SAIR", pause_sim, 0.0, 34)
 
 # ---------------------------------------------------------------- testar controles
 var pad_prev := {}   # joy -> {botão: bool} (bordas para vibrar e sair)

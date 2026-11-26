@@ -108,6 +108,7 @@ func _ready() -> void:
 	menus = Menus.new()
 	menus.setup(self)
 	selecao.setup(self)
+	fim.setup(self)
 	perfil.carregar()
 	add_child(menus)
 	lab = Laboratorio.new()
@@ -331,7 +332,7 @@ func _physics_process(dt: float) -> void:
 		S.WIN:
 			res_t += dt
 			if demo.partida_unica():
-				_resultados_update()
+				_resultados_update(dt)
 			elif menus.pressed("back"):
 				go_menu()
 			else:
@@ -644,6 +645,10 @@ var perfil := preload("res://modes/perfil.gd").new()   # perfil salvo local (D4)
 var res_info := {}   # gangorra/Projetos da última partida (tela de resultados)
 var res_t := 0.0     # tempo na tela de resultados (animação da agulha)
 const RES_OPCOES := ["JOGAR DE NOVO", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MENU PRINCIPAL"]
+var fim := preload("res://ui/fim.gd").new()   # telas do fim: gangorra → Projetos → resultados (pranchas r1–r3)
+var res_fase := "resultados"   # "gangorra" | "projetos" | "resultados"
+var res_crono := 0.0           # cronômetro dos resultados (A25: 15 s; mexer reinicia; zerou = vale a opção marcada)
+const RES_ESPERA := 3.0        # depois da animação, a tela de recompensa segue sozinha após este tempo
 
 func start_match() -> void:
 	lost_pads.clear()
@@ -656,7 +661,7 @@ func start_match() -> void:
 	for p in players:
 		if not estrelas_da_sessao():
 			p["score"] = 0
-		p["stats"] = {"derrubadas": 0, "caixotes": 0, "quedas": 0}
+		p["stats"] = {"derrubadas": 0, "caixotes": 0, "quedas": 0, "engenhocas": 0, "golpes": 0}
 	match_over = false
 	round_no = 0
 	winner = -1
@@ -818,20 +823,54 @@ func danger_near(r: CharacterBody2D) -> bool:
 	return false
 
 # ---------------------------------------------------------------- resultados (Derruba v2, A7)
-func _resultados_update() -> void:
+func _resultados_update(dt: float) -> void:
+	var apertou := false
+	var mexeu := 0
 	for i in players.size():
 		if players[i].get("bot", false):
 			continue
-		if PlayerInput.pressed(i, "up"):
-			res_sel = posmod(res_sel - 1, RES_OPCOES.size())
-			Audio.play("menu_mover")
+		if PlayerInput.pressed(i, "jump") or PlayerInput.pressed(i, "start"):
+			apertou = true
+		elif PlayerInput.pressed(i, "up"):
+			mexeu = -1
 		elif PlayerInput.pressed(i, "down"):
-			res_sel = posmod(res_sel + 1, RES_OPCOES.size())
-			Audio.play("menu_mover")
-		elif PlayerInput.pressed(i, "jump") or PlayerInput.pressed(i, "start"):
+			mexeu = 1
+	if res_fase != "resultados":
+		var dur: float = fim.duracao(res_fase)
+		if apertou:
 			Audio.play("menu_ok")
-			resultado_escolhe(res_sel)
-			return
+			if res_t < dur:
+				res_t = dur   # 1º aperto: pula a animação
+			else:
+				_proxima_fase_fim()
+		elif res_t >= dur + RES_ESPERA:
+			_proxima_fase_fim()
+		return
+	if mexeu != 0:
+		res_sel = posmod(res_sel + mexeu, RES_OPCOES.size())
+		res_crono = fim.cronometro_s()   # mexer reinicia o relógio (A25)
+		Audio.play("menu_mover")
+	elif apertou:
+		Audio.play("menu_ok")
+		resultado_escolhe(res_sel)
+		return
+	res_crono -= dt
+	if res_crono <= 0.0:
+		resultado_escolhe(res_sel)
+
+## Gangorra → Projetos → Resultados. Luta que não vale: só a tela "NÃO CONTOU" (A24) e os resultados.
+func _proxima_fase_fim() -> void:
+	if res_fase == "gangorra" and not res_info.is_empty() and res_info["valida"]:
+		res_fase = "projetos"
+	else:
+		res_fase = "resultados"
+		res_crono = fim.cronometro_s()
+	res_t = 0.0
+
+## Estatística do jogador (quadro dos resultados).
+func add_stat(pid: int, key: String, n := 1) -> void:
+	if pid >= 0 and pid < players.size() and players[pid].has("stats"):
+		players[pid]["stats"][key] = int(players[pid]["stats"].get(key, 0)) + n
 
 func resultado_escolhe(k: int) -> void:
 	match k:
@@ -861,6 +900,8 @@ func _after_score() -> void:
 			var mc: Dictionary = MapaReg.modo_cfg("derruba")
 			res_info = perfil.fim_de_partida(String(level.id), ids, et.progresso, demo.luta_t, winner >= 0,
 				mc.get("progressao", {}), mc.get("destruicao", {}).get("mostrador", [0.1, 0.9]))
+		res_fase = "gangorra" if not res_info.is_empty() else "resultados"
+		res_crono = fim.cronometro_s()
 		_clear_robots()
 	else:
 		_demo_next_round()

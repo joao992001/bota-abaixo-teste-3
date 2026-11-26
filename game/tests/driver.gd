@@ -581,10 +581,17 @@ func menus_test() -> void:
 	var bx: Vector2 = main.robots[1].position
 	await frames(30)
 	check(main.robots[1].position == bx, "na pausa, ninguém se mexe")
-	await tap("v0", "down")
-	await tap("v0", "down")
+	check(main.menus.PAUSE_ITEMS.size() == 5 and "CONFIGURAR MAPA" in main.menus.PAUSE_ITEMS and "SELECIONAR MAPA" in main.menus.PAUSE_ITEMS, "pausa com Configurar e Selecionar mapa (A23)")
+	for k in 4:
+		await tap("v0", "down")
 	await tap("v0", "jump")
-	check(main.state == S.MENU and not main.paused, "pausa → MENU PRINCIPAL")
+	check(main.paused and main.menus.pause_conf == 4 and main.state == S.RUN, "MENU PRINCIPAL pede confirmação (A26)")
+	await tap("v0", "jump")
+	check(main.paused and main.menus.pause_conf == -1, "NÃO (padrão) volta para a pausa")
+	await tap("v0", "jump")
+	await tap("v0", "right")
+	await tap("v0", "jump")
+	check(main.state == S.MENU and not main.paused, "pausa → MENU PRINCIPAL → SIM, SAIR")
 	main.menus.sel = 0
 	for k in 3:
 		await tap("v0", "down")
@@ -1939,7 +1946,16 @@ func resultados_test() -> void:
 	check(main.demo.ranking() == [0, 1, 2], "ranking pela ordem de eliminação (%s)" % str(main.demo.ranking()))
 	check(int(main.players[0]["score"]) == 1, "estrela para o vencedor")
 	check(not main.res_info.is_empty() and not main.res_info["valida"] and main.res_info["pontos"] == 0, "luta de poucos segundos: não conta para gangorra nem Projetos")
+	check(main.res_fase == "gangorra", "fim: abre a tela da gangorra (luta curta = carimbo NÃO CONTOU, A24)")
 	await frames(10)
+	await tap("v0", "jump")   # pula a animação
+	await tap("v0", "jump")   # segue
+	check(main.res_fase == "resultados" and main.res_crono > main.fim.cronometro_s() - 0.5, "luta que não vale: pula os Projetos e vai aos resultados com o relógio cheio (%.0f s)" % main.res_crono)
+	await frames(30)
+	var cr: float = main.res_crono
+	await tap("v0", "down")
+	check(main.res_sel == 1 and main.res_crono > cr, "mexer na escolha reinicia o relógio (A25)")
+	await tap("v0", "up")
 	await tap("v0", "jump")   # JOGAR DE NOVO (opção 0)
 	await frames(5)
 	check(main.state == S.RUN and int(main.players[0]["score"]) == 1 and main.demo.etapas.etapa == 1, "Jogar de novo: mesmo mapa, cena inicial, estrelas somam (%d ★)" % int(main.players[0]["score"]))
@@ -1954,13 +1970,26 @@ func resultados_test() -> void:
 		await frames(1)
 		w += 1
 	check(main.winner == 2 and int(main.players[2]["score"]) == 1 and int(main.players[0]["score"]) == 1, "segunda luta: P3 ganha a estrela dele, P1 mantém a sua")
+	main.players[2]["stats"]["engenhocas"] = 4
+	check(main.fim.titulo_de(2) != "" or int(main.players[2]["stats"]["derrubadas"]) == 0, "título do jogador vem das estatísticas (%s)" % main.fim.titulo_de(2))
 	await frames(10)
+	await tap("v0", "jump")
+	await tap("v0", "jump")
 	for k in 3:
 		await tap("v0", "down")
 	check(main.res_sel == 3, "▼ escolhe MENU PRINCIPAL")
-	await tap("v0", "jump")
-	await frames(3)
-	check(main.state == S.MENU and main.players.is_empty(), "Menu principal: volta ao menu e as estrelas zeram")
+	main.res_crono = 0.05
+	await frames(10)
+	check(main.state == S.MENU and main.players.is_empty(), "relógio zerou: vale a opção marcada (Menu principal; estrelas zeram)")
+	# luta que vale: gangorra → Projetos → resultados; estatísticas novas existem
+	main.res_info = {"valida": true, "zona": 4, "antes": 0, "depois": 35, "delta": 35, "premio": "", "novas": ["terreo"], "pontos": 3, "total": 3, "por_mapa": 6}
+	main.res_fase = "gangorra"
+	main._proxima_fase_fim()
+	check(main.res_fase == "projetos" and main.fim._linhas().size() == 2, "luta válida: gangorra → PROJETOS (1 linha por ganho: partida + cena nova)")
+	main._proxima_fase_fim()
+	check(main.res_fase == "resultados", "Projetos → RESULTADOS")
+	check(main.fim.duracao("projetos") > main.fim.duracao("gangorra") * 0.5, "telas de recompensa têm animação com duração")
+	main.res_info = {}
 
 ## Derruba v2 (D3): telas de seleção de spells e eventos (mosaico). --so=selecao
 func selecao_test() -> void:
@@ -1969,8 +1998,7 @@ func selecao_test() -> void:
 	main.menus.sel = 0
 	PlayerInput.virtual = {"v0": {}, "v1": {}}
 	await frames(2)
-	await tap("v0", "jump")
-	await tap("v0", "jump")   # MODOS → DERRUBA
+	await tap("v0", "jump")   # JOGAR → mapas (A22)
 	check(main.state == S.ARENAS, "chega às arenas do Derruba")
 	main.menus.arena_sel = 1
 	var spells_partida = main.demo.spells
@@ -4329,16 +4357,45 @@ func menus_frames(dir: String) -> void:
 	main.paused = true
 	await frames(5)
 	await snap(dir, "m8_pausa")
+	main.menus.pause_conf = 4
+	await frames(3)
+	await snap(dir, "m8b_pausa_confirma")
+	main.menus.pause_conf = -1
 	main.paused = false
 	main.kill(main.robots[1], -1, null)
 	main.kill(main.robots[2], -1, null)
 	await frames(110)
 	await snap(dir, "m9_placar")
 	main.winner = 0
+	main.res_fase = "resultados"
+	main.res_crono = 15.0
 	main.state = S.WIN
 	main._clear_robots()
 	await frames(30)
 	await snap(dir, "m10_vitoria")
+	# telas do fim (pranchas r1–r3) com um resultado de exemplo: +35 na gangorra, 2 cenas novas
+	main.players[0]["stats"] = {"derrubadas": 5, "caixotes": 12, "quedas": 0, "engenhocas": 3, "golpes": 41}
+	main.players[1]["stats"] = {"derrubadas": 3, "caixotes": 20, "quedas": 1, "engenhocas": 2, "golpes": 33}
+	main.players[2]["stats"] = {"derrubadas": 1, "caixotes": 6, "quedas": 3, "engenhocas": 5, "golpes": 18}
+	main.res_info = {"valida": true, "zona": 4, "antes": 40, "depois": 75, "delta": 35, "premio": "", "novas": ["terreo", "fachada"],
+		"pontos": 5, "total": 5, "por_mapa": 6}
+	for st in [["g1", "gangorra", 0.3], ["g2", "gangorra", 1.2], ["g3", "gangorra", 2.3], ["g4", "gangorra", 3.8], ["p1", "projetos", 1.6], ["p2", "projetos", 6.0], ["r", "resultados", 0.0]]:
+		main.state = S.WIN
+		main.res_fase = st[1]
+		main.res_t = st[2]
+		main.res_crono = 9.0
+		await frames(1)
+		await snap(dir, "m11_fim_" + st[0])
+	main.res_info["valida"] = false
+	main.res_fase = "gangorra"
+	main.res_t = 0.5
+	await frames(1)
+	await snap(dir, "m11_fim_nao_contou")
+	main.res_info = {"valida": true, "zona": 5, "antes": 40, "depois": 100, "delta": 75, "premio": "skin", "novas": [], "pontos": 1, "total": 6, "por_mapa": 6}
+	main.res_fase = "gangorra"
+	main.res_t = 4.4
+	await frames(1)
+	await snap(dir, "m11_fim_premio")
 
 func arena_round(id: String) -> void:
 	main.arena_choice = id

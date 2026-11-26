@@ -356,7 +356,11 @@ func _spend(r, s: Dictionary) -> void:
 	if s["charges"] <= 0:
 		s["empty_t"] = 0.35   # some do slot depois da animação de recolher
 
+var _uso := [-1, -1]   # [pid, quadro] do último use(): _fail no mesmo quadro desconta a engenhoca
 func _fail(r, text: String) -> void:
+	if _uso[0] == r.pid and _uso[1] == Engine.get_physics_frames():
+		main.add_stat(r.pid, "engenhocas", -1)
+		_uso = [-1, -1]
 	feedback.append({"pos": r.position + Vector2(0, -120), "text": text, "t": 0.0})
 	Audio.play("menu_negado", 1.0, -6.0)
 
@@ -474,6 +478,8 @@ func use(r) -> void:
 		return
 	var c: Dictionary = sc(s["id"])
 	_set_aim(r, s, aim_vec(r))
+	main.add_stat(r.pid, "engenhocas")   # estatística dos resultados (desfeita em _fail se não deu para usar)
+	_uso = [r.pid, Engine.get_physics_frames()]
 	match s["id"]:
 		"A01", "A03", "A02", "A08":
 			s["prep"] = 0.0

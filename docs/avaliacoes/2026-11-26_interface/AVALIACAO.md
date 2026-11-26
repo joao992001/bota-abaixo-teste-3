@@ -1,4 +1,4 @@
-# Avaliação do usuário — interface "Canteiro vivo" (2026-11-26) · PENDENTE (usuário pediu para guardar)
+# Avaliação do usuário — interface "Canteiro vivo" (2026-11-26) · FEITA (2026-11-26, sessão 2: itens 1–4 direto; 5–7 por pranchas `art/out/recompensas/` aprovadas, A22–A26)
 
 1. **Menu:** o logo BOTA-ABAIXO fica por cima/colado na placa JOGAR (e o cabo da grua cruza o logo) → separar.
 2. **Modos:** tirar Batata-Dinamite, Rei da Obra e Fuga (não existem mais); deixar só DERRUBA, no padrão visual novo.

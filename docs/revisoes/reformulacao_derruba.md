@@ -31,6 +31,9 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A21 | Interface "Canteiro vivo" (2026-11-26): ajustes em ETAPAS OBRIGATÓRIAS 1 Engenhocas → 2 Eventos → 3 Vidas → 4 Jogadores → 5 Detonar (entrada de jogadores vira etapa); menu com placas EM COLUNA; abertura com robô SORTEADO marretando; etapa 2 se chama EVENTOS. |
 | A22 | **Tela de MODOS pulada** enquanto só o Derruba existir: JOGAR vai direto aos mapas (2026-11-26). Batata/Rei/Fuga ficam fora da interface (dados mantidos). |
 | A23 | **Pausa** = Continuar · Reiniciar · Configurar mapa · Selecionar mapa · Menu principal (2026-11-26). Mapas = igual à prancha `6_referencia_mapas_preferida.png` (sempre 4 cartazes; os que faltam aparecem BLOQUEADOS com lona/cadeado). |
+| A24 | Fim da partida (pranchas `art/out/recompensas/r1–r3` aprovadas 2026-11-26): GANGORRA e PROJETOS em telas próprias animadas antes dos resultados. Luta que não vale (curta ou sem vencedor) mostra o carimbo **NÃO CONTOU** (uma tela) e vai aos resultados. |
+| A25 | Resultados: estatísticas por jogador (derrubou, caiu sozinho, caixotes, engenhocas, golpes) e **cronômetro de 15 s**; mexer na escolha **reinicia** o relógio; zerou = vale a opção marcada. |
+| A26 | Pausa: sair da luta (reiniciar, configurar, selecionar, menu) **pede confirmação**; sair no meio não conta para gangorra nem Projetos. |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
 | A14 | **EVENTO × PERIGO DA CENA (2026-11-26):** evento é **do mapa** e selecionável; tem de acontecer em **todas as cenas** do mapa (ex.: um terremoto vale nas 3). O que é específico de uma cena é **perigo/mecanismo da cena** (ex.: a enchente da Fundação, a serra do Térreo), não evento. Os antigos `V#` viram perigos da cena. |
 | A15 | Spells na tela de seleção: **mínimo 4, sem máximo** (2026-11-26). |

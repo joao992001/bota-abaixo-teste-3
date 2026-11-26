@@ -487,6 +487,7 @@ func attack(r, kind: String) -> bool:
 			main.spark(o.rect().get_center(), 9 if heavy else 4)
 			main.shake((7.0 if heavy else 2.5) * mult)
 			main.impact_fx(o.rect().get_center() + Vector2(-r.facing * 10, 0), r.facing, 1.0 if heavy else 0.3)
+			main.add_stat(r.pid, "golpes")
 			hit_robot = true
 	var struct_hit := false
 	if fx != null and is_instance_valid(fx) and fx.hammer_hit(r, hit.grow(8), heavy):
