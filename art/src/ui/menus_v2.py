@@ -128,7 +128,7 @@ def tela_menu():
         b.append(corrente(cx + w / 2 - 40, y - 30 if i else 202, y))
         b.append(placa(cx, y, w, h, t, sel, rot=(-3.5 if sel else (1.2 if i % 2 else -1.0))))
         if sel:
-            b.append(pow_(cx + w / 2 + 20, y + 40, 0.9))
+            b.append(pow_(cx + w / 2 + 70, y + 64, 0.8))
         y += h + 30
     b.append(logo(60, 40, 760))
     b.append(elenco(880, [("marretao", "pesado_prep", 0, False), ("picareta", "parado", 1, False), ("chave", "rapido", 2, True),
@@ -189,17 +189,20 @@ def tela_mapas():
     b.append(f'<path d="M960,0 V58" stroke="#4a4f5c" stroke-width="5"/>' + corrente(820, 58, 74) + corrente(1100, 58, 74))
     b.append(placa(960, 70, 560, 96, "ESCOLHA O MAPA", True))
     thumb = Image.open(os.path.join(ROOT, "game/assets/ui/arena_canteiro_obras.png")).convert("RGB")
-    b.append(cartaz(130, 260, 560, 560, "CANTEIRO DE OBRAS", thumb, [("TÉRREO", True), ("FUNDAÇÃO", True), ("FACHADA", False)], sel=True))
-    b.append(chip(110, 220))
-    b.append(cartaz(800, 300, 430, 500, "? ? ?", bloqueado=True))
-    b.append(cartaz(1330, 300, 430, 500, "? ? ?", bloqueado=True))
+    b.append(cartaz(70, 300, 380, 500, "SORTEIO"))
+    b.append(f'<rect x="92" y="322" width="336" height="290" rx="6" fill="#9fe3ee" stroke="{INK}" stroke-width="4"/>' + ec.title(260, 520, "?", 200, YEL))
+    b.append(ec.T(260, 760, "a grua escolhe por você", 22, "#6b5a70", w=600))
+    b.append(cartaz(520, 260, 560, 560, "CANTEIRO DE OBRAS", thumb, [("TÉRREO", True), ("FUNDAÇÃO", True), ("FACHADA", False)], sel=True))
+    b.append(chip(500, 220))
+    b.append(cartaz(1150, 300, 330, 500, "? ? ?", bloqueado=True))
+    b.append(cartaz(1540, 300, 330, 500, "? ? ?", bloqueado=True))
     # régua de obra pintada no tapume = Projetos de Demolição
-    b.append(fp.R(800, 830, 960, 74, "#f6eedb", 6, 1.4) + f'<rect x="800" y="830" width="960" height="74" rx="6" fill="none" stroke="{INK}" stroke-width="4"/>')
-    b.append(ec.T(830, 878, "PROJETOS DE DEMOLIÇÃO", 26, INK, "start"))
+    b.append(fp.R(1150, 830, 620, 74, "#f6eedb", 6, 1.4) + f'<rect x="1150" y="830" width="620" height="74" rx="6" fill="none" stroke="{INK}" stroke-width="4"/>')
+    b.append(ec.T(1170, 864, "PROJETOS DE", 20, INK, "start") + ec.T(1170, 890, "DEMOLIÇÃO", 20, INK, "start"))
     for k in range(6):
         col = "#d42035" if k % 2 == 0 else "#ffffff"
-        b.append(f'<rect x="{1220 + k * 80}" y="846" width="80" height="42" fill="{col if k < 4 else "#e2d9c6"}" stroke="{INK}" stroke-width="3"/>')
-    b.append(ec.T(1700, 878, "4/6", 26, INK))
+        b.append(f'<rect x="{1330 + k * 62}" y="846" width="62" height="42" fill="{col if k < 4 else "#e2d9c6"}" stroke="{INK}" stroke-width="3"/>')
+    b.append(ec.T(1728, 878, "4/6", 24, INK))
     b.append(elenco(930, [("picareta", "rapido", 1, False), ("marretao", "parado", 0, True)], [60, 1860], 1.4))
     b.append(plaquinha_dica("◄► escolher  ·  PULAR confirmar  ·  ESC voltar"))
     n = ec.notes("MAPAS — cartazes presos num tapume de obra (proposta)", [
@@ -208,62 +211,143 @@ def tela_mapas():
         ("PROPOSTA", "Mapa bloqueado = coberto por lona azul, corrente e cadeado."),
         ("PROPOSTA", "Projetos de Demolição = régua de obra (vermelho/branco) pintada no tapume."),
         ("PROPOSTA", "Título = placa pendurada no cabo da grua (mesma linguagem do menu)."),
-        ("PROPOSTA", "O SORTEIO vira um cartaz “?” coberto por lona que a grua puxa ao escolher."),
+        ("PROPOSTA", "SORTEIO = cartaz “?”: a grua escolhe o mapa e segue para a configuração dele."),
     ])
     return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=12, scale=0.6, freq=0.05))
 
 
+def estencil(x, y, txt, size, col=INK, anchor="middle"):
+    """Letra de estêncil de obra (pintada com molde): cor chapada + falhas do molde."""
+    return (f'<text x="{x}" y="{y}" font-family="Fredoka" font-weight="700" font-size="{size}" fill="{col}" text-anchor="{anchor}" '
+            f'letter-spacing="{size * 0.04:.1f}">{txt}</text>')
+
+
+def prancheta(x, y, w, h, titulo, cor, sel=False):
+    """Prancheta de obra: base de compensado, folha creme, prendedor de metal e faixa colorida do título."""
+    b = []
+    if sel:
+        b.append(f'<rect x="{x - 16}" y="{y - 16}" width="{w + 32}" height="{h + 32}" rx="22" fill="{YEL}" stroke="{INK}" stroke-width="6"/>')
+    b.append(f'<rect x="{x + 8}" y="{y + 12}" width="{w}" height="{h}" rx="16" fill="{INK}" opacity="0.4"/>')
+    b.append(fp.R(x, y, w, h, "#b57a3e", 14, 2.0, dark="#8a5a2b"))
+    b.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14" fill="none" stroke="{INK}" stroke-width="6"/>')
+    b.append(fp.R(x + 18, y + 30, w - 36, h - 48, CREAM, 6, 1.4, dark="#e9dcc0"))
+    b.append(f'<rect x="{x + 18}" y="{y + 30}" width="{w - 36}" height="62" fill="{cor}"/>')
+    b.append(f'<rect x="{x + 18}" y="{y + 30}" width="{w - 36}" height="{h - 48}" rx="6" fill="none" stroke="{INK}" stroke-width="4"/>')
+    b.append(estencil(x + w / 2, y + 76, titulo, 34, "#ffffff"))
+    cx = x + w / 2   # prendedor
+    b.append(f'<rect x="{cx - 70}" y="{y - 10}" width="140" height="40" rx="10" fill="#9aa3ad" stroke="{INK}" stroke-width="5"/>'
+             f'<rect x="{cx - 40}" y="{y - 24}" width="80" height="22" rx="8" fill="#c9d1d8" stroke="{INK}" stroke-width="4"/>')
+    return "".join(b)
+
+
+def seta_aba(x, y, d):
+    """Botão de metal redondo com seta (◄ ►) para mudar o valor."""
+    pts = f"{x - 9 * d},{y - 15} {x + 13 * d},{y} {x - 9 * d},{y + 15}"
+    return (f'<circle cx="{x}" cy="{y}" r="27" fill="#4a5060" stroke="{INK}" stroke-width="4"/>'
+            f'<polygon points="{pts}" fill="{YEL}" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>')
+
+
+def capacete(cx, cy, s, aceso):
+    col = YEL if aceso else "#cfc8b8"
+    sh = "#c49a2a" if aceso else "#a9a293"
+    return (f'<path d="M{cx - 40 * s},{cy} C{cx - 40 * s},{cy - 56 * s} {cx + 40 * s},{cy - 56 * s} {cx + 40 * s},{cy} Z" fill="{col}" stroke="{INK}" stroke-width="5"/>'
+            f'<path d="M{cx - 6 * s},{cy - 40 * s} h12 v40 h-12z" fill="{sh}"/>'
+            f'<rect x="{cx - 52 * s}" y="{cy - 6}" width="{104 * s}" height="14" rx="7" fill="{col}" stroke="{INK}" stroke-width="5"/>')
+
+
 def tela_ajustes():
-    b = [fundo(0.15), chao(930)]
-    # quadro de avisos de compensado em dois cavaletes
-    b.append(f'<path d="M520,930 L600,760 M1400,930 L1320,760" stroke="#8a5a2b" stroke-width="18"/>')
-    b.append(fp.R(380, 150, 1160, 680, "#c98a4b", 10, 2.6, dark="#a46a35"))
-    b.append(f'<rect x="380" y="150" width="1160" height="680" rx="10" fill="none" stroke="{INK}" stroke-width="7"/>')
-    for k in range(5):
-        b.append(f'<path d="M{400 + k * 230},170 l40,640" stroke="#b57a3e" stroke-width="3" opacity="0.6"/>')
-    b.append(placa(960, 60, 640, 96, "AJUSTES DA PARTIDA", True))
-    b.append(corrente(700, 30, 60) + corrente(1220, 30, 60))
-    # fichas presas no quadro
-    def ficha(x, y, w, h, titulo, sel=False):
-        s = ""
-        if sel:
-            s += f'<rect x="{x - 12}" y="{y - 12}" width="{w + 24}" height="{h + 24}" rx="12" fill="{YEL}" stroke="{INK}" stroke-width="5"/>'
-        s += fp.R(x, y, w, h, CREAM, 6, 1.4) + f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" fill="none" stroke="{INK}" stroke-width="4"/>'
-        s += f'<circle cx="{x + w / 2}" cy="{y + 4}" r="10" fill="#d42035" stroke="{INK}" stroke-width="3"/>'   # tachinha
-        s += ec.T(x + 24, y + 48, titulo, 28, INK, "start")
-        return s
-    b.append(ficha(440, 210, 500, 250, "VIDAS", True))
-    for k in range(6):   # capacetes = vidas
-        cx = 500 + k * 72
-        cy = 380
-        col = "#f2c84b" if k < 4 else "#c9c2b2"
-        b.append(f'<path d="M{cx - 28},{cy} C{cx - 28},{cy - 36} {cx + 28},{cy - 36} {cx + 28},{cy} Z" fill="{col}" stroke="{INK}" stroke-width="4"/>'
-                 f'<rect x="{cx - 34}" y="{cy - 4}" width="68" height="9" rx="4" fill="{col}" stroke="{INK}" stroke-width="4"/>')
-    b.append(ec.T(690, 440, "◄  4 vidas  ►", 26, "#6b5a70", w=600))
-    b.append(chip(410, 175))
-    b.append(ficha(980, 210, 500, 250, "EVENTOS"))
-    cx, cy = 1230, 360   # sirene com mostrador de intensidade
-    for k, lab in enumerate(["DESL.", "BAIXA", "NORMAL", "ALTA"]):
-        a = math.radians(200 + k * 46.6)
-        b.append(ec.T(cx + math.cos(a) * 130, cy + math.sin(a) * 90 + 10, lab, 17, INK if lab != "NORMAL" else "#d42035"))
-    b.append(f'<path d="M{cx - 40},{cy + 30} v-30 a40,40 0 0 1 80,0 v30z" fill="#e8483f" stroke="{INK}" stroke-width="4"/><rect x="{cx - 52}" y="{cy + 28}" width="104" height="18" fill="#4a4f5c"/>')
-    b.append(ficha(440, 500, 500, 280, "SPELLS NAS CAIXAS"))
-    b.append(f'<rect x="590" y="600" width="200" height="120" rx="16" fill="#4a4f5c" stroke="{INK}" stroke-width="5"/><rect x="610" y="620" width="70" height="80" rx="10" fill="#5fc95f" stroke="{INK}" stroke-width="4"/>')
-    b.append(ec.T(735, 672, "LIGA", 26, "#ffffff"))
-    b.append(ficha(980, 500, 500, 280, ""))
-    b.append(f'<ellipse cx="1230" cy="700" rx="140" ry="40" fill="#3a3f4a"/><ellipse cx="1230" cy="670" rx="120" ry="60" fill="#d42035" stroke="{INK}" stroke-width="6"/>')
-    b.append(ec.T(1230, 600, "INICIAR DEMOLIÇÃO", 30, INK))
-    b.append(elenco(930, [("chave", "parado", 2, False), ("britadeira", "rapido", 3, True)], [180, 1720], 1.5))
-    b.append(plaquinha_dica("▲▼◄► escolher  ·  PULAR muda  ·  START inicia  ·  ESC voltar"))
-    n = ec.notes("AJUSTES — quadro de avisos de compensado nos cavaletes (proposta)", [
-        ("PROPOSTA", "Cada ajuste é uma ficha presa com tachinha; a escolhida ganha moldura amarela."),
-        ("PROPOSTA", "Vidas = capacetes acesos (3 a 6); Eventos = sirene com mostrador de intensidade."),
-        ("PROPOSTA", "Spells nas caixas = chave industrial LIGA/DESLIGA."),
-        ("PROPOSTA", "Começar = botão vermelho “INICIAR DEMOLIÇÃO” (aperta com som e tremor)."),
-        ("PROPOSTA", "Spells e Eventos (mosaicos) ganham o mesmo fundo de obra e a placa de título."),
-        ("PROPOSTA", "Entrada de jogadores e resultados seguem a mesma linguagem (próximas pranchas)."),
+    b = [fundo(0.1), chao(930)]
+    # cavaletes de obra (A) segurando o quadro
+    for x in (470, 1450):
+        b.append(f'<path d="M{x - 70},930 L{x},760 L{x + 70},930" stroke="#8a5a2b" stroke-width="22" fill="none" stroke-linejoin="round"/>'
+                 f'<path d="M{x - 45},850 h90" stroke="#8a5a2b" stroke-width="14"/>')
+    # quadro de compensado
+    b.append(f'<rect x="268" y="168" width="1400" height="760" rx="18" fill="{INK}" opacity="0.35"/>')
+    b.append(fp.R(260, 150, 1400, 760, "#d9a35f", 16, 2.6, dark="#b57a3e"))
+    for k in range(9):
+        b.append(f'<path d="M{300 + k * 160},160 q30,350 -10,700" stroke="#c28a4a" stroke-width="4" fill="none" opacity="0.55"/>')
+    b.append(f'<rect x="260" y="150" width="1400" height="760" rx="16" fill="none" stroke="{INK}" stroke-width="8"/>')
+    for sx, sy in ((290, 180), (1630, 180), (290, 880), (1630, 880)):   # parafusos
+        b.append(f'<circle cx="{sx}" cy="{sy}" r="10" fill="#8d98a4" stroke="{INK}" stroke-width="3"/><path d="M{sx - 6},{sy} h12" stroke="{INK}" stroke-width="3"/>')
+    b.append(fp.cd.zebra(330, 878, 1260, 16))
+    # título: placa pendurada
+    b.append(corrente(690, 26, 64) + corrente(1230, 26, 64))
+    b.append(placa(960, 60, 660, 100, "AJUSTES DA PARTIDA", True))
+    b.append(estencil(960, 214, "CANTEIRO DE OBRAS · 3 CENAS", 26, "#6b3f17"))
+
+    # 1) VIDAS — capacetes na prateleira + número grande
+    x, y, w, h = 320, 236, 620, 300
+    b.append(prancheta(x, y, w, h, "VIDAS", "#2f8ff0", sel=True))
+    b.append(chip(x - 30, y - 40))
+    b.append(seta_aba(x + 62, y + 190, -1) + seta_aba(x + 218, y + 190, 1))
+    b.append(estencil(x + 140, y + 232, "4", 118, INK))
+    b.append(f'<rect x="{x + 262}" y="{y + 222}" width="330" height="14" fill="#8a5a2b" stroke="{INK}" stroke-width="3"/>')   # prateleira
+    for k in range(6):
+        b.append(capacete(x + 290 + k * 54, y + 220, 0.52, k < 4))
+    b.append(estencil(x + 427, y + 140, "de 3 a 6", 24, "#6b5a70"))
+
+    # 2) EVENTOS — sirene girando + mostrador
+    x, y = 980, 236
+    b.append(prancheta(x, y, w, h, "EVENTOS", "#d42035"))
+    cx, cy = x + 150, y + 210
+    for k in range(3):   # facho girando
+        a = math.radians(-60 + k * 50)
+        b.append(f'<path d="M{cx},{cy - 30} L{cx + math.cos(a) * 160:.0f},{cy - 30 + math.sin(a) * 90:.0f} L{cx + math.cos(a + 0.35) * 160:.0f},{cy - 30 + math.sin(a + 0.35) * 90:.0f}Z" fill="#ffd34d" opacity="0.35"/>')
+    b.append(f'<rect x="{cx - 56}" y="{cy + 2}" width="112" height="26" rx="6" fill="#4a4f5c" stroke="{INK}" stroke-width="4"/>'
+             f'<path d="M{cx - 44},{cy + 4} v-38 a44,44 0 0 1 88,0 v38z" fill="#e8483f" stroke="{INK}" stroke-width="5"/>'
+             f'<path d="M{cx - 20},{cy - 30} a20,20 0 0 1 18,-20" stroke="#ffd0c8" stroke-width="7" fill="none" stroke-linecap="round"/>')
+    gx, gy, gr = x + 430, y + 222, 88   # mostrador
+    labs = ["DESL.", "BAIXA", "NORMAL", "ALTA"]
+    cols = ["#8d98a4", "#8fd46a", "#f2d04b", "#ec6448"]
+    for k in range(4):
+        a0 = math.radians(180 + k * 45)
+        a1 = math.radians(180 + (k + 1) * 45)
+        b.append(f'<path d="M{gx},{gy} L{gx + math.cos(a0) * gr:.1f},{gy + math.sin(a0) * gr:.1f} A{gr},{gr} 0 0 1 {gx + math.cos(a1) * gr:.1f},{gy + math.sin(a1) * gr:.1f}Z" fill="{cols[k]}" stroke="{INK}" stroke-width="4"/>')
+        am = math.radians(180 + (k + 0.5) * 45)
+        b.append(ec.T(gx + math.cos(am) * (gr + 34), gy + math.sin(am) * (gr + 26) + 6, labs[k], 17, INK))
+    an = math.radians(180 + 2.5 * 45)
+    b.append(f'<path d="M{gx},{gy} L{gx + math.cos(an) * (gr - 10):.1f},{gy + math.sin(an) * (gr - 10):.1f}" stroke="{INK}" stroke-width="9" stroke-linecap="round"/><circle cx="{gx}" cy="{gy}" r="12" fill="{YEL}" stroke="{INK}" stroke-width="4"/>')
+    b.append(estencil(gx, gy + 46, "NORMAL", 28, "#b0331f"))
+
+    # 3) SPELLS NAS CAIXAS — as caixas de verdade + alavanca
+    x, y = 320, 566
+    b.append(prancheta(x, y, w, h, "SPELLS NAS CAIXAS", "#8a5ad8"))
+    for k, fam in enumerate(("ataque", "controle", "engenharia", "transformacao")):
+        im = Image.open(os.path.join(ROOT, f"game/assets/spells/caixa_{fam}.png")).convert("RGBA")
+        b.append(ec.img(im.crop(im.getbbox()), x + 90 + k * 86, y + 170, 78, 78))
+    b.append(estencil(x + 220, y + 252, "23 acesas no mosaico", 22, "#5a3fa0"))
+    sx, sy = x + 500, y + 168   # alavanca industrial
+    b.append(f'<rect x="{sx - 60}" y="{sy - 70}" width="120" height="150" rx="14" fill="#4a5060" stroke="{INK}" stroke-width="5"/>'
+             f'<rect x="{sx - 12}" y="{sy - 50}" width="24" height="110" rx="12" fill="#2a2f3a"/>'
+             f'<path d="M{sx},{sy + 30} L{sx + 4},{sy - 42}" stroke="#c9d1d8" stroke-width="14" stroke-linecap="round"/>'
+             f'<circle cx="{sx + 4}" cy="{sy - 48}" r="18" fill="#5fc95f" stroke="{INK}" stroke-width="5"/>')
+    b.append(estencil(sx, sy + 106, "LIGADAS", 20, "#2e7d32"))
+
+    # 4) INICIAR DEMOLIÇÃO — detonador de TNT
+    x, y = 980, 566
+    b.append(prancheta(x, y, w, h, "INICIAR DEMOLIÇÃO", "#2a1a2e"))
+    dx, dy = x + 190, y + 186
+    b.append(f'<path d="M{dx},{dy - 66} V{dy - 10}" stroke="#c9d1d8" stroke-width="14"/>'
+             f'<rect x="{dx - 70}" y="{dy - 80}" width="140" height="22" rx="10" fill="#c9d1d8" stroke="{INK}" stroke-width="5"/>')
+    b.append(f'<rect x="{dx - 110}" y="{dy - 14}" width="220" height="86" rx="12" fill="#d42035" stroke="{INK}" stroke-width="6"/>')
+    b.append(fp.cd.zebra(dx - 100, dy + 46, 200, 18))
+    b.append(estencil(dx, dy + 34, "TNT", 40, "#ffffff"))
+    b.append(f'<path d="M{dx + 110},{dy + 40} C{dx + 200},{dy + 40} {dx + 180},{dy - 60} {dx + 300},{dy - 40}" stroke="#2a2f3a" stroke-width="7" fill="none"/>')
+    for k in range(3):   # bananas de dinamite
+        b.append(f'<rect x="{dx + 296 + k * 28}" y="{dy - 80}" width="24" height="96" rx="8" fill="#e8483f" stroke="{INK}" stroke-width="4"/>')
+    b.append(estencil(dx + 310, dy + 66, "aperte START", 24, "#6b5a70"))
+
+    b.append(elenco(930, [("chave", "parado", 2, False), ("marretao", "pesado_prep", 0, True)], [150, 1780], 1.5))
+    b.append(plaquinha_dica("▲▼◄► escolher  ·  ◄► muda o valor  ·  START detona  ·  ESC voltar"))
+    n = ec.notes("AJUSTES v2 — pranchetas de obra num quadro de compensado (proposta lapidada)", [
+        ("PROPOSTA", "Cada ajuste = prancheta com prendedor e faixa colorida; o valor aparece GRANDE."),
+        ("PROPOSTA", "Vidas: número em estêncil + capacetes acesos na prateleira (3 a 6)."),
+        ("PROPOSTA", "Eventos: sirene girando + mostrador DESL./BAIXA/NORMAL/ALTA com ponteiro."),
+        ("PROPOSTA", "Spells: as 4 caixas de spell de verdade + alavanca LIGA/DESLIGA."),
+        ("PROPOSTA", "Começar: detonador de TNT (START) — a alavanca desce, BUM, e a luta começa."),
+        ("PROPOSTA", "Escolhida = moldura amarela + chip P1; ◄► mudam pelas abas de metal."),
     ])
-    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=13, scale=0.6, freq=0.05))
+    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=13, scale=0.5, freq=0.05))
 
 
 def tela_abertura():
