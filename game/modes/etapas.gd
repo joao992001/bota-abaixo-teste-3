@@ -104,6 +104,8 @@ func update(dt: float) -> void:
 				Audio.play("pistao_aviso", 0.7, -4.0)
 			if st_t <= 0.0:
 				_desaba()
+		"queda" when rota == "moderada" and _deslize_dur > 0.0:
+			_desliza(dt)
 		"queda":
 			st_t += dt
 			main.events.gravity_mult *= float(cfg["gravidade_queda"])
@@ -134,7 +136,7 @@ func forcar(tipo := "total") -> void:
 func _aviso(tipo: String) -> void:
 	rota = tipo
 	destino = destino_de(tipo)
-	var h := String(main.level.prop("buraco%d_%s" % [etapa, tipo], main.level.prop("buraco%d" % etapa, ""))).split(",")
+	var h := String(main.level.prop("buraco%d_%s" % [etapa, tipo], main.level.prop("buraco%d" % etapa, "") if tipo == "total" else "")).split(",")
 	if h.size() >= 2:
 		hole = Vector2(float(h[0]) * 64.0, float(h[1]) * 64.0)
 	else:
@@ -150,6 +152,54 @@ func _aviso(tipo: String) -> void:
 		ct.warn_all(st_t, etapa)
 
 ## A cena inteira desaba: começa a queda para a próxima.
+## ROTA MODERADA (storyboard aprovado, art/out/etapa_c/c7): só a frente cede, a laje inclina para a rua e todos
+## ESCORREGAM num arco até as pranchas da cena de destino (ao lado), com a câmera abrindo para mostrar as duas.
+## Sem controle e sem dano; cada um pousa num ponto diferente com piso firme (nunca teletransporte).
+var _deslize_dur := 0.0
+
+func _alvos_deslize(a2: Rect2, n: int) -> Array:
+	var lv = main.level
+	var cand := []
+	for row in range(int(a2.position.y / 64.0) + 2, int(a2.end.y / 64.0)):
+		for col in range(int(a2.position.x / 64.0) + 1, int(a2.end.x / 64.0) - 1):
+			var c := Vector2i(col, row)
+			if lv.is_solid(c) and lv.is_solid(c + Vector2i.LEFT) and lv.is_solid(c + Vector2i.RIGHT) \
+					and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)):
+				cand.append(Vector2(col * 64.0 + 32.0, row * 64.0))
+	if cand.is_empty():
+		return []
+	cand.sort_custom(func(p, q): return p.y < q.y if absf(p.y - q.y) > 1.0 else p.x < q.x)   # pranchas de cima primeiro
+	var alto: Array = cand.filter(func(p): return p.y <= cand[0].y + 1.0)
+	var usa: Array = alto if alto.size() >= n * 2 else cand
+	var out := []
+	for i in n:
+		out.append(usa[int((i + 0.5) * usa.size() / float(n))])
+	return out
+
+func _desliza(dt: float) -> void:
+	st_t += dt
+	var k := clampf(st_t / _deslize_dur, 0.0, 1.0)
+	var e := k * k * (3.0 - 2.0 * k)
+	for r in main.robots:
+		if not r.alive or not r.has_meta("desliza"):
+			continue
+		var pth: Array = r.get_meta("desliza")
+		var p0: Vector2 = pth[0]
+		var p1: Vector2 = pth[1]
+		var ctrl := Vector2((p0.x + p1.x) * 0.5, minf(p0.y, p1.y) - 360.0)
+		var pos := p0.lerp(ctrl, e).lerp(ctrl.lerp(p1, e), e)
+		r.invuln = maxf(r.invuln, 0.5)
+		if k < 1.0:
+			r.position = pos
+			r.velocity = Vector2.ZERO
+			r.reset_physics_interpolation()
+		elif r.has_meta("desliza"):
+			r.position = p1 - Vector2(0, 4)
+			r.velocity = Vector2.ZERO
+			r.remove_meta("desliza")
+	if st_t >= _deslize_dur + 0.4:
+		_chega()
+
 func _desaba() -> void:
 	var lv = main.level
 	state = "queda"
@@ -166,6 +216,20 @@ func _desaba() -> void:
 	var a2: Rect2 = lv.etapa_rect(destino)
 	var g: float = float(Data.ctrl["gravity"]) * float(cfg["gravidade_queda"])
 	var vivos: Array = main.robots.filter(func(r): return r.alive)
+	_deslize_dur = 0.0
+	if rota == "moderada" and absf(a2.position.y - lv.etapa_rect(etapa).position.y) < a2.size.y * 0.5:   # destino AO LADO: escorrega
+		_deslize_dur = float(cfg.get("deslize_s", 2.4))
+		var alvos := _alvos_deslize(a2, vivos.size())
+		vivos.sort_custom(func(p, q): return p.position.x < q.position.x)
+		for i in vivos.size():
+			var r = vivos[i]
+			r.hanging = false
+			r.invuln = maxf(r.invuln, 1.0)
+			r.spell_lock = true
+			r.set_meta("desliza", [r.position, alvos[i] if i < alvos.size() else a2.get_center()])
+		_fim_desaba(vivos, a2)
+		main.demo.banner = ""
+		return
 	for i in vivos.size():
 		var r = vivos[i]
 		r.hanging = false
@@ -182,6 +246,10 @@ func _desaba() -> void:
 		var tf := sqrt(2.0 * dy / maxf(g, 1.0)) if dy <= d1 else vm / maxf(g, 1.0) + (dy - d1) / vm
 		r.set_meta("queda_vx", clampf((tx - r.position.x) / tf, -float(cfg["funil_vel"]), float(cfg["funil_vel"])))
 		r.velocity.y = minf(r.velocity.y, -180.0)   # pulinho de susto antes de cair
+	_fim_desaba(vivos, a2)
+
+## Fim comum da virada: os mecanismos da cena que caiu somem; voo/transformações acabam; caixas vão para a cena nova.
+func _fim_desaba(vivos: Array, a2: Rect2) -> void:
 	var mc = main.demo.mecs
 	if mc != null and is_instance_valid(mc):
 		mc.desaba(etapa)

@@ -8,6 +8,11 @@
 | **Andaime Cede** (era "V4") | `APROVADO` 2026-11-26 — é **perigo da cena (M13)**, não evento (regra A14) |
 | Fotografia conceitual e storyboard da chegada | `APROVADO` 2026-11-26 (`art/out/fase1_fachada.png`, `etapa_c/c7`) |
 
+> **IMPLEMENTADA NO JOGO (D5, 2026-11-26):** colunas 44–83 do `levels/canteiro_obras.lvl` (`etapa3`), pranchas
+> destrutíveis (`canteiro.gd`, kind `prancha`; a de baixo é base fixa em tiles), perigos M10 balancins (elevador estilo
+> balancim), M11 guincho (bate_estaca estilo guincho), M12 serra, M13 Andaime Cede (tipo `cede`), os 11 eventos (G13 = viga
+> da grua) e a chegada pela rota moderada (deslize em arco, câmera vai junto; `etapas._desliza`). Testes `--so=fachada,moderada`;
+> GIF `art/out/fase1_rota_moderada.gif`; vitrine `ROTA=moderada … -- --fase=DIR`.
 > **Fotografia conceitual APROVADA (2026-11-26):** `art/out/fase1_fachada.png` (gerador
 > `art/src/cenarios/fase1_fachada.py`). Storyboard da chegada: `art/out/etapa_c/c7_storyboard_rotas.png`. Nada disto está no jogo.
 

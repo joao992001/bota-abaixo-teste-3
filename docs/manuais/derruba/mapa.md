@@ -65,7 +65,9 @@ rota (`verificar()`: ≥ 90% total, 50–90% moderada) → aviso com sirene → 
 jetpack, armaduras e kits desligam; caixas de spell vão para cima do piso da próxima cena) → queda **sem controle, lenta**
 (`gravidade_queda` 0.35, `queda_vmax` 640) em arco até um ponto com piso embaixo; a câmera **desce junto** já no
 enquadramento da próxima cena (`camera_queda_mola`) → `_chega` (KO e área passam para ela; quem ficou fora renasce lá).
-Última cena: sem transição. Regras completas em [`README.md`](README.md).
+Rota moderada com destino AO LADO (Fachada do Canteiro): em vez da queda, todos escorregam num arco (`deslize_s`) até as
+pranchas de cima da cena nova, sem controle nem dano, e a câmera vai para o lado junto (`etapas._desliza`).
+Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regras completas em [`README.md`](README.md).
 
 ## 4. Testes, capturas e entrega
 - **Durante o trabalho, só a parte mexida:** `--so=mapa` (manifesto válido, spells/eventos/mecanismos por cena), `--so=etapas` (base fixa fora, dano parcial,

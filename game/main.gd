@@ -422,16 +422,25 @@ func _update_camera(dt: float) -> void:
 	if queda:
 		# virada: a câmera DESCE junto com os robôs num movimento só (sem afastar para o mapa inteiro nem pular),
 		# já no enquadramento da etapa 2; quando todos pousam ela já está no lugar
-		var a2: Rect2 = level.etapa_rect(demo.etapas.etapa + 1)
+		var dst: int = demo.etapas.destino if demo.etapas.destino > 0 else demo.etapas.etapa + 1
+		var a2: Rect2 = level.etapa_rect(dst)
 		tz = minf(1.0, minf(1920.0 / a2.size.x, 1024.0 / a2.size.y))
 		var my := 0.0
+		var mx := 0.0
 		var n := 0
 		for r in robots:
 			if r.alive:
 				my += r.position.y
+				mx += r.position.x
 				n += 1
 		var c2 := a2.get_center()
-		tc = Vector2(c2.x, clampf((my / maxf(n, 1)) + 140.0 if n > 0 else c2.y, cam_center.y, c2.y))
+		if demo.etapas.rota == "moderada" and demo.etapas._deslize_dur > 0.0:
+			# rota moderada (destino AO LADO): a câmera vai para o lado junto com quem escorrega, até a cena nova
+			var lo := minf(cam_center.x, c2.x)
+			var hi := maxf(cam_center.x, c2.x)
+			tc = Vector2(clampf(mx / maxf(n, 1) if n > 0 else c2.x, lo, hi), lerpf(cam_center.y, c2.y, 0.15))
+		else:
+			tc = Vector2(c2.x, clampf((my / maxf(n, 1)) + 140.0 if n > 0 else c2.y, cam_center.y, c2.y))
 	var k := 1.0 - exp(-dt * 3.0)
 	if cam_lock.size() == 2:
 		tz = cam_lock[0]

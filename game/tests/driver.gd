@@ -526,6 +526,7 @@ func demolicao_test() -> void:
 	await perfil_test()
 	await eventos_cenas_test()
 	await fachada_test()
+	await moderada_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -2127,6 +2128,55 @@ func eventos_cenas_test() -> void:
 	ev.manual = false
 	main.event_level = 0
 
+## D5 bloco F: rota MODERADA de verdade — 50–90% na verificação → "A LAJE VAI ESCORREGAR!" → o Térreo cede e todos
+## escorregam até as pranchas da Fachada, sem KO nem dano; chegam de pé e a luta segue lá. --so=moderada
+func moderada_test() -> void:
+	print("== Rota moderada: Térreo → Fachada")
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.add_bot()
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 4
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	main.countdown = 0.0
+	var et = main.demo.etapas
+	var ct = main.demo.canteiro
+	var lives0 = main.demo.lives.duplicate()
+	for p in ct.parts:   # os jogadores destruíram uns 60% do Térreo
+		if int(p["etapa"]) == 1 and p["kind"] == "andaime":
+			ct.damage(p, 99, p["rect"].get_center())
+	var vg: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and int(p["etapa"]) == 1)
+	for p in vg:
+		ct.damage(p, 99, p["rect"].get_center())
+	await frames(240)
+	var prog: float = ct.progresso(1)
+	et.ativo = true
+	et.prox_verif = et.t_cena + 0.1
+	await frames(10)
+	check(prog >= 0.5 and prog < 0.9 and et.rota == "moderada" and main.demo.banner.begins_with("A LAJE"), "%.0f%% na verificação → \"A LAJE VAI ESCORREGAR!\"" % (prog * 100.0))
+	var w := 0
+	while et.state != "queda" and w < 400:
+		await frames(1)
+		w += 1
+	var a3: Rect2 = main.level.etapa_rect(3)
+	check(et.state == "queda" and main.level.area.encloses(a3), "o Térreo cede e a câmera abre para mostrar a Fachada")
+	await frames(60)
+	check(main.robots.all(func(r): return r.position.y < a3.end.y), "ninguém cai na rua durante o deslize")
+	w = 0
+	while et.state != "etapa" and w < 600:
+		await frames(1)
+		w += 1
+	await frames(40)
+	check(et.etapa == 3 and main.level.area == a3 and 3 in et.visitadas, "chegam na Fachada (%.1f s); área, KO e câmera passam para ela" % (w / 60.0))
+	check(main.robots.all(func(r): return r.alive and a3.has_point(r.position) and r.is_on_floor()) and main.demo.lives == lives0, "todos de pé nas pranchas, sem perder vida")
+	check(not et.tem_proxima(), "a Fachada é a última cena (sem nova transição)")
+
 ## D5: cena 3 do Canteiro, a FACHADA (rota moderada): perigos M10–M13, os 11 eventos do mapa e bots lutando sem cair
 ## à toa no vão do meio (que dá na rua = KO). --so=fachada
 func fachada_test() -> void:
@@ -3558,8 +3608,8 @@ func fase_frames(dir: String) -> void:
 	var after := -1
 	while f < 1500:
 		if f == 300:
-			et.forcar()
-		if et.etapa == 2 and after < 0:
+			et.forcar(OS.get_environment("ROTA") if OS.get_environment("ROTA") != "" else "total")   # ROTA=moderada → Fachada
+		if et.etapa != 1 and after < 0:
 			after = f
 		if after >= 0 and f - after > 330:
 			break
