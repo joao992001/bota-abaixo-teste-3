@@ -88,6 +88,10 @@ func update(dt: float) -> void:
 		S.HOWTO:
 			if confirm() or pressed("back"):
 				main.state = S.MENU
+		S.AJUSTES when main.selecao.ativo_para(main.arena_choice):
+			main.selecao.update_vidas(self)   # Derruba com mapa: etapa 3 (VIDAS), A21
+		S.DETONAR:
+			main.selecao.update_detonar(self)
 		S.AJUSTES:
 			var rows := adjust_rows()
 			adj_sel = posmod(adj_sel + move_v(), rows.size())
@@ -215,7 +219,12 @@ func draw(ci: CanvasItem) -> void:
 		S.HOWTO: _draw_howto(ci)
 		S.OPTIONS: _draw_options(ci)
 		S.ARENAS: _draw_arenas(ci)
-		S.AJUSTES: _draw_adjust(ci)
+		S.AJUSTES:
+			if main.selecao.ativo_para(main.arena_choice):
+				main.selecao.draw_vidas(ci)
+			else:
+				_draw_adjust(ci)
+		S.DETONAR: main.selecao.draw_detonar(ci)
 		S.EVENTOS: main.events.menu_draw(ci, self)
 		S.SELSPELLS: main.selecao.draw_spells(ci)
 		S.SELEVENTOS: main.selecao.draw_eventos(ci)

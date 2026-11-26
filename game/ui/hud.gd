@@ -3,6 +3,7 @@ extends Control
 ## item), título da rodada no topo, entrada de jogadores, placar da rodada e vitória. Menus em ui/menus.gd.
 
 const Kit := preload("res://ui/kit.gd")
+const Obra := preload("res://ui/obra.gd")
 const RobotVis := preload("res://player/robot_visual.gd")
 const Retrato := preload("res://ui/retrato.gd")
 const DIM := Color(0.16, 0.1, 0.18, 0.45)
@@ -357,15 +358,21 @@ func _ribbon_pop(txt: String, y: float, w: float, size: int, alpha := 1.0) -> vo
 
 # ---------------------------------------------------------------- entrada
 func _draw_join() -> void:
-	draw_rect(Rect2(0, 0, 1920, 1080), DIM)
-	_ribbon_pop("QUEM VAI JOGAR?", 100, 1200, 64)
+	var etapas: bool = main.selecao.ativo_para(main.arena_choice)
+	if etapas:   # etapa 4 de 5 (A21): fundo de obra, placa e trilha
+		Obra.fundo(self, t, 0.12)
+		Obra.titulo(self, "QUEM VAI JOGAR?", "%s  ·  ETAPA 4 DE 5" % String(MapaReg.manifesto("derruba", main.arena_choice).get("nome", "")).to_upper())
+		Obra.trilha(self, 3)
+	else:
+		draw_rect(Rect2(0, 0, 1920, 1080), DIM)
+		_ribbon_pop("QUEM VAI JOGAR?", 100, 1200, 64)
 	var W := 400.0
 	var H := 600.0
 	var gap := 36.0
 	var x0 := (1920.0 - (4 * W + 3 * gap)) / 2.0
 	var st: String = PlayerInput.main_pad_type()
 	for i in 4:
-		var r := Rect2(x0 + i * (W + gap), 196, W, H)
+		var r := Rect2(x0 + i * (W + gap), 262.0 if etapas else 196.0, W, H)
 		var rot: float = [-0.026, 0.021, -0.017, 0.026][i]
 		draw_set_transform(r.get_center(), rot)
 		var lr := Rect2(-r.size / 2.0, r.size)

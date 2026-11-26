@@ -16,10 +16,10 @@ const Eventos := preload("res://modes/eventos.gd")
 const Laboratorio := preload("res://ui/laboratorio.gd")
 const T := 64
 
-enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS }
+enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS, DETONAR }
 var state := S.INTRO   # abre com a intro animada (os testes pulam direto para a entrada)
 var paused := false
-const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS]
+const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS, S.DETONAR]
 var sandbox := false          # LABORATÓRIO: ambiente de testes (respawn infinito, rodada sem fim)
 var lab: Node = null
 var lab_mode := false        # LABORATÓRIO aberto
@@ -516,11 +516,11 @@ func _join_update() -> void:
 		if players.size() < 4:
 			add_player(dev)
 	for i in range(players.size() - 1, -1, -1):
-		if PlayerInput.pressed(i, "back"):
+		if PlayerInput.pressed(i, "back") and Engine.get_physics_frames() - join_volta_f > 1:
 			players.remove_at(i)
 			PlayerInput.slots.remove_at(i)
 	if players.is_empty() and menus.pressed("back"):
-		state = S.MODES
+		state = S.AJUSTES if selecao.ativo_para(arena_choice) else S.MODES   # etapa 4 → volta à etapa 3 (vidas)
 	for i in players.size():
 		if PlayerInput.pressed(i, "left"):
 			_cycle_color(i, -1)
@@ -543,7 +543,10 @@ func _join_update() -> void:
 	if players.size() >= 2:
 		for i in players.size():
 			if PlayerInput.pressed(i, "start"):
-				start_match()
+				if selecao.ativo_para(arena_choice):
+					state = S.DETONAR   # etapa 5: conferir e detonar (A21)
+				else:
+					start_match()
 				return
 
 ## SKINS: escolhidas na entrada (depois de modo e mapa). Só as que nasceram NO MAPA escolhido (manifesto →
@@ -633,6 +636,7 @@ func estrelas_da_sessao() -> bool:
 		and arena_choice != "" and not MapaReg.eh_ferramenta(arena_choice)
 
 var res_sel := 0   # opção escolhida na tela de resultados (Derruba v2)
+var join_volta_f := -10   # quadro em que se voltou da etapa 5 para a 4 (o mesmo ESC não tira jogador)
 var spells_on := {}      # Derruba v2 (D3): spells acesas na tela de seleção (conjunto que pode sair nas caixas)
 var spells_mapa := ""    # mapa a que spells_on se refere (mapa novo → tudo aceso)
 var selecao := preload("res://ui/selecao.gd").new()
