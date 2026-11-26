@@ -28,24 +28,63 @@ STEEL, STEEL_D, STEEL_L = "#a2abb5", "#6b7783", "#cdd4da"
 WOOD, WOOD_D = "#a8683a", "#6e3f20"
 
 
+_fid = [0]
+
+
 def faixa(x, y, w, h, n=4, ang=1.0):
-    """Placa com listras de perigo (laranja/escuro)."""
-    out = R(x, y, w, h, 2, HAZ, k=0.4)
-    step = w / n
-    for i in range(n + 1):
-        x0 = x + i * step - h * 0.5
-        out += f'<path d="M{max(x0, x):.1f},{y + h:.1f} L{min(x0 + h * ang, x + w):.1f},{y:.1f} L{min(x0 + h * ang + step * 0.45, x + w):.1f},{y:.1f} L{min(max(x0 + step * 0.45, x), x + w):.1f},{y + h:.1f} Z" fill="{HAZ_D}" opacity="0.85"/>'
-    return out
+    """Placa com listras diagonais de perigo (laranja/escuro), recortada no retângulo."""
+    _fid[0] += 1
+    cid = f"fx{_fid[0]}"
+    out = f'<clipPath id="{cid}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="2"/></clipPath>' + R(x, y, w, h, 2, HAZ, k=0.4)
+    st = max(min(w, h) / 2.2, 3.0)
+    out += f'<g clip-path="url(#{cid})">'
+    xx = x - h
+    while xx < x + w + h:
+        out += f'<path d="M{xx:.1f},{y + h:.1f} L{xx + h:.1f},{y:.1f} L{xx + h + st:.1f},{y:.1f} L{xx + st:.1f},{y + h:.1f} Z" fill="{HAZ_D}" opacity="0.88"/>'
+        xx += st * 2
+    return out + "</g>"
+
+
+def marreta_cabeca():
+    """Cabeça de aço detalhada (espaço da pegada: +x para a cabeça)."""
+    o = R(40, -17, 30, 34, 3, STEEL, k=0.6, dark=STEEL_D, light=STEEL_L)               # bloco
+    o += R(40, -17, 30, 6, 2, STEEL_L, k=0.35)                                            # chanfro de cima (luz)
+    o += R(40, 11, 30, 6, 2, STEEL_D, k=0.35)                                             # chanfro de baixo (sombra)
+    o += R(67, -19, 7, 38, 2.5, shade(STEEL, -0.18), k=0.45) + R(67, -19, 7, 5, 1.5, STEEL_L, k=0.3)   # face de batida (frente)
+    o += R(36, -18, 6, 36, 2, shade(STEEL, -0.25), k=0.4)                                 # face de trás
+    o += faixa(49, -17, 12, 34, n=3)                                                      # faixa de perigo
+    for x, y in ((44, -12), (44, 12), (64, -12), (64, 12)):                                # parafusos
+        o += f'<circle cx="{x}" cy="{y}" r="1.7" fill="{STEEL_D}"/><circle cx="{x - 0.5}" cy="{y - 0.5}" r="0.7" fill="{STEEL_L}"/>'
+    o += f'<path d="M62,-6 l4,3 M45,4 l3,-2 M69,6 l2,5 M68,-12 l3,4" stroke="#eef2f5" stroke-width="0.9" opacity="0.8"/>'  # arranhões
+    o += f'<path d="M70,-19 l2,0 l1,3 Z M71,14 l2,1 l-1,3 Z" fill="#eef2f5" opacity="0.7"/>'                                   # lascas
+    return o
+
+
+def marreta_cabo():
+    """Cabo detalhado: madeira com veios, colar rebitado, empunhadura emborrachada, ponteira."""
+    o = R(-24, -3, 62, 6, 2.5, WOOD, k=0.5, dark=WOOD_D)
+    o += f'<path d="M-8,-1 C4,-2 14,0 26,-1.2 M-4,1.4 C8,0.6 18,2 30,1" stroke="{WOOD_D}" stroke-width="0.8" fill="none" opacity="0.7"/>'
+    o += R(30, -4.5, 8, 9, 2, MEC, k=0.4) + R(30, -4.5, 8, 2.2, 1, MEC_L, k=0.2)            # colar
+    o += f'<circle cx="32.5" cy="0" r="1" fill="{MEC_D}"/><circle cx="35.5" cy="0" r="1" fill="{MEC_D}"/>'
+    o += R(-24, -4, 18, 8, 3, "#3a3f4a", k=0.45)                                            # empunhadura
+    o += "".join(f'<path d="M{-22 + i * 4},-4 l2,8" stroke="#5a606c" stroke-width="1.3"/>' for i in range(5))
+    o += R(-29, -4.5, 6, 9, 2.5, STEEL, k=0.4, dark=STEEL_D) + f'<circle cx="-26" cy="0" r="1.1" fill="{STEEL_D}"/>'   # ponteira
+    return o
 
 
 def marreta(g, ang):
-    """Marreta de demolição grande: bloco de aço com faixa de perigo; pegada da frente em g; 2ª pegada 16 px atrás."""
+    """Marreta de demolição detalhada; pegada da frente em g; 2ª pegada 16 px atrás."""
+    body = marreta_cabo() + marreta_cabeca()
+    g2 = (g[0] - math.cos(math.radians(ang)) * 16, g[1] - math.sin(math.radians(ang)) * 16)
+    return f'<g transform="translate({g[0]:.1f},{g[1]:.1f}) rotate({ang:.1f})">{body}</g>', g, g2
+
+
+def marreta_antiga():
     body = R(-24, -2.8, 66, 5.6, 2.5, WOOD, dark=WOOD_D)
     body += R(40, -15, 26, 30, 4, STEEL, dark=STEEL_D, light=STEEL_L)
     body += faixa(44, -15, 9, 30, n=2) + R(60, -15, 6, 30, 2, STEEL_D, k=0.3)
     body += R(-24, -3.6, 10, 7.2, 2.5, MEC_D)
-    g2 = (g[0] - math.cos(math.radians(ang)) * 16, g[1] - math.sin(math.radians(ang)) * 16)
-    return f'<g transform="translate({g[0]:.1f},{g[1]:.1f}) rotate({ang:.1f})">{body}</g>', g, g2
+    return body
 
 
 def braco(col, sh, el, end, back, punho_aberto=False):
@@ -176,10 +215,41 @@ def prancha():
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>', W, H
 
 
+def prancha_arma():
+    W, H = 1920, 1120
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 60, "MARRETA DE DEMOLIÇÃO — mais detalhe (antes × depois)", 38)]
+    b.append(f'<rect x="25" y="95" width="900" height="600" rx="20" fill="#ffffff" opacity="0.5"/>')
+    b.append(label(60, 140, "ANTES", 26, "#6b5a70", "start") + f'<g transform="translate(250,250) scale(5)">{marreta_antiga()}</g>')
+    b.append(label(60, 400, "DEPOIS", 26, INK, "start") + f'<g transform="translate(250,520) scale(5)">{marreta_cabo()}{marreta_cabeca()}</g>')
+    notas = ["aço com chanfro: topo claro, base escura", "faces de batida reforçadas (frente e trás)", "faixa de perigo + 4 parafusos",
+             "arranhões e lascas de uso", "colar de metal rebitado no encaixe", "veios na madeira",
+             "empunhadura emborrachada + ponteira de aço"]
+    for i, t in enumerate(notas):
+        b.append(label(60 + (i % 2) * 430, 640 + (i // 2) * 0 if False else 620 + (i // 2) * 0, "", 1))
+    for i, t in enumerate(notas):
+        b.append(label(960 + 30, 0, "", 1))
+    b.append(f'<rect x="945" y="95" width="950" height="600" rx="20" fill="#ffffff" opacity="0.5"/>')
+    gy = 640
+    b.append(f'<rect x="965" y="{gy}" width="910" height="10" rx="4" fill="#c9b99a"/>')
+    for pk, px in (("heroi", 1120), ("guarda", 1400), ("golpe", 1610)):
+        b.append(f'<g transform="translate({px},{gy}) scale(2.6)">{robo("#4f86d9", POSES[pk])}</g>')
+    b.append(f'<rect x="25" y="715" width="1870" height="380" rx="20" fill="#ffffff" opacity="0.5"/>')
+    b.append(label(60, 760, "O que mudou na marreta", 24, INK, "start"))
+    for i, t in enumerate(notas):
+        b.append(label(60 + (i % 2) * 520, 805 + (i // 2) * 40, "• " + t, 20, "#2a4a58", "start", 600))
+    b.append(label(1380, 760, "no jogo (1,35x)", 20, "#2a4a58"))
+    b.append(f'<rect x="1180" y="1000" width="420" height="8" fill="#c9b99a"/>')
+    for k, c in enumerate(["#4f86d9", "#f06aa8"]):
+        b.append(f'<g transform="translate({1270 + k * 200},1000) scale(1.35)">{robo(c, POSES["guarda" if k == 0 else "heroi"])}</g>')
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>', W, H
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     svg, w, h = prancha()
     queue(svg, f"{SRC}/c3_blindado.svg", os.path.join(OUT, "c3_blindado.png"), w, h, 1)
+    svg, w, h = prancha_arma()
+    queue(svg, f"{SRC}/c4_marreta.svg", os.path.join(OUT, "c4_marreta.png"), w, h, 1)
     print("blindado:", render_all())
 
 
