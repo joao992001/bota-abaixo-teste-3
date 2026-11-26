@@ -22,7 +22,7 @@ var menu_in := 1.0   # 0→1: botões do menu entram deslizando depois da intro
 var intro_frames := 0
 var intro_hit := false
 var intro_hi := false
-const INTRO_END := 2.6
+const INTRO_END := 5.4
 var shake_card := 0.0
 var arena_sel := 0
 var adj_sel := 0
@@ -660,21 +660,34 @@ func _draw_pad_card(ci: CanvasItem, j: int, r: Rect2, k: int) -> void:
 
 # ---------------------------------------------------------------- intro animada (abre o jogo)
 ## O logo cai e quica, bate levantando poeira, os robôs entram correndo e acenam, e o logo desliza até o menu.
+## ABERTURA "Canteiro vivo" (A21, storyboard art/out/menus_v2/v2_4_abertura.png): a grua desce o letreiro coberto
+## por lona → a lona cai → um robô SORTEADO entra e marreta o pilar → as letras caem e quicam no lugar → o elenco entra.
+## ~5,5 s; qualquer botão pula para o fim (o menu, no mesmo cenário).
+const IN_DESCE := 1.1      # grua descendo o letreiro tapado
+const IN_LONA := 1.5       # lona cai
+const IN_CORRE := 2.5      # robô sorteado chega e marreta
+const IN_BATE := 2.75      # impacto: letras se soltam
+const IN_ASSENTA := 3.6    # letras assentadas
+var intro_robo := 0
+
 func _update_intro(dt: float) -> void:
 	intro_frames += 1
 	if intro_frames < 4:
 		return   # primeiros quadros (carregando a tela): o relógio da animação só anda depois
+	if intro_frames == 4:
+		intro_robo = main.rng.randi_range(0, 4)   # quem marreta muda a cada abertura (A21)
 	intro_t += minf(dt, 1.0 / 30.0)   # sem pulos se um quadro demorar
-	if not intro_hit and intro_t >= 0.55:
+	if not intro_hit and intro_t >= IN_BATE:
 		intro_hit = true
+		Audio.play("marreta_pesada_metal", 0.8)
 		Audio.play("caixote_pancada", 0.8)
-		Audio.play("pisao", 0.7)
-		main.shake(10.0)
-	if not intro_hi and intro_t >= 1.25:
+		main.shake(12.0)
+	if not intro_hi and intro_t >= IN_ASSENTA:
 		intro_hi = true
-		Audio.voice("voz_oi", 0)
-	if intro_t < 1.8 and (confirm() or pressed("start") or pressed("back")):
-		intro_t = 1.8   # qualquer botão pula para o final da intro
+		Audio.play("pisao", 0.7)
+		Audio.voice("voz_oi", intro_robo)
+	if intro_t < IN_ASSENTA and (confirm() or pressed("start") or pressed("back")):
+		intro_t = IN_ASSENTA   # qualquer botão pula para o fim (letreiro no lugar)
 	if intro_t >= INTRO_END:
 		main.state = main.S.MENU
 		sel = 0
@@ -691,58 +704,103 @@ static func _smooth(x: float) -> float:
 
 func _draw_intro(ci: CanvasItem) -> void:
 	var k := intro_t
-	# fundo: céu cheio no começo, some no fim revelando o menu
-	var fade := 1.0 - _smooth((k - 1.8) / 0.7)
-	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.498, 0.827, 0.875, fade))
-	# raios girando atrás do logo
-	if fade > 0.0:
-		for i in 12:
-			var a := i * TAU / 12.0 + k * 0.4
-			var p0 := Vector2(960, 420)
-			ci.draw_colored_polygon(PackedVector2Array([p0, p0 + Vector2.from_angle(a - 0.12) * 1400.0, p0 + Vector2.from_angle(a + 0.12) * 1400.0]), Color(1, 1, 1, 0.10 * fade * _smooth(k / 0.6)))
-	# o cenário do menu (chão e robôs) já está lá: os robôs entram correndo até os lugares deles
-	var ent := []
-	for i in 4:
-		ent.append(_smooth((k - 0.7 - i * 0.1) / 0.6))
-	_draw_scene(ci, ent)
-	# logo: cai com quique, amassa no impacto, respira, e desliza para o lugar do menu
+	Obra.fundo(ci, t)
+	ci.draw_rect(Rect2(0, SCENE_GROUND, 1920, 1080 - SCENE_GROUND), Color("#b9ab8f"))
+	ci.draw_rect(Rect2(0, SCENE_GROUND, 1920, 60), Color("#d8ccb6"))
+	ci.draw_rect(Rect2(0, SCENE_GROUND, 1920, 10), Color("#eee5d2"))
 	var tex := Data.tex("ui/logo")
-	var w0 := 1500.0
-	var c0 := Vector2(960, 400)
-	var w1 := 1180.0
-	var c1 := Vector2(960, 40 + w1 * 340.0 / 1700.0 / 2.0)
-	var drop := clampf(k / 0.55, 0.0, 1.0)
-	var c := Vector2(960, lerpf(-320.0, c0.y, _ease_out_back(drop) if drop < 1.0 else 1.0))
+	var lw := 1300.0
+	var lh := lw * 340.0 / 1700.0
+	var alvo := Vector2(960, 360)
+	# 1) a grua desce o letreiro preso por cabos (balança um pouco)
+	var desce := _smooth(k / IN_DESCE)
+	var pend := Vector2(960 + sin(k * 3.0) * 14.0 * (1.0 - _smooth((k - IN_BATE) / 0.4)), lerpf(-lh, alvo.y - 40.0, desce))
+	var preso := k < IN_BATE
+	if preso:
+		for dx in [-lw * 0.32, lw * 0.32]:
+			ci.draw_line(Vector2(960 + dx * 0.4, -10), pend + Vector2(dx, -lh / 2.0 + 10), Color("#4a4f5c"), 4.0, true)
+		ci.draw_rect(Rect2(pend + Vector2(-lw * 0.42, -lh / 2.0 - 10), Vector2(lw * 0.84, 18)), Color("#3a3f4a"))
+	# letras: penduradas → soltam no impacto, caem e quicam até o lugar
+	var lc := pend
+	var rot := sin(k * 2.0) * 0.02
 	var sq := Vector2.ONE
-	if k >= 0.55 and k < 0.95:
-		var u := (k - 0.55) / 0.4
-		var s := sin(u * PI * 2.0) * (1.0 - u) * 0.14
-		sq = Vector2(1.0 + s, 1.0 - s)
-	var move := _smooth((k - 1.8) / 0.7)
-	var w := lerpf(w0, w1, move)
-	c = c.lerp(c1, move)
-	c.y += sin(k * 2.2) * 6.0 * (1.0 - move) * float(k > 0.95)
-	var h := w * 340.0 / 1700.0
+	if k >= IN_BATE:
+		var u := clampf((k - IN_BATE) / (IN_ASSENTA - IN_BATE), 0.0, 1.0)
+		var queda := 1.0 - absf(cos(u * PI * 2.5)) * (1.0 - u)   # quiques que vão diminuindo
+		lc = pend.lerp(alvo, queda)
+		lc.y = lerpf(pend.y, alvo.y + 40.0, queda) - 40.0 * u
+		rot = (0.08 * (1.0 - u)) * sin(u * 20.0)
+		var s2 := sin(u * PI * 5.0) * (1.0 - u) * 0.12
+		sq = Vector2(1.0 + s2, 1.0 - s2)
 	if tex != null:
-		ci.draw_set_transform(c, sin(k * 1.7) * 0.015 * (1.0 - move), sq)
-		ci.draw_texture_rect(tex, Rect2(Vector2(-w / 2.0, -h / 2.0), Vector2(w, h)), false)
+		ci.draw_set_transform(lc, rot, sq)
+		ci.draw_texture_rect(tex, Rect2(Vector2(-lw / 2.0, -lh / 2.0), Vector2(lw, lh)), false)
 		ci.draw_set_transform(Vector2.ZERO)
-	# poeira e estrelinhas no impacto
-	if k >= 0.55 and k < 1.4:
-		var u := (k - 0.55) / 0.85
-		for i in 10:
+	# lona azul tapando o letreiro até cair
+	if k < IN_LONA + 0.5:
+		var cai := _smooth((k - IN_LONA) / 0.5)
+		var lr := Rect2(pend + Vector2(-lw * 0.46, -lh / 2.0 + 8 + cai * 700.0), Vector2(lw * 0.92, lh - 10))
+		ci.draw_set_transform(lr.get_center(), cai * 0.6, Vector2.ONE)
+		var lr0 := Rect2(-lr.size / 2.0, lr.size)
+		ci.draw_rect(lr0, Color("#3f7fb5", 1.0 - cai * 0.6))
+		for j in 6:
+			var x := lr0.position.x + 40 + j * lr0.size.x / 6.0
+			ci.draw_line(Vector2(x, lr0.position.y + 6), Vector2(x - 10, lr0.end.y - 6), Color("#2f6595", 1.0 - cai), 5.0)
+		Kit.text(ci, Vector2(lr0.position.x, 30), "?", 90, Color(1, 1, 1, 1.0 - cai), HORIZONTAL_ALIGNMENT_CENTER, lr0.size.x, 12)
+		ci.draw_set_transform(Vector2.ZERO)
+	# pilar de concreto que segura o letreiro (à direita) — o alvo da marretada
+	var px := 1180.0   # pilar embaixo do letreiro (sustenta a ponta direita)
+	if k < IN_BATE + 0.1:
+		ci.draw_rect(Rect2(px - 26, alvo.y + lh * 0.2, 52, SCENE_GROUND - alvo.y - lh * 0.2), Color("#cfc6b4"))
+		ci.draw_rect(Rect2(px - 26, alvo.y + lh * 0.2, 52, SCENE_GROUND - alvo.y - lh * 0.2), Kit.INK, false, 4.0)
+	else:   # pedaços do pilar voando
+		var u := (k - IN_BATE) / 1.2
+		for j in 5:
+			var p := Vector2(px + (j - 2) * 30.0 + u * (j - 2) * 260.0, SCENE_GROUND - 260.0 + j * 40.0 - 600.0 * u + 900.0 * u * u)
+			if p.y < SCENE_GROUND:
+				ci.draw_set_transform(p, u * (j + 1) * 3.0)
+				ci.draw_rect(Rect2(-22, -16, 44, 32), Color("#cfc6b4"))
+				ci.draw_set_transform(Vector2.ZERO)
+	# robô sorteado: entra correndo da direita e marreta o pilar
+	if k >= IN_LONA:
+		var ent := _smooth((k - IN_LONA) / (IN_CORRE - IN_LONA))
+		var base := Vector2(lerpf(2150.0, px + 110.0, ent), SCENE_GROUND)
+		var pose: Dictionary = RobotVis.idle_pose(k)
+		var ph := k * 22.0
+		if ent < 1.0:
+			pose["feet"] = [Vector2(cos(ph) * 9.0, -maxf(sin(ph), 0.0) * 8.0), Vector2(cos(ph + PI) * 9.0, -maxf(sin(ph + PI), 0.0) * 8.0)]
+			pose["lean"] = 0.15
+		elif k < IN_BATE:
+			pose["hammer_ang"] = lerpf(0.3, -1.4, _smooth((k - IN_CORRE) / (IN_BATE - IN_CORRE)))
+			pose["expr"] = "esforco"
+		else:
+			pose["hammer_ang"] = lerpf(2.4, 0.3, _smooth((k - IN_BATE) / 0.6))
+			pose["expr"] = "vitoria" if k > IN_BATE + 0.4 else "esforco"
+		RobotVis.draw_robot(ci, {"color": intro_robo % 4, "model": intro_robo, "hammer": true, "fx": {}}, pose, Transform2D(0.0, Vector2(-SCENE_SCALE, SCENE_SCALE), 0.0, base))
+		ci.draw_set_transform(Vector2.ZERO)
+	# impacto: POW + poeira quando as letras batem
+	if k >= IN_BATE and k < IN_BATE + 0.5:
+		var u := (k - IN_BATE) / 0.5
+		var pc := Vector2(px + 40, SCENE_GROUND - 260)
+		Kit.burst(ci, pc, 70.0 * (0.7 + u * 0.5), u * 2.0, 5.0)
+		Kit.text(ci, Vector2(pc.x - 120, pc.y + 16), "POW!", 46, Color(1, 1, 1, 1.0 - u), HORIZONTAL_ALIGNMENT_CENTER, 240, 10)
+	if k >= IN_ASSENTA - 0.4 and k < IN_ASSENTA + 1.0:
+		var u := (k - IN_ASSENTA + 0.4) / 1.4
+		for i in 12:
 			var side := -1.0 if i % 2 == 0 else 1.0
-			var px := 960.0 + side * (200.0 + (i / 2) * 120.0 + u * 160.0)
-			var py := c0.y + h * 0.42 - u * 40.0 * (1.0 + (i % 3) * 0.4)
-			ci.draw_circle(Vector2(px, py), (22.0 + (i % 3) * 8.0) * (1.0 - u * 0.6), Color(0.97, 0.94, 0.86, 0.85 * (1.0 - u)))
-		for i in 8:
-			var a := i * TAU / 8.0
-			var sp := c0 + Vector2.from_angle(a) * (300.0 + u * 420.0) * Vector2(1.6, 0.6)
-			var sz := 14.0 * (1.0 - u)
-			Kit.star(ci, sp, sz * 2.0, true)
-	if k > 1.0 and k < 1.8:
-		var a := clampf((k - 1.0) / 0.3, 0.0, 1.0) * (0.6 + 0.4 * sin(k * 6.0))
-		Kit.text(ci, Vector2(0, 1030), "aperte qualquer botão", 30, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6, Color(0.12, 0.3, 0.33, a))
+			var dx := side * (120.0 + (i / 2) * 110.0 + u * 160.0)
+			ci.draw_circle(Vector2(960 + dx, alvo.y + lh * 0.48 - u * 30.0), (24.0 + (i % 3) * 8.0) * (1.0 - u * 0.6), Color(0.97, 0.94, 0.86, 0.85 * (1.0 - u)))
+	# 5) o elenco entra correndo; a plaquinha "aperte qualquer botão"
+	var ent2 := []
+	for i in 4:
+		ent2.append(_smooth((k - IN_ASSENTA - i * 0.12) / 0.6))
+	if k >= IN_ASSENTA:
+		_draw_scene_robos(ci, ent2, intro_robo)
+	if k > 0.6 and k < INTRO_END - 0.3:
+		var a := clampf((k - 0.6) / 0.3, 0.0, 1.0)
+		var r := Rect2(760, 1004, 400, 52)
+		Kit.chunk(ci, r, Color(0.91, 0.89, 0.82, a), 8, 4, 0.0)
+		Kit.text(ci, Vector2(r.position.x, r.position.y + 36), "aperte qualquer botão", 26, Color(Kit.INK, a), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 
 # ---------------------------------------------------------------- configurar controle (aprende os sinais do controle)
 const LEARN_NAMES := {"jump": "PULAR", "hammer": "GOLPE RÁPIDO", "heavy": "MARRETADA PESADA", "dodge": "ESQUIVA", "item": "ESPECIAL (ENGENHOCA)", "start": "START (começar / pausar)", "back": "VOLTAR (nos menus)",
@@ -900,7 +958,6 @@ const SCENE_SCALE := 2.4
 ## Chão de caixotes e os quatro robôs em ação: azul marreta o verde (que voa e volta), rosa quica de botas
 ## de mola, amarelo corre desesperado com o TNT aceso. enter[i] = 0..1 (entrando correndo pela lateral).
 func _draw_scene(ci: CanvasItem, enter: Array) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
 	# "Canteiro vivo" (A21): a obra ao fundo e a laje de concreto do térreo como palco
 	Obra.fundo(ci, t)
 	ci.draw_rect(Rect2(0, SCENE_GROUND, 1920, 1080 - SCENE_GROUND), Color("#b9ab8f"))
@@ -908,12 +965,16 @@ func _draw_scene(ci: CanvasItem, enter: Array) -> void:
 	ci.draw_rect(Rect2(0, SCENE_GROUND, 1920, 10), Color("#eee5d2"))
 	for k in 24:
 		ci.draw_circle(Vector2(30 + k * 82, SCENE_GROUND + 110 + (k % 3) * 22), 4.0, Color("#958a72"))
+	_draw_scene_robos(ci, enter)
+
+func _draw_scene_robos(ci: CanvasItem, enter: Array, sem_modelo := -1) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
 	ci.draw_texture_rect(Data.tex("cenario/tnt"), Rect2(1830, SCENE_GROUND - 64, 64, 64), false)
 	ci.draw_texture_rect(Data.tex("cenario/caixote_1"), Rect2(1830, SCENE_GROUND - 128, 64, 64), false)
 	var cyc := fmod(now, 1.6) / 1.6   # ciclo da marretada
 	for i in 4:
 		var e: float = enter[i]
-		if e <= 0.0:
+		if e <= 0.0 or i == sem_modelo:   # abertura: quem marretou já está em cena
 			continue
 		var side := -1.0 if i < 2 else 1.0
 		var base := Vector2(lerpf(SCENE_X[i] + side * 1200.0 * (-1.0 if i < 2 else 1.0) * -1.0, SCENE_X[i], e), SCENE_GROUND)

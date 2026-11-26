@@ -70,7 +70,7 @@ func _run() -> void:
 			main.menus.intro_frames = 0
 			main.menus.intro_hit = false
 			main.menus.intro_hi = false
-			var shots := [12, 30, 40, 60, 95, 125, 140, 165]
+			var shots := [30, 60, 100, 150, 170, 190, 230, 300]
 			var fr := 0
 			for target in shots:
 				await frames(target - fr)
