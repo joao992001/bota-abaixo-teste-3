@@ -156,6 +156,7 @@ func update_eventos(m: Node) -> void:
 ## Etapa 3: VIDAS (3 a 6).
 func update_vidas(m: Node) -> void:
 	var vc: Dictionary = MapaReg.modo_cfg("derruba").get("vidas", {"min": 3, "max": 6})
+	main.demo.lives_setting = clampi(main.demo.lives_setting, int(vc["min"]), int(vc["max"]))   # nunca fora de 3–6
 	var h: int = m.move_h()
 	if h != 0:
 		main.demo.lives_setting = clampi(main.demo.lives_setting + h, int(vc["min"]), int(vc["max"]))

@@ -2018,6 +2018,7 @@ func selecao_test() -> void:
 	check(main.state == S.SELEVENTOS, "voltar dos ajustes → eventos")
 	await tap("v0", "start")
 	check(main.state == S.AJUSTES, "etapa 2 → etapa 3 (VIDAS)")
+	await frames(2)
 	var v0: int = main.demo.lives_setting
 	await tap("v0", "right")
 	check(main.demo.lives_setting == mini(v0 + 1, 6), "etapa 3: ◄► muda as vidas (%d)" % main.demo.lives_setting)
