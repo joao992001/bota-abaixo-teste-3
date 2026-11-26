@@ -42,7 +42,7 @@ formato para a D4 e para o online futuro não exigir migração difícil.
 | `ultima_config` | "Jogar de novo" e "Configurar mapa" sem refazer as telas | ids estáveis; item que sumiu do manifesto é ignorado |
 
 ## 3. Ids estáveis (não renomear depois de gravados)
-`map_id` (`canteiro_obras`), `id` das cenas (`terreo`, `fundacao`, `deposito`), spells `A##/C##/E##/T##`, eventos
+`map_id` (`canteiro_obras`), `id` das cenas (`terreo`, `fundacao`, `fachada`), spells `A##/C##/E##/T##`, eventos
 `G##/V##`, skins `K#`. Renomear um id exige uma migração de versão (§1).
 
 ## 4. Preparado para o online (sem implementar)
