@@ -175,7 +175,8 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 	var under := Vector2i(col, row)
 	if r.is_on_floor() and L.blocks.has(under):
 		var b: Dictionary = L.blocks[under]
-		if b["warn"] > 0.0 or b["load"] > float(demo.cfg["crumble_crack_s"]) * 0.8:
+		# foge 2 s antes de quebrar (com os valores padrão = 80% do tempo de rachar; sem quebra, não foge à toa)
+		if b["warn"] > 0.0 or b["load"] > float(demo.cfg["crumble_break_s"]) - 2.0:
 			for dc in [1, -1, 2, -2, 3, -3]:
 				var c2 := Vector2i(col + dc, row)
 				if L.is_solid(c2) and not (L.blocks.has(c2) and L.blocks[c2]["warn"] > 0.0):
@@ -329,7 +330,10 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 			if b["vy"] == 0.0 and not b["block"].has(r.pid) and b["pos"].distance_to(pos) < td * 1.2 and main.rng.randf() < float(lv["use_items"]):
 				goal = b["pos"] + Vector2(0, 26)
 				break
-	# 6) rival logo abaixo: quebra o chão dele (se estiver ao lado) ou cai em cima (pisão)
+	# 6) rival em outro andar: segue o caminho de degraus, subindo ou descendo
+	#    (andar em linha reta parava na beirada e o bot ficava travado)
+	if absf(goal.y - pos.y) > 90.0:
+		return _climb(r, goal, lv)
 	var gx := goal.x - pos.x
 	if absf(gx) > 20.0:
 		cmd["dir"] = signi(int(gx))
