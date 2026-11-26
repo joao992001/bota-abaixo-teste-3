@@ -77,6 +77,9 @@ func setup(m: Node, lv) -> void:
 		for i in c.get("estacas", []).size():
 			var e: Array = c["estacas"][i]
 			_add("estaca", Rect2(e[0] * T, e[1] * T, e[2] * T, 22), int(cfg["estaca_hp"]), false, true, i, n)
+		for i in c.get("pranchas", []).size():   # Fachada: pranchas de andaime (racham com quem fica parado; G12 move)
+			var pr: Array = c["pranchas"][i]
+			_add("prancha", Rect2(pr[0] * T + 10, pr[1] * T, pr[2] * T - 20, 22), int(cfg["prancha_hp"]), false, true, i, n)
 		for i in c.get("grelhas", []).size():   # poços de drenagem (abrem KO)
 			var gr: Array = c["grelhas"][i]
 			_add("grelha", Rect2(gr[0] * T, gr[1] * T, gr[2] * T, 40), int(cfg["grelha_hp"]), false, false, i, n)
@@ -84,7 +87,7 @@ func setup(m: Node, lv) -> void:
 	lv.grab_solid = func(c: Vector2i) -> bool: return owner_of.has(c) and owner_of[c]["kind"] == "laje"
 
 func _add(kind: String, r: Rect2, hp: int, nucleo: bool, oneway: bool, idx: int, etapa := 1) -> void:
-	var body: StaticBody2D = AnimatableBody2D.new() if kind in ["andaime", "estaca"] else StaticBody2D.new()   # G12 move o deque (andaime no Térreo, plataforma sobre estaca na Fundação)
+	var body: StaticBody2D = AnimatableBody2D.new() if kind in ["andaime", "estaca", "prancha"] else StaticBody2D.new()   # G12 move o deque (andaime no Térreo, plataforma sobre estaca na Fundação)
 	if body is AnimatableBody2D:
 		body.sync_to_physics = false
 	body.collision_layer = 2 if oneway else 1
@@ -203,7 +206,7 @@ func _layout_do_mapa(cs: Array) -> Dictionary:
 			for k in ["andaimes", "vigas", "terreos"]:
 				lay[k] = es.get(k, []).map(func(a): return a.map(func(v): return int(v)))
 			lay["pilares"] = es.get("pilares", []).map(func(v): return int(v))
-		if es.has("estacas") or es.has("grelhas") or es.has("entulhos"):
+		if es.has("estacas") or es.has("grelhas") or es.has("entulhos") or es.has("pranchas"):
 			var ex: Dictionary = es.duplicate()
 			ex["ordem"] = int(c["ordem"])
 			lay["cenas_extra"].append(ex)
@@ -268,6 +271,10 @@ func _collapse(p: Dictionary) -> void:
 	var mid: float = r.get_center().x
 	var out := -1.0 if mid < 20 * T else 1.0
 	match p["kind"]:
+		"prancha":
+			for k in 3:   # a prancha parte em pedaços de madeira
+				debris.append({"tex": null, "size": Vector2(r.size.x / 3.0, 22), "pos": Vector2(r.position.x + (k + 0.5) * r.size.x / 3.0, r.get_center().y),
+					"vel": Vector2(randf_range(-120, 120), randf_range(-160, 20)), "rot": 0.0, "spin": randf_range(-2.4, 2.4), "t": 0.0, "cor": Color("#c98a4b")})
 		"estaca", "grelha", "entulho":
 			var tx: Texture2D = tex["plataforma"] if p["kind"] == "estaca" else (tex["grelha"] if p["kind"] == "grelha" else tex["laje_pedaco_2"])
 			debris.append({"tex": tx, "size": r.size + Vector2(0, 18), "pos": r.get_center(), "vel": Vector2(randf_range(-60, 60), 40),
@@ -447,6 +454,23 @@ func _draw() -> void:
 					draw_line(r.position + Vector2(40, 4) + o, r.position + Vector2(90, 36) + o, Color("#2a1a2e"), 3.0)
 			"entulho":
 				draw_texture_rect(tex["laje_pedaco_0" if p["idx"] % 2 == 0 else "laje_pedaco_2"], Rect2(r.position + Vector2(-8, -16) + o, r.size + Vector2(16, 20)), false)
+	# Fachada: pranchas de andaime (madeira com rodapé; racham e inclinam antes de cair)
+	for p in parts:
+		if p["kind"] != "prancha" or p["fallen"]:
+			continue
+		var r: Rect2 = p["rect"]
+		var tilt := 0.0
+		if p["crit_t"] > 0.0:
+			tilt = 0.1 * (1.0 - p["crit_t"] / maxf(float(cfg["aviso_queda_s"]), 0.01))
+		draw_set_transform(r.get_center() + _shake_off(p), tilt, Vector2.ONE)
+		var lr := Rect2(-r.size.x / 2.0, -r.size.y / 2.0, r.size.x, r.size.y)
+		draw_rect(lr, Color("#c98a4b"))
+		draw_rect(Rect2(lr.position.x, lr.end.y - 6.0, lr.size.x, 10.0), Color("#8a5a2b"))
+		for k in range(1, int(lr.size.x / 92.0) + 1):
+			draw_line(Vector2(lr.position.x + k * 92.0, lr.position.y + 3), Vector2(lr.position.x + k * 92.0, lr.end.y - 4), Color("#a46a35"), 3.0)
+		if int(p["state"]) >= 1:
+			draw_polyline(PackedVector2Array([Vector2(-20, lr.position.y + 2), Vector2(-4, 2), Vector2(-14, 8), Vector2(10, lr.end.y)]), Color("#2a1a2e"), 3.0)
+		draw_set_transform(Vector2.ZERO)
 	# chão do térreo (lados): terra batida com faixa clara no topo
 	for p in parts:
 		if p["kind"] == "terreo" and not p["fallen"]:
@@ -471,7 +495,12 @@ func _draw() -> void:
 	for d in debris:
 		var a := clampf(2.5 - d["t"], 0.0, 1.0)
 		draw_set_transform(d["pos"], d["rot"])
-		draw_texture_rect(d["tex"], Rect2(-d["size"] / 2.0, d["size"]), false, Color(1, 1, 1, a))
+		if d["tex"] == null:   # lascas desenhadas (prancha de madeira)
+			var cc: Color = d.get("cor", Color("#c98a4b"))
+			draw_rect(Rect2(-d["size"] / 2.0, d["size"]), Color(cc, a))
+			draw_rect(Rect2(Vector2(-d["size"].x / 2.0, d["size"].y / 2.0 - 6.0), Vector2(d["size"].x, 6.0)), Color(cc.darkened(0.35), a))
+		else:
+			draw_texture_rect(d["tex"], Rect2(-d["size"] / 2.0, d["size"]), false, Color(1, 1, 1, a))
 	draw_set_transform(Vector2.ZERO)
 	for c in crumbs:
 		draw_circle(c["pos"], 3.5, Color("#a1988a"))

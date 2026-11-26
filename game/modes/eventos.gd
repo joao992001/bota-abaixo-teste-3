@@ -966,7 +966,7 @@ func _beam_pick(ct) -> Variant:
 
 # ---------------------------------------------------------------- G12 andaimes
 func _scaffold_moves(ct) -> Array:
-	var ands: Array = ct.parts.filter(func(p): return p["kind"] in ["andaime", "estaca"] and int(p["etapa"]) == _etapa() and not p["fallen"] and p.get("evt", "") == "" and p["crit_t"] <= 0.0)
+	var ands: Array = ct.parts.filter(func(p): return p["kind"] in ["andaime", "estaca", "prancha"] and int(p["etapa"]) == _etapa() and not p["fallen"] and p.get("evt", "") == "" and p["crit_t"] <= 0.0)
 	if ands.is_empty():
 		return []
 	ands.shuffle()

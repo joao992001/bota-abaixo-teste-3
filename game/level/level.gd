@@ -87,6 +87,11 @@ func load_level(level_id: String) -> void:
 			elif ch == "^":
 				# espinhos altos (1,5 tile), em pé no fundo do poço
 				hazard_rects.append(Rect2(x * T + 4, y * T + T - 100, T - 8, 100))
+	for k in props:   # nascimentos extras por propriedade (cena 3+: "spawn9: col,linha" = de pé em cima da linha+1)
+		var ks := String(k)
+		if ks.begins_with("spawn") and ks.substr(5).is_valid_int():
+			var v := String(props[k]).split(",")
+			spawns[int(ks.substr(5))] = Vector2(float(v[0]) * T + T / 2.0, (float(v[1]) + 1.0) * T)
 	area = etapa_rect(1)
 	_build_colliders()
 	queue_redraw()

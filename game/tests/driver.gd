@@ -1672,7 +1672,10 @@ func etapas_test() -> void:
 	check(ct.progresso(1) > pp, "marretada do jogador também conta (%.1f%%)" % (ct.progresso(1) * 100.0))
 	et.progresso = 0.62
 	et.verificar()
-	check(et.state == "etapa" and et.destino_de("moderada") < 0, "50–90%: a rota moderada (Fachada) ainda está pendente → fica na cena")
+	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "50–90% na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
+	et.state = "etapa"   # cancela (a transição moderada inteira tem teste próprio) e segue para provar a rota total
+	et.destino = -1
+	main.demo.banner = ""
 	put(r0, Vector2(2 * 64.0, 17 * 64.0))   # de volta à ponta do térreo (a marretada o deixou perto da beira)
 	for i in main.players.size():
 		main.demo.lives[i] = 9
@@ -1696,7 +1699,7 @@ func etapas_test() -> void:
 	sp.equip(r1, "T04")   # jetpack ligado bem na virada (bug: voava para fora da queda)
 	sp.use(r1)
 	await frames(int(float(et.cfg["aviso_s"]) * 60.0) + 4)
-	check(et.state == "queda" and main.demo.canteiro.parts.all(func(p): return p["fallen"] or int(p["etapa"]) == 2), "a estrutura TODA da etapa 1 desaba (inclusive núcleo e térreo)")
+	check(et.state == "queda" and main.demo.canteiro.parts.all(func(p): return p["fallen"] or int(p["etapa"]) != 1), "a estrutura TODA da etapa 1 desaba (inclusive núcleo e térreo)")
 	check(main.demo.canteiro.parts.filter(func(p): return p["kind"] == "entulho").size() == 2, "pedaços da laje caem na Fundação e viram obstáculos")
 	var waited := 0
 	while et.state != "etapa" and waited < 400:
@@ -1737,11 +1740,11 @@ func mapa_test() -> void:
 	check("V1" in e1 and not "V1" in e2 and "V3" in e2 and not "V3" in e1 and "G01" in e1 and "G01" in e2, "eventos por cena: V1 só no Térreo, V3 só na Fundação, G01 Sirene nas duas")
 	check(MapaReg.eventos("derruba", "mapa_sem_manifesto", 1) == [] and MapaReg.eventos("derruba", "demolicao", 1) == null, "sem manifesto: nenhum evento; ferramenta: biblioteca")
 	var mecs: Array = MapaReg.mecanismos("derruba", "canteiro_obras")
-	var por := {1: [], 2: []}
+	var por := {1: [], 2: [], 3: []}
 	for d in mecs:
 		por[int(d["etapa"])].append(d["id"])
 	check(mecs.size() == 8 and por[1] == ["M1", "M2", "M4", "M5"] and por[2] == ["M6", "M7", "M8", "M9"], "mecanismos instanciados na cena certa (%s)" % str(por))
-	check(MapaReg.rota("derruba", "canteiro_obras", 1, "total") == 2 and MapaReg.rota("derruba", "canteiro_obras", 1, "moderada") == -1 and not MapaReg.tem_proxima("derruba", "canteiro_obras", 2), "Térreo → Fundação (total); moderada = Fachada pendente; Fundação é a última")
+	check(MapaReg.rota("derruba", "canteiro_obras", 1, "total") == 2 and MapaReg.rota("derruba", "canteiro_obras", 1, "moderada") == 3 and not MapaReg.tem_proxima("derruba", "canteiro_obras", 2) and not MapaReg.tem_proxima("derruba", "canteiro_obras", 3), "Térreo → Fundação (total) ou Fachada (moderada); as duas são as últimas")
 	var bad := {"mode_id": "derruba", "topologia": 4, "spells_permitidas": ["S99"], "eventos_permitidos": [], "cenas": [
 		{"id": "a", "ordem": 1, "nivel": 1, "eventos": ["G02"], "mecanismos": [{"id": "X"}], "rota_total": "a", "rota_moderada": null}]}
 	var errs := MapaReg.validar(bad)

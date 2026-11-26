@@ -356,12 +356,73 @@
    "nivel": 2,
    "rota_moderada": null,
    "rota_total": null
+  },
+  {
+   "id": "fachada",
+   "ordem": 3,
+   "nome": "Fachada",
+   "nivel": 2,
+   "rota_moderada": null,
+   "rota_total": null,
+   "eventos": [],
+   "mecanismos": [],
+   "estruturas": {
+    "pranchas": [
+     [
+      60,
+      6,
+      6
+     ],
+     [
+      66,
+      6,
+      6
+     ],
+     [
+      48,
+      10,
+      6
+     ],
+     [
+      54,
+      10,
+      6
+     ],
+     [
+      66,
+      10,
+      6
+     ],
+     [
+      72,
+      10,
+      6
+     ],
+     [
+      54,
+      14,
+      6
+     ],
+     [
+      60,
+      14,
+      6
+     ],
+     [
+      66,
+      14,
+      6
+     ]
+    ]
+   },
+   "base_fixa": [
+    "prancha de baixo (tiles da linha 18)",
+    "parede do prédio e montantes (só desenho)"
+   ],
+   "nota": "Cena 3 (Rota Moderada, aprovada 2026-11-26): luta pendurada nos andaimes da fachada; cair na rua = KO. Ficha: docs/fases/derruba/f1_canteiro/cenas/fachada.md."
   }
  ],
  "topologia": 3,
- "cenas_pendentes": [
-  "fachada"
- ],
- "nota_v2": "Manifesto v2 (D1, 2026-11-26): cada cena tem nivel, rota_moderada e rota_total (ids; null no último nível) e o aviso de cada rota. A cena 'fachada' (Rota Moderada, aprovada) entra na D5: até lá a rota moderada fica indisponível e 50–90% na verificação = fica na cena.",
+ "nota_v2": "Manifesto v2: cada cena tem nivel, rota_moderada e rota_total (ids; null no último nível) e o aviso de cada rota. Canteiro = 3 cenas: Térreo → Fundação (total) ou Fachada (moderada, D5 2026-11-26).",
  "nota_eventos": "A14 (2026-11-26): os eventos G# de eventos_permitidos valem em TODAS as cenas; cenas[].eventos lista só os perigos da cena (V#, sempre ligados)."
 }
