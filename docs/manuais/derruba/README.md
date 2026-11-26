@@ -39,6 +39,7 @@ configuração. *Partida* = uma luta até sobrar um robô.
 - **Fase (mapa):** [`mapa.md`](mapa.md) — método VALIDADO (obrigatório) · regras de desenho: [`mapa_cartilha.md`](mapa_cartilha.md)
 - **Spell:** [`spell.md`](spell.md) · **Evento:** [`evento.md`](evento.md) · **Perigos/mecanismos:** [`perigos_mecanismos.md`](perigos_mecanismos.md)
 - **Progressão, desbloqueios e online (futuro):** [`progressao.md`](progressao.md)
+- **Perfil salvo local (formato para a D4):** [`perfil_salvo.md`](perfil_salvo.md) — PROPOSTO
 - Bibliotecas dos mapas: `docs/fases/derruba/` (Fase 1: [`f1_canteiro/`](../../fases/derruba/f1_canteiro/README.md); modelo: `_modelo/`)
 
 ## Histórico de decisões do modo
