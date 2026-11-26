@@ -131,7 +131,7 @@ def notes(head, items):
     for i, (tag, txt) in enumerate(items):
         col, row = i % 2, i // 2
         x, y = 30 + col * 950, y0 + 100 + row * 46
-        colr = {"APROVADO": "#3f9e55", "PROPOSTA": "#e08a1e", "DECIDIR": "#c23a5a", "FUTURO": "#6b7a90"}[tag]
+        colr = {"APROVADO": "#3f9e55", "PROPOSTA": "#e08a1e", "DECIDIR": "#c23a5a", "FUTURO": "#6b7a90", "PROVISÓRIO": "#b07a1e"}[tag]
         b += f'<rect x="{x}" y="{y - 26}" width="128" height="36" rx="10" fill="{colr}"/>' + T(x + 64, y - 1, tag, 18, "#ffffff")
         b += T(x + 140, y, txt, 19, INK, "start", w=600)
     return b
@@ -479,6 +479,239 @@ def tela_mapas():
     return page(b, n)
 
 
+# ---------------------------------------------------------------- parte 2: grafos e storyboard
+ROTA_M, ROTA_T = "#f39a3a", "#a8233a"
+QUADROS = os.path.join(OUT, "quadros_total")   # quadros reais da transição (vitrine --fase=DIR)
+
+
+def node(x, y, w, h, nome, sub, fill=CREAM, thumb=None, unknown=False):
+    b = chunk(x, y, w, h, fill, 18, 5, 7)
+    if thumb is not None:
+        b += f'<clipPath id="th{x}{y}"><rect x="{x + 10}" y="{y + 10}" width="{w - 20}" height="{h - 66}" rx="10"/></clipPath>'
+        b += f'<image clip-path="url(#th{x}{y})" href="{uri_img(thumb)}" x="{x + 10}" y="{y + 10}" width="{w - 20}" height="{(w - 20) * thumb.height / thumb.width}" preserveAspectRatio="xMidYMin slice"/>'
+        b += f'<rect x="{x + 10}" y="{y + 10}" width="{w - 20}" height="{h - 66}" rx="10" fill="none" stroke="{INK}" stroke-width="4"/>'
+    elif unknown:
+        b += f'<rect x="{x + 10}" y="{y + 10}" width="{w - 20}" height="{h - 66}" rx="10" fill="#f6c48f" stroke="{INK}" stroke-width="4"/>'
+        b += title(x + w / 2, y + 10 + (h - 66) / 2 + 22, "?", 64)
+    b += T(x + w / 2, y + h - 30 if (thumb is not None or unknown) else y + h / 2 + 2, nome, 24)
+    if sub:
+        b += T(x + w / 2, y + h - 8 if (thumb is not None or unknown) else y + h / 2 + 30, sub, 17, SOFT, w=600)
+    return b
+
+
+def edge(x0, y0, x1, y1, col, label=None, lx=None, ly=None):
+    mx = (x0 + x1) / 2
+    b = f'<path d="M{x0},{y0} C{mx},{y0} {mx},{y1} {x1 - 14},{y1}" stroke="{INK}" stroke-width="12" fill="none"/>'
+    b += f'<path d="M{x0},{y0} C{mx},{y0} {mx},{y1} {x1 - 14},{y1}" stroke="{col}" stroke-width="6" fill="none"/>'
+    b += f'<path d="M{x1 - 18},{y1 - 13} l18,13 l-18,13z" fill="{col}" stroke="{INK}" stroke-width="4" stroke-linejoin="round"/>'
+    if label:
+        lx = mx if lx is None else lx
+        ly = (y0 + y1) / 2 if ly is None else ly
+        b += f'<rect x="{lx - 46}" y="{ly - 20}" width="92" height="32" rx="10" fill="{col}" stroke="{INK}" stroke-width="4"/>'
+        b += T(lx, ly + 4, label, 18, "#ffffff", extra=f'stroke="{INK}" stroke-width="4" paint-order="stroke"')
+    return b
+
+
+def loop_fica(x, y):
+    return (f'<path d="M{x - 30},{y} a30,26 0 1 1 60,0" stroke="{INK}" stroke-width="5" fill="none" stroke-dasharray="8 6"/>'
+            f'<path d="M{x + 22},{y - 8} l8,10 l8,-10" stroke="{INK}" stroke-width="5" fill="none"/>' + T(x, y - 34, "&lt;50% fica", 17, SOFT, w=600))
+
+
+def tela_grafos():
+    b = f'<rect x="0" y="0" width="{W}" height="{H}" fill="#9fc9d3"/>' + title(W / 2, 100, "CENAS E ROTAS")
+    # mapa pequeno (3)
+    b += chunk(50, 150, 700, 470, CREAM, 26, 6, 10) + T(400, 202, "MAPA PEQUENO · 3 CENAS", 30)
+    for i, lb in enumerate(("NÍVEL 1", "NÍVEL 2")):
+        b += T(170 + i * 400, 250, lb, 20, SOFT)
+    b += node(80, 380, 180, 90, "INÍCIO", "")
+    b += loop_fica(170, 376)
+    b += node(480, 290, 200, 90, "MODERADA", "") + node(480, 470, 200, 90, "TOTAL", "")
+    b += edge(260, 412, 480, 335, ROTA_M, "50–90%", 370, 360) + edge(260, 440, 480, 515, ROTA_T, "≥ 90%", 370, 492)
+    b += T(400, 600, "última cena não muda mais: luta até sobrar 1", 20, SOFT, w=600)
+    # mapa grande (7)
+    b += chunk(790, 150, 1080, 470, CREAM, 26, 6, 10) + T(1330, 202, "MAPA GRANDE · 7 CENAS", 30)
+    for i, lb in enumerate(("NÍVEL 1", "NÍVEL 2", "NÍVEL 3")):
+        b += T(900 + i * 370, 250, lb, 20, SOFT)
+    b += node(820, 390, 160, 76, "INÍCIO", "")
+    b += loop_fica(900, 386)
+    ys2 = (300, 490)
+    for k, (yy, nm, col) in enumerate(zip(ys2, ("MODERADA", "TOTAL"), (ROTA_M, ROTA_T))):
+        b += node(1180, yy, 190, 76, nm, "")
+        b += edge(980, 420 + k * 26, 1180, yy + 38, col)
+        b += f'<path d="M{1245},{yy - 4} a30,22 0 1 1 60,0" stroke="{INK}" stroke-width="5" fill="none" stroke-dasharray="8 6"/>'
+        for j, (dy, nm2, col2) in enumerate(((-58, f"{nm[0]}·MOD.", ROTA_M), (58, f"{nm[0]}·TOTAL", ROTA_T))):
+            y3 = yy + 38 + dy * 0.85
+            b += f'<g>{node(1560, y3 - 30, 190, 60, nm2, "")}</g>'
+            b += edge(1370, yy + 38 + (j * 2 - 1) * 12, 1560, y3, col2)
+    b += f'<rect x="1068" y="380" width="92" height="32" rx="10" fill="{ROTA_M}" stroke="{INK}" stroke-width="4"/>' + T(1114, 404, "50–90%", 18, "#ffffff", extra=f'stroke="{INK}" stroke-width="4" paint-order="stroke"')
+    b += f'<rect x="1068" y="452" width="92" height="32" rx="10" fill="{ROTA_T}" stroke="{INK}" stroke-width="4"/>' + T(1114, 476, "≥ 90%", 18, "#ffffff", extra=f'stroke="{INK}" stroke-width="4" paint-order="stroke"')
+    # o Canteiro (instância) + tempos
+    b += chunk(50, 660, 1110, 360, CREAM, 26, 6, 10) + T(605, 710, "CANTEIRO DE OBRAS = MAPA PEQUENO", 30)
+    t1 = Image.open(os.path.join(QUADROS, "t_70.png")).convert("RGB")
+    t2 = Image.open(os.path.join(QUADROS, "t_118.png")).convert("RGB")
+    b += node(90, 760, 330, 230, "TÉRREO", "início · aprovado", thumb=t1)
+    for yy, nm, sub, th in ((740, "DEPÓSITO", "moderada · proposta", None), (885, "FUNDAÇÃO", "total · aprovada", t2)):
+        b += chunk(760, yy, 370, 120, CREAM, 18, 5, 7)
+        if th is None:
+            b += f'<svg x="772" y="{yy + 12}" width="170" height="96" viewBox="0 0 640 360">{moderada_quadro(4)}</svg>'
+        else:
+            b += f'<image href="{uri_img(th.resize((340, 192)))}" x="772" y="{yy + 12}" width="170" height="96"/>'
+        b += f'<rect x="772" y="{yy + 12}" width="170" height="96" rx="8" fill="none" stroke="{INK}" stroke-width="4"/>'
+        b += T(1036, yy + 60, nm, 26) + T(1036, yy + 88, sub, 16, SOFT, w=600)
+    b += edge(420, 850, 760, 800, ROTA_M, "50–90%", 590, 800) + edge(420, 900, 760, 945, ROTA_T, "≥ 90%", 590, 945)
+    # tabela de tempos P1
+    b += chunk(1200, 660, 670, 360, CREAM, 26, 6, 10) + T(1535, 710, "QUANDO VERIFICA (tempo × vidas)", 26)
+    rows = [("VIDAS", "1ª VERIFICAÇÃO", "DEPOIS, A CADA"), ("3", "30 s", "10 s"), ("4 ★", "50 s", "17 s"), ("5", "70 s", "23 s"), ("6", "90 s", "30 s")]
+    for i, (a, c1, c2) in enumerate(rows):
+        y = 760 + i * 48
+        if i:
+            b += f'<rect x="1230" y="{y - 32}" width="610" height="42" rx="10" fill="{"#fff1b8" if a.startswith("4") else "#f3ead6"}"/>'
+        cc = SOFT if i == 0 else INK
+        b += T(1300, y, a, 24, cc) + T(1520, y, c1, 24, cc) + T(1740, y, c2, 24, cc)
+    b += T(1535, 1004, "sem cronômetro no HUD · a cena nova zera tempo e manômetro", 18, SOFT, w=600)
+    n = notes("Topologia v2 — o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE (A2, A3)", [
+        ("APROVADO", "3 cenas (1 → 2) ou 7 cenas (1 → 2 → 4); só avança 1 nível; sem 3ª rota."),
+        ("APROVADO", "&lt;50% fica e verifica de novo; 50–90% Moderada; ≥ 90% Total; 90% antes não antecipa."),
+        ("APROVADO", "Canteiro = 3 cenas: Térreo → Fundação (Total) ou cena nova (Moderada)."),
+        ("PROVISÓRIO", "Tempos × vidas da tabela (padrão 4 vidas); cada cena pode ter tempo próprio."),
+        ("PROPOSTA", "Cena nova do Canteiro: DEPÓSITO (ficha em cenas/deposito.md)."),
+        ("APROVADO", "Vence por KO; mudar de cena nunca é vitória; nada de teletransporte."),
+    ])
+    return page(b, n)
+
+
+# esboço simples (espaço 640x360) para o storyboard da Rota Moderada
+def bot(x, y, c, rot=0, s=1.0):
+    return (f'<g transform="translate({x} {y}) rotate({rot}) scale({s})">'
+            f'<rect x="-10" y="-34" width="20" height="30" rx="7" fill="{c}" stroke="{INK}" stroke-width="2.5"/>'
+            f'<circle cx="-3" cy="-24" r="2.6" fill="#fff"/><circle cx="4" cy="-24" r="2.6" fill="#fff"/>'
+            f'<line x1="-5" y1="-4" x2="-7" y2="6" stroke="{INK}" stroke-width="3"/><line x1="5" y1="-4" x2="7" y2="6" stroke="{INK}" stroke-width="3"/>'
+            f'<line x1="10" y1="-20" x2="22" y2="-34" stroke="#8a5a2b" stroke-width="3"/><rect x="16" y="-42" width="14" height="9" fill="#9aa3ad" stroke="{INK}" stroke-width="2"/></g>')
+
+
+def escoras(x0, x1, y0, y1, broken=False):
+    b = ""
+    step = 46
+    x = x0
+    while x + step <= x1 + 1:
+        if broken and x > (x0 + x1) / 2:
+            b += f'<line x1="{x}" y1="{y1}" x2="{x + 12}" y2="{y1 - 30}" stroke="#c98a4b" stroke-width="5"/><line x1="{x + 30}" y1="{y1}" x2="{x + 20}" y2="{y1 - 22}" stroke="#c98a4b" stroke-width="5"/>'
+        else:
+            b += (f'<rect x="{x}" y="{y0}" width="{step}" height="{y1 - y0}" fill="none" stroke="#e0883a" stroke-width="5"/>'
+                  f'<line x1="{x}" y1="{y0}" x2="{x + step}" y2="{y1}" stroke="#e0883a" stroke-width="4"/><line x1="{x + step}" y1="{y0}" x2="{x}" y2="{y1}" stroke="#e0883a" stroke-width="4"/>')
+        x += step
+    return b
+
+
+def galpao(x, y, w, broken=False):
+    b = f'<rect x="{x}" y="{y + 30}" width="{w}" height="200" fill="#8a96a6"/>'
+    n = int(w / 64)
+    for i in range(n):
+        px = x + i * 64
+        b += f'<path d="M{px},{y + 30} L{px + 44},{y} L{px + 64},{y + 30}z" fill="#c9cdd3" stroke="{INK}" stroke-width="2.5"/>'
+        b += f'<path d="M{px + 44},{y} L{px + 64},{y + 30} L{px + 44},{y + 30}z" fill="#a7d3e8"/>'
+        if broken and i % 2 == 1:
+            b += f'<path d="M{px + 8},{y + 26} l12,-14 l10,10 l8,-12" stroke="{INK}" stroke-width="2" fill="none"/>'
+    return b
+
+
+def sky(c0, c1, gid):
+    return (f'<linearGradient id="{gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{c0}"/><stop offset="1" stop-color="{c1}"/></linearGradient>'
+            f'<rect x="0" y="0" width="640" height="360" fill="url(#{gid})"/>')
+
+
+def grua(x):
+    return (f'<rect x="{x}" y="30" width="16" height="300" fill="#f2c84b" stroke="{INK}" stroke-width="2"/>'
+            f'<rect x="{x - 260}" y="26" width="330" height="12" fill="#f2c84b" stroke="{INK}" stroke-width="2"/>')
+
+
+def moderada_quadro(k):
+    b = ""
+    if k == 0:   # verificação
+        b += sky("#bfe9ef", "#e6f6f8", "s0") + grua(560) + escoras(150, 472, 226, 320)
+        b += f'<rect x="0" y="300" width="130" height="60" fill="#d8ccb6"/><rect x="510" y="300" width="130" height="60" fill="#d8ccb6"/>'
+        b += f'<rect x="120" y="200" width="400" height="26" fill="#d8ccb6" stroke="{INK}" stroke-width="3"/>'
+        b += bot(200, 200, PCOL[0]) + bot(300, 200, PCOL[1]) + bot(400, 200, PCOL[2], s=1) + bot(460, 200, PCOL[3])
+        b += gauge(320, 70, 40, 62, label=False)
+        b += title(320, 150, "A LAJE VAI ESCORREGAR!", 30)
+    elif k == 1:  # um lado cede
+        b += sky("#bfe9ef", "#e6f6f8", "s1") + grua(560) + escoras(150, 472, 226, 320, broken=True)
+        b += f'<rect x="0" y="300" width="130" height="60" fill="#d8ccb6"/><rect x="510" y="300" width="130" height="60" fill="#d8ccb6"/>'
+        b += f'<g transform="rotate(14 200 213)"><rect x="120" y="200" width="400" height="26" fill="#d8ccb6" stroke="{INK}" stroke-width="3"/>'
+        b += bot(220, 200, PCOL[0], -4) + bot(320, 200, PCOL[1], 10) + bot(410, 200, PCOL[2], 16) + bot(470, 200, PCOL[3], 20) + "</g>"
+        for i in range(6):
+            b += f'<rect x="{430 + i * 22}" y="{300 + (i % 3) * 14}" width="14" height="12" fill="#c98a4b" transform="rotate({i * 23} {437 + i * 22} {306})"/>'
+        b += f'<path d="M466,250 l10,-18 l6,14 l10,-20" stroke="{INK}" stroke-width="4" fill="none"/>'
+    elif k == 2:  # escorrega (câmera vai para a direita e desce)
+        b += sky("#cfe8e4", "#f6d6a8", "s2") + f'<g transform="translate(-200 -40)">{grua(560)}</g>'
+        b += f'<g transform="rotate(30 40 120)"><rect x="-40" y="110" width="440" height="26" fill="#d8ccb6" stroke="{INK}" stroke-width="3"/></g>'
+        b += galpao(300, 280, 340)
+        for i, c in enumerate(PCOL):
+            x, y = 200 + i * 52, 150 + i * 34
+            b += bot(x, y, c, 30 + i * 8)
+            b += f'<line x1="{x - 40}" y1="{y - 40}" x2="{x - 16}" y2="{y - 22}" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
+        b += title(320, 60, "ESCORREGA!", 32)
+    elif k == 3:  # cai no telhado do galpão
+        b += sky("#f6d6a8", "#f2a77c", "s3") + galpao(0, 210, 640, broken=True)
+        for i, c in enumerate(PCOL):
+            b += bot(140 + i * 120, 214, c, (-1) ** i * 12)
+        for i in range(9):
+            x = 60 + i * 64
+            b += f'<ellipse cx="{x}" cy="{226 - (i % 3) * 8}" rx="26" ry="12" fill="#f4efe6" opacity="0.85"/>'
+            b += f'<rect x="{x + 10}" y="{150 - (i % 4) * 16}" width="18" height="7" fill="#c9cdd3" stroke="{INK}" stroke-width="1.5" transform="rotate({i * 31} {x + 19} {154})"/>'
+    else:  # cena nova
+        b += sky("#f7c38c", "#ef9472", "s4")
+        b += f'<g opacity="0.55"><g transform="rotate(30 60 80)"><rect x="-30" y="70" width="240" height="16" fill="#8a7d6a"/></g><rect x="520" y="10" width="10" height="200" fill="#c79a3a"/></g>'
+        b += galpao(0, 180, 640)
+        b += f'<rect x="60" y="250" width="70" height="44" fill="#c8643c" stroke="{INK}" stroke-width="2.5"/><rect x="470" y="236" width="60" height="58" rx="6" fill="#4f86a8" stroke="{INK}" stroke-width="2.5"/>'
+        b += f'<rect x="250" y="300" width="160" height="14" fill="#3b3f4a"/>' + "".join(f'<circle cx="{262 + i * 34}" cy="{307}" r="6" fill="#9aa3ad"/>' for i in range(5))
+        b += bot(110, 184, PCOL[0]) + bot(250, 184, PCOL[1], 8) + bot(400, 184, PCOL[2]) + bot(520, 184, PCOL[3], -6)
+        b += title(320, 70, "DEPÓSITO!", 40)
+    return b
+
+
+def tela_storyboard():
+    b = f'<rect x="0" y="0" width="{W}" height="{H}" fill="#9fc9d3"/>' + title(W / 2, 92, "SAÍDAS DO TÉRREO")
+    pw, ph, gap, x0 = 306, 172, 16, 262
+    rows = [("ROTA TOTAL", "≥ 90% na verificação · APROVADA (já está no jogo)", ROTA_T, 93),
+            ("ROTA MODERADA", "50–90% na verificação · PROPOSTA (esboço)", ROTA_M, 62)]
+    caps_t = ["luta no Térreo", "“A OBRA VAI CEDER!”", "tudo desaba", "queda lenta pelo poço", "“FUNDAÇÃO!”"]
+    caps_m = ["“A LAJE VAI ESCORREGAR!”", "só o lado da rua cede", "a laje vira tobogã", "caem no telhado vizinho", "“DEPÓSITO!”"]
+    for r, (nm, sub, col, pct) in enumerate(rows):
+        y = 150 + r * 330
+        b += chunk(40, y, 1840, 300, CREAM, 26, 6, 10)
+        b += f'<rect x="40" y="{y}" width="200" height="300" rx="26" fill="{col}" stroke="{INK}" stroke-width="6"/>'
+        b += gauge(140, y + 100, 58, pct) + T(140, y + 220, nm.split()[0], 26, "#ffffff", extra=f'stroke="{INK}" stroke-width="5" paint-order="stroke"')
+        b += T(140, y + 252, nm.split()[1], 26, "#ffffff", extra=f'stroke="{INK}" stroke-width="5" paint-order="stroke"')
+        b += T(x0, y + 40, sub, 22, SOFT, "start", w=600)
+        for k in range(5):
+            px, py = x0 + k * (pw + gap), y + 60
+            if r == 0:
+                q = Image.open(os.path.join(QUADROS, f"t_{(70, 78, 102, 110, 118)[k]}.png")).convert("RGB").resize((pw * 2, ph * 2))
+                b += f'<image href="{uri_img(q)}" x="{px}" y="{py}" width="{pw}" height="{ph}"/>'
+            else:
+                b += f'<svg x="{px}" y="{py}" width="{pw}" height="{ph}" viewBox="0 0 640 360"><defs></defs>{moderada_quadro(k)}</svg>'
+            b += f'<rect x="{px}" y="{py}" width="{pw}" height="{ph}" rx="8" fill="none" stroke="{INK}" stroke-width="5"/>'
+            b += f'<circle cx="{px + 22}" cy="{py + 22}" r="17" fill="{YEL}" stroke="{INK}" stroke-width="4"/>' + T(px + 22, py + 30, str(k + 1), 20)
+            b += T(px + pw / 2, py + ph + 36, caps_t[k] if r == 0 else caps_m[k], 21)
+    b += chunk(40, 820, 1840, 200, CREAM, 26, 6, 10)
+    b += f'<rect x="40" y="820" width="200" height="200" rx="26" fill="#2e9e4f" stroke="{INK}" stroke-width="6"/>' + gauge(140, 900, 50, 30)
+    b += T(140, 1000, "FICA", 26, "#ffffff", extra=f'stroke="{INK}" stroke-width="5" paint-order="stroke"')
+    b += T(x0, 870, "&lt; 50% na verificação: nada acontece na tela — a luta segue e o jogo verifica de novo depois (sem aviso, sem relógio).", 24, INK, "start", w=600)
+    b += T(x0, 914, "Por que as duas saídas são diferentes e legíveis:", 24, INK, "start")
+    b += T(x0, 950, "TOTAL = a obra inteira cai PARA BAIXO, no escuro (subsolo).   MODERADA = só um lado cede e todos escorregam", 22, SOFT, "start", w=600)
+    b += T(x0, 980, "PARA O LADO, para o telhado do galpão ao entardecer. Direção, luz e cor diferentes → ninguém confunde as rotas.", 22, SOFT, "start", w=600)
+    n = notes("Storyboard das transições do Canteiro (manual mapa.md §0: cada cena intermediária tem 2 transições)", [
+        ("APROVADO", "Rota Total = a transição atual (quadros reais do jogo)."),
+        ("APROVADO", "Transição física (desaba/escorrega/câmera), nunca teletransporte."),
+        ("PROPOSTA", "Rota Moderada: laje do lado da rua cede → tobogã → telhado do galpão."),
+        ("PROPOSTA", "Aviso na tela muda por rota: “A OBRA VAI CEDER!” × “A LAJE VAI ESCORREGAR!”."),
+        ("DECIDIR", "Aprovar o conceito DEPÓSITO (ou a alternativa FACHADA na ficha)."),
+        ("PROPOSTA", "Depois da aprovação: fotografia conceitual da cena (passo 2 do método)."),
+    ])
+    return page(b, n)
+
+
 # ---------------------------------------------------------------- render
 def render(boards):
     os.makedirs(OUT, exist_ok=True)
@@ -498,6 +731,7 @@ def render(boards):
 
 if __name__ == "__main__":
     allb = {"c1_mapas": tela_mapas, "c2_spells": tela_spells, "c3_eventos": tela_eventos,
-            "c4_manometro": tela_manometro, "c5_resultados": tela_resultados}
+            "c4_manometro": tela_manometro, "c5_resultados": tela_resultados,
+            "c6_cenas_rotas": tela_grafos, "c7_storyboard_rotas": tela_storyboard}
     want = sys.argv[1:] or list(allb)
     print("\n".join(render([(k, allb[k]()) for k in want])))

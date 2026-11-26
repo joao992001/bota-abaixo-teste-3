@@ -7,8 +7,10 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 ## ▶ Retomar aqui (sessão nova)
 **REFORMULAÇÃO DO DERRUBA v2 (APROVADA 2026-11-25, etapa B = documentação FEITA):** `docs/revisoes/reformulacao_derruba.md`
 (aprovado × provisório × pendente + plano C/D) e regras em `docs/manuais/derruba/README.md` (coluna "no jogo hoje").
-**Próximo: etapa C** — pranchas (telas de mapas/spells/eventos, manômetro, resultados), grafos 3/7, storyboard das rotas,
-contrato do perfil salvo e ficha da cena Rota Moderada do Canteiro; só depois o código (D1–D5).
+**Etapa C ENTREGUE (2026-11-26), aguardando aprovação do usuário:** pranchas `art/out/etapa_c/c1–c7` (gerador
+`art/src/ui/etapa_c.py`; quadros reais da Rota Total em `quadros_total/`), contrato `docs/manuais/derruba/perfil_salvo.md`,
+ficha da Rota Moderada `docs/fases/derruba/f1_canteiro/cenas/deposito.md` (DEPÓSITO, PROPOSTO). Cada prancha lista o que
+falta DECIDIR. Depois da aprovação: fotografia do Depósito e código D1–D5.
 **PAUSA DE 2026-11-25 → leia primeiro `docs/RETOMADA_2026-11-25.md`** (o que foi feito, estado no commit `7556692`, decisões pendentes e verificação).
 **LIMPA DE SPELLS/EVENTOS (anotações, NÃO executar sem pedido):** `docs/revisoes/limpa_spells_eventos.md`.
 **REORGANIZAÇÃO MODULAR (2026-11-25, branch `reorg-modular` → `main`):** comece por `docs/manuais/README.md`. Conteúdo de

@@ -21,7 +21,7 @@ poço até a **Fundação** (subsolo escuro, 3 lajes sobre o vazio, bate-estaca,
 |---|---|---|---|---|
 | 1 | Térreo (`terreo`) — Início | [`cenas/terreo.md`](cenas/terreo.md) | início da partida | APROVADO |
 | 2 | Fundação (`fundacao`) — **Rota Total** (≥ 90% na verificação) | [`cenas/fundacao.md`](cenas/fundacao.md) | a obra cede inteira, todos caem pelo poço | APROVADO (cena) · rota v2 a implementar |
-| 2 | **cena nova — Rota Moderada** (50–90% na verificação) | `cenas/<id>.md` (a criar) | desmoronamento parcial que leva a outra parte da obra (conceito a propor) | PENDENTE (ficha → fotografia → aprovação) |
+| 2 | **Depósito (`deposito`) — Rota Moderada** (50–90% na verificação) | [`cenas/deposito.md`](cenas/deposito.md) | só o lado da rua cede: a laje vira tobogã até o telhado do galpão vizinho | PROPOSTO (ficha feita 2026-11-26; falta aprovação → fotografia) |
 
 Inventários: [`eventos.md`](eventos.md) · [`perigos_mecanismos.md`](perigos_mecanismos.md) · [`spells.md`](spells.md) ·
 [`skins.md`](skins.md) · decisões, lições e testes: [`decisoes_testes.md`](decisoes_testes.md).
