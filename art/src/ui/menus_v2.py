@@ -350,6 +350,109 @@ def tela_ajustes():
     return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=13, scale=0.5, freq=0.05))
 
 
+def trilha(atual):
+    """Trilha de etapas obrigatórias (ordem de serviço): feitas = OK verde; atual = amarela; próximas = cinza + cadeado."""
+    nomes = ["SPELLS", "EVENTOS", "VIDAS", "DETONAR"]
+    b = [f'<rect x="330" y="214" width="1260" height="12" fill="#8d98a4" stroke="{INK}" stroke-width="3"/>']
+    for k, nm in enumerate(nomes):
+        cx = 420 + k * 360
+        if k < atual:
+            fill, txt = "#5fc95f", "#ffffff"
+        elif k == atual:
+            fill, txt = YEL, INK
+        else:
+            fill, txt = "#cfc8b8", "#6b5a70"
+        w = 250 if k == atual else 220
+        b.append(f'<rect x="{cx - w / 2 + 6}" y="{186 + 8}" width="{w}" height="64" rx="14" fill="{INK}" opacity="0.35"/>')
+        b.append(f'<rect x="{cx - w / 2}" y="186" width="{w}" height="64" rx="14" fill="{fill}" stroke="{INK}" stroke-width="5"/>')
+        b.append(estencil(cx + 12, 230, f"{k + 1} · {nm}", 26, txt))
+        if k < atual:   # carimbo OK
+            b.append(f'<g transform="rotate(-14 {cx + w / 2 - 14} 190)"><circle cx="{cx + w / 2 - 14}" cy="190" r="26" fill="#ffffff" stroke="#2e7d32" stroke-width="5"/>'
+                     + estencil(cx + w / 2 - 14, 199, "OK", 22, "#2e7d32") + '</g>')
+        if k > atual:   # cadeado
+            lx = cx - w / 2 + 26
+            b.append(f'<path d="M{lx - 9},208 v-8 a9,9 0 0 1 18,0 v8" stroke="{INK}" stroke-width="4" fill="none"/><rect x="{lx - 13}" y="206" width="26" height="22" rx="4" fill="#8d98a4" stroke="{INK}" stroke-width="3"/>')
+    return "".join(b)
+
+
+def quadro(y0=280, h=560):
+    b = []
+    for x in (470, 1450):
+        b.append(f'<path d="M{x - 70},930 L{x},{y0 + h - 60} L{x + 70},930" stroke="#8a5a2b" stroke-width="22" fill="none" stroke-linejoin="round"/>')
+    b.append(f'<rect x="368" y="{y0 + 14}" width="1200" height="{h}" rx="18" fill="{INK}" opacity="0.35"/>')
+    b.append(fp.R(360, y0, 1200, h, "#d9a35f", 16, 2.6, dark="#b57a3e"))
+    for k in range(8):
+        b.append(f'<path d="M{400 + k * 150},{y0 + 10} q30,{h / 2} -10,{h - 20}" stroke="#c28a4a" stroke-width="4" fill="none" opacity="0.55"/>')
+    b.append(f'<rect x="360" y="{y0}" width="1200" height="{h}" rx="16" fill="none" stroke="{INK}" stroke-width="8"/>')
+    for sx, sy in ((390, y0 + 30), (1530, y0 + 30), (390, y0 + h - 30), (1530, y0 + h - 30)):
+        b.append(f'<circle cx="{sx}" cy="{sy}" r="10" fill="#8d98a4" stroke="{INK}" stroke-width="3"/><path d="M{sx - 6},{sy} h12" stroke="{INK}" stroke-width="3"/>')
+    return "".join(b)
+
+
+def cabecalho(sub):
+    return (corrente(690, 0, 40) + corrente(1230, 0, 40) + placa(960, 36, 660, 96, "AJUSTES DA PARTIDA", True)
+            + estencil(960, 168, sub, 24, "#ffffff") .replace('fill="#ffffff"', f'fill="#ffffff" stroke="{INK}" stroke-width="5" paint-order="stroke"'))
+
+
+def tela_etapa_vidas():
+    b = [fundo(0.12), chao(930), cabecalho("CANTEIRO DE OBRAS · ETAPA 3 DE 4"), trilha(2), quadro()]
+    x, y, w, h = 560, 320, 800, 440
+    b.append(prancheta(x, y, w, h, "QUANTAS VIDAS CADA ROBÔ TEM?", "#2f8ff0", sel=True))
+    b.append(chip(x - 30, y - 40))
+    b.append(seta_aba(x + 150, y + 250, -1) + seta_aba(x + 650, y + 250, 1))
+    b.append(estencil(x + 400, y + 300, "4", 190, INK))
+    b.append(f'<rect x="{x + 110}" y="{y + 352}" width="580" height="16" fill="#8a5a2b" stroke="{INK}" stroke-width="3"/>')
+    for k in range(6):
+        b.append(capacete(x + 160 + k * 96, y + 350, 0.8, k < 4))
+    b.append(estencil(x + 400, y + 410, "de 3 a 6  ·  mais vidas = luta mais longa", 22, "#6b5a70"))
+    b.append(elenco(930, [("chave", "parado", 2, False), ("marretao", "parado", 0, True)], [150, 1780], 1.5))
+    b.append(plaquinha_dica("◄► muda  ·  START próxima etapa  ·  ESC etapa anterior"))
+    n = ec.notes("AJUSTES em ETAPAS OBRIGATÓRIAS (ordem de serviço) — etapa 3: VIDAS", [
+        ("PROPOSTA", "Trilha no topo de TODAS as etapas: 1 SPELLS → 2 EVENTOS → 3 VIDAS → 4 DETONAR."),
+        ("PROPOSTA", "Feita = carimbo OK verde; atual = amarela; próximas = cinza com cadeado (não pula)."),
+        ("PROPOSTA", "START avança; ESC volta UMA etapa; só a etapa atual aparece no quadro."),
+        ("PROPOSTA", "Etapa 1 (mosaico de spells) inclui a chave “spells nas caixas”."),
+        ("PROPOSTA", "Etapa 2 (mosaico de eventos) inclui a sirene de intensidade."),
+        ("PROPOSTA", "Etapa 3: só VIDAS, grande — número em estêncil e capacetes."),
+    ])
+    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=15, scale=0.5, freq=0.05))
+
+
+def tela_etapa_detonar():
+    b = [fundo(0.12), chao(930), cabecalho("CANTEIRO DE OBRAS · ETAPA 4 DE 4"), trilha(3), quadro()]
+    # ficha-resumo (ordem de serviço) à esquerda
+    x, y, w, h = 420, 320, 600, 480
+    b.append(prancheta(x, y, w, h, "ORDEM DE SERVIÇO", "#2a1a2e"))
+    linhas = [("MAPA", "Canteiro de Obras"), ("SPELLS", "8 acesas"), ("EVENTOS", "10 · NORMAL"), ("VIDAS", "4")]
+    for k, (a_, v) in enumerate(linhas):
+        yy = y + 150 + k * 78
+        b.append(f'<path d="M{x + 40},{yy + 16} H{x + w - 40}" stroke="#d9c7a3" stroke-width="3"/>')
+        b.append(estencil(x + 48, yy, a_, 26, "#6b5a70", "start") + estencil(x + 220, yy, v, 27, INK, "start"))
+        b.append(f'<g transform="rotate(-12 {x + w - 70} {yy - 10})"><circle cx="{x + w - 70}" cy="{yy - 10}" r="24" fill="none" stroke="#2e7d32" stroke-width="5"/>'
+                 + estencil(x + w - 70, yy - 2, "OK", 20, "#2e7d32") + '</g>')
+    # detonador grande à direita
+    dx, dy = 1270, 620
+    b.append(f'<path d="M{dx},{dy - 130} V{dy - 20}" stroke="#c9d1d8" stroke-width="20"/>'
+             f'<rect x="{dx - 110}" y="{dy - 150}" width="220" height="34" rx="14" fill="#c9d1d8" stroke="{INK}" stroke-width="6"/>')
+    b.append(f'<rect x="{dx - 170}" y="{dy - 24}" width="340" height="150" rx="16" fill="#d42035" stroke="{INK}" stroke-width="7"/>')
+    b.append(fp.cd.zebra(dx - 155, dy + 86, 310, 26))
+    b.append(estencil(dx, dy + 60, "TNT", 70, "#ffffff"))
+    b.append(f'<path d="M{dx + 170},{dy + 60} C{dx + 250},{dy + 60} {dx + 230},{dy - 120} {dx + 250},{dy - 160}" stroke="#2a2f3a" stroke-width="8" fill="none"/>')
+    b.append(chip(dx - 35, dy - 210))
+    b.append(estencil(dx, dy + 180, "START = DETONAR!", 34, INK))
+    b.append(elenco(930, [("britadeira", "parado", 3, False), ("marretao", "pesado_prep", 0, True)], [150, 1780], 1.5))
+    b.append(plaquinha_dica("START detona e a luta começa  ·  ESC volta para corrigir"))
+    n = ec.notes("AJUSTES em ETAPAS OBRIGATÓRIAS — etapa 4: CONFERIR E DETONAR", [
+        ("PROPOSTA", "Ficha-resumo (ordem de serviço) com tudo o que foi escolhido, cada linha carimbada OK."),
+        ("PROPOSTA", "Detonador de TNT grande: START desce a alavanca, BUM, a luta começa."),
+        ("PROPOSTA", "ESC volta à etapa 3 (e assim por diante) para corrigir algo."),
+        ("PROPOSTA", "“Jogar de novo” pula as etapas; “Configurar mapa” começa na etapa 1 já preenchida."),
+        ("PROPOSTA", "Entrada de jogadores (quem joga, robô e skin) vem DEPOIS da etapa 4, como hoje."),
+        ("DECIDIR", "A entrada de jogadores vira a etapa 5 da trilha, ou fica separada?"),
+    ])
+    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=16, scale=0.5, freq=0.05))
+
+
 def tela_abertura():
     """Storyboard da ABERTURA: 5 quadros (5–6 s, pula com qualquer botão)."""
     b = [f'<rect width="{W}" height="{H}" fill="#9fc9d3"/>', ec.title(W / 2, 80, "ABERTURA (5–6 s)")]
@@ -398,7 +501,7 @@ def tela_abertura():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    boards = [("v2_1_menu", tela_menu()), ("v2_2_mapas", tela_mapas()), ("v2_3_ajustes", tela_ajustes()), ("v2_4_abertura", tela_abertura())]
+    boards = [("v2_1_menu", tela_menu()), ("v2_2_mapas", tela_mapas()), ("v2_3_etapa_vidas", tela_etapa_vidas()), ("v2_3b_etapa_detonar", tela_etapa_detonar()), ("v2_4_abertura", tela_abertura())]
     import json, subprocess, tempfile
     tmp = tempfile.mkdtemp(prefix="menus_v2_")
     jobs = []
