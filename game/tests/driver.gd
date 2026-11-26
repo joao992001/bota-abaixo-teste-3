@@ -8,6 +8,8 @@ var S
 
 func _ready() -> void:
 	S = main.S
+	main.perfil.caminho = "user://perfil_teste.json"   # testes, vídeos e vitrines nunca gravam no perfil do jogador
+	main.perfil.dados = main.perfil.novo()
 	_run.call_deferred()
 
 func _run() -> void:
@@ -1976,8 +1978,15 @@ func selecao_test() -> void:
 	await tap("v0", "jump")   # MODOS → DERRUBA
 	check(main.state == S.ARENAS, "chega às arenas do Derruba")
 	main.menus.arena_sel = 1
+	var spells_partida = main.demo.spells
+	main.demo.spells = null   # como no jogo de verdade vindo do menu: ainda não existe partida (derrubava o .exe)
 	await tap("v0", "jump")
 	var sl = main.selecao
+	sl.aleatorio_spells()
+	check(sl.n_on() == 8, "a tela de spells funciona sem partida criada (veio direto do menu)")
+	main.demo.spells = spells_partida
+	main.spells_mapa = ""
+	sl.abrir_spells()
 	check(main.state == S.SELSPELLS and main.arena_choice == "canteiro_obras", "mapa escolhido → tela de SPELLS")
 	check(sl.n_on() == 23, "mapa novo: as 23 spells começam acesas (tudo liberado)")
 	await tap("v0", "jump")

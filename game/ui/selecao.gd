@@ -6,6 +6,7 @@ extends RefCounted
 ## EVENTOS: só os eventos DO MAPA (valem em todas as cenas, A14); NENHUM apaga todos; ALEATÓRIO sorteia; START segue.
 ##   Perigos da cena (antigos V#) não aparecem aqui: estão sempre ligados.
 const Kit := preload("res://ui/kit.gd")
+const SpellsScr := preload("res://modes/spells.gd")   # NOMES e FAM_COR (constantes): a tela abre ANTES de existir partida
 const COLS := 8
 const CW := 182.0
 const GAP := 26.0
@@ -21,6 +22,15 @@ func setup(m: Node) -> void:
 ## O mapa escolhido tem manifesto do Derruba (é aqui que as telas existem; sorteio/ferramentas seguem direto aos ajustes).
 func ativo_para(map_id: String) -> bool:
 	return main.game_mode == "derruba" and not MapaReg.manifesto("derruba", map_id).is_empty()
+
+## Dados da spell direto do modos.json (o nó de spells da partida ainda não existe quando se vem do menu: usar
+## main.demo.spells aqui derrubava o jogo exportado ao escolher o mapa).
+var _spells_cfg := {}
+
+func _sc(id: String) -> Dictionary:
+	if _spells_cfg.is_empty():
+		_spells_cfg = Data.read_json("data/modos.json")["demolicao"]["spells"]
+	return _spells_cfg.get(id, {"familia": "ataque"})
 
 func spells_do_mapa() -> Array:
 	return MapaReg.spells("derruba", main.arena_choice, [])
@@ -63,7 +73,7 @@ func min_spells() -> int:
 func aleatorio_spells() -> void:
 	var por := {}
 	for id in spells_do_mapa():
-		var f: String = main.demo.spells.sc(id)["familia"]
+		var f: String = _sc(id)["familia"]
 		if not por.has(f):
 			por[f] = []
 		por[f].append(id)
@@ -217,10 +227,10 @@ func draw_spells(ci: CanvasItem) -> void:
 			Kit.text(ci, Vector2(r.position.x, r.end.y - 22), "ALEATÓRIO", 22, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 		else:
 			var id: String = lista[i]
-			var s: Dictionary = main.demo.spells.sc(id)
+			var s: Dictionary = _sc(id)
 			var on: bool = main.spells_on.get(id, false)
-			var cor: Color = main.demo.spells.FAM_COR[s["familia"]]
-			_carta(ci, r, cor, String(main.demo.spells.NOMES.get(id, id)), on, i == sel)
+			var cor: Color = SpellsScr.FAM_COR[s["familia"]]
+			_carta(ci, r, cor, String(SpellsScr.NOMES.get(id, id)), on, i == sel)
 			_icone(ci, "icone_" + String(s["familia"]), Rect2(r.position + Vector2(16, 10), Vector2(26, 26)), on)
 			_icone(ci, String(s.get("icone", "")), Rect2(r.position + Vector2(22, 52), Vector2(r.size.x - 44, ch - 112)), on)
 		if i == sel:
@@ -228,7 +238,7 @@ func draw_spells(ci: CanvasItem) -> void:
 	var leg := func(rr: Rect2) -> void:
 		var lx := 560.0
 		for f in ["ataque", "controle", "engenharia", "transformacao"]:
-			Kit.chunk(ci, Rect2(lx, 944, 34, 34), main.demo.spells.FAM_COR[f], 8, 4, 0.0)
+			Kit.chunk(ci, Rect2(lx, 944, 34, 34), SpellsScr.FAM_COR[f], 8, 4, 0.0)
 			var nm: String = {"ataque": "ATAQUE", "controle": "CONTROLE", "engenharia": "ENGENHARIA", "transformacao": "TRANSFORMAÇÃO"}[f]
 			Kit.text(ci, Vector2(lx + 46, 972), nm, 24, Kit.INK)
 			lx += 66.0 + nm.length() * 15.0
