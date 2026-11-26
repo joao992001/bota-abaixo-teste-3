@@ -8,9 +8,8 @@
 | **Andaime Cede** (era "V4") | `APROVADO` 2026-11-26 — é **perigo da cena (M13)**, não evento (regra A14) |
 | Números, posições e arte abaixo | `PROPOSTO` — fecham na fotografia conceitual (passo 2 do método) |
 
-> Próximo passo: **fotografia conceitual** desta cena (`docs/manuais/derruba/mapa.md` §1, passo 2), com o elenco e os
-> perigos posicionados; depois o storyboard da chegada é refeito com ela (o de `art/out/etapa_c/c7_storyboard_rotas.png`
-> ainda mostra o Depósito). Nada disto está no jogo.
+> **Fotografia conceitual feita (2026-11-26), aguardando aprovação:** `art/out/fase1_fachada.png` (gerador
+> `art/src/cenarios/fase1_fachada.py`). Storyboard da chegada: `art/out/etapa_c/c7_storyboard_rotas.png`. Nada disto está no jogo.
 
 **Conceito:** destruição moderada → a obra não cai inteira; **só a frente do prédio desaba**. A laje do Térreo inclina
 para a rua e todos escorregam até os **andaimes da fachada**. A luta continua pendurada na frente do prédio, em vários

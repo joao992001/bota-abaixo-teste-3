@@ -549,7 +549,8 @@ def tela_grafos():
     t1 = Image.open(os.path.join(QUADROS, "t_70.png")).convert("RGB")
     t2 = Image.open(os.path.join(QUADROS, "t_118.png")).convert("RGB")
     b += node(90, 760, 330, 230, "TÉRREO", "início · aprovado", thumb=t1)
-    for yy, nm, sub, th in ((740, "DEPÓSITO", "moderada · proposta", None), (885, "FUNDAÇÃO", "total · aprovada", t2)):
+    t3 = Image.open(os.path.join(ROOT, "art/out/fase1_fachada.png")).convert("RGB")
+    for yy, nm, sub, th in ((740, "FACHADA", "moderada · aprovada", t3), (885, "FUNDAÇÃO", "total · aprovada", t2)):
         b += chunk(760, yy, 370, 120, CREAM, 18, 5, 7)
         if th is None:
             b += f'<svg x="772" y="{yy + 12}" width="170" height="96" viewBox="0 0 640 360">{moderada_quadro(4)}</svg>'
@@ -573,7 +574,7 @@ def tela_grafos():
         ("APROVADO", "&lt;50% fica e verifica de novo; 50–90% Moderada; ≥ 90% Total; 90% antes não antecipa."),
         ("APROVADO", "Canteiro = 3 cenas: Térreo → Fundação (Total) ou cena nova (Moderada)."),
         ("PROVISÓRIO", "Tempos × vidas da tabela (padrão 4 vidas); cada cena pode ter tempo próprio."),
-        ("PROPOSTA", "Cena nova do Canteiro: DEPÓSITO (ficha em cenas/deposito.md)."),
+        ("APROVADO", "Cena nova do Canteiro: FACHADA (ficha em cenas/fachada.md)."),
         ("APROVADO", "Vence por KO; mudar de cena nunca é vitória; nada de teletransporte."),
     ])
     return page(b, n)
@@ -641,31 +642,33 @@ def moderada_quadro(k):
         for i in range(6):
             b += f'<rect x="{430 + i * 22}" y="{300 + (i % 3) * 14}" width="14" height="12" fill="#c98a4b" transform="rotate({i * 23} {437 + i * 22} {306})"/>'
         b += f'<path d="M466,250 l10,-18 l6,14 l10,-20" stroke="{INK}" stroke-width="4" fill="none"/>'
-    elif k == 2:  # escorrega (câmera vai para a direita e desce)
-        b += sky("#cfe8e4", "#f6d6a8", "s2") + f'<g transform="translate(-200 -40)">{grua(560)}</g>'
+    elif k == 2:  # escorregam para o lado da rua; os andaimes da fachada aparecem
+        b += sky("#cfe8e4", "#f6d6a8", "s2") + f'<g transform="translate(-260 -40)">{grua(560)}</g>'
         b += f'<g transform="rotate(30 40 120)"><rect x="-40" y="110" width="440" height="26" fill="#d8ccb6" stroke="{INK}" stroke-width="3"/></g>'
-        b += galpao(300, 280, 340)
+        b += f'<rect x="470" y="40" width="200" height="320" fill="#dccfb8"/>'
+        for x in (490, 600):
+            b += f'<rect x="{x}" y="40" width="10" height="320" fill="#e0883a"/>'
+        for y in (150, 250, 340):
+            b += f'<rect x="470" y="{y}" width="200" height="12" fill="#c98a4b"/>'
         for i, c in enumerate(PCOL):
-            x, y = 200 + i * 52, 150 + i * 34
+            x, y = 190 + i * 56, 140 + i * 36
             b += bot(x, y, c, 30 + i * 8)
             b += f'<line x1="{x - 40}" y1="{y - 40}" x2="{x - 16}" y2="{y - 22}" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
-        b += title(320, 60, "ESCORREGA!", 32)
-    elif k == 3:  # cai no telhado do galpão
-        b += sky("#f6d6a8", "#f2a77c", "s3") + galpao(0, 210, 640, broken=True)
-        for i, c in enumerate(PCOL):
-            b += bot(140 + i * 120, 214, c, (-1) ** i * 12)
-        for i in range(9):
-            x = 60 + i * 64
-            b += f'<ellipse cx="{x}" cy="{226 - (i % 3) * 8}" rx="26" ry="12" fill="#f4efe6" opacity="0.85"/>'
-            b += f'<rect x="{x + 10}" y="{150 - (i % 4) * 16}" width="18" height="7" fill="#c9cdd3" stroke="{INK}" stroke-width="1.5" transform="rotate({i * 31} {x + 19} {154})"/>'
-    else:  # cena nova
-        b += sky("#f7c38c", "#ef9472", "s4")
-        b += f'<g opacity="0.55"><g transform="rotate(30 60 80)"><rect x="-30" y="70" width="240" height="16" fill="#8a7d6a"/></g><rect x="520" y="10" width="10" height="200" fill="#c79a3a"/></g>'
-        b += galpao(0, 180, 640)
-        b += f'<rect x="60" y="250" width="70" height="44" fill="#c8643c" stroke="{INK}" stroke-width="2.5"/><rect x="470" y="236" width="60" height="58" rx="6" fill="#4f86a8" stroke="{INK}" stroke-width="2.5"/>'
-        b += f'<rect x="250" y="300" width="160" height="14" fill="#3b3f4a"/>' + "".join(f'<circle cx="{262 + i * 34}" cy="{307}" r="6" fill="#9aa3ad"/>' for i in range(5))
-        b += bot(110, 184, PCOL[0]) + bot(250, 184, PCOL[1], 8) + bot(400, 184, PCOL[2]) + bot(520, 184, PCOL[3], -6)
-        b += title(320, 70, "DEPÓSITO!", 40)
+        b += title(300, 60, "ESCORREGA!", 32)
+    elif k == 3:  # câmera gira para a frente do prédio: caem nas pranchas
+        b += sky("#f6d6a8", "#f2a77c", "s3") + f'<rect x="40" y="30" width="560" height="330" fill="#dccfb8"/>'
+        for x in (60, 230, 400, 570):
+            b += f'<rect x="{x}" y="30" width="10" height="330" fill="#e0883a"/>'
+        for y in (130, 240):
+            b += f'<rect x="60" y="{y}" width="520" height="12" fill="#c98a4b"/>'
+        b += f'<g transform="rotate(32 120 130)"><rect x="-260" y="90" width="300" height="24" fill="#d8ccb6" stroke="{INK}" stroke-width="3"/></g>'
+        for i, (x, y) in enumerate(((180, 130), (300, 110), (420, 240), (520, 200))):
+            b += bot(x, y, PCOL[i], (-1) ** i * 14)
+            b += f'<ellipse cx="{x}" cy="{y + 4}" rx="24" ry="8" fill="#f4efe6" opacity="0.8"/>'
+        b += f'<path d="M560,320 a40,40 0 1 0 -60,-40" stroke="#ffffff" stroke-width="6" fill="none"/><path d="M490,268 l10,16 l12,-14" stroke="#ffffff" stroke-width="6" fill="none"/>'
+    else:  # cena nova = a fotografia conceitual
+        q = Image.open(os.path.join(ROOT, "art/out/fase1_fachada.png")).convert("RGB").resize((640, 352))
+        b += f'<image href="{uri_img(q)}" x="0" y="4" width="640" height="352"/>' + title(320, 70, "FACHADA!", 40)
     return b
 
 
@@ -673,9 +676,9 @@ def tela_storyboard():
     b = f'<rect x="0" y="0" width="{W}" height="{H}" fill="#9fc9d3"/>' + title(W / 2, 92, "SAÍDAS DO TÉRREO")
     pw, ph, gap, x0 = 306, 172, 16, 262
     rows = [("ROTA TOTAL", "≥ 90% na verificação · APROVADA (já está no jogo)", ROTA_T, 93),
-            ("ROTA MODERADA", "50–90% na verificação · PROPOSTA (esboço)", ROTA_M, 62)]
+            ("ROTA MODERADA", "50–90% na verificação · APROVADA (esboço; quadro 5 = fotografia da Fachada)", ROTA_M, 62)]
     caps_t = ["luta no Térreo", "“A OBRA VAI CEDER!”", "tudo desaba", "queda lenta pelo poço", "“FUNDAÇÃO!”"]
-    caps_m = ["“A LAJE VAI ESCORREGAR!”", "só o lado da rua cede", "a laje vira tobogã", "caem no telhado vizinho", "“DEPÓSITO!”"]
+    caps_m = ["“A LAJE VAI ESCORREGAR!”", "o lado da rua cede", "escorregam para a rua", "caem nos andaimes", "“FACHADA!”"]
     for r, (nm, sub, col, pct) in enumerate(rows):
         y = 150 + r * 330
         b += chunk(40, y, 1840, 300, CREAM, 26, 6, 10)
@@ -698,15 +701,15 @@ def tela_storyboard():
     b += T(140, 1000, "FICA", 26, "#ffffff", extra=f'stroke="{INK}" stroke-width="5" paint-order="stroke"')
     b += T(x0, 870, "&lt; 50% na verificação: nada acontece na tela — a luta segue e o jogo verifica de novo depois (sem aviso, sem relógio).", 24, INK, "start", w=600)
     b += T(x0, 914, "Por que as duas saídas são diferentes e legíveis:", 24, INK, "start")
-    b += T(x0, 950, "TOTAL = a obra inteira cai PARA BAIXO, no escuro (subsolo).   MODERADA = só um lado cede e todos escorregam", 22, SOFT, "start", w=600)
-    b += T(x0, 980, "PARA O LADO, para o telhado do galpão ao entardecer. Direção, luz e cor diferentes → ninguém confunde as rotas.", 22, SOFT, "start", w=600)
+    b += T(x0, 950, "TOTAL = a obra inteira cai PARA BAIXO, no escuro (subsolo).   MODERADA = só a frente cede e todos escorregam", 22, SOFT, "start", w=600)
+    b += T(x0, 980, "PARA A RUA, até os andaimes da fachada, ao entardecer. Direção, luz e cor diferentes → ninguém confunde as rotas.", 22, SOFT, "start", w=600)
     n = notes("Storyboard das transições do Canteiro (manual mapa.md §0: cada cena intermediária tem 2 transições)", [
         ("APROVADO", "Rota Total = a transição atual (quadros reais do jogo)."),
         ("APROVADO", "Transição física (desaba/escorrega/câmera), nunca teletransporte."),
-        ("PROPOSTA", "Rota Moderada: laje do lado da rua cede → tobogã → telhado do galpão."),
+        ("APROVADO", "Rota Moderada: o lado da rua cede → laje inclina → andaimes da fachada."),
         ("PROPOSTA", "Aviso na tela muda por rota: “A OBRA VAI CEDER!” × “A LAJE VAI ESCORREGAR!”."),
-        ("DECIDIR", "Aprovar o conceito DEPÓSITO (ou a alternativa FACHADA na ficha)."),
-        ("PROPOSTA", "Depois da aprovação: fotografia conceitual da cena (passo 2 do método)."),
+        ("APROVADO", "Cena da Rota Moderada = FACHADA (2026-11-26)."),
+        ("DECIDIR", "Aprovar a fotografia da Fachada (art/out/fase1_fachada.png)."),
     ])
     return page(b, n)
 

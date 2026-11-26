@@ -11,7 +11,7 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 `art/src/ui/etapa_c.py`; quadros reais da Rota Total em `quadros_total/`), contrato `docs/manuais/derruba/perfil_salvo.md`,
 ficha da Rota Moderada `docs/fases/derruba/f1_canteiro/cenas/fachada.md` (**FACHADA aprovada** 2026-11-26; Andaime Cede = perigo M13).
 **Regra nova A14 (2026-11-26): evento = do mapa, vale em TODAS as cenas; o que é de uma cena só é PERIGO da cena (V1–V3 viram
-perigos).** Também aprovados: spells mín. 4 sem máx. (A15), manômetro 10–90% (A16), gangorra pela cor final + partida válida ≥ 1 min (A17). Cada prancha lista o que falta DECIDIR. Próximo: fotografia da Fachada (o storyboard c7 ainda mostra o Depósito) e código D1–D5.
+perigos).** Também aprovados: spells mín. 4 sem máx. (A15), manômetro 10–90% (A16), gangorra pela cor final + partida válida ≥ 1 min (A17). Cada prancha lista o que falta DECIDIR. Fotografia da Fachada feita (`art/out/fase1_fachada.png`), aguardando aprovação; depois, código D1–D5.
 **PAUSA DE 2026-11-25 → leia primeiro `docs/RETOMADA_2026-11-25.md`** (o que foi feito, estado no commit `7556692`, decisões pendentes e verificação).
 **LIMPA DE SPELLS/EVENTOS (anotações, NÃO executar sem pedido):** `docs/revisoes/limpa_spells_eventos.md`.
 **REORGANIZAÇÃO MODULAR (2026-11-25, branch `reorg-modular` → `main`):** comece por `docs/manuais/README.md`. Conteúdo de
