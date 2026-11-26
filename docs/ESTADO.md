@@ -4,7 +4,31 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova)
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-26 (fim da sessão 1 da conta A)
+**Comece por `docs/COMO_TRABALHAR.md`** (como conversar, ordem de trabalho, testes, entregas, passagem de bastão).
+
+**Onde paramos:** reformulação do Derruba v2 IMPLEMENTADA (D1–D5, Fachada, eventos nas 3 cenas, perfil, gangorra,
+Projetos) e a **interface nova "Canteiro vivo" (A21) no jogo** — abertura (robô sorteado marreta, letras caem), menu
+com placas em coluna, mapas no tapume, **ajustes em 5 etapas obrigatórias** (1 Engenhocas → 2 Eventos → 3 Vidas →
+4 Jogadores → 5 Detonar; `game/ui/selecao.gd`, kit `game/ui/obra.gd`). Spells = "Engenhocas" (A20). Último `.exe`
+entregue com isso. Bateria: 443 ok (1 falha da abertura corrigida depois, teste `--so=controles` ok).
+
+**PRÓXIMO PASSO (o usuário acabou de avaliar — fazer nesta ordem):** `docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`
+(7 pontos, prints na mesma pasta):
+1. Menu: logo por cima da placa JOGAR (e cabo cruzando o logo) → separar.
+2. Modos: tirar Batata/Rei/Fuga, só DERRUBA, no visual novo (ou pular a tela de modos — perguntar).
+3. Mapas: fazer IGUAL à prancha aprovada `6_referencia_mapas_preferida.png` (Sorteio, Canteiro com capacetes das
+   cenas, 2 cartazes bloqueados de exemplo com lona/cadeado, régua dos Projetos).
+4. Fim da partida: REMOVER a tela antiga de placar ("P1 1 de 5 estrelas") que ainda aparece antes dos resultados.
+5. Recompensas em TELAS PRÓPRIAS animadas antes dos resultados: Gangorra (grande, prêmios nas pontas, agulha vai e
+   volta e termina num lado) e Projetos de Demolição (repensar a evolução; conferir a lógica +1/+2 vs quadrados).
+   → fazer PRANCHA primeiro.
+6. Resultados: estatísticas por jogador + CRONÔMETRO para escolher a opção. Tirar o círculo com estrela (feio).
+7. Pausa: visual novo; propor (A/B) se ganha Configurar mapa / Selecionar mapa.
+Pendentes antigos: limiares 30%/70% (usuário quer testar antes), números PROVISÓRIOS (P1, P3, P4/P6).
+
+---
+### Histórico (sessões anteriores)
 **REFORMULAÇÃO DO DERRUBA v2 (APROVADA 2026-11-25, etapa B = documentação FEITA):** `docs/revisoes/reformulacao_derruba.md`
 (aprovado × provisório × pendente + plano C/D) e regras em `docs/manuais/derruba/README.md` (coluna "no jogo hoje").
 **Etapa C ENTREGUE (2026-11-26), aguardando aprovação do usuário:** pranchas `art/out/etapa_c/c1–c7` (gerador
