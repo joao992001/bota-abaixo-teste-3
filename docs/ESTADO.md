@@ -8,18 +8,16 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`** (como conversar, ordem de trabalho, testes, entregas, passagem de bastão).
 
 **Onde paramos (sessão 2, 2026-11-26, branch `claude/practical-maxwell-hldv9n`):** avaliação da interface
-(`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`) — itens **1–4 FEITOS e testados** (`--so=menus,resultados,perfil,controle_real` ok):
-menu igual à prancha `v2_1_menu.png` (logo livre, coluna de placas em x=1180, elenco dos dois lados); JOGAR pula a tela de
-modos (**A22**); mapas igual a `6_referencia_mapas_preferida.png` (`menus._draw_arenas`, 2 cartazes bloqueados de exemplo,
-capacetes = cenas do perfil); fim da partida sem o placar antigo (`main._run_update`). **A23**: pausa ganha Configurar/Selecionar mapa.
+(`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`) **toda FEITA**: menu e mapas iguais às pranchas; JOGAR pula a tela de
+modos (A22); sem o placar antigo; **fim da partida** = Gangorra → Projetos → Resultados em telas próprias (`game/ui/fim.gd`,
+pranchas `art/out/recompensas/r1–r3`; luta que não vale = carimbo NÃO CONTOU, A24); resultados com estatísticas
+(`players[i]["stats"]`: derrubadas, quedas, caixotes, engenhocas, golpes) e cronômetro 15 s que reinicia ao mexer (A25,
+`progressao.resultados_cronometro_s`); **pausa nova** com 5 opções, prancheta da partida e "tem certeza?" (A23/A26, `menus._draw_pause`).
+Vitrine das telas: `--menus=DIR` (capturas `m8*` pausa, `m11_fim_*`). Ambiente pessoal `bota-abaixo-teste-3` criado com setup
+(Godot + RTK + cairosvg) — confirmar na próxima sessão nova que ele sobe pronto.
 
-**PRÓXIMO PASSO:** itens 5–7 têm PRANCHAS entregues e esperando aprovação: `art/out/recompensas/r1_gangorra.png`,
-`r1b_gangorra_animacao.png`, `r2_projetos.png`, `r3_resultados.png`, `r4_pausa.png` (gerador `art/src/ui/recompensas.py`).
-Decisões abertas: (a) luta curta: pular as 2 telas de recompensa (recomendado) ou mostrar "não contou"; (b) cronômetro dos
-resultados 15 s (recomendado) ou 10 s, e se mexer reinicia; (c) pausa pede confirmação ao sair (recomendado: sim).
-Aprovou → código IGUAL às pranchas: estados novos no fim (WIN → gangorra → projetos → resultados), estatísticas novas
-(engenhocas usadas, golpes acertados) em `players[i]["stats"]`, pausa com 5 opções (`menus.PAUSE_ITEMS`); bateria completa no fim.
-Pendentes antigos: limiares 30%/70% (usuário quer testar antes), números PROVISÓRIOS (P1, P3, P4/P6).
+**PRÓXIMO PASSO:** o usuário jogar/avaliar as telas novas (gerar `.exe` se ele pedir: `tools/exportar.sh`). Depois: playtest
+para calibrar os números PROVISÓRIOS (P1 tempos, P3 gangorra, P4/P6 Projetos) e testar os limiares 30%/70%.
 
 ---
 ### Histórico (sessões anteriores)
