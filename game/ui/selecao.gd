@@ -37,8 +37,14 @@ func abrir_spells() -> void:
 	if main.spells_mapa != main.arena_choice:
 		main.spells_mapa = main.arena_choice
 		main.spells_on.clear()
+		var uc: Dictionary = main.perfil.dados.get("ultima_config", {})
+		var volta: bool = String(uc.get("mapa", "")) == main.arena_choice   # perfil (D4): volta a última configuração deste mapa
 		for id in spells_do_mapa():
-			main.spells_on[id] = true
+			main.spells_on[id] = (id in uc.get("spells", [])) if volta else true
+		if volta:
+			for id in eventos_do_mapa():
+				main.events.enabled[id] = id in uc.get("eventos", [])
+			main.demo.lives_setting = int(uc.get("vidas", main.demo.lives_setting))
 	sel = 0
 	aviso_t = 0.0
 	main.state = main.S.SELSPELLS

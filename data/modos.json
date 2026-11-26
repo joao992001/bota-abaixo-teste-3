@@ -39,7 +39,7 @@
         "id": "canteiro_obras",
         "musica": "partida",
         "nome": "Canteiro de Obras",
-        "dica": "A laje vai caindo! Só o meio aguenta."
+        "dica": "Destrua a obra: a destruição escolhe a próxima cena."
       },
       {
         "id": "demolicao",
@@ -578,6 +578,21 @@
           "spells_min": 4,
           "aleatorio_por_familia": 2,
           "nota": "Telas de seleção (D3): mínimo 4 spells, sem máximo (A15); ALEATÓRIO = 2 por família (A19); eventos sem máximo (A18)."
+        },
+        "progressao": {
+          "nota": "D4 (perfil local): gangorra pela zona final do manômetro (A17), deltas PROVISÓRIOS (P3); partida válida = vencedor e luta >= 60 s (A17); Projetos +1/+2 (P4); pontos por mapa PROVISÓRIO (exemplo 6).",
+          "gangorra_deltas": [
+            -75,
+            -35,
+            -15,
+            15,
+            35,
+            75
+          ],
+          "partida_valida_min_s": 60,
+          "pontos_partida": 1,
+          "pontos_cena_nova": 2,
+          "pontos_por_mapa": 6
         }
       },
       {

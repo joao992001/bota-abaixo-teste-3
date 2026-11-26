@@ -217,6 +217,11 @@ func steer(devs: Array, frames_max: int, trace := false) -> void:
 func autotest() -> void:
 	seed(20261120)            # sorteios repetíveis: o teste não oscila
 	main.rng.seed = 20261120
+	main.perfil.caminho = "user://perfil_teste.json"   # nunca mexe no perfil de verdade do jogador
+	for suf in ["", ".bak", ".tmp", ".corrompido"]:
+		if FileAccess.file_exists(main.perfil.caminho + suf):
+			DirAccess.remove_absolute(main.perfil.caminho + suf)
+	main.perfil.dados = main.perfil.novo()
 	for a in OS.get_cmdline_user_args():   # atalho de depuração: --so=maquinas,itens_novos,eventos
 		if a.begins_with("--so="):
 			PlayerInput.virtual = {"v0": {}, "v1": {}}
@@ -518,6 +523,7 @@ func demolicao_test() -> void:
 	await verificacao_test()
 	await resultados_test()
 	await selecao_test()
+	await perfil_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -1929,6 +1935,7 @@ func resultados_test() -> void:
 	check(main.state == S.WIN and main.winner == 0, "sobrou 1: vai direto para os RESULTADOS (%.1f s)" % (w / 60.0))
 	check(main.demo.ranking() == [0, 1, 2], "ranking pela ordem de eliminação (%s)" % str(main.demo.ranking()))
 	check(int(main.players[0]["score"]) == 1, "estrela para o vencedor")
+	check(not main.res_info.is_empty() and not main.res_info["valida"] and main.res_info["pontos"] == 0, "luta de poucos segundos: não conta para gangorra nem Projetos")
 	await frames(10)
 	await tap("v0", "jump")   # JOGAR DE NOVO (opção 0)
 	await frames(5)
@@ -2019,6 +2026,49 @@ func selecao_test() -> void:
 		ev.enabled[id] = true
 	main.spells_on.clear()
 	main.spells_mapa = ""
+
+## Perfil salvo local (D4, docs/manuais/derruba/perfil_salvo.md): grava/lê, recupera do .bak, migra, gangorra e
+## Projetos de Demolição. --so=perfil
+func perfil_test() -> void:
+	print("== Perfil salvo (gangorra e Projetos)")
+	var pf = main.perfil
+	var cfg: Dictionary = MapaReg.modo_cfg("derruba")["progressao"]
+	var mm := [0.1, 0.9]
+	pf.dados = pf.novo()
+	check(pf.zona(0.05) == 0 and pf.zona(0.5) == 3 and pf.zona(0.89) == 5 and pf.zona(0.95) == 5, "zonas do manômetro: <10% = 1ª, 50% = 1ª da moderada, ≥ 90% = última")
+	var r1: Dictionary = pf.fim_de_partida("canteiro_obras", ["terreo", "fundacao"], 0.95, 70.0, true, cfg, mm)
+	check(r1["valida"] and r1["delta"] == 75 and r1["depois"] == 75 and r1["novas"].size() == 2 and r1["pontos"] == 5, "luta válida na zona vermelha: +75 na gangorra; +1 partida +2+2 cenas novas (%s)" % str(r1))
+	var r2: Dictionary = pf.fim_de_partida("canteiro_obras", ["terreo"], 0.3, 90.0, true, cfg, mm)
+	check(r2["delta"] == -35 and r2["novas"].is_empty() and r2["pontos"] == 1 and r2["total"] == 6, "revisitar não dá bônus; zona verde clara puxa −35 (total %d pontos)" % r2["total"])
+	var r3: Dictionary = pf.fim_de_partida("canteiro_obras", ["terreo"], 0.95, 61.0, false, cfg, mm)
+	check(not r3["valida"] and r3["delta"] == 0, "sem vencedor não conta")
+	pf.dados["gangorra"]["valor"] = 50
+	var cat: String = pf.dados["gangorra"]["extremo_vermelho"]
+	var r4: Dictionary = pf.fim_de_partida("canteiro_obras", ["terreo"], 0.95, 61.0, true, cfg, mm)
+	check(r4["premio"] == cat and pf.dados["gangorra"]["valor"] == 0 and pf.dados["premios"].size() == 1, "chegou ao extremo vermelho: prêmio da categoria %s, agulha volta ao centro" % cat)
+	var antes: Dictionary = pf.dados.duplicate(true)
+	pf.carregar()
+	check(pf.dados["pontos_exploracao"] == antes["pontos_exploracao"] and pf.dados["cenas_visitadas"] == antes["cenas_visitadas"], "grava e lê de volta igual (%s)" % ProjectSettings.globalize_path(pf.caminho))
+	var f := FileAccess.open(pf.caminho, FileAccess.WRITE)
+	f.store_string("{quebrado")
+	f.close()
+	pf.carregar()
+	check(pf.dados.has("versao") and FileAccess.file_exists(pf.caminho + ".corrompido"), "JSON quebrado: volta do .bak e guarda o quebrado como .corrompido")
+	var velho := {"gangorra": {"valor": 10, "extremo_verde": "skin", "extremo_vermelho": "spell"}}
+	var mg: Dictionary = pf.migrar(velho)
+	check(int(mg["versao"]) == 1 and mg.has("cenas_visitadas") and int(mg["gangorra"]["valor"]) == 10, "migração v0 → v1 mantém o que existe e completa o resto")
+	# última configuração volta ao reabrir o mapa
+	main.arena_choice = "canteiro_obras"
+	main.spells_mapa = ""
+	pf.dados["ultima_config"] = {"mapa": "canteiro_obras", "vidas": 5, "spells": ["A01", "A02", "C01", "T03"], "eventos": ["G02"]}
+	main.selecao.abrir_spells()
+	check(main.selecao.n_on() == 4 and main.spells_on["T03"] and not main.events.enabled["G01"] and main.events.enabled["G02"] and main.demo.lives_setting == 5, "reabrir o mapa volta a última configuração (spells, eventos, vidas)")
+	for id in main.events.enabled:
+		main.events.enabled[id] = true
+	main.spells_on.clear()
+	main.spells_mapa = ""
+	pf.dados = pf.novo()
+	main.go_menu()
 
 ## Mecanismos da Fase 1 (catálogo M1–M9): cada um faz o que promete e responde à marretada.
 func mecanismos_test() -> void:

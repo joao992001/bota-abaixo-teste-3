@@ -108,6 +108,7 @@ func _ready() -> void:
 	menus = Menus.new()
 	menus.setup(self)
 	selecao.setup(self)
+	perfil.carregar()
 	add_child(menus)
 	lab = Laboratorio.new()
 	lab.setup(self)
@@ -328,6 +329,7 @@ func _physics_process(dt: float) -> void:
 			if timer <= 0.0:
 				_after_score()
 		S.WIN:
+			res_t += dt
 			if demo.partida_unica():
 				_resultados_update()
 			elif menus.pressed("back"):
@@ -625,11 +627,19 @@ var res_sel := 0   # opção escolhida na tela de resultados (Derruba v2)
 var spells_on := {}      # Derruba v2 (D3): spells acesas na tela de seleção (conjunto que pode sair nas caixas)
 var spells_mapa := ""    # mapa a que spells_on se refere (mapa novo → tudo aceso)
 var selecao := preload("res://ui/selecao.gd").new()
+var perfil := preload("res://modes/perfil.gd").new()   # perfil salvo local (D4)
+var res_info := {}   # gangorra/Projetos da última partida (tela de resultados)
+var res_t := 0.0     # tempo na tela de resultados (animação da agulha)
 const RES_OPCOES := ["JOGAR DE NOVO", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MENU PRINCIPAL"]
 
 func start_match() -> void:
 	lost_pads.clear()
 	res_sel = 0
+	if selecao.ativo_para(arena_choice) and spells_mapa == arena_choice:   # última configuração (perfil, D4)
+		perfil.guardar_config({"mapa": arena_choice, "vidas": demo.lives_setting,
+			"spells": spells_on.keys().filter(func(id): return spells_on[id]),
+			"eventos": selecao.eventos_do_mapa().filter(func(id): return events.enabled.get(id, true)),
+			"jogadores": players.map(func(p): return {"dispositivo": String(p.get("dev", "")), "robo": int(p.get("model", 0)), "skin": String(p.get("skin", "")), "bot": bool(p.get("bot", false))})})
 	for p in players:
 		if not estrelas_da_sessao():
 			p["score"] = 0
@@ -827,6 +837,14 @@ func _after_score() -> void:
 	if match_over:
 		winner = demo.round_winner
 		state = S.WIN
+		res_t = 0.0
+		res_info = {}
+		var et = demo.etapas
+		if demo.partida_unica() and et != null and is_instance_valid(et):
+			var ids: Array = et.visitadas.map(func(o): return String(MapaReg.cena(game_mode, level.id, o).get("id", str(o))))
+			var mc: Dictionary = MapaReg.modo_cfg("derruba")
+			res_info = perfil.fim_de_partida(String(level.id), ids, et.progresso, demo.luta_t, winner >= 0,
+				mc.get("progressao", {}), mc.get("destruicao", {}).get("mostrador", [0.1, 0.9]))
 		_clear_robots()
 	else:
 		_demo_next_round()

@@ -44,6 +44,7 @@ var sub := {}                # modo atual (data/modos.json → demolicao.modos):
 var lives := {}              # Derruba: pid -> vidas restantes
 var lives_setting := 4       # AJUSTES (Derruba): vidas (v2: 3 a 6, padrão 4)
 var ordem_elim: Array = []   # Derruba v2: pids na ordem em que foram eliminados (ranking dos resultados)
+var luta_t := 0.0            # duração da luta (s, sem a contagem): partida válida = ≥ 1 min (A17)
 var fuse_setting := 1        # AJUSTES (Batata): 0 curto, 1 normal, 2 longo
 const FUSES := [[10, 14], [14, 20], [20, 28]]   # pavio curto/normal/longo (s): mais tempo para correr
 # Rei da Obra
@@ -134,6 +135,7 @@ func pick_arena() -> Dictionary:
 ## Nova rodada: arena nova, robôs nos spawns de acordo com o número de jogadores.
 func start_round() -> void:
 	ordem_elim.clear()
+	luta_t = 0.0
 	arena = pick_arena()
 	last_arena = arena["id"]
 	main.load_arena(arena["id"])
@@ -217,6 +219,8 @@ func start_round() -> void:
 
 func update(dt: float) -> void:
 	banner_t = maxf(banner_t - dt, 0.0)
+	if main.countdown <= 0.0:
+		luta_t += dt
 	_update_fx(dt)
 	main.events.update(dt)
 	if etapas != null and is_instance_valid(etapas):

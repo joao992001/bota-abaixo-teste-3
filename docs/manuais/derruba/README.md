@@ -34,7 +34,7 @@ configuração. *Partida* = uma luta até sobrar um robô.
 | **Perigos/mecanismos** | instâncias por cena no manifesto, presas à arquitetura; fazem parte da cena (não são opcionais) | igual |
 | **KO** | cair do piso em qualquer ponto = KO rápido; saída para KO em ≥ 2 lados por cena | igual |
 | **Skins** | cada jogador escolhe robô e skin; skins têm origem no mapa | igual (X/□ na entrada) |
-| **Progressão** | gangorra de recompensas e Projetos de Demolição: **documentados para o futuro** (`progressao.md`) | não existe |
+| **Progressão** | gangorra de recompensas e Projetos de Demolição (`progressao.md`) | **D4 (2026-11-26):** perfil local `user://perfil.json` (`modes/perfil.gd`, contrato `perfil_salvo.md`); gangorra e Projetos nos resultados, cenas descobertas e Projetos na seleção de mapas; última configuração volta ao reabrir o mapa. Travas: tudo liberado (A9) |
 
 ## Manuais do modo
 - **Fase (mapa):** [`mapa.md`](mapa.md) — método VALIDADO (obrigatório) · regras de desenho: [`mapa_cartilha.md`](mapa_cartilha.md)

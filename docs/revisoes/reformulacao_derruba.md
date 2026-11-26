@@ -55,6 +55,6 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | D1 | Lógica: verificação por tempo × vidas, rotas Moderada/Total no manifesto v2, retirar o diretor (G01 volta como evento), manômetro | **feita 2026-11-26** (rota moderada do Canteiro espera a Fachada, D5) |
 | D2 | Partida única com vidas 3–6, tela de resultados com ranking/estrelas/progresso e as 4 opções | **feita 2026-11-26** (gangorra e Projetos entram com o perfil, D4) |
 | D3 | Telas de seleção de spells e eventos (tudo liberado) + "configurar mapa" | **feita 2026-11-26** (falta: eventos G# valendo nas 3 cenas, A14) |
-| D4 | Perfil salvo local (cenas descobertas, pontos, gangorra) — sem contas/online | |
+| D4 | Perfil salvo local (cenas descobertas, pontos, gangorra) — sem contas/online | **feita 2026-11-26** |
 | D5 | Cena Rota Moderada do Canteiro (método de fase `mapa.md`) | |
 Cada parte termina com o jogo jogável, testes da parte e commit; bateria completa no fim.

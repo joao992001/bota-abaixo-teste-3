@@ -1,4 +1,7 @@
-# Contrato do PERFIL SALVO (Derruba v2) — `PROPOSTO` (etapa C, 2026-11-26) · implementação na etapa D4
+# Contrato do PERFIL SALVO (Derruba v2) — implementado na D4 (2026-11-26, `game/modes/perfil.gd`, teste `--so=perfil`)
+
+> Na D4: estrelas fora do perfil (A13); a visita a uma cena só conta em partida válida; prêmio da gangorra fica em
+> `premios` (tudo já liberado, A9) e a agulha volta ao centro com categorias novas. Testes usam `user://perfil_teste.json`.
 
 Perfil **local** (sem contas, sem rede — `CLAUDE.md` proíbe online). Base: `progressao.md` §4. Este arquivo fixa o
 formato para a D4 e para o online futuro não exigir migração difícil.

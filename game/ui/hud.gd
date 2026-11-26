@@ -493,24 +493,76 @@ func _draw_resultados() -> void:
 			for s2 in sc:
 				Kit.star(self, Vector2(sx - 14 - s2 * 32, row.position.y + 40), 30, true)
 	Kit.text(self, Vector2(rr.position.x, rr.end.y - 12), "★ = vitórias desta sessão", 20, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
-	# vencedor (centro)
+	# vencedor (centro, menor: embaixo vêm gangorra e Projetos)
 	if w >= 0:
 		var pw: Dictionary = main.players[w]
-		Kit.burst(self, Vector2(960, 520), 250, t * 0.15, 8.0)
-		RobotVis.draw_robot(self, _look(pw), RobotVis.victory_pose(t, int(Data.model_meta(pw["model"])["danca"])), Transform2D(0.0, Vector2(4.0, 4.0), 0.0, Vector2(960, 700)))
+		Kit.burst(self, Vector2(960, 360), 170, t * 0.15, 8.0)
+		RobotVis.draw_robot(self, _look(pw), RobotVis.victory_pose(t, int(Data.model_meta(pw["model"])["danca"])), Transform2D(0.0, Vector2(2.6, 2.6), 0.0, Vector2(960, 480)))
 		draw_set_transform(Vector2.ZERO)
-		Kit.star(self, Vector2(960, 222), 48, true)
-	# resumo (embaixo, no centro): destruição final e exploração
+		Kit.star(self, Vector2(960, 518), 40, true)
+	var ri: Dictionary = main.res_info
 	var et = _etapas()
-	var sr := Rect2(600, 800, 720, 190)
-	Kit.chunk(self, sr, Kit.CREAM)
-	Kit.text(self, Vector2(sr.position.x, sr.position.y + 44), "RESUMO DA LUTA", 28, DARK, HORIZONTAL_ALIGNMENT_CENTER, sr.size.x)
+	# GANGORRA (A17): cor do manômetro em que a luta terminou → a agulha anda (antes → depois)
+	var gr := Rect2(560, 560, 800, 210)
+	Kit.chunk(self, gr, Kit.CREAM)
+	Kit.text(self, Vector2(gr.position.x, gr.position.y + 44), "GANGORRA DE RECOMPENSAS", 28, DARK, HORIZONTAL_ALIGNMENT_CENTER, gr.size.x)
 	if et != null:
-		draw_gauge(sr.position + Vector2(110, 108), 62, et.progresso)
-		var cn := MapaReg.cena(main.game_mode, main.level.id, et.etapa)
-		Kit.text(self, Vector2(sr.position.x + 210, sr.position.y + 96), "Terminou em: %s" % String(cn.get("nome", "cena %d" % et.etapa)).to_upper(), 28, DARK)
-		var nv: int = et.visitadas.size()
-		Kit.text(self, Vector2(sr.position.x + 210, sr.position.y + 140), ("Exploração: passou por %d cenas" % nv) if nv > 1 else "Exploração: ficou na cena inicial", 24, Kit.SOFT)
+		draw_gauge(gr.position + Vector2(80, 128), 52, et.progresso)
+	if not ri.is_empty():
+		var g: Dictionary = main.perfil.dados["gangorra"]
+		var x0 := gr.position.x + 230.0
+		var x1 := gr.end.x - 110.0
+		var by := gr.position.y + 128.0
+		var cols: Array = (main.demo.etapas.dcfg.get("zonas", []) if et != null else [])
+		for k in 6:
+			var c: Color = Color(String(cols[k])) if k < cols.size() else Color.GRAY
+			draw_rect(Rect2(x0 + k * (x1 - x0) / 6.0, by - 14, (x1 - x0) / 6.0, 28), c)
+		draw_rect(Rect2(x0, by - 14, x1 - x0, 28), Kit.INK, false, 5.0)
+		for side in [-1, 1]:
+			var cx := (x0 - 52.0) if side < 0 else (x1 + 52.0)
+			var cat := String(g["extremo_verde"] if side < 0 else g["extremo_vermelho"])
+			Kit.chunk(self, Rect2(cx - 32, by - 34, 64, 60), Kit.YEL, 12, 5, 5.0)
+			Kit.text(self, Vector2(cx - 32, by + 12), "?", 40, DARK, HORIZONTAL_ALIGNMENT_CENTER, 64)
+			Kit.text(self, Vector2(cx - 60, by + 54), cat.to_upper(), 18, DARK, HORIZONTAL_ALIGNMENT_CENTER, 120)
+		var k2 := clampf((main.res_t - 0.6) / 1.2, 0.0, 1.0)
+		var v := lerpf(float(ri["antes"]), float(ri["depois"]), k2 * k2 * (3.0 - 2.0 * k2))
+		var nx := lerpf(x0, x1, (v + 100.0) / 200.0)
+		draw_colored_polygon(PackedVector2Array([Vector2(nx, by + 8), Vector2(nx - 14, by + 36), Vector2(nx + 14, by + 36)]), Kit.INK)
+		draw_line(Vector2(nx, by - 22), Vector2(nx, by + 14), Kit.INK, 6.0)
+		if not ri["valida"]:
+			Kit.text(self, Vector2(x0, gr.end.y - 16), "luta curta (menos de 1 min): não conta", 20, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0)
+		elif ri["premio"] != "" and k2 >= 1.0:
+			Kit.text(self, Vector2(x0, gr.end.y - 14), "PRÊMIO: %s!" % String(ri["premio"]).to_upper(), 26, Kit.YEL, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, 7)
+		else:
+			Kit.text(self, Vector2(x0, gr.end.y - 16), "%+d" % int(ri["delta"]), 26, Color(String(cols[int(ri["zona"])])) if int(ri["zona"]) < cols.size() else DARK, HORIZONTAL_ALIGNMENT_CENTER, x1 - x0, 6)
+	# PROJETOS DE DEMOLIÇÃO: +1 partida válida, +2 por cena inédita
+	var pr := Rect2(560, 800, 800, 190)
+	Kit.chunk(self, pr, Kit.CREAM)
+	Kit.text(self, Vector2(pr.position.x, pr.position.y + 44), "PROJETOS DE DEMOLIÇÃO", 28, DARK, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	if not ri.is_empty():
+		var ly := pr.position.y + 92.0
+		Kit.text(self, Vector2(pr.position.x + 40, ly), ("+1 partida" if ri["valida"] else "+0 (luta curta)"), 26, DARK)
+		var lx := pr.position.x + 40.0
+		var novas: Array = ri["novas"]
+		if novas.is_empty():
+			var cn := MapaReg.cena(main.game_mode, main.level.id, et.etapa) if et != null else {}
+			Kit.text(self, Vector2(lx, ly + 44), "terminou em %s" % String(cn.get("nome", "")).to_upper(), 22, Kit.SOFT)
+		else:
+			Kit.text(self, Vector2(lx, ly + 44), "+2 cena nova:", 26, DARK)
+			var cx2 := lx + 190.0
+			for id in novas:
+				var nm := String(MapaReg.cena_id(main.game_mode, main.level.id, String(id)).get("nome", id)).to_upper()
+				var wbox := 30.0 + nm.length() * 15.0
+				Kit.chunk(self, Rect2(cx2, ly + 14, wbox, 40), Kit.YEL, 10, 4, 4.0)
+				Kit.text(self, Vector2(cx2, ly + 43), nm, 22, DARK, HORIZONTAL_ALIGNMENT_CENTER, wbox)
+				Kit.chunk(self, Rect2(cx2 + wbox + 8, ly + 14, 70, 40), Color("#ec4f88"), 10, 4, 4.0)
+				Kit.text(self, Vector2(cx2 + wbox + 8, ly + 43), "NEW", 22, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 70)
+				cx2 += wbox + 90.0
+		var pm := int(ri["por_mapa"])
+		var tot := int(ri["total"])
+		for k in pm:
+			Kit.chunk(self, Rect2(pr.end.x - 40 - (pm - k) * 42, pr.position.y + 70, 36, 36), Color("#5fc95f") if k < mini(tot, pm) else Color("#e2d9c6"), 8, 4, 0.0)
+		Kit.text(self, Vector2(pr.end.x - 40 - pm * 42, pr.position.y + 140), "%d de %d → mapa novo" % [mini(tot, pm), pm], 20, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, pm * 42)
 	# opções (direita)
 	for k in main.RES_OPCOES.size():
 		var br := Rect2(1440, 250 + k * 124, 420, 88)

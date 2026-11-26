@@ -367,7 +367,7 @@ func arena_list() -> Array:
 
 func _draw_arenas(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.45))
-	Kit.ribbon(ci, Rect2(560, 30, 800, 128), "ESCOLHA A ARENA", 58)
+	Kit.ribbon(ci, Rect2(560, 30, 800, 128), "ESCOLHA O MAPA" if main.game_mode == "derruba" else "ESCOLHA A ARENA", 58)
 	var list := arena_list()
 	var nrows: int = int(ceil(list.size() / 4.0))
 	var sc := minf(1.0, 860.0 / (nrows * 400.0 - 70.0))   # mais arenas: cartões menores
@@ -394,8 +394,25 @@ func _draw_arenas(ci: CanvasItem) -> void:
 			ci.draw_rect(tr, Color("#9fe3ee"))
 		Kit.text(ci, Vector2(r.position.x, 100), String(a["nome"]).to_upper(), 34 if String(a["nome"]).length() < 15 else 28, Color("#2a1a2e"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 		Kit.text_box(ci, Vector2(r.position.x + 14, 116), r.size.x - 28, String(a["dica"]), 21, Color("#6b5a70"), 2)
+		var mf: Dictionary = MapaReg.manifesto(main.game_mode, String(a["id"])) if main.game_mode == "derruba" else {}
+		if not mf.is_empty():   # perfil (D4): cenas descobertas deste mapa
+			var vis: int = main.perfil.dados.get("cenas_visitadas", {}).get(a["id"], []).size()
+			Kit.chunk(ci, Rect2(40, -156, 150, 40), Color("#5fc95f") if vis > 0 else Kit.CREAM, 12, 4, 4.0)
+			Kit.text(ci, Vector2(40, -127), "%d de %d cenas" % [vis, int(mf.get("topologia", 0))], 20, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, 150)
 	ci.draw_set_transform(Vector2.ZERO)
+	if main.game_mode == "derruba":
+		_draw_projetos(ci, Rect2(560, 900, 800, 110))
 	Kit.text(ci, Vector2(0, 1056), "◄►▲▼ escolher  ·  PULAR confirmar  ·  BACKSPACE/ESC voltar", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
+
+## Projetos de Demolição (perfil, D4): pontos para liberar o próximo mapa. Só na seleção de mapas e nos resultados.
+func _draw_projetos(ci: CanvasItem, rr: Rect2) -> void:
+	var pm := int(MapaReg.modo_cfg("derruba").get("progressao", {}).get("pontos_por_mapa", 6))
+	var tot := int(main.perfil.dados.get("pontos_exploracao", 0))
+	Kit.chunk(ci, rr, Kit.CREAM, 22, 6, 9.0)
+	Kit.text(ci, Vector2(rr.position.x + 30, rr.position.y + 48), "PROJETOS DE DEMOLIÇÃO", 26, Kit.INK)
+	for k in pm:
+		Kit.chunk(ci, Rect2(rr.position.x + 30 + k * 52, rr.position.y + 62, 44, 34), Color("#5fc95f") if k < mini(tot, pm) else Color("#e2d9c6"), 8, 4, 0.0)
+	Kit.text(ci, Vector2(rr.position.x + 360, rr.position.y + 88), "%d de %d → você escolhe o próximo mapa" % [mini(tot, pm), pm], 22, Kit.SOFT)
 
 func _draw_howto(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.45))
