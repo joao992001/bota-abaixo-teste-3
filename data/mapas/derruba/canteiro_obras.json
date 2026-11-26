@@ -86,13 +86,6 @@
    "ordem": 1,
    "nome": "Térreo",
    "eventos": [
-    "G01",
-    "G05",
-    "G06",
-    "G10",
-    "G12",
-    "G13",
-    "G02",
     "V1"
    ],
    "mecanismos": [
@@ -250,13 +243,6 @@
    "ordem": 2,
    "nome": "Fundação",
    "eventos": [
-    "G01",
-    "G14",
-    "G04",
-    "G06",
-    "G10",
-    "G03",
-    "G11",
     "V2",
     "V3"
    ],
@@ -376,5 +362,6 @@
  "cenas_pendentes": [
   "fachada"
  ],
- "nota_v2": "Manifesto v2 (D1, 2026-11-26): cada cena tem nivel, rota_moderada e rota_total (ids; null no último nível) e o aviso de cada rota. A cena 'fachada' (Rota Moderada, aprovada) entra na D5: até lá a rota moderada fica indisponível e 50–90% na verificação = fica na cena."
+ "nota_v2": "Manifesto v2 (D1, 2026-11-26): cada cena tem nivel, rota_moderada e rota_total (ids; null no último nível) e o aviso de cada rota. A cena 'fachada' (Rota Moderada, aprovada) entra na D5: até lá a rota moderada fica indisponível e 50–90% na verificação = fica na cena.",
+ "nota_eventos": "A14 (2026-11-26): os eventos G# de eventos_permitidos valem em TODAS as cenas; cenas[].eventos lista só os perigos da cena (V#, sempre ligados)."
 }

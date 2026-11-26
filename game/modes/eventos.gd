@@ -189,7 +189,7 @@ func eligible(e: Dictionary) -> bool:
 		"G12":
 			return ct != null and not _scaffold_moves(ct).is_empty()
 		"G13":
-			return ct != null and _beam_pick(ct) != null
+			return ct != null and (_beam_pick(ct) != null or _poco_viga_rect() != Rect2())
 	return false
 
 func update(dt: float) -> void:
@@ -381,6 +381,8 @@ func _on_aviso(a: Dictionary) -> bool:
 			Audio.play("gancho", 0.6, -4.0)
 		"G13":
 			var p = _beam_pick(ct)
+			if p == null and _poco_viga_rect() != Rect2():
+				p = ct.viga_pelo_poco(_poco_viga_rect(), _etapa())   # Fundação: a viga desce pelo poço (A14)
 			if p == null:
 				return false
 			p["evt"] = "G13"
@@ -933,10 +935,29 @@ func _floor_under_rect(r: Rect2, ignore) -> float:
 				break
 	return best
 
+## Fundação (cena sem vigas penduradas): lugar para a viga que desce pelo poço — em cima de uma plataforma sobre estaca
+## que está embaixo da boca do poço, 4 tiles acima dela. Rect2() = não há.
+func _poco_viga_rect() -> Rect2:
+	var ct = _canteiro()
+	var et = main.demo.etapas if main.demo != null else null
+	if ct == null or et == null or not is_instance_valid(et) or _etapa() < 2:
+		return Rect2()
+	var lv = main.level
+	var h := String(lv.prop("buraco%d" % (_etapa() - 1), "")).split(",")
+	if h.size() < 2:
+		return Rect2()
+	var x0 := float(h[0]) * T
+	var x1 := float(h[1]) * T
+	for p in ct.parts:
+		if p["kind"] == "estaca" and int(p["etapa"]) == _etapa() and not p["fallen"] and p["rect"].position.x >= x0 and p["rect"].end.x <= x1:
+			var r: Rect2 = p["rect"]
+			return Rect2(r.position.x, r.position.y - 4 * T, r.size.x, 26)
+	return Rect2()
+
 func _beam_pick(ct) -> Variant:
 	var cands := []
 	for p in ct.parts:
-		if p["kind"] == "viga" and not p["fallen"] and p.get("evt", "") == "" and p["crit_t"] <= 0.0 and p["warn_t"] <= 0.0:
+		if p["kind"] == "viga" and int(p["etapa"]) == _etapa() and not p["fallen"] and p.get("evt", "") == "" and p["crit_t"] <= 0.0 and p["warn_t"] <= 0.0:
 			if _floor_under_rect(p["rect"], p) > 0.0:
 				cands.append(p)
 	if cands.is_empty():
@@ -945,7 +966,7 @@ func _beam_pick(ct) -> Variant:
 
 # ---------------------------------------------------------------- G12 andaimes
 func _scaffold_moves(ct) -> Array:
-	var ands: Array = ct.parts.filter(func(p): return p["kind"] == "andaime" and not p["fallen"] and p.get("evt", "") == "" and p["crit_t"] <= 0.0)
+	var ands: Array = ct.parts.filter(func(p): return p["kind"] in ["andaime", "estaca"] and int(p["etapa"]) == _etapa() and not p["fallen"] and p.get("evt", "") == "" and p["crit_t"] <= 0.0)
 	if ands.is_empty():
 		return []
 	ands.shuffle()

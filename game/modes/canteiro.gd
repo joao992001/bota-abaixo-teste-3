@@ -84,7 +84,7 @@ func setup(m: Node, lv) -> void:
 	lv.grab_solid = func(c: Vector2i) -> bool: return owner_of.has(c) and owner_of[c]["kind"] == "laje"
 
 func _add(kind: String, r: Rect2, hp: int, nucleo: bool, oneway: bool, idx: int, etapa := 1) -> void:
-	var body: StaticBody2D = AnimatableBody2D.new() if kind == "andaime" else StaticBody2D.new()   # andaime: G12 move o deque
+	var body: StaticBody2D = AnimatableBody2D.new() if kind in ["andaime", "estaca"] else StaticBody2D.new()   # G12 move o deque (andaime no Térreo, plataforma sobre estaca na Fundação)
 	if body is AnimatableBody2D:
 		body.sync_to_physics = false
 	body.collision_layer = 2 if oneway else 1
@@ -127,6 +127,14 @@ func move_part(p: Dictionary, y: float) -> void:
 	if int(y / T) != old_row:
 		_unclaim(p)
 		_claim(p)
+
+## G13 na Fundação (A14): o guindaste desce uma viga pelo poço e a deixa pendurada sobre a cena (peça GERADA: não
+## conta na destruição). Devolve a peça.
+func viga_pelo_poco(r: Rect2, n: int) -> Dictionary:
+	_add("viga", r, int(cfg["viga_hp"]), false, true, 90 + parts.size(), n)
+	var p: Dictionary = parts[-1]
+	p["gerada"] = true
+	return p
 
 ## G13: o cabo rompe — a viga perde a colisão (o evento cuida da queda e do desenho).
 func drop_body(p: Dictionary) -> void:
@@ -549,7 +557,7 @@ func progresso(n: int) -> float:
 	var tot := 0.0
 	var feito := 0.0
 	for p in parts:
-		if int(p["etapa"]) != n or p["nucleo"] or p["kind"] in ["terreo", "entulho"]:
+		if int(p["etapa"]) != n or p["nucleo"] or p["kind"] in ["terreo", "entulho"] or p.get("gerada", false):
 			continue
 		var w: float = maxf(1.0, round(p["rect"].size.x / T)) * (2.0 if p["kind"] == "laje" else 1.0)
 		var f := 1.0

@@ -524,6 +524,7 @@ func demolicao_test() -> void:
 	await resultados_test()
 	await selecao_test()
 	await perfil_test()
+	await eventos_cenas_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -1396,7 +1397,7 @@ func eventos_test() -> void:
 	var ct = main.demo.canteiro
 	main.demo.spells.spawn_t = 999.0
 	main.event_level = 2
-	check(not ev.eligible(ev.ev("G03")) and ev.eligible(ev.ev("V1")) and not ev.eligible(ev.ev("V3")) and ev.eligible(ev.ev("G01")), "eventos do mapa por cena: no Térreo vale V1 e G01 (Sirene, v2), e não G03/V3 (manifesto)")
+	check(ev.eligible(ev.ev("G03")) and ev.eligible(ev.ev("V1")) and not ev.eligible(ev.ev("V3")) and ev.eligible(ev.ev("G01")), "A14: no Térreo valem os eventos do mapa (G03, G01…) e o perigo V1; V3 é da Fundação")
 	ev.libera_tudo = true   # daqui em diante testa a BIBLIOTECA inteira (cada evento isolado)
 	var r0 = main.robots[0]
 	var r1 = main.robots[1]
@@ -2069,6 +2070,58 @@ func perfil_test() -> void:
 	main.spells_mapa = ""
 	pf.dados = pf.novo()
 	main.go_menu()
+
+## A14: todo evento do mapa vale nas cenas do Canteiro (Térreo e Fundação; Fachada na D5). Na Fundação, G12 move as
+## plataformas sobre estaca e G13 desce uma viga pelo poço (peça gerada, fora da conta da destruição). --so=eventos_cenas
+func eventos_cenas_test() -> void:
+	print("== Eventos do mapa em todas as cenas (A14)")
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 6
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	main.countdown = 0.0
+	main.demo.spells.spawn_t = 999.0
+	var ev = main.events
+	var ids: Array = MapaReg.manifesto("derruba", "canteiro_obras")["eventos_permitidos"].filter(func(e): return not String(e).begins_with("V"))
+	var falta1: Array = ids.filter(func(id): return not ev.eligible(ev.ev(id)))
+	check(ids.size() == 11 and falta1.is_empty(), "Térreo: os 11 eventos do mapa podem acontecer (faltam: %s)" % str(falta1))
+	main.demo.etapas.ativo = true
+	main.demo.etapas.forcar()
+	var w := 0
+	while main.demo.etapas.etapa != 2 and w < 900:
+		await frames(1)
+		w += 1
+	main.demo.etapas.ativo = false
+	await frames(60)
+	var falta2: Array = ids.filter(func(id): return not ev.eligible(ev.ev(id)))
+	check(falta2.is_empty(), "Fundação: os 11 eventos do mapa podem acontecer (faltam: %s)" % str(falta2))
+	var ct = main.demo.canteiro
+	var p0: float = ct.progresso(2)
+	ev.manual = true
+	main.event_level = 2
+	var ys: Array = ct.parts.filter(func(p): return p["kind"] == "estaca" and not p["fallen"]).map(func(p): return p["rect"].position.y)
+	ev.trigger(ev.ev("G12"))
+	await frames(int((1.2 + float(ev.ev("G12")["dur"]) * 0.4) * 60.0))
+	var ys2: Array = ct.parts.filter(func(p): return p["kind"] == "estaca" and not p["fallen"]).map(func(p): return p["rect"].position.y)
+	check(ys != ys2, "G12 na Fundação: as plataformas sobre estaca sobem/descem (%s → %s)" % [str(ys), str(ys2)])
+	for k in 60 * 10:
+		await frames(1)
+	ev.trigger(ev.ev("G13"))
+	await frames(5)
+	var vg: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and int(p["etapa"]) == 2)
+	check(vg.size() == 1 and vg[0].get("gerada", false) and ev.is_active("G13"), "G13 na Fundação: uma viga desce pelo poço (peça gerada)")
+	for k in 60 * 16:
+		await frames(1)
+	check(not ev.is_active("G13") and is_equal_approx(ct.progresso(2), p0), "G13 termina e a viga gerada não mexe no manômetro (%.0f%%)" % (ct.progresso(2) * 100.0))
+	ev.manual = false
+	main.event_level = 0
 
 ## Mecanismos da Fase 1 (catálogo M1–M9): cada um faz o que promete e responde à marretada.
 func mecanismos_test() -> void:

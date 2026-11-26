@@ -59,8 +59,10 @@ static func spells(mode_id: String, map_id: String, pool_modo: Array) -> Array:
 ## Eventos autorizados na cena n (1, 2, …). null = mapa-ferramenta (toda a biblioteca, exceto específicos V#).
 static func eventos(mode_id: String, map_id: String, n: int):
 	var c := cena(mode_id, map_id, n)
-	if not c.is_empty():
-		return c.get("eventos", [])
+	if not c.is_empty():   # A14: eventos do MAPA valem em todas as cenas + perigos V# da cena
+		var out: Array = manifesto(mode_id, map_id).get("eventos_permitidos", []).filter(func(e): return not String(e).begins_with("V"))
+		out.append_array(c.get("eventos", []).filter(func(e): return String(e).begins_with("V")))
+		return out
 	if eh_ferramenta(map_id):
 		return null
 	return []

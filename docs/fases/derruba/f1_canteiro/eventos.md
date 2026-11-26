@@ -2,8 +2,9 @@
 
 **Regra v2 (APROVADA 2026-11-26, A14):** evento é **do mapa** e acontece em **todas as 3 cenas** (Térreo, Fundação,
 Fachada), cada uma com o visual dela. O que só cabe numa cena virou **perigo da cena** ([`perigos_mecanismos.md`](perigos_mecanismos.md)).
-Hoje o jogo ainda autoriza por cena (`cenas[].eventos`); a mudança é na etapa D. Coluna "Nas 3 cenas" = como cada evento
-fica em cada cena (`PROPOSTO`, conferir no código e com bots).
+**Implementado no Térreo e na Fundação (2026-11-26, teste `--so=eventos_cenas`)**; na Fachada entra com a D5. Manifesto:
+`cenas[].eventos` guarda só os V# (perigos). Na Fundação: G12 move as plataformas sobre estaca; G13 desce uma viga pelo
+poço (peça gerada, fora do manômetro). Coluna "Nas 3 cenas" = como cada evento fica em cada cena.
 
 | Id | Evento | Estado | Nas 3 cenas (PROPOSTO) |
 |---|---|---|---|
