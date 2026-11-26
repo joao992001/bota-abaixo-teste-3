@@ -541,11 +541,10 @@ func menus_test() -> void:
 	check(main.menus.arena_list().size() == 1 + main.demo.find_mode("derruba")["arenas"].size(), "só as arenas da Derruba (+ sorteio)")
 	await tap("v0", "jump")
 	check(main.state == S.AJUSTES and main.arena_choice in ["canteiro_obras", "sorteio"], "arena do Derruba → AJUSTES (%s)" % main.arena_choice)
-	await tap("v0", "left")
-	await tap("v0", "down")
+	check(main.menus.adjust_rows()[0] == "vidas", "Derruba v2: sem meta de estrelas, a 1ª linha é VIDAS")
 	var lives0: int = main.demo.lives_setting
 	await tap("v0", "right")
-	check(main.demo.lives_setting == mini(lives0 + 1, 5), "ajuste de VIDAS da Derruba (%d)" % main.demo.lives_setting)
+	check(main.demo.lives_setting == clampi(lives0 + 1, 3, 6), "ajuste de VIDAS da Derruba, 3 a 6 (%d)" % main.demo.lives_setting)
 	await tap("v0", "left")
 	await tap("v0", "down")
 	await tap("v0", "right")
@@ -562,7 +561,7 @@ func menus_test() -> void:
 	await tap("v0", "down")
 	await tap("v0", "down")
 	await tap("v0", "jump")
-	check(main.state == S.JOIN and main.mode == "demolicao" and int(main.demo.cfg["rounds_to_win"]) == 3 and lvl >= 0, "COMEÇAR → entrada; vence com 3 ★ (eventos nível %d)" % main.event_level)
+	check(main.state == S.JOIN and main.mode == "demolicao" and main.estrelas_da_sessao() and lvl >= 0, "COMEÇAR → entrada; partida única (eventos nível %d)" % main.event_level)
 	main.game_mode = "derruba"
 	main.demo.lives_setting = 1
 	await tap("v0", "jump")
