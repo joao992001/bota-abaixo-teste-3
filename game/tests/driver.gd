@@ -4436,17 +4436,27 @@ func video_frames(dir: String) -> void:
 	main.start_match()
 	main.demo.spells.spawn_t = 1.5
 	var virada_f := -1
+	var rota := "total"
+	var dur_s := 30.0
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--virada="):   # vídeo promocional: a obra cede em N s (força a transição)
 			virada_f = int(float(a.substr(9)) * 60.0)
+		if a.begins_with("--rota="):     # total (Fundação) ou moderada (Fachada)
+			rota = a.substr(7)
+		if a.begins_with("--dur="):
+			dur_s = float(a.substr(6))
+	if virada_f >= 0:
+		main.demo.lives_setting = 6   # a luta não acaba antes da virada
+		for i in main.players.size():
+			main.demo.lives[i] = 6
 	var f := 0
 	var end_f := -1
 	var per := 60 * 10
-	var limit := 60 * 30 if tour.is_empty() else per * tour.size()
+	var limit := int(60 * dur_s) if tour.is_empty() else per * tour.size()
 	while f < limit:
 		Audio.rec_time = f / 60.0
 		if f == virada_f and main.demo.etapas != null:
-			main.demo.etapas.forcar()
+			main.demo.etapas.forcar(rota)
 		if tour.size() > 0 and f > 0 and f % per == 0:
 			main.arena_choice = tour[f / per]
 			main._clear_robots()
