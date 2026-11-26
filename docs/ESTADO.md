@@ -15,7 +15,7 @@ perigos).** Também aprovados: spells mín. 4 sem máx. (A15), manômetro 10–9
 **Avaliação do usuário no .exe (2026-11-26):** (1) escolher o mapa direto fechava o jogo → CORRIGIDO (`3b40986`: tela de
 spells dependia da partida). (2) Pelo SORTEIO as telas de spells/eventos eram puladas → FEITO: o "?" sorteia o mapa e segue para as mesmas telas. (3) Transição para a FACHADA "parece teletransporte" → REFEITA (a laje vira rampa até a Fachada e todos deslizam por ela). (4) Com 3 vidas a verificação chega cedo / 90% é
 exagero → proposta do usuário 30%/70% (fica <30, moderada 30–70, total ≥70) A VALIDAR com mais testes (não mudar ainda).
-(5) Depois: layout/design das telas de início e seleção e a animação de abertura não agradam → refazer mais adiante.
+(5) Layout das telas e a abertura não agradam → direção **A "Canteiro vivo"** escolhida (2026-11-26); pranchas `art/out/menus_v2/v2_1–v2_4` (gerador `art/src/ui/menus_v2.py`) AGUARDANDO APROVAÇÃO; depois o código.
 **Entregues ao usuário (2026-11-26):** vídeos `out/videos/canteiro_rota_total.mp4` e `canteiro_rota_moderada.mp4` (captura `--video=DIR --arena=canteiro_obras --virada=16 --rota=… --dur=42` **com `--fixed-fps 60`** + `tools/mixar_video.py`) e o `.exe` (`tools/exportar.sh`; modelos 4.7.1 instalados com checksum). `out/` não vai para o git.
 **PAUSA DE 2026-11-25 → leia primeiro `docs/RETOMADA_2026-11-25.md`** (o que foi feito, estado no commit `7556692`, decisões pendentes e verificação).
 **LIMPA DE SPELLS/EVENTOS (anotações, NÃO executar sem pedido):** `docs/revisoes/limpa_spells_eventos.md`.
