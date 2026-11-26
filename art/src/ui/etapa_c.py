@@ -300,7 +300,7 @@ def tela_eventos():
         ("APROVADO", "NENHUM não desliga perigos da cena (betoneira, serra, água, bate-estaca...)."),
         ("APROVADO", "Evento é do MAPA e vale em todas as cenas; o que é de uma cena só é PERIGO (A14)."),
         ("APROVADO", "Concretagem, Desmoronamento e Enchente saíram daqui: são perigos das cenas."),
-        ("DECIDIR", "Máximo de eventos ligados? (sugestão: sem máximo; o diretor de eventos já limita)."),
+        ("APROVADO", "Sem máximo de eventos ligados (A18)."),
         ("FUTURO", "Evento bloqueado na conta = silhueta + cadeado (progressao.md)."),
     ])
     return page(b, n)
@@ -363,7 +363,7 @@ def tela_manometro():
         ("APROVADO", "De 10% a 90%; 6 zonas iguais; encostou no fim (90%) = Rota Total (A16)."),
         ("PROPOSTA", "Agulha balança e o número pula quando algo cai; o vermelho daqui é vinho, não o do perigo."),
         ("APROVADO", "Traço em 50% (início da Rota Moderada); 90% é o fim do mostrador."),
-        ("DECIDIR", "Mostrar o número (62%) embaixo da agulha, ou só a agulha?"),
+        ("APROVADO", "O número (62%) aparece embaixo da agulha (A18)."),
     ])
     return page(b, n)
 

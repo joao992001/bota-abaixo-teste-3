@@ -25,6 +25,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A10 | **Canteiro de Obras = mapa de 3 cenas:** Térreo (Início) → **Fundação = Rota Total** (a obra cede inteira, já aprovada) ou **cena nova = Rota Moderada** (conceito a criar e aprovar). |
 | A11 | Skins: cada jogador escolhe robô e skin (exceção à autoridade do anfitrião no online futuro). |
 | A13 | **Estrelas = placar da sessão** (2026-11-26): continuam em Jogar de novo, Configurar mapa e Selecionar mapa; **só Menu principal zera**. Não são salvas no perfil. |
+| A18 | Eventos: **sem máximo** de ligados. Manômetro **mostra o número** (%) embaixo da agulha (2026-11-26). |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
 | A14 | **EVENTO × PERIGO DA CENA (2026-11-26):** evento é **do mapa** e selecionável; tem de acontecer em **todas as cenas** do mapa (ex.: um terremoto vale nas 3). O que é específico de uma cena é **perigo/mecanismo da cena** (ex.: a enchente da Fundação, a serra do Térreo), não evento. Os antigos `V#` viram perigos da cena. |
 | A15 | Spells na tela de seleção: **mínimo 4, sem máximo** (2026-11-26). |
@@ -41,7 +42,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 
 ## PENDENTE (decidir antes do código da parte correspondente)
 - Simetria real da gangorra (deltas por cor, P3) — calibrar com bots.
-- Máximo de eventos ligados; ALEATÓRIO das spells (sugestão: 8, 2 de cada família).
+- ALEATÓRIO das spells (sugestão: 8, 2 de cada família).
 - Economia: pontos por mapa, recompensas esgotadas, duplicatas.
 - Fotografia conceitual da cena FACHADA (conceito aprovado em 2026-11-26).
 - Selecionar mapa na tela de resultados: o usuário citou como possível ("poderia até ter") — tratar como incluída, confirmar na prancha.
