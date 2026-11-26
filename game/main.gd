@@ -429,11 +429,16 @@ func _update_camera(dt: float) -> void:
 		var my := 0.0
 		var mx := 0.0
 		var n := 0
+		var qb := Rect2()
 		for r in robots:
 			if r.alive:
 				my += r.position.y
 				mx += r.position.x
+				qb = Rect2(r.position, Vector2.ZERO) if n == 0 else qb.expand(r.position)
 				n += 1
+		if n > 0:   # aproxima nos robôs para ver que estão caindo/escorregando (avaliação 2026-11-26), sem cortar ninguém
+			qb = qb.grow_individual(420, 320, 420, 260)
+			tz = clampf(minf(1920.0 / qb.size.x, 1024.0 / qb.size.y), tz, 1.0)
 		var c2 := a2.get_center()
 		if demo.etapas.rota == "moderada" and demo.etapas._deslize_dur > 0.0:
 			# rota moderada (destino AO LADO): a câmera vai para o lado junto com quem escorrega, até a cena nova

@@ -1,6 +1,13 @@
 # Avaliação do usuário — gameplay no .exe (2026-11-26, sessão 2)
 
-## Etapa 1 — correções (fazer primeiro)
+## Etapa 1 — correções (fazer primeiro) · FEITA (2026-11-26, sessão 2)
+O que foi feito: (1) bots com reação/recarga mais lentas e PAUSAS (`bots.pausa`, `pausa_s` em data/modos.json); (2) G03 e a
+elegibilidade dos eventos varriam o mapa inteiro várias vezes por quadro → só a cena atual, com cache de 0,25 s; (3) renascimento
+evita mecanismos (`mecanismos.zonas_perigo`) e beira de buraco, caminho livre na descida, vento não empurra quem está protegido,
+3 s invulnerável (`--so=renascer`); (4) recompensas só com confirmação; (5) cada robô volta a jogar AO POUSAR (Fundação e
+Fachada), sem esperar os outros nem teletransportar, com poses de queda/deslize (`--so=transicao`); (6) temas antigos fora do
+pré-carregamento (~400 MB de vídeo a menos), texturas da fase "aquecidas" na contagem, G05 sem erro a cada quadro.
+Medição: `--perf-canteiro` (com xvfb). Nesta máquina sem GPU o desenho domina; a física fica em ~3 ms por passo.
 1. **Bots acelerados demais**: difícil testar o ritmo sem baixar a dificuldade (menos importante).
 2. **Evento de GRAVIDADE trava o jogo** (FPS cai).
 3. **Renascimento seguro**: quem cai volta num lugar COM CHÃO, dentro da parte jogável, e fica INVULNERÁVEL alguns segundos
