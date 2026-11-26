@@ -21,7 +21,6 @@ formato para a D4 e para o online futuro não exigir migração difícil.
   "novos": ["T03"],
   "cenas_visitadas": {"canteiro_obras": ["terreo", "fundacao"]},
   "pontos_exploracao": 4,
-  "estrelas": {"canteiro_obras": 7},
   "ultima_config": {
     "mapa": "canteiro_obras", "vidas": 4,
     "spells": ["A01", "A02", "C01", "E02", "T03"], "eventos": ["G01", "G02", "V1"],
@@ -38,8 +37,10 @@ formato para a D4 e para o online futuro não exigir migração difícil.
 | `novos` | marcar **NEW** nas telas | sai da lista quando o item aparece selecionado pela 1ª vez |
 | `cenas_visitadas` | ✓/? no cartão do mapa e o +2 de cena inédita | id da cena do manifesto; só entra quem chegou na cena |
 | `pontos_exploracao` | Projetos de Demolição | +1 partida válida, +2 cena inédita (`progressao.md` §2) |
-| `estrelas` | "Jogar de novo: estrelas vão somando" | por mapa; zera ao trocar de mapa? → **DECIDIR** |
 | `ultima_config` | "Jogar de novo" e "Configurar mapa" sem refazer as telas | ids estáveis; item que sumiu do manifesto é ignorado |
+
+**Estrelas NÃO vão no perfil** (APROVADO 2026-11-26): são o placar da sessão, só na memória — somam em Jogar de novo,
+Configurar mapa e Selecionar mapa; **zeram só ao voltar ao Menu principal** (ou ao fechar o jogo).
 
 ## 3. Ids estáveis (não renomear depois de gravados)
 `map_id` (`canteiro_obras`), `id` das cenas (`terreo`, `fundacao`, `fachada`), spells `A##/C##/E##/T##`, eventos

@@ -24,6 +24,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A9 | **Telas de seleção de spells e de eventos ENTRAM AGORA** (mosaico visual, por controle, acender/apagar, Aleatório; eventos com "nenhum"), **com tudo liberado**. Travas por conta, anfitrião e online ficam **documentadas para o futuro** (`docs/manuais/derruba/progressao.md`). |
 | A10 | **Canteiro de Obras = mapa de 3 cenas:** Térreo (Início) → **Fundação = Rota Total** (a obra cede inteira, já aprovada) ou **cena nova = Rota Moderada** (conceito a criar e aprovar). |
 | A11 | Skins: cada jogador escolhe robô e skin (exceção à autoridade do anfitrião no online futuro). |
+| A13 | **Estrelas = placar da sessão** (2026-11-26): continuam em Jogar de novo, Configurar mapa e Selecionar mapa; **só Menu principal zera**. Não são salvas no perfil. |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
 
 ## PROVISÓRIO (aprovado como ponto de partida; calibrar com bots antes de fechar)
