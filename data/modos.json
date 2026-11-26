@@ -1224,27 +1224,33 @@
     }
   },
   "bots": {
-    "nota": "react_s = tempo de reação; hammer_acc = chance de marretar quando dá; safety = chance de checar buraco antes de andar",
+    "nota": "react_s = tempo de reação; hammer_acc = chance de marretar quando dá; safety = chance de checar buraco antes de andar; pausa = chance de, a cada decisão, ficar parado/respirar por pausa_s (ritmo humano: avaliação 2026-11-26, bots acelerados demais)",
     "facil": {
-      "react_s": 0.38,
+      "react_s": 0.5,
       "hammer_acc": 0.45,
       "safety": 0.85,
       "use_items": 0.4,
-      "hammer_cooldown_s": 1.0
+      "hammer_cooldown_s": 1.4,
+      "pausa": 0.3,
+      "pausa_s": [0.6, 1.3]
     },
     "medio": {
-      "react_s": 0.2,
+      "react_s": 0.3,
       "hammer_acc": 0.75,
       "safety": 0.97,
       "use_items": 0.8,
-      "hammer_cooldown_s": 0.6
+      "hammer_cooldown_s": 0.9,
+      "pausa": 0.18,
+      "pausa_s": [0.4, 0.9]
     },
     "dificil": {
-      "react_s": 0.09,
+      "react_s": 0.14,
       "hammer_acc": 0.95,
       "safety": 1.0,
       "use_items": 1.0,
-      "hammer_cooldown_s": 0.4
+      "hammer_cooldown_s": 0.55,
+      "pausa": 0.06,
+      "pausa_s": [0.25, 0.5]
     }
   }
 }

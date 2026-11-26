@@ -1088,13 +1088,24 @@ func _update_rivets(dt: float) -> void:
 
 # ---------------------------------------------------------------- lugares
 ## Chão firme livre (pés em p): não é borda que vai cair, nem perto de nascimento, nem em entulho/tapume.
+## Pontos de chão livre da cena atual. Varre só a área da cena (não o mapa inteiro) e guarda o resultado por 0,25 s:
+## era chamada várias vezes por quadro (elegibilidade dos eventos + porcas da G03, 14×/s) e travava o jogo (avaliação 2026-11-26).
+var _gs_cache := {}
 func _ground_spots(free_tiles := 3) -> Array:
+	var ck: Dictionary = _gs_cache.get(free_tiles, {})
+	if not ck.is_empty() and t - float(ck["t"]) < 0.25 and ck["area"] == main.level.area:
+		return (ck["out"] as Array).duplicate()   # cópia: quem chama embaralha/ordena
+	var out := _ground_spots_scan(free_tiles)
+	_gs_cache[free_tiles] = {"t": t, "out": out, "area": main.level.area}
+	return out.duplicate()
+
+func _ground_spots_scan(free_tiles: int) -> Array:
 	var out := []
 	var lv = main.level
 	var ct = _canteiro()
 	var pr := _pr().grow(-96)
-	for y in range(2, lv.rows):
-		for x in range(0, lv.cols):
+	for y in range(maxi(2, int(pr.position.y / T) - 1), mini(lv.rows, int(pr.end.y / T) + 2)):
+		for x in range(maxi(0, int(pr.position.x / T) - 1), mini(lv.cols, int(pr.end.x / T) + 2)):
 			var c := Vector2i(x, y)
 			if not lv.is_solid(c) or lv.is_solid(c + Vector2i.UP) or lv.is_solid(c + Vector2i(0, -2)) or (free_tiles >= 3 and lv.is_solid(c + Vector2i(0, -3))):
 				continue
@@ -1144,21 +1155,32 @@ func _crane_spot() -> Variant:
 		return null
 	var pr := _pr()
 	var cands := []
-	for row in [ct.LAJE_Y - 4, ct.LAJE_Y - 3, ct.LAJE_Y - 5]:
+	var chao_y: int = ct.LAJE_Y
+	var topo := pr.position.y - 200.0   # Térreo: céu aberto acima
+	if chao_y * T < pr.position.y or chao_y * T > pr.end.y:   # Fundação/Fachada: o chão da cena atual (não a laje do Térreo)
+		topo = INF   # cena coberta (Fundação): basta folga de 3 blocos acima da carga (não o céu livre)
+		var gs := _ground_spots(2)
+		if gs.is_empty():
+			return null
+		var ys: Array = gs.map(func(p): return int(p.y / T))
+		ys.sort()
+		chao_y = ys[ys.size() / 2]
+	for row in [chao_y - 4, chao_y - 3, chao_y - 5]:
 		if row * T < pr.position.y + 2 * T or row * T > pr.end.y:
-			continue   # linha fora da cena atual (a laje do Térreo não existe na Fundação/Fachada): Rect2 negativo a cada quadro
+			continue   # linha fora da cena atual: Rect2 negativo a cada quadro
 		for xi in range(int(pr.position.x / T) + 2, int(pr.end.x / T) - 6):
 			var r := Rect2(xi * T, row * T, 4 * T, 26)
 			var ok := true
 			var zone := r.grow_individual(48, 110, 48, 100)
-			var above := Rect2(r.position.x - 16, pr.position.y - 200, r.size.x + 32, r.position.y - pr.position.y + 200)
+			var top_y: float = topo if topo != INF else r.position.y - 3.0 * T
+			var above := Rect2(r.position.x - 16, top_y, r.size.x + 32, r.position.y - top_y)
 			for p in ct.parts:
 				if not p["fallen"] and (zone.intersects(p["rect"]) or above.intersects(p["rect"])):
 					ok = false
 					break
 			if ok:
 				for x in range(int(zone.position.x), int(zone.end.x), 32):
-					for y in range(int(above.position.y) + 200, int(zone.end.y), 32):
+					for y in range(int(maxf(above.position.y, pr.position.y)), int(zone.end.y), 32):
 						if main.level.is_solid(Vector2i(int(floor(x / float(T))), int(floor(y / float(T))))):
 							ok = false
 			if ok:

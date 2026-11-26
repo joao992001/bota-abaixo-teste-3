@@ -54,6 +54,8 @@ func preload_all(dir := "res://assets") -> int:
 	if d == null:
 		return 0
 	for sub in d.get_directories():
+		if dir == "res://assets" and sub == "temas":
+			continue   # fundos 4K dos temas antigos (~400 MB de vídeo): carregam só quando um mapa usa (avaliação 2026-11-26, FPS)
 		n += preload_all(dir.path_join(sub))
 	var seen := {}
 	for f in d.get_files():

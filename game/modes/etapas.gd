@@ -108,12 +108,12 @@ func update(dt: float) -> void:
 			_desliza(dt)
 		"queda":
 			st_t += dt
-			main.events.gravity_mult *= float(cfg["gravidade_queda"])
 			var a2: Rect2 = lv.etapa_rect(destino)
 			var landed := true
 			for r in main.robots:
-				if not r.alive:
-					continue
+				if not r.alive or r.has_meta("pousou_cena"):
+					continue   # já pousou: joga normal dali mesmo (avaliação 2026-11-26)
+				r.set_meta("grav_cena", float(cfg["gravidade_queda"]))
 				r.invuln = maxf(r.invuln, 0.5)
 				r.velocity.y = minf(r.velocity.y, float(cfg["queda_vmax"]))   # queda lenta e legível (cena)
 				# arco natural: a velocidade de lado calculada no desabamento leva cada um para dentro do buraco
@@ -123,10 +123,26 @@ func update(dt: float) -> void:
 					if absf(tx - r.position.x) > 1.0 and r.position.y > a2.position.y - 220.0:
 						vx = clampf((tx - r.position.x) * 4.0, -float(cfg["funil_vel"]), float(cfg["funil_vel"]))   # correção final suave
 					r.push_vx = vx
-				if not (r.is_on_floor() and a2.has_point(r.position)):
+				if r.is_on_floor() and a2.has_point(r.position):
+					_pousou(r)
+				else:
 					landed = false
 			if (landed and st_t > 0.5) or st_t >= float(cfg["queda_max_s"]):
 				_chega()
+
+## Um robô tocou o chão da cena nova: o controle volta NA HORA, dali mesmo (sem esperar os outros nem teletransportar).
+func _pousou(r) -> void:
+	r.set_meta("pousou_cena", true)
+	r.remove_meta("grav_cena")
+	if r.has_meta("queda_vx"):
+		r.remove_meta("queda_vx")
+	r.push_vx = 0.0
+	r.spell_lock = false
+	r.vis.cena_pose = ""
+	r.invuln = maxf(r.invuln, float(cfg["invuln_chegada_s"]))
+	r.vis.land_t = 0.2
+	main.dust(r.position, 1.2)
+	Audio.play("pisao", 0.9, -6.0)
 
 ## Vitrines/vídeos: começa a transição já (se houver próxima cena).
 func forcar(tipo := "total") -> void:
@@ -212,30 +228,36 @@ func _desliza(dt: float) -> void:
 		var u0: float = m["u"]
 		var pos: Vector2
 		if st_t < t0:   # tremor: quem não está na laje é jogado em cima dela (arco curto)
+			r.vis.cena_pose = "cai"
 			var k := st_t / t0
 			var dst := _no_topo(u0, pose)
 			pos = m["p0"].lerp(dst, k) + Vector2(0, -120.0 * sin(PI * k))
 		elif st_t < t1:   # a laje escorrega e inclina; todos vão junto
 			pos = _no_topo(u0, pose)
+			r.vis.cena_pose = "desliza"
 		elif st_t < t2:   # deslizam pela laje (acelerando), cada um com um pequeno atraso
 			var k: float = clampf((st_t - t1 - float(m["atraso"])) / maxf(float(_fases[2]) - float(m["atraso"]), 0.1), 0.0, 1.0)
 			pos = _no_topo(u0 + (1.0 - u0) * k * k, pose)
+			r.vis.cena_pose = "desliza"
 			if k > 0.05 and fmod(st_t + m["atraso"], 0.1) < dt:
 				main.dust(pos, 0.5)
 		elif st_t < t3:   # sai da ponta da laje e pousa na prancha
 			var k: float = (st_t - t2) / float(_fases[3])
 			pos = pose[1].lerp(m["alvo"], k) + Vector2(0, -70.0 * sin(PI * k))
-		else:
-			pos = m["alvo"] - Vector2(0, 4)
-			if not m.get("pousou", false):
-				m["pousou"] = true
-				main.dust(pos, 1.0)
+			r.vis.cena_pose = "cai"
+		else:   # pousou: o controle volta já, dali mesmo (sem ficar parado esperando)
+			r.position = m["alvo"] - Vector2(0, 4)
+			r.velocity = Vector2.ZERO
+			r.reset_physics_interpolation()
+			r.remove_meta("rampa")
+			_pousou(r)
+			continue
 		r.position = pos
 		r.velocity = Vector2.ZERO
 		r.facing = 1
 		r.invuln = maxf(r.invuln, 0.5)
 		r.reset_physics_interpolation()
-	if st_t >= t3 + 0.35:
+	if st_t >= t3:
 		for r in main.robots:
 			if r.has_meta("rampa"):
 				r.remove_meta("rampa")
@@ -266,6 +288,7 @@ func _desaba() -> void:
 		ct.laje_vira_rampa = false
 	main.events.stop_all()
 	lv.ko_off = true
+	lv.etapa_n = destino   # KO da cena nova vale para quem já pousou (quem cai segue protegido por ko_off)
 	lv.area = lv.etapa_rect(etapa).merge(lv.etapa_rect(destino))
 	main.shake(18.0)
 	Audio.play("terremoto", 1.0, 2.0)
@@ -295,6 +318,7 @@ func _desaba() -> void:
 		r.hanging = false
 		r.invuln = maxf(r.invuln, 1.0)
 		r.spell_lock = true   # sem controle durante a queda (cena)
+		r.vis.cena_pose = "cai"
 		# cada um cai num ponto diferente do buraco, no tempo que leva para chegar ao teto
 		var tx: float = lerpf(hole.x + 140.0, hole.y - 140.0, (i + 0.5) / maxf(vivos.size(), 1.0))
 		if absf(r.position.x - tx) < 200.0:
@@ -354,12 +378,17 @@ func _chega() -> void:
 	_nova_cena()
 	for r in main.robots:
 		r.spell_lock = false
-		if r.has_meta("queda_vx"):
-			r.remove_meta("queda_vx")
-		if r.alive:
+		r.vis.cena_pose = ""
+		for mk in ["queda_vx", "grav_cena"]:
+			if r.has_meta(mk):
+				r.remove_meta(mk)
+		var ja_pousou: bool = r.has_meta("pousou_cena")
+		if ja_pousou:
+			r.remove_meta("pousou_cena")
+		if r.alive and not ja_pousou:
 			r.invuln = maxf(r.invuln, float(cfg["invuln_chegada_s"]))
 			main.dust(r.position, 1.2)
-			if not lv.area.grow(64).has_point(r.position) or r.position.y < lv.area.position.y + 140.0:   # ficou fora ou em cima do teto: nasce embaixo
+			if not lv.area.grow(64).has_point(r.position) or r.position.y < lv.area.position.y + 140.0:   # não pousou a tempo (fora ou em cima do teto): nasce embaixo
 				main.demo.respawn(r)
 
 ## Testes/vitrines: leva a luta direto para a cena n (sem transição): área, KO e câmera passam para ela; todos renascem lá.

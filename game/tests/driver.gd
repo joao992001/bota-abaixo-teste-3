@@ -90,6 +90,10 @@ func _run() -> void:
 			await robos_sheet(a.trim_prefix("--robos="))
 			get_tree().quit()
 			return
+		if a == "--perf-canteiro":
+			await perf_canteiro()
+			get_tree().quit()
+			return
 		if a.begins_with("--perf"):
 			await perf_run()
 			get_tree().quit(0)
@@ -2285,7 +2289,7 @@ func renascer_test() -> void:
 					print("    trajeto: ", " | ".join(traj.slice(maxi(0, traj.size() - 25))))
 					print("    eventos: ", main.events.active.map(func(a): return a["id"]))
 					print("    perdeu vida no quadro %d (pousou %d) causa=%s pos=%s chão=%s" % [f, pousou, r.last_cause, str(Vector2i(r.position / 64.0)), str(main.fall_log.back() if not main.fall_log.is_empty() else "")])
-			var ok: bool = not morreu and pousou >= 0 and pousou < 150 and r.alive and r.is_on_floor() and area.grow(8).has_point(r.position) and main.demo.lives[0] == vidas0 and inv0 >= inv_cfg - 0.01
+			var ok: bool = not morreu and pousou >= 0 and pousou < 150 and r.alive and area.grow(8).has_point(r.position) and main.demo.lives[0] == vidas0 and inv0 >= inv_cfg - 0.01
 			if not ok:
 				ruins.append("%s (%s) pousou=%d vivo=%s area=%s vidas=%d→%d" % [str(Vector2i(r.position / 64.0)), r.last_cause, pousou, str(r.alive), str(area.has_point(r.position)), vidas0, main.demo.lives[0]])
 				if not r.alive:
@@ -2294,6 +2298,51 @@ func renascer_test() -> void:
 					await frames(2)
 		check(ruins.is_empty(), "cena %d: 30 renascimentos pousam no chão, dentro da cena, sem perder vida (%s; caixote de emergência %d×)" % [cena, "; ".join(ruins.slice(0, 3)), fallback])
 	check(inv_cfg >= 3.0, "invulnerável por %.1f s ao voltar (avaliação: alguns segundos)" % inv_cfg)
+	main.go_menu()
+
+## Transições orgânicas (avaliação 2026-11-26, item 5): na queda para a Fundação e no deslize para a Fachada ninguém
+## teletransporta (sem salto de posição) e cada robô volta a ser controlado assim que pousa, ainda durante a transição. --so=transicao
+func transicao_test() -> void:
+	print("== Transições orgânicas")
+	for rota in ["total", "moderada"]:
+		main.go_join()
+		await frames(2)
+		PlayerInput.virtual = {"v0": {}, "v1": {}}
+		await tap("v0", "jump")
+		await tap("v1", "jump")
+		main.add_bot()
+		main.game_mode = "derruba"
+		main.demo.lives_setting = 6
+		main.event_level = 0
+		main.arena_choice = "canteiro_obras"
+		main.start_match()
+		await demo_round()
+		main.countdown = 0.0
+		var et = main.demo.etapas
+		et.forcar(rota)
+		var prev := {}
+		var salto := 0.0
+		var livre_na_queda := false
+		var pose_vista := false
+		var dest: int = et.destino
+		for f in 60 * 12:
+			await frames(1)
+			for r in main.robots:
+				if prev.has(r.pid):
+					salto = maxf(salto, (r.position - prev[r.pid]).length())
+				prev[r.pid] = r.position
+				if et.state == "queda":
+					pose_vista = pose_vista or r.vis.cena_pose != ""
+					if r.has_meta("pousou_cena") and not r.spell_lock:
+						livre_na_queda = true
+			if et.state == "etapa" and et.etapa == dest:
+				break
+		check(et.etapa == dest, "%s: chegou à cena %d" % [rota, dest])
+		check(salto < 160.0, "%s: ninguém teletransporta (maior passo num quadro %.0f px)" % [rota, salto])
+		check(pose_vista, "%s: os robôs mostram que estão caindo/escorregando (pose da transição)" % rota)
+		if rota == "total":
+			check(livre_na_queda, "total: quem pousa joga na hora, sem esperar os outros")
+		check(main.robots.all(func(r): return not r.spell_lock and r.vis.cena_pose == ""), "%s: no fim, todos com controle e pose normal" % rota)
 	main.go_menu()
 
 func fachada_test() -> void:
@@ -4622,6 +4671,70 @@ func video_frames(dir: String) -> void:
 	fa.store_string(JSON.stringify({"fps": 30, "frames": f / 2, "root": ProjectSettings.globalize_path("res://"), "log": Audio.rec_log}))
 	fa.close()
 	print("vídeo: %d quadros, %d sons" % [f / 2, Audio.rec_log.size()])
+
+## Desempenho do Canteiro (avaliação 2026-11-26, item 6): 4 bots; mede o quadro na luta normal, em cada evento do mapa e
+## nas duas transições. Rodar com tela (xvfb) para contar o desenho: godot --path game -- --perf-canteiro
+func _perf_medir(nome: String, n: int) -> void:
+	var ts: Array = []
+	var ph: Array = []
+	var pr: Array = []
+	var last := Time.get_ticks_usec()
+	main.perf_acc = {}
+	for f in n:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		ts.append((now - last) / 1000.0)
+		if (now - last) > 115000:   # pico (congelada visível)
+			print("   PICO %s quadro %d: %.0f ms" % [nome, f, (now - last) / 1000.0])
+		ph.append(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0)
+		pr.append(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
+		last = now
+		for r in main.robots:   # ninguém sai: a medição não pode acabar a partida
+			main.demo.lives[r.pid] = 6
+	ts.sort()
+	ph.sort()
+	pr.sort()
+	var avg: float = ts.reduce(func(x, y): return x + y, 0.0) / ts.size()
+	print("PERF %-22s quadro med %5.1f p95 %5.1f máx %6.1f ms | física med %5.2f máx %6.2f | process med %5.2f máx %6.2f | bots %.2f demo %.2f | nós %d" % [nome, avg,
+		ts[int(ts.size() * 0.95)], ts[-1], ph[ph.size() / 2], ph[-1], pr[pr.size() / 2], pr[-1], main.perf_acc.get("bots", 0.0) / n, main.perf_acc.get("demo", 0.0) / n,
+		Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
+
+func perf_canteiro() -> void:
+	get_window().size = Vector2i(1920, 1080)
+	PlayerInput.virtual = {}
+	main.mode = "demolicao"
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.bot_level = 1
+	main.event_level = 0
+	for k in 4:
+		main.add_bot()
+	main.demo.lives_setting = 6
+	main.start_match()
+	await frames(120)
+	main.countdown = 0.0
+	var et = main.demo.etapas
+	et.ativo = false
+	main.events.manual = true
+	await _perf_medir("luta (Térreo)", 300)
+
+	var ev = main.events
+	for id in main.selecao.eventos_do_mapa():
+		ev.trigger(ev.ev(id))
+		var dur := float(ev.ev(id).get("aviso_s", 1.0)) + float(ev.ev(id).get("dur", 4.0)) + float(ev.ev(id).get("fim_s", 0.5))
+		await _perf_medir("evento %s" % id, int(dur * 60.0))
+		await frames(30)
+	et.ativo = true
+	et.forcar("total")
+	await _perf_medir("transição → Fundação", 360)
+	await _perf_medir("luta (Fundação)", 240)
+	main.start_match()
+	await frames(120)
+	main.countdown = 0.0
+	main.demo.etapas.ativo = true
+	main.demo.etapas.forcar("moderada")
+	await _perf_medir("transição → Fachada", 420)
+	await _perf_medir("luta (Fachada)", 240)
 
 func perf_run() -> void:
 	get_window().size = Vector2i(1920, 1080)

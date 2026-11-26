@@ -32,7 +32,16 @@ func update(dt: float) -> void:
 		var lv: Dictionary = cfg[LEVELS[p.get("level", 1)]]
 		st["think"] -= dt
 		st["hammer_cd"] = st.get("hammer_cd", 0.0) - dt
-		if st["think"] <= 0.0:
+		if st["think"] <= 0.0 and r.is_on_floor() and r.stun_t <= 0.0 and main.rng.randf() < float(lv.get("pausa", 0.0)) and not main.danger_near(r):
+			# respira: fica parado um pouco (ritmo humano; bots acelerados demais — avaliação 2026-11-26)
+			var ps: Array = lv.get("pausa_s", [0.4, 0.9])
+			st["think"] = main.rng.randf_range(float(ps[0]), float(ps[1]))
+			st["cmd"] = {}
+			st["pulse_hammer"] = false
+			st["pulse_heavy"] = false
+			st["pulse_dodge"] = false
+			st["pulse_item"] = false
+		elif st["think"] <= 0.0:
 			st["think"] = float(lv["react_s"]) * main.rng.randf_range(0.8, 1.4)
 			st["cmd"] = _decide(r, lv, st)
 			if st["cmd"].get("jump", false) and st["jump_hold"] <= 0 and r.is_on_floor():

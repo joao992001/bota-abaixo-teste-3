@@ -265,6 +265,7 @@ func _physics_process(dt: float) -> void:
 		var g := f("gravity")
 		if main.events != null:
 			g *= main.events.gravity_mult   # evento Gravidade Baixa
+		g *= float(get_meta("grav_cena", 1.0))   # transição de cena: queda lenta e legível só de quem ainda está caindo
 		if not spring and _held("jump") and absf(velocity.y) < f("half_grav_threshold"):
 			g *= 0.5
 		velocity.y += g * dt

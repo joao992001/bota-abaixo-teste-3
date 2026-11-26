@@ -131,6 +131,7 @@ var hurt_s := 0.0
 var hurt_lean := 0.0
 var flash_t := 0.0
 var tumble := 0.0                      # giro acumulado do arremesso (rad)
+var cena_pose := ""                    # transição de cena: "cai" (pânico, se debatendo) ou "desliza" (surfando a laje)
 var tumbling := false
 var flip_t := -1.0                     # pulo duplo (0..1): chute, cambalhota, abre
 var heavy_was_cd := false
@@ -628,6 +629,28 @@ func current_pose() -> Dictionary:
 		hf = hf.lerp(_a2(fr_air["hf"]) + Vector2(0, -2.0 * up + 3.0 * down), a)
 		ang = lerpf(ang, ang + wrapf(float(fr_air["a"]) - ang, -PI, PI) + 0.35 * down - 0.2 * up, a)
 		hb = hb.lerp(hbr + Vector2(sin(t * 24.0) * 6.0, -18.0 + cos(t * 24.0) * 5.0) * down + Vector2(-12, -8) * apex, a)
+	# transição de cena (avaliação 2026-11-26): o robô MOSTRA que está caindo/escorregando
+	if cena_pose == "cai" and not (robot != null and robot.is_on_floor()):
+		p["expr"] = "susto"
+		two_hand = false
+		for i in 2:
+			var ph := t * 16.0 + i * PI
+			feet[i] = Vector2(sin(ph) * 9.0, -6.0 + cos(ph) * 7.0)
+			knee[i] = Vector2((5.0 + 4.0 * maxf(sin(ph), 0.0)) * kd, 0)
+		hb = hbr + Vector2(sin(t * 20.0) * 10.0, -34.0 + cos(t * 20.0) * 6.0)
+		hf = hfr + Vector2(cos(t * 18.0) * 6.0, -30.0 + sin(t * 18.0) * 6.0)
+		ang = -PI * 0.5 + sin(t * 9.0) * 0.6
+		bob += sin(t * 12.0) * 2.0
+	elif cena_pose == "desliza":
+		p["expr"] = "esforco" if fmod(t, 1.4) < 0.9 else "vitoria"
+		two_hand = false
+		feet[0] = Vector2(14.0, -2.0)
+		feet[1] = Vector2(-10.0, 0.0)
+		knee[0] = Vector2(6.0 * kd, 0)
+		knee[1] = Vector2(8.0 * kd, 0)
+		hb = hbr + Vector2(-16.0, -26.0 + sin(t * 8.0) * 3.0)
+		hf = hfr + Vector2(10.0, -20.0 + cos(t * 8.0) * 3.0)
+		bob += 6.0
 	# pulo duplo: chute com jato → cambalhota encolhida (ferramenta colada) → abre
 	if flip_t >= 0.0:
 		var k := flip_t

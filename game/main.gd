@@ -662,6 +662,7 @@ func start_match() -> void:
 			p["score"] = 0
 		p["stats"] = {"derrubadas": 0, "caixotes": 0, "quedas": 0, "engenhocas": 0, "golpes": 0}
 	match_over = false
+	aquecer = 3   # primeiros quadros (contagem): sobe as texturas de todas as cenas para a placa de vídeo
 	round_no = 0
 	winner = -1
 	_demo_next_round()
@@ -739,8 +740,8 @@ func check_contacts(r: CharacterBody2D) -> void:
 			return
 	if level.elevator_cell != Vector2i(-1, -1) and demo.rule() == "fuga" and rr.intersects(level.goal_rect):
 		finish(r)   # Fuga: chegou ao elevador primeiro
-	elif level.ko_off:
-		pass   # virada da fase: todos caem para a etapa 2 sem eliminação
+	elif level.ko_off and not r.has_meta("pousou_cena"):
+		pass   # virada da fase: quem ainda está caindo não é eliminado (quem já pousou joga normal, com KO da cena nova)
 	elif level.ko_rect().has_area():
 		# KO no MUNDO (independente da câmera): saiu da zona em qualquer direção → explode na borda
 		if not level.ko_rect().has_point(r.position + Vector2(0, -36)):
@@ -991,7 +992,25 @@ func break_robot(r: CharacterBody2D) -> void:
 	spark(r.position + Vector2(0, -40), 7)
 	shake(8.0)
 
+## "Aquece" as texturas da fase na placa de vídeo durante a contagem: desenha cada uma num canto, quase invisível, para o
+## envio à GPU acontecer antes da luta e não no meio dela (trancos ao trocar de cena — avaliação 2026-11-26).
+var aquecer := 0
+func _aquece_texturas() -> void:
+	var key := String(level.prop("cena", ""))
+	var n := 0
+	for path in Data._tex.keys():
+		var ps := String(path)
+		if not (ps.begins_with(key + "/") or ps.begins_with("canteiro/") or ps.begins_with("cenario/") or ps.begins_with("spells/")) or key == "":
+			continue
+		var tx: Texture2D = Data._tex[path]
+		if tx != null:
+			overlay.draw_texture_rect(tx, Rect2(camera.position - Vector2(940, 520) + Vector2(n % 40, n / 40) * 2.0, Vector2(2, 2)), false, Color(1, 1, 1, 0.01))
+			n += 1
+
 func _draw_overlay() -> void:
+	if aquecer > 0:
+		aquecer -= 1
+		_aquece_texturas()
 	var puff := Data.tex("cenario/poeira")
 	for p in puffs:
 		var k: float = p["t"] / 0.45
