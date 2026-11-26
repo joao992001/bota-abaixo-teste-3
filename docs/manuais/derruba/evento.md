@@ -1,5 +1,10 @@
 # Manual — criar um EVENTO GLOBAL (modo Derruba)
 
+> **REGRA (APROVADA 2026-11-26, A14):** evento é **do mapa**, escolhido na tela de eventos, e tem de funcionar em
+> **TODAS as cenas do mapa** (com o visual de cada cena). Algo que só existe numa cena **não é evento**: é
+> **perigo/mecanismo da cena** (`perigos_mecanismos.md`). Os antigos `V#` (Concretagem, Desmoronamento, Enchente) viram
+> perigos das suas cenas na etapa D. Não criar `V#` novos.
+
 Evento = acontecimento da arena que muda a luta por alguns segundos. 12 aprovados: G01 Sirene, G05 Guindaste,
 G06 Entulho, G11 Interdição, G12 Troca de Andaimes, G13 Cabo Rompido, G02 Ventania, G03 Gravidade, G04 Sobrecarga
 Magnética, G14 Chuva de Rebites, G10 Carga Especial (= chuva de 1–3 ARMADURAS).

@@ -30,6 +30,7 @@ configuração. *Partida* = uma luta até sobrar um robô.
 | **Seleção de spells/eventos** | telas em **mosaico**, por controle, acender/apagar, Aleatório (eventos: também "nenhum"); **tudo liberado por enquanto**. "Nenhum evento" nunca desliga mecanismos da cena. Travas por conta: ver `progressao.md` (futuro). | spells: todas do mapa; eventos: tela de lista em texto |
 | **Classes de spell** | Ataque, Controle, Engenharia, Transformação (pesos do sorteio). O mapa não cria classe. | igual (`classes_spells`) |
 | **Spells/eventos por mapa** | o manifesto lista o que o mapa permite; a configuração da partida escolhe um subconjunto | manifesto (sem subconjunto da partida) |
+| **Eventos × perigos (A14, 2026-11-26)** | **evento = do mapa**, selecionável, acontece em **todas as cenas**; o que é de uma cena só é **perigo/mecanismo da cena** (sem `V#`) | eventos por cena (`cenas[].eventos`) e `V1–V3` |
 | **Perigos/mecanismos** | instâncias por cena no manifesto, presas à arquitetura; fazem parte da cena (não são opcionais) | igual |
 | **KO** | cair do piso em qualquer ponto = KO rápido; saída para KO em ≥ 2 lados por cena | igual |
 | **Skins** | cada jogador escolhe robô e skin; skins têm origem no mapa | igual (X/□ na entrada) |

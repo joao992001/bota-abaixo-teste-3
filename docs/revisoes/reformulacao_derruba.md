@@ -26,6 +26,10 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A11 | Skins: cada jogador escolhe robô e skin (exceção à autoridade do anfitrião no online futuro). |
 | A13 | **Estrelas = placar da sessão** (2026-11-26): continuam em Jogar de novo, Configurar mapa e Selecionar mapa; **só Menu principal zera**. Não são salvas no perfil. |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
+| A14 | **EVENTO × PERIGO DA CENA (2026-11-26):** evento é **do mapa** e selecionável; tem de acontecer em **todas as cenas** do mapa (ex.: um terremoto vale nas 3). O que é específico de uma cena é **perigo/mecanismo da cena** (ex.: a enchente da Fundação, a serra do Térreo), não evento. Os antigos `V#` viram perigos da cena. |
+| A15 | Spells na tela de seleção: **mínimo 4, sem máximo** (2026-11-26). |
+| A16 | **Manômetro de 10% a 90%** (2026-11-26): abaixo de 10 a agulha fica no começo; em 90 encosta no fim (= Rota Total). 6 zonas iguais: 10–23 · 23–37 · 37–50 (fica) · 50–63 · 63–77 · 77–90. Traço em 50%. |
+| A17 | **Gangorra usa a cor do manômetro** em que a partida terminou (cena final). **Partida válida** para pontos = terminou com vencedor e durou **≥ 1 min** (2026-11-26). Deltas por cor seguem PROVISÓRIOS (P3). |
 
 ## PROVISÓRIO (aprovado como ponto de partida; calibrar com bots antes de fechar)
 | # | Parâmetro | Valor inicial |
@@ -36,11 +40,10 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | P4 | Projetos de Demolição | +1 por partida válida, +2 por cena inédita visitada (uma vez); pontos por mapa ainda não definidos. |
 
 ## PENDENTE (decidir antes do código da parte correspondente)
-- Faixas percentuais das 6 cores (manômetro e gangorra) e simetria real da gangorra.
-- O que conta como partida "válida" para pontos (anti-farming) e como tratar KO muito cedo.
-- Quantidade mínima/máxima de spells e eventos que podem ser escolhidos; composição por classe.
+- Simetria real da gangorra (deltas por cor, P3) — calibrar com bots.
+- Máximo de eventos ligados; ALEATÓRIO das spells (sugestão: 8, 2 de cada família).
 - Economia: pontos por mapa, recompensas esgotadas, duplicatas.
-- Conceito da cena Rota Moderada do Canteiro (fluxo de fase: ficha → fotografia → aprovação).
+- Fotografia conceitual da cena FACHADA (conceito aprovado em 2026-11-26).
 - Selecionar mapa na tela de resultados: o usuário citou como possível ("poderia até ter") — tratar como incluída, confirmar na prancha.
 
 ## Plano por etapas

@@ -23,8 +23,8 @@ INK, CREAM, YEL, SOFT = "#2a1a2e", "#fff6e4", "#ffd34d", "#6b5a70"
 PCOL = ["#2f8ff0", "#5fd35f", "#ff6fb5", "#ffd23f"]
 FAM = {"ataque": "#f0883a", "controle": "#8a5ad8", "engenharia": "#f2c84b", "transformacao": "#3cb6c4"}
 FAM_NOME = {"ataque": "ATAQUE", "controle": "CONTROLE", "engenharia": "ENGENHARIA", "transformacao": "TRANSFORMAÇÃO"}
-# manômetro: 6 zonas (verde intenso → vermelho intenso). Limites = PROPOSTA (pendente na revisão).
-ZONAS = [(0, 20, "#2e9e4f"), (20, 35, "#8fd46a"), (35, 50, "#f2d04b"), (50, 70, "#f39a3a"), (70, 90, "#ec6448"), (90, 100, "#a8233a")]
+# manômetro: 10% a 90% (A16, aprovado 2026-11-26), 6 zonas iguais; em 90% a agulha encosta no fim = Rota Total.
+ZONAS = [(10, 23, "#2e9e4f"), (23, 37, "#8fd46a"), (37, 50, "#f2d04b"), (50, 63, "#f39a3a"), (63, 77, "#ec6448"), (77, 90, "#a8233a")]  # A16
 W, H, NOTES_H = 1920, 1080, 250
 
 SPELLS = [  # id, nome, família, ícone (peça do equipamento; None = ícone da família)
@@ -49,9 +49,7 @@ EVENTOS = [  # id, nome, ícone, cena (None = geral)
     ("G10", "CARGA ESPECIAL", "spells/g10_capsula", None), ("G11", "INTERDIÇÃO DE ÁREA", "spells/g11_tapume", None),
     ("G12", "TROCA DE ANDAIMES", "fase1/plataforma", None), ("G13", "CABO ROMPIDO", "@viga", None),
     ("G14", "CHUVA DE REBITES", "spells/g14_rebite", None),
-    ("V1", "CONCRETAGEM", "fase1/balde", "TÉRREO"), ("V2", "DESMORONAMENTO", "spells/g06_sucata", "FUNDAÇÃO"),
-    ("V3", "ENCHENTE", "@agua", "FUNDAÇÃO"),
-]
+]   # V1–V3 viraram perigos das cenas (A14): evento é do mapa e vale em todas as cenas
 
 
 # ---------------------------------------------------------------- utilidades
@@ -261,7 +259,7 @@ def tela_spells():
         ("APROVADO", "Mosaico por controle; PULAR acende/apaga; card ALEATÓRIO; tudo liberado (A9)."),
         ("APROVADO", "Família pela cor da faixa + ícone da caixa (sem abas)."),
         ("PROPOSTA", "ATACAR liga/desliga tudo; START segue para EVENTOS; o cursor é do P1."),
-        ("DECIDIR", "Mínimo/máximo de spells ligadas (sugestão: mín. 4, sem máximo)."),
+        ("APROVADO", "Mínimo 4 spells ligadas, sem máximo (A15)."),
         ("PROPOSTA", "ALEATÓRIO = sorteia 8 spells (2 de cada família) e acende só elas."),
         ("FUTURO", "Spell bloqueada na conta = silhueta + cadeado (progressao.md)."),
     ])
@@ -273,7 +271,7 @@ def tela_eventos():
     b += chunk(70, 50, 330, 64, CREAM, 18, 5, 7) + T(235, 93, "CANTEIRO DE OBRAS", 26)
     cw, ch, gap = 182, 250, 26
     x0 = (W - (8 * cw + 7 * gap)) / 2
-    off = {"G11", "V3"}
+    off = {"G11"}
     cells = [("NONE", "NENHUM", None, None)] + EVENTOS + [("RND", "ALEATÓRIO", None, None)]
     for i, (eid, nome, ref, cena) in enumerate(cells):
         x, y = x0 + (i % 8) * (cw + gap), 200 + (i // 8) * (ch + 56)
@@ -293,16 +291,15 @@ def tela_eventos():
         if eid == "G03":
             b += chip_p(x - 30, y - 30, 1)
     b += chunk(120, 905, 1680, 108, CREAM, 22, 6, 9)
-    b += T(170, 972, "12 de 14 ligados", 36, INK, "start")
-    b += f'<rect x="560" y="944" width="34" height="34" rx="8" fill="#6aa6c8" stroke="{INK}" stroke-width="4"/>' + T(606, 972, "GERAL (qualquer cena)", 24, INK, "start")
-    b += f'<rect x="900" y="944" width="34" height="34" rx="8" fill="#c98a4b" stroke="{INK}" stroke-width="4"/>' + T(946, 972, "DA CENA (selo com o nome)", 24, INK, "start")
-    b += T(1760, 972, "mecanismos da cena seguem sempre", 22, SOFT, "end", w=600)
+    b += T(170, 972, "10 de 11 ligados", 36, INK, "start")
+    b += T(560, 972, "todo evento vale nas 3 cenas do mapa", 26, INK, "start")
+    b += T(1760, 972, "perigos da cena seguem sempre", 22, SOFT, "end", w=600)
     b += hint("◄►▲▼ escolher · PULAR acende/apaga · NENHUM apaga todos · START continuar · ESC voltar")
     n = notes("Tela de EVENTOS — mesmo padrão da tela de spells", [
         ("APROVADO", "Mosaico; escolha manual, ALEATÓRIO e NENHUM; G01 Sirene volta como evento (A5)."),
-        ("APROVADO", "NENHUM não desliga mecanismos da cena (betoneira, elevador, serra, bate-estaca...)."),
-        ("PROPOSTA", "Eventos de uma cena só (V1–V3) mostram o selo com o nome da cena."),
-        ("DECIDIR", "V1–V3 (viradas) podem ser apagados, ou ficam sempre ligados como parte da cena?"),
+        ("APROVADO", "NENHUM não desliga perigos da cena (betoneira, serra, água, bate-estaca...)."),
+        ("APROVADO", "Evento é do MAPA e vale em todas as cenas; o que é de uma cena só é PERIGO (A14)."),
+        ("APROVADO", "Concretagem, Desmoronamento e Enchente saíram daqui: são perigos das cenas."),
         ("DECIDIR", "Máximo de eventos ligados? (sugestão: sem máximo; o diretor de eventos já limita)."),
         ("FUTURO", "Evento bloqueado na conta = silhueta + cadeado (progressao.md)."),
     ])
@@ -312,7 +309,7 @@ def tela_eventos():
 def gauge(cx, cy, r, pct, label=True, ticks=True):
     """Manômetro: arco de 240° (de 210° a -30°), 6 zonas, agulha, número embaixo."""
     def ang(p):
-        return math.radians(210 - 240 * p / 100)
+        return math.radians(210 - 240 * (min(max(p, 10), 90) - 10) / 80)
 
     def pt(p, rr):
         a = ang(p)
@@ -325,17 +322,19 @@ def gauge(cx, cy, r, pct, label=True, ticks=True):
         x1, y1 = pt(a1, ro)
         x2, y2 = pt(a1, ri)
         x3, y3 = pt(a0, ri)
-        lg = 1 if (a1 - a0) * 2.4 > 180 else 0
+        lg = 0
         b += (f'<path d="M{x0:.1f},{y0:.1f} A{ro},{ro} 0 {lg} 1 {x1:.1f},{y1:.1f} L{x2:.1f},{y2:.1f} A{ri},{ri} 0 {lg} 0 {x3:.1f},{y3:.1f}z" '
               f'fill="{col}" stroke="{INK}" stroke-width="{max(2, r * 0.025)}" stroke-linejoin="round"/>')
     if ticks:
-        for p in (50, 90):
+        for p in (50,):
             xa, ya = pt(p, ri - r * 0.04)
             xb, yb = pt(p, ro + r * 0.08)
             b += f'<line x1="{xa:.1f}" y1="{ya:.1f}" x2="{xb:.1f}" y2="{yb:.1f}" stroke="{INK}" stroke-width="{max(3, r * 0.05)}" stroke-linecap="round"/>'
     xn, yn = pt(pct, r * 0.74)
-    xl, yl = pt(pct + 50, r * 0.12)
-    xr, yr = pt(pct - 50, r * 0.12)
+    pc = min(max(pct, 10), 90)
+    xn, yn = pt(pc, r * 0.74)
+    xl, yl = pt(pc + 40, r * 0.12)
+    xr, yr = pt(pc - 40, r * 0.12)
     b += f'<path d="M{xl:.1f},{yl:.1f} L{xn:.1f},{yn:.1f} L{xr:.1f},{yr:.1f}z" fill="{INK}" stroke="{INK}" stroke-width="{max(2, r * 0.03)}" stroke-linejoin="round"/>'
     b += f'<circle cx="{cx}" cy="{cy}" r="{r * 0.14}" fill="{YEL}" stroke="{INK}" stroke-width="{max(3, r * 0.045)}"/>'
     if label:
@@ -356,14 +355,14 @@ def tela_manometro():
     for x, p, cap in zip(xs, (8, 47, 93), ("cena nova\n(zerou)", "ainda fica\nna cena", "rota TOTAL\nna verificação")):
         b += gauge(x, 690, 62, p)
         b += lines(x, 800, cap, 20, SOFT)
-    b += T(1585, 880, "traços pretos = 50% e 90% (rotas)", 22, SOFT, w=600)
+    b += T(1585, 880, "10% → 90% · traço = 50% · fim = rota total", 22, SOFT, w=600)
     b += f'<path d="M1080,90 C1180,110 1230,150 1286,250" stroke="{INK}" stroke-width="6" fill="none" stroke-dasharray="14 10"/>'
     n = notes("MANÔMETRO no HUD — único elemento novo durante a luta (A6)", [
         ("APROVADO", "Circular, no topo e no centro; destruição da CENA ATUAL; zera ao trocar de cena."),
         ("APROVADO", "Sem cronômetro, rodada, gangorra ou missão no HUD (o “RODADA 1” sai)."),
-        ("PROPOSTA", "Zonas: 0–20 · 20–35 · 35–50 (fica) | 50–70 · 70–90 (moderada) · 90–100 (total)."),
+        ("APROVADO", "De 10% a 90%; 6 zonas iguais; encostou no fim (90%) = Rota Total (A16)."),
         ("PROPOSTA", "Agulha balança e o número pula quando algo cai; o vermelho daqui é vinho, não o do perigo."),
-        ("DECIDIR", "Mostrar os 2 traços (50% e 90%)? Ajudam a ler a rota sem mostrar tempo."),
+        ("APROVADO", "Traço em 50% (início da Rota Moderada); 90% é o fim do mostrador."),
         ("DECIDIR", "Mostrar o número (62%) embaixo da agulha, ou só a agulha?"),
     ])
     return page(b, n)
@@ -424,8 +423,8 @@ def tela_resultados():
         ("APROVADO", "Ranking por ordem de eliminação + estrela do vencedor; 4 opções (A7)."),
         ("APROVADO", "Gangorra e Projetos só aqui (nunca no HUD); prêmios mostram só a categoria."),
         ("PROPOSTA", "Ordem: vencedor → gangorra (agulha anda) → projetos (+1/+2) → opções."),
-        ("DECIDIR", "Faixas % das 6 cores e deltas da gangorra (hoje: exemplo −75…+75)."),
-        ("DECIDIR", "O que é partida “válida” para pontos (KO muito cedo conta?)."),
+        ("APROVADO", "A gangorra anda pela cor do manômetro em que a partida terminou (A17)."),
+        ("APROVADO", "Partida válida = terminou com vencedor e durou ≥ 1 min (A17)."),
         ("PROPOSTA", "Títulos engraçados (Marreteiro, Demolidor...) seguem, menores, se couber."),
     ])
     return page(b, n)
