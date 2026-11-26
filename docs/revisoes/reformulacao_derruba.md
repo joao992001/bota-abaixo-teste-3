@@ -53,7 +53,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | B | Documentação no GitHub (este arquivo, manuais do Derruba, progressão futura, biblioteca do Canteiro, esquema do manifesto v2) | **feito em 2026-11-25** |
 | C | Conceito para aprovar: pranchas das telas (mapas, mosaico de spells, mosaico de eventos, manômetro, resultados), grafos 3/7, storyboard das transições por rota, contrato do perfil salvo, ficha da cena Rota Moderada | **APROVADA 2026-11-26** (`art/out/etapa_c/c1–c7`, `docs/manuais/derruba/perfil_salvo.md`, `f1_canteiro/cenas/fachada.md` — Fachada aprovada) |
 | D1 | Lógica: verificação por tempo × vidas, rotas Moderada/Total no manifesto v2, retirar o diretor (G01 volta como evento), manômetro | **feita 2026-11-26** (rota moderada do Canteiro espera a Fachada, D5) |
-| D2 | Partida única com vidas 3–6, tela de resultados com ranking/estrelas/progresso e as 4 opções | |
+| D2 | Partida única com vidas 3–6, tela de resultados com ranking/estrelas/progresso e as 4 opções | **feita 2026-11-26** (gangorra e Projetos entram com o perfil, D4) |
 | D3 | Telas de seleção de spells e eventos (tudo liberado) + "configurar mapa" | |
 | D4 | Perfil salvo local (cenas descobertas, pontos, gangorra) — sem contas/online | |
 | D5 | Cena Rota Moderada do Canteiro (método de fase `mapa.md`) | |

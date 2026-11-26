@@ -516,6 +516,7 @@ func demolicao_test() -> void:
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
+	await resultados_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -1895,6 +1896,61 @@ func verificacao_test() -> void:
 	check("G01" in MapaReg.eventos("derruba", "canteiro_obras", 1) and "G01" in MapaReg.eventos("derruba", "canteiro_obras", 2), "G01 Sirene volta como evento do Canteiro (nas 2 cenas)")
 	for r in main.robots:
 		r.active = true
+
+## Derruba v2 (D2): no mapa de verdade a partida é UMA luta (vidas 3–6), resultados com ranking por eliminação, estrela
+## da sessão e 4 opções; Jogar de novo mantém as estrelas, Menu principal zera. --so=resultados
+func resultados_test() -> void:
+	print("== Resultados do Derruba (partida única)")
+	main.go_menu()
+	PlayerInput.virtual = {"v0": {}, "v1": {}, "v2": {}}
+	main.mode = "demolicao"
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	check(not "estrelas" in main.menus.adjust_rows() and "vidas" in main.menus.adjust_rows(), "ajustes do Derruba: sem meta de estrelas, com vidas")
+	main.go_join()
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	await tap("v2", "jump")
+	main.demo.lives_setting = 3
+	main.event_level = 0
+	main.start_match()
+	await demo_round()
+	main.demo.etapas.ativo = false
+	check(main.demo.partida_unica() and main.demo.lives.get(1, 0) == 3, "Canteiro = partida única com 3 vidas")
+	for alvo in [2, 1]:   # P3 sai primeiro, depois P2
+		for k in 3:
+			main.kill(main.robots[alvo], -1, null)
+			await frames(20)
+	var w := 0
+	while main.state != S.WIN and w < 600:
+		await frames(1)
+		w += 1
+	check(main.state == S.WIN and main.winner == 0, "sobrou 1: vai direto para os RESULTADOS (%.1f s)" % (w / 60.0))
+	check(main.demo.ranking() == [0, 1, 2], "ranking pela ordem de eliminação (%s)" % str(main.demo.ranking()))
+	check(int(main.players[0]["score"]) == 1, "estrela para o vencedor")
+	await frames(10)
+	await tap("v0", "jump")   # JOGAR DE NOVO (opção 0)
+	await frames(5)
+	check(main.state == S.RUN and int(main.players[0]["score"]) == 1 and main.demo.etapas.etapa == 1, "Jogar de novo: mesmo mapa, cena inicial, estrelas somam (%d ★)" % int(main.players[0]["score"]))
+	await demo_round()
+	main.demo.etapas.ativo = false
+	for alvo in [1, 0]:
+		for k in 3:
+			main.kill(main.robots[alvo], -1, null)
+			await frames(20)
+	w = 0
+	while main.state != S.WIN and w < 600:
+		await frames(1)
+		w += 1
+	check(main.winner == 2 and int(main.players[2]["score"]) == 1 and int(main.players[0]["score"]) == 1, "segunda luta: P3 ganha a estrela dele, P1 mantém a sua")
+	await frames(10)
+	for k in 3:
+		await tap("v0", "down")
+	check(main.res_sel == 3, "▼ escolhe MENU PRINCIPAL")
+	await tap("v0", "jump")
+	await frames(3)
+	check(main.state == S.MENU and main.players.is_empty(), "Menu principal: volta ao menu e as estrelas zeram")
 
 ## Mecanismos da Fase 1 (catálogo M1–M9): cada um faz o que promete e responde à marretada.
 func mecanismos_test() -> void:

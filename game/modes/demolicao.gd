@@ -42,7 +42,8 @@ var net_hp := {}             # rede: Vector2i -> quedas que ainda aguenta
 # ---- submodos (Último em Pé, Vidas, Placar de Demolição, Batata-Dinamite)
 var sub := {}                # modo atual (data/modos.json → demolicao.modos): derruba, batata, rei, fuga
 var lives := {}              # Derruba: pid -> vidas restantes
-var lives_setting := 3       # AJUSTES (Derruba): vidas por rodada
+var lives_setting := 4       # AJUSTES (Derruba): vidas (v2: 3 a 6, padrão 4)
+var ordem_elim: Array = []   # Derruba v2: pids na ordem em que foram eliminados (ranking dos resultados)
 var fuse_setting := 1        # AJUSTES (Batata): 0 curto, 1 normal, 2 longo
 const FUSES := [[10, 14], [14, 20], [20, 28]]   # pavio curto/normal/longo (s): mais tempo para correr
 # Rei da Obra
@@ -66,6 +67,22 @@ var items_on := true         # AJUSTES: spells ligadas
 ## Modo de jogo da partida (derruba, batata, rei, fuga).
 func rule() -> String:
 	return String(sub.get("id", "derruba"))
+
+## Derruba v2 (A4): num mapa de verdade a partida é UMA luta (sem rodadas internas). Mapas-ferramenta seguem em rodadas.
+func partida_unica() -> bool:
+	return rule() == "derruba" and bool(sub.get("partida_unica", false)) and main.level != null \
+		and not MapaReg.eh_ferramenta(String(main.level.id)) and not main.sandbox
+
+## Ranking da luta: vencedor, depois quem saiu por último … quem saiu primeiro.
+func ranking() -> Array:
+	var out := []
+	for i in main.players.size():
+		if not i in ordem_elim:
+			out.append(i)
+	for k in range(ordem_elim.size() - 1, -1, -1):
+		if not ordem_elim[k] in out:
+			out.append(ordem_elim[k])
+	return out
 
 func find_mode(id: String) -> Dictionary:
 	for m in cfg["modos"]:
@@ -116,6 +133,7 @@ func pick_arena() -> Dictionary:
 
 ## Nova rodada: arena nova, robôs nos spawns de acordo com o número de jogadores.
 func start_round() -> void:
+	ordem_elim.clear()
 	arena = pick_arena()
 	last_arena = arena["id"]
 	main.load_arena(arena["id"])
@@ -666,6 +684,8 @@ func intercept_kill(r) -> bool:
 	else:
 		lives[r.pid] = lives.get(r.pid, 1) - 1
 		if lives[r.pid] <= 0:
+			if not r.pid in ordem_elim:
+				ordem_elim.append(r.pid)
 			return false
 		main.float_text(r.position + Vector2(0, -90), "-1 VIDA", main.player_color(r.pid))
 	if not r.get_meta("ko_fora", false):   # KO fora da arena: só a explosão (main.ko_blast)
@@ -842,4 +862,6 @@ func pass_bomb(from_pid: int, to_pid: int) -> void:
 func end_round() -> bool:
 	if round_winner >= 0:
 		main.players[round_winner]["score"] += 1
+	if partida_unica():
+		return true   # uma luta só: vai direto para os resultados
 	return round_winner >= 0 and main.players[round_winner]["score"] >= int(c("rounds_to_win"))

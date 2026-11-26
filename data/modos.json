@@ -522,7 +522,7 @@
       {
         "id": "derruba",
         "nome": "DERRUBA",
-        "dica": "Tire os rivais da plataforma.\nCada um tem 3 vidas.",
+        "dica": "Tire os rivais da plataforma.\nUma luta só: quem sobrar vence.",
         "ok": true,
         "arenas": [
           "canteiro_obras"
@@ -566,6 +566,13 @@
             "#ec6448",
             "#a8233a"
           ]
+        },
+        "partida_unica": true,
+        "vidas": {
+          "min": 3,
+          "max": 6,
+          "padrao": 4,
+          "nota": "Derruba v2 (A4): uma luta só, vidas de 3 a 6 (padrão 4). Estrelas = placar da sessão (A13). Mapas-ferramenta (testes/laboratório) seguem em rodadas."
         }
       },
       {

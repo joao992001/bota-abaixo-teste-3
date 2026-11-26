@@ -99,7 +99,10 @@ func update(dt: float) -> void:
 						goal_sel = clampi(goal_sel + h2, 0, STAR_GOALS.size() - 1)
 				"vidas":
 					if h2 != 0 or c2:
-						main.demo.lives_setting = clampi(main.demo.lives_setting + (h2 if h2 != 0 else 1), 1, 5) if h2 != 0 else posmod(main.demo.lives_setting, 5) + 1
+						var vc: Dictionary = MapaReg.modo_cfg("derruba").get("vidas", {"min": 1, "max": 5})
+						var lo := int(vc["min"])
+						var hi := int(vc["max"])
+						main.demo.lives_setting = clampi(main.demo.lives_setting + h2, lo, hi) if h2 != 0 else lo + posmod(main.demo.lives_setting + 1 - lo, hi - lo + 1)
 				"rei":
 					if h2 != 0 or c2:
 						main.demo.king_setting = posmod(main.demo.king_setting + (h2 if h2 != 0 else 1), 3)
@@ -333,7 +336,7 @@ func _draw_adjust(ci: CanvasItem) -> void:
 
 ## Linhas da tela de AJUSTES (mudam conforme o modo).
 func adjust_rows() -> Array:
-	var rows := ["estrelas"]
+	var rows := [] if main.estrelas_da_sessao() else ["estrelas"]   # Derruba v2: uma luta só (sem meta de estrelas)
 	match main.game_mode:
 		"derruba": rows.append("vidas")
 		"batata": rows.append("pavio")

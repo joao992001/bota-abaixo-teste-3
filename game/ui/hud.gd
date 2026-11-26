@@ -222,7 +222,13 @@ func _card(i: int, r: Rect2) -> void:
 	var x2 := r.position.x + 68.0
 	if main.mode == "demolicao":
 		var goal := int(main.demo.cfg["rounds_to_win"])
-		if goal > 10:   # metas enormes (testes): número em vez de estrelas
+		if main.demo.partida_unica():   # Derruba v2: estrelas = vitórias da sessão (sem meta)
+			if int(p["score"]) > 0:
+				Kit.star(self, Vector2(x2, r.position.y + 46), 15, true)
+				Kit.text(self, Vector2(x2 + 10, r.position.y + 52), "%d" % int(p["score"]), 16, tc, HORIZONTAL_ALIGNMENT_LEFT, -1, 4)
+				x2 += 34.0
+			goal = 0
+		elif goal > 10:   # metas enormes (testes): número em vez de estrelas
 			Kit.star(self, Vector2(x2, r.position.y + 46), 15, true)
 			Kit.text(self, Vector2(x2 + 10, r.position.y + 52), "%d" % int(p["score"]), 16, tc, HORIZONTAL_ALIGNMENT_LEFT, -1, 4)
 			goal = 0
@@ -451,7 +457,73 @@ func _draw_score() -> void:
 	_draw_demo_score()
 
 # ---------------------------------------------------------------- vitória
+## RESULTADOS do Derruba v2 (A7, prancha art/out/etapa_c/c5_resultados.png): ranking por ordem de eliminação + estrela
+## (placar da sessão), vencedor, resumo (destruição final e exploração) e as 4 opções. Gangorra e Projetos de Demolição
+## entram com o perfil salvo (D4).
+func _draw_resultados() -> void:
+	draw_rect(Rect2(0, 0, 1920, 1080), DIM)
+	for k in 50:   # confete
+		var x := fposmod(k * 137.0 + t * (40 + k % 7 * 15), 1920.0)
+		var y := fposmod(k * 71.0 + t * (120 + k % 5 * 30), 1080.0)
+		draw_set_transform(Vector2(x, y), t * (2.0 + k % 3) + k)
+		draw_rect(Rect2(-9, -12, 18, 24), Kit.INK)
+		draw_rect(Rect2(-7, -10, 14, 20), Data.COLORS[k % 4])
+	draw_set_transform(Vector2.ZERO)
+	var w: int = main.winner
+	_ribbon_pop(("%s VENCEU!" % pname(w).to_upper()) if w >= 0 else "EMPATE!", 100, 1400, 80)
+	# ranking (esquerda)
+	var rk: Array = main.demo.ranking()
+	var rr := Rect2(60, 190, 470, 110 + rk.size() * 96)
+	Kit.chunk(self, rr, Kit.CREAM)
+	Kit.text(self, Vector2(rr.position.x, rr.position.y + 56), "RANKING", 34, DARK, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+	for k in rk.size():
+		var i: int = rk[k]
+		var row := Rect2(rr.position.x + 26, rr.position.y + 84 + k * 96, rr.size.x - 52, 80)
+		var col: Color = Data.COLORS[main.players[i]["color"]]
+		Kit.chunk(self, row, col if k == 0 and w >= 0 else Color("#f3ead6"), 18, 5, 6.0)
+		Kit.text(self, Vector2(row.position.x + 18, row.position.y + 54), "%dº" % (k + 1), 36, DARK)
+		_head(i, row.position + Vector2(118, 40), 30, Kit.INK, Kit.CREAM, "vitoria" if k == 0 and w >= 0 else "normal")
+		fit_text(Vector2(row.position.x + 162, row.position.y + 52), pname(i), 30, DARK, 150)
+		var sc := int(main.players[i]["score"])
+		var sx := row.end.x - 26.0
+		if sc > 4:
+			Kit.text(self, Vector2(sx - 70, row.position.y + 52), "%d" % sc, 30, DARK, HORIZONTAL_ALIGNMENT_RIGHT, 40)
+			Kit.star(self, Vector2(sx - 14, row.position.y + 40), 30, true)
+		else:
+			for s2 in sc:
+				Kit.star(self, Vector2(sx - 14 - s2 * 32, row.position.y + 40), 30, true)
+	Kit.text(self, Vector2(rr.position.x, rr.end.y - 12), "★ = vitórias desta sessão", 20, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
+	# vencedor (centro)
+	if w >= 0:
+		var pw: Dictionary = main.players[w]
+		Kit.burst(self, Vector2(960, 520), 250, t * 0.15, 8.0)
+		RobotVis.draw_robot(self, _look(pw), RobotVis.victory_pose(t, int(Data.model_meta(pw["model"])["danca"])), Transform2D(0.0, Vector2(4.0, 4.0), 0.0, Vector2(960, 700)))
+		draw_set_transform(Vector2.ZERO)
+		Kit.star(self, Vector2(960, 222), 48, true)
+	# resumo (embaixo, no centro): destruição final e exploração
+	var et = _etapas()
+	var sr := Rect2(600, 800, 720, 190)
+	Kit.chunk(self, sr, Kit.CREAM)
+	Kit.text(self, Vector2(sr.position.x, sr.position.y + 44), "RESUMO DA LUTA", 28, DARK, HORIZONTAL_ALIGNMENT_CENTER, sr.size.x)
+	if et != null:
+		draw_gauge(sr.position + Vector2(110, 108), 62, et.progresso)
+		var cn := MapaReg.cena(main.game_mode, main.level.id, et.etapa)
+		Kit.text(self, Vector2(sr.position.x + 210, sr.position.y + 96), "Terminou em: %s" % String(cn.get("nome", "cena %d" % et.etapa)).to_upper(), 28, DARK)
+		var nv: int = et.visitadas.size()
+		Kit.text(self, Vector2(sr.position.x + 210, sr.position.y + 140), ("Exploração: passou por %d cenas" % nv) if nv > 1 else "Exploração: ficou na cena inicial", 24, Kit.SOFT)
+	# opções (direita)
+	for k in main.RES_OPCOES.size():
+		var br := Rect2(1440, 250 + k * 124, 420, 88)
+		if k == main.res_sel:
+			Kit.chunk(self, br.grow(14), Kit.YEL, 32, 6, 0.0)
+		Kit.chunk(self, br, Color("#fff1b8") if k == main.res_sel else Kit.CREAM, 22, 6, 8.0)
+		Kit.text(self, Vector2(br.position.x, br.position.y + 58), main.RES_OPCOES[k], 30, DARK, HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
+	Kit.text(self, Vector2(0, 1056), "▲▼ escolher  ·  PULAR confirmar", 28, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
+
 func _draw_win() -> void:
+	if main.demo.partida_unica():
+		_draw_resultados()
+		return
 	draw_rect(Rect2(0, 0, 1920, 1080), DIM)
 	for k in 70:   # confete
 		var x := fposmod(k * 137.0 + t * (40 + k % 7 * 15), 1920.0)

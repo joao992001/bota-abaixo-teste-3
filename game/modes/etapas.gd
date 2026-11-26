@@ -22,6 +22,7 @@ var t_cena := 0.0              # tempo na cena atual (interno; nunca aparece no 
 var prox_verif := 0.0          # t_cena da próxima verificação
 var verificacoes := 0          # verificações feitas nesta cena (testes/medição)
 var progresso := 0.0           # destruição elegível da cena atual (0..1)
+var visitadas: Array = [1]     # ordens das cenas por onde a luta passou (exploração nos resultados)
 
 func setup(m: Node) -> void:
 	main = m
@@ -212,6 +213,8 @@ func _chega() -> void:
 	state = "etapa"
 	etapa = destino
 	destino = -1
+	if not etapa in visitadas:
+		visitadas.append(etapa)
 	lv.etapa_n = etapa
 	lv.area = lv.etapa_rect(etapa)
 	lv.ko_off = false

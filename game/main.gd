@@ -327,7 +327,9 @@ func _physics_process(dt: float) -> void:
 			if timer <= 0.0:
 				_after_score()
 		S.WIN:
-			if menus.pressed("back"):
+			if demo.partida_unica():
+				_resultados_update()
+			elif menus.pressed("back"):
 				go_menu()
 			else:
 				for i in players.size():
@@ -612,10 +614,21 @@ func dmg_color(d: float) -> Color:
 		return Color("#f2c84b").lerp(Color("#f08a3d"), (d - 50.0) / 50.0)
 	return Color("#f08a3d").lerp(Color("#d42035"), clampf((d - 100.0) / 60.0, 0.0, 1.0))
 
+## Derruba v2 (A13): estrelas = placar da SESSÃO — somam em Jogar de novo, Configurar mapa e Selecionar mapa; só o
+## Menu principal zera (go_menu limpa os jogadores). Mapas-ferramenta seguem com placar por partida.
+func estrelas_da_sessao() -> bool:
+	return game_mode == "derruba" and bool(MapaReg.modo_cfg("derruba").get("partida_unica", false)) \
+		and arena_choice != "" and not MapaReg.eh_ferramenta(arena_choice)
+
+var res_sel := 0   # opção escolhida na tela de resultados (Derruba v2)
+const RES_OPCOES := ["JOGAR DE NOVO", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MENU PRINCIPAL"]
+
 func start_match() -> void:
 	lost_pads.clear()
+	res_sel = 0
 	for p in players:
-		p["score"] = 0
+		if not estrelas_da_sessao():
+			p["score"] = 0
 		p["stats"] = {"derrubadas": 0, "caixotes": 0, "quedas": 0}
 	match_over = false
 	round_no = 0
@@ -773,6 +786,34 @@ func danger_near(r: CharacterBody2D) -> bool:
 		if h.get_center().distance_to(c) < 1.3 * T:
 			return true
 	return false
+
+# ---------------------------------------------------------------- resultados (Derruba v2, A7)
+func _resultados_update() -> void:
+	for i in players.size():
+		if players[i].get("bot", false):
+			continue
+		if PlayerInput.pressed(i, "up"):
+			res_sel = posmod(res_sel - 1, RES_OPCOES.size())
+			Audio.play("menu_mover")
+		elif PlayerInput.pressed(i, "down"):
+			res_sel = posmod(res_sel + 1, RES_OPCOES.size())
+			Audio.play("menu_mover")
+		elif PlayerInput.pressed(i, "jump") or PlayerInput.pressed(i, "start"):
+			Audio.play("menu_ok")
+			resultado_escolhe(res_sel)
+			return
+
+func resultado_escolhe(k: int) -> void:
+	match k:
+		0: start_match()                    # mesmo mapa, cena inicial; estrelas somam
+		1:
+			_clear_robots()
+			menus.adj_sel = 0
+			state = S.AJUSTES               # configurar o mapa (vidas, eventos…; telas de seleção na D3)
+		2:
+			_clear_robots()
+			state = S.ARENAS                # selecionar mapa
+		3: go_menu()                        # menu principal: estrelas zeram
 
 # ---------------------------------------------------------------- placar
 func _after_score() -> void:
