@@ -26,6 +26,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A11 | Skins: cada jogador escolhe robô e skin (exceção à autoridade do anfitrião no online futuro). |
 | A13 | **Estrelas = placar da sessão** (2026-11-26): continuam em Jogar de novo, Configurar mapa e Selecionar mapa; **só Menu principal zera**. Não são salvas no perfil. |
 | A18 | Eventos: **sem máximo** de ligados. Manômetro **mostra o número** (%) embaixo da agulha (2026-11-26). |
+| A19 | Card **ALEATÓRIO** das spells acende **8 sorteadas, 2 de cada família**; depois o jogador ainda ajusta (2026-11-26). |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
 | A14 | **EVENTO × PERIGO DA CENA (2026-11-26):** evento é **do mapa** e selecionável; tem de acontecer em **todas as cenas** do mapa (ex.: um terremoto vale nas 3). O que é específico de uma cena é **perigo/mecanismo da cena** (ex.: a enchente da Fundação, a serra do Térreo), não evento. Os antigos `V#` viram perigos da cena. |
 | A15 | Spells na tela de seleção: **mínimo 4, sem máximo** (2026-11-26). |
@@ -42,7 +43,6 @@ Projetos de Demolição) — esta última documentada para o futuro.
 
 ## PENDENTE (decidir antes do código da parte correspondente)
 - Simetria real da gangorra (deltas por cor, P3) — calibrar com bots.
-- ALEATÓRIO das spells (sugestão: 8, 2 de cada família).
 - Economia: pontos por mapa, recompensas esgotadas, duplicatas.
 - Fotografia conceitual da cena FACHADA (conceito aprovado em 2026-11-26).
 - Selecionar mapa na tela de resultados: o usuário citou como possível ("poderia até ter") — tratar como incluída, confirmar na prancha.
@@ -51,7 +51,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | Etapa | O quê | Estado |
 |---|---|---|
 | B | Documentação no GitHub (este arquivo, manuais do Derruba, progressão futura, biblioteca do Canteiro, esquema do manifesto v2) | **feito em 2026-11-25** |
-| C | Conceito para aprovar: pranchas das telas (mapas, mosaico de spells, mosaico de eventos, manômetro, resultados), grafos 3/7, storyboard das transições por rota, contrato do perfil salvo, ficha da cena Rota Moderada | **entregue 2026-11-26, aguardando aprovação** (`art/out/etapa_c/c1–c7`, `docs/manuais/derruba/perfil_salvo.md`, `f1_canteiro/cenas/fachada.md` — Fachada aprovada) |
+| C | Conceito para aprovar: pranchas das telas (mapas, mosaico de spells, mosaico de eventos, manômetro, resultados), grafos 3/7, storyboard das transições por rota, contrato do perfil salvo, ficha da cena Rota Moderada | **APROVADA 2026-11-26** (`art/out/etapa_c/c1–c7`, `docs/manuais/derruba/perfil_salvo.md`, `f1_canteiro/cenas/fachada.md` — Fachada aprovada) |
 | D1 | Lógica: verificação por tempo × vidas, rotas Moderada/Total no manifesto v2, retirar o diretor (G01 volta como evento), manômetro | depois da aprovação da C |
 | D2 | Partida única com vidas 3–6, tela de resultados com ranking/estrelas/progresso e as 4 opções | |
 | D3 | Telas de seleção de spells e eventos (tudo liberado) + "configurar mapa" | |
