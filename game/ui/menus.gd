@@ -686,8 +686,8 @@ func _update_intro(dt: float) -> void:
 		intro_hi = true
 		Audio.play("pisao", 0.7)
 		Audio.voice("voz_oi", intro_robo)
-	if intro_t < IN_ASSENTA and (confirm() or pressed("start") or pressed("back")):
-		intro_t = IN_ASSENTA   # qualquer botão pula para o fim (letreiro no lugar)
+	if confirm() or pressed("start") or pressed("back"):
+		intro_t = INTRO_END   # qualquer botão pula direto para o menu
 	if intro_t >= INTRO_END:
 		main.state = main.S.MENU
 		sel = 0
