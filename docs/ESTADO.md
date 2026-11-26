@@ -2,7 +2,7 @@
 
 Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisões: `docs/decisoes.md`.
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
-**`joao992001/bota-abaixo-teste-2` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
+`joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
 ## ▶ Retomar aqui (sessão nova)
 **REFORMULAÇÃO DO DERRUBA v2 (APROVADA 2026-11-25, etapa B = documentação FEITA):** `docs/revisoes/reformulacao_derruba.md`
