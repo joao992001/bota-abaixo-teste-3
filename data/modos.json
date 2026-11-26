@@ -512,7 +512,7 @@
       "pulo_duplo": 0.82,
       "borda_max_s": 2.0,
       "invuln_inicio_s": 3.0,
-      "invuln_volta_s": 2.0
+      "invuln_volta_s": 3.0
     },
     "rede": {
       "quica": 1050,

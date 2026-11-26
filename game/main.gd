@@ -648,7 +648,6 @@ const RES_OPCOES := ["JOGAR DE NOVO", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MEN
 var fim := preload("res://ui/fim.gd").new()   # telas do fim: gangorra → Projetos → resultados (pranchas r1–r3)
 var res_fase := "resultados"   # "gangorra" | "projetos" | "resultados"
 var res_crono := 0.0           # cronômetro dos resultados (A25: 15 s; mexer reinicia; zerou = vale a opção marcada)
-const RES_ESPERA := 3.0        # depois da animação, a tela de recompensa segue sozinha após este tempo
 
 func start_match() -> void:
 	lost_pads.clear()
@@ -843,9 +842,7 @@ func _resultados_update(dt: float) -> void:
 				res_t = dur   # 1º aperto: pula a animação
 			else:
 				_proxima_fase_fim()
-		elif res_t >= dur + RES_ESPERA:
-			_proxima_fase_fim()
-		return
+		return   # avaliação 2026-11-26: as telas de recompensa só passam quando um jogador confirma
 	if mexeu != 0:
 		res_sel = posmod(res_sel + mexeu, RES_OPCOES.size())
 		res_crono = fim.cronometro_s()   # mexer reinicia o relógio (A25)

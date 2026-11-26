@@ -88,6 +88,30 @@ func desaba(etapa: int) -> void:
 			main.dust(_v(p), 1.4)
 
 ## Robôs vivos que estão nesta etapa.
+## Zonas de perigo dos mecanismos ligados (renascimento seguro: ninguém volta em cima de serra, bate-estaca, trilho do
+## vagonete, gerador, pilha de tubos ou plataforma que se move).
+func zonas_perigo() -> Array:
+	var out := []
+	for inst in list:
+		if not _on(inst):
+			continue
+		var d: Dictionary = inst["d"]
+		match String(inst["tipo"]):
+			"serra", "tubos":
+				var p := _v(d["pos"])
+				out.append(Rect2(p.x - 160.0, p.y - 200.0, 320.0, 220.0))
+			"bate_estaca":
+				out.append(Rect2(float(d["x"]) - 130.0, float(d["topo"]) - 40.0, 260.0, float(d["chao"]) - float(d["topo"]) + 60.0))
+			"vagonete":
+				out.append(Rect2(float(d["x"][0]) - 80.0, float(d["chao"]) - 200.0, float(d["x"][1]) - float(d["x"][0]) + 160.0, 220.0))
+			"gerador":
+				var a: Array = d["alvo"]
+				out.append(Rect2(float(a[0]), float(a[1]), float(a[2]), float(a[3])).grow(80.0))
+			"elevador":
+				var w := float(d.get("largura", 130.0))
+				out.append(Rect2(float(d["base"][0]) - w / 2.0 - 40.0, float(d["topo"]) - 200.0, w + 80.0, float(d["base"][1]) - float(d["topo"]) + 220.0))
+	return out
+
 func _robots() -> Array:
 	return main.robots.filter(func(r): return r.alive)
 

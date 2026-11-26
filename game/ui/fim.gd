@@ -26,7 +26,7 @@ const P_INICIO := 0.6
 const P_LINHA := 0.7
 const P_ANDAR := 0.35
 
-## Duração da animação de cada tela (depois disso PULAR segue; sozinha segue após mais alguns segundos).
+## Duração da animação de cada tela (1º PULAR pula a animação; depois disso PULAR segue — nunca sozinha).
 func duracao(fase: String) -> float:
 	var ri: Dictionary = main.res_info
 	match fase:
@@ -206,7 +206,7 @@ func _gangorra(ci: CanvasItem, k: float) -> void:
 		ci.draw_set_transform(Vector2.ZERO)
 	if valida:
 		Kit.text(ci, Vector2(760, 992), "%+d" % int(round(v)), 60, Obra.YEL if v >= 0.0 else Color("#8fd46a"), HORIZONTAL_ALIGNMENT_CENTER, 400, 12)
-		Obra.dica(ci, "PULAR  pula a animação  ·  segue para os Projetos")
+		Obra.dica(ci, ("PULAR  segue para os Projetos" if k >= duracao("gangorra") else "PULAR  pula a animação"))
 	else:
 		_carimbo(ci, Vector2(960, 560), "NÃO CONTOU")
 		var mot := "luta curta (menos de 1 min)" if not ri.is_empty() and main.winner >= 0 else "sem vencedor"
@@ -329,7 +329,7 @@ func _projetos(ci: CanvasItem, k: float) -> void:
 	var msg := ("PROJETO COMPLETO → MAPA NOVO!" if falta <= 0 else "falta %d %s → MAPA NOVO (você escolhe qual)" % [falta, "andar" if falta == 1 else "andares"])
 	ci.draw_style_box(Obra._sb(Obra.YEL, 12, 5), Rect2(bx + 40, by + bh + 20, bw - 80, 56))
 	Kit.text(ci, Vector2(bx + 40, by + bh + 58), msg, 28, INK, HORIZONTAL_ALIGNMENT_CENTER, bw - 80)
-	Obra.dica(ci, "PULAR  pula a animação  ·  segue para os resultados")
+	Obra.dica(ci, ("PULAR  segue para os resultados" if k >= duracao("projetos") else "PULAR  pula a animação"))
 
 # ---------------------------------------------------------------- 3 RESULTADOS
 ## Melhor valor de cada coluna (CAIU SOZINHO: o menor). Só destaca se alguém fez algo.

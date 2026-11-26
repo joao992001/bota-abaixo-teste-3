@@ -1145,6 +1145,8 @@ func _crane_spot() -> Variant:
 	var pr := _pr()
 	var cands := []
 	for row in [ct.LAJE_Y - 4, ct.LAJE_Y - 3, ct.LAJE_Y - 5]:
+		if row * T < pr.position.y + 2 * T or row * T > pr.end.y:
+			continue   # linha fora da cena atual (a laje do Térreo não existe na Fundação/Fachada): Rect2 negativo a cada quadro
 		for xi in range(int(pr.position.x / T) + 2, int(pr.end.x / T) - 6):
 			var r := Rect2(xi * T, row * T, 4 * T, 26)
 			var ok := true

@@ -1947,9 +1947,10 @@ func resultados_test() -> void:
 	check(int(main.players[0]["score"]) == 1, "estrela para o vencedor")
 	check(not main.res_info.is_empty() and not main.res_info["valida"] and main.res_info["pontos"] == 0, "luta de poucos segundos: não conta para gangorra nem Projetos")
 	check(main.res_fase == "gangorra", "fim: abre a tela da gangorra (luta curta = carimbo NÃO CONTOU, A24)")
-	await frames(10)
-	await tap("v0", "jump")   # pula a animação
-	await tap("v0", "jump")   # segue
+	main.res_t = 60.0
+	await frames(20)
+	check(main.res_fase == "gangorra", "tela de recompensa não passa sozinha: espera um jogador confirmar")
+	await tap("v0", "jump")   # animação já acabou: segue
 	check(main.res_fase == "resultados" and main.res_crono > main.fim.cronometro_s() - 0.5, "luta que não vale: pula os Projetos e vai aos resultados com o relógio cheio (%.0f s)" % main.res_crono)
 	await frames(30)
 	var cr: float = main.res_crono
@@ -2227,6 +2228,74 @@ func moderada_test() -> void:
 
 ## D5: cena 3 do Canteiro, a FACHADA (rota moderada): perigos M10–M13, os 11 eventos do mapa e bots lutando sem cair
 ## à toa no vão do meio (que dá na rua = KO). --so=fachada
+## Renascimento seguro (avaliação 2026-11-26, item 3): em cada cena, com o cenário sendo destruído, quem volta pousa em chão
+## firme DENTRO da cena, não morre nem perde vida nos primeiros segundos e fica invulnerável. --so=renascer
+func renascer_test() -> void:
+	print("== Renascimento seguro")
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 6
+	main.event_level = 3   # eventos no máximo e mecanismos ligados: o pior caso
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	main.countdown = 0.0
+	var et = main.demo.etapas
+	et.ativo = false
+	var lv = main.level
+	var ct = main.demo.canteiro
+	var r = main.robots[0]
+	var inv_cfg := float(main.demo.cfg["recuperacao"]["invuln_volta_s"])
+	for cena in [1, 2, 3]:
+		if cena > 1:
+			et.pular_para(cena)
+			await frames(60)
+		var area: Rect2 = lv.etapa_rect(cena)
+		var ruins := []
+		var fallback := 0
+		for k in 30:
+			if k % 3 == 2 and ct != null:   # destrói o cenário aos poucos
+				var vivas: Array = ct.parts.filter(func(p): return not p["fallen"] and int(p.get("etapa", 1)) == cena and p["kind"] != "terreo")
+				if not vivas.is_empty():
+					var pp = vivas[main.rng.randi_range(0, vivas.size() - 1)]
+					ct.damage(pp, 99, pp["rect"].get_center())
+			main.demo.lives[0] = 6
+			main.demo.lives[1] = 6   # o outro jogador (parado) também não pode sair, senão a partida acaba no meio
+			r.invuln = 0.0
+			var nb: int = lv.blocks.size()
+			main.demo.respawn(r)
+			if lv.blocks.size() > nb:
+				fallback += 1
+			var inv0: float = r.invuln
+			var pousou := -1
+			var vidas0: int = main.demo.lives[0]
+			var morreu := false
+			var traj := []
+			for f in 200:
+				await frames(1)
+				traj.append("%d:%s v%s%s" % [f, str(Vector2i(r.position)), str(Vector2i(r.velocity)), "F" if r.is_on_floor() else ""])
+				if pousou < 0 and r.is_on_floor():
+					pousou = f
+				if main.demo.lives[0] < vidas0 and not morreu:
+					morreu = true
+					print("    trajeto: ", " | ".join(traj.slice(maxi(0, traj.size() - 25))))
+					print("    eventos: ", main.events.active.map(func(a): return a["id"]))
+					print("    perdeu vida no quadro %d (pousou %d) causa=%s pos=%s chão=%s" % [f, pousou, r.last_cause, str(Vector2i(r.position / 64.0)), str(main.fall_log.back() if not main.fall_log.is_empty() else "")])
+			var ok: bool = not morreu and pousou >= 0 and pousou < 150 and r.alive and r.is_on_floor() and area.grow(8).has_point(r.position) and main.demo.lives[0] == vidas0 and inv0 >= inv_cfg - 0.01
+			if not ok:
+				ruins.append("%s (%s) pousou=%d vivo=%s area=%s vidas=%d→%d" % [str(Vector2i(r.position / 64.0)), r.last_cause, pousou, str(r.alive), str(area.has_point(r.position)), vidas0, main.demo.lives[0]])
+				if not r.alive:
+					main.demo.lives[0] = 6
+					main.demo.respawn(r)
+					await frames(2)
+		check(ruins.is_empty(), "cena %d: 30 renascimentos pousam no chão, dentro da cena, sem perder vida (%s; caixote de emergência %d×)" % [cena, "; ".join(ruins.slice(0, 3)), fallback])
+	check(inv_cfg >= 3.0, "invulnerável por %.1f s ao voltar (avaliação: alguns segundos)" % inv_cfg)
+	main.go_menu()
+
 func fachada_test() -> void:
 	print("== Fachada (cena 3)")
 	main.go_join()

@@ -214,7 +214,7 @@ func _physics_process(dt: float) -> void:
 		ext_vx = floor_piece.belt_vx(self, ix)
 	ext_vx += push_vx
 	push_vx = 0.0
-	if main.events != null and main.events.wind != 0.0 and hanging == false:
+	if main.events != null and main.events.wind != 0.0 and hanging == false and invuln <= 0.0:   # voltando (protegido): o vento não empurra
 		ext_vx += main.events.wind * (0.55 if on_floor else 1.2)   # evento Ventania (no chão segura mais)
 	# horizontal
 	if wall_lock <= 0.0:

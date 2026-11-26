@@ -574,16 +574,21 @@ func respawn(r, ahead := false) -> void:
 	var best := Vector2i(-1, -1)
 	var best_d := -1.0
 	var pr := play_rect().grow_individual(-128, -192, -192, -64)
+	var zonas_mec: Array = mecs.zonas_perigo() if mecs != null and is_instance_valid(mecs) else []
 	for y in range(3, lv.rows - 1):
 		for x in range(1, lv.cols - 1):
 			var c := Vector2i(x, y)
-			if lv.is_solid(c) and lv.ch_at(c) != "I" and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)):
+			if lv.is_solid(c) and lv.ch_at(c) != "I" and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)) \
+					and not lv.is_solid(c + Vector2i(0, -3)) and not lv.is_solid(c + Vector2i(0, -4)):   # desce de 220 px: caminho livre
 				var p := Vector2(x * 64 + 32, y * 64)
 				if not pr.has_point(p) or not _firm(lv, c) or not (_firm(lv, c + Vector2i.LEFT) or _firm(lv, c + Vector2i.RIGHT)):
 					continue   # só volta em bloco firme, com chão ao lado (nada de caixote solto rachando)
 				var danger := false
 				for h in lv.hazard_rects:
 					if h.grow(96).has_point(p):
+						danger = true
+				for h in zonas_mec:
+					if h.has_point(p):
 						danger = true
 				if danger:
 					continue
@@ -596,6 +601,8 @@ func respawn(r, ahead := false) -> void:
 				dmin += main.rng.randf_range(0, 200)
 				if not (_firm(lv, c + Vector2i.LEFT) and _firm(lv, c + Vector2i.RIGHT)):
 					dmin -= 500.0   # beira de buraco: só se não houver lugar melhor (bots caíam no vão logo ao voltar)
+				elif not (_firm(lv, c + Vector2i(-2, 0)) and _firm(lv, c + Vector2i(2, 0))):
+					dmin -= 300.0   # perto da beira: prefere chão com folga dos dois lados (vento/empurrão não derruba)
 				if rule() == "fuga" and ahead and fx != null and is_instance_valid(fx):
 					dmin = -p.distance_to(fx.scroll_center)   # bolha: volta no meio da tela
 				elif rule() == "fuga":
