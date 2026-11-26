@@ -2165,6 +2165,7 @@ func moderada_test() -> void:
 		await frames(1)
 		w += 1
 	var a3: Rect2 = main.level.etapa_rect(3)
+	lives0 = main.demo.lives.duplicate()   # a luta segue durante o aviso (o bot pode derrubar alguém): conta do deslize em diante
 	check(et.state == "queda" and main.level.area.encloses(a3), "o Térreo cede e a câmera abre para mostrar a Fachada")
 	await frames(60)
 	check(main.robots.all(func(r): return r.position.y < a3.end.y), "ninguém cai na rua durante o deslize")
@@ -2174,8 +2175,9 @@ func moderada_test() -> void:
 		w += 1
 	await frames(40)
 	check(et.etapa == 3 and main.level.area == a3 and 3 in et.visitadas, "chegam na Fachada (%.1f s); área, KO e câmera passam para ela" % (w / 60.0))
-	check(main.robots.all(func(r): return r.alive and a3.has_point(r.position) and r.is_on_floor()) and main.demo.lives == lives0, "todos de pé nas pranchas, sem perder vida")
+	check(main.robots.all(func(r): return r.alive and a3.has_point(r.position) and r.is_on_floor()) and main.demo.lives == lives0, "todos de pé nas pranchas, sem perder vida (%s, vidas %s → %s)" % [str(main.robots.map(func(r): return [r.pid, r.position.round(), r.is_on_floor(), r.alive])), str(lives0), str(main.demo.lives)])
 	check(not et.tem_proxima(), "a Fachada é a última cena (sem nova transição)")
+	main.go_menu()   # tira os bots (os testes seguintes contam com só 2 jogadores parados)
 
 ## D5: cena 3 do Canteiro, a FACHADA (rota moderada): perigos M10–M13, os 11 eventos do mapa e bots lutando sem cair
 ## à toa no vão do meio (que dá na rua = KO). --so=fachada
@@ -2242,6 +2244,7 @@ func fachada_test() -> void:
 	for k in 60 * 45:
 		await frames(1)
 	check(main.self_falls <= 1, "bots lutam 45 s na Fachada quase sem cair sozinhos (%d: %s)" % [main.self_falls, str(main.fall_log)])
+	main.go_menu()
 
 ## Mecanismos da Fase 1 (catálogo M1–M9): cada um faz o que promete e responde à marretada.
 func mecanismos_test() -> void:
@@ -2274,7 +2277,7 @@ func mecanismos_test() -> void:
 			r.dmg = 0.0
 			r.stun_t = 0.0
 			r.invuln = 0.0
-	check(mc != null and mc.list.size() == 8, "a Fase 1 tem 8 mecanismos (%d)" % (0 if mc == null else mc.list.size()))
+	check(mc != null and mc.list.size() == 13, "o Canteiro tem 13 mecanismos: 4 no Térreo, 4 na Fundação, 5 na Fachada (%d)" % (0 if mc == null else mc.list.size()))
 	# M1 betoneira
 	calm.call()
 	var m1: Dictionary = get.call("M1")
