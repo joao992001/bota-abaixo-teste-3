@@ -1,11 +1,12 @@
 #!/bin/bash
 # Navega pelo jogo com TECLADO DE VERDADE (xdotool + Xvfb) e tira capturas de cada etapa (menu → mapas → 5 etapas).
 # Pega erros que os testes sem tela não pegam (o .exe fechava ao escolher o mapa). Requer xdotool (apt-get install -y xdotool).
+# Build exportado: JOGO=out/build/linux/Bota-Abaixo.x86_64 tools/captura_etapas.sh (vai até a luta, pausa e confirma a saída).
 export DISPLAY=:95
 Xvfb :95 -screen 0 1920x1080x24 >/dev/null 2>&1 &
 XP=$!
 sleep 2
-godot --path "$(dirname "$0")/../game" --resolution 1920x1080 > /tmp/flow5.log 2>&1 &
+${JOGO:-godot --path "$(dirname "$0")/../game"} --resolution 1920x1080 > /tmp/flow5.log 2>&1 &
 GP=$!
 sleep 14
 WID=$(xdotool search --pid $GP | tail -1)
@@ -18,5 +19,9 @@ k Return; shot 2_eventos
 k Return; shot 3_vidas
 k Return; k space; k r; shot 4_jogadores
 k Return 1.5; shot 5_detonar
+k Return 5; shot 6_luta
+k Return 1.5; shot 7_pausa
+k Down 0.4; k Down 0.4; k Down 0.4; k Down 0.4; k space; shot 8_confirma
+k Right 0.5; k space 2; shot 9_menu
 echo "vivo? $(kill -0 $GP 2>/dev/null && echo sim || echo NAO)"
 kill $GP; kill $XP
