@@ -16,10 +16,10 @@ const Eventos := preload("res://modes/eventos.gd")
 const Laboratorio := preload("res://ui/laboratorio.gd")
 const T := 64
 
-enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD }
+enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS }
 var state := S.INTRO   # abre com a intro animada (os testes pulam direto para a entrada)
 var paused := false
-const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD]
+const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS]
 var sandbox := false          # LABORATÓRIO: ambiente de testes (respawn infinito, rodada sem fim)
 var lab: Node = null
 var lab_mode := false        # LABORATÓRIO aberto
@@ -107,6 +107,7 @@ func _ready() -> void:
 	add_child(bots)
 	menus = Menus.new()
 	menus.setup(self)
+	selecao.setup(self)
 	add_child(menus)
 	lab = Laboratorio.new()
 	lab.setup(self)
@@ -621,6 +622,9 @@ func estrelas_da_sessao() -> bool:
 		and arena_choice != "" and not MapaReg.eh_ferramenta(arena_choice)
 
 var res_sel := 0   # opção escolhida na tela de resultados (Derruba v2)
+var spells_on := {}      # Derruba v2 (D3): spells acesas na tela de seleção (conjunto que pode sair nas caixas)
+var spells_mapa := ""    # mapa a que spells_on se refere (mapa novo → tudo aceso)
+var selecao := preload("res://ui/selecao.gd").new()
 const RES_OPCOES := ["JOGAR DE NOVO", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MENU PRINCIPAL"]
 
 func start_match() -> void:
@@ -808,8 +812,11 @@ func resultado_escolhe(k: int) -> void:
 		0: start_match()                    # mesmo mapa, cena inicial; estrelas somam
 		1:
 			_clear_robots()
-			menus.adj_sel = 0
-			state = S.AJUSTES               # configurar o mapa (vidas, eventos…; telas de seleção na D3)
+			if selecao.ativo_para(arena_choice):
+				selecao.abrir_spells()      # configurar o mapa: spells → eventos → ajustes (D3)
+			else:
+				menus.adj_sel = 0
+				state = S.AJUSTES
 		2:
 			_clear_robots()
 			state = S.ARENAS                # selecionar mapa

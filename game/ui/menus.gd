@@ -123,7 +123,14 @@ func update(dt: float) -> void:
 						main.demo.cfg["rounds_to_win"] = STAR_GOALS[goal_sel]
 						main.go_join()
 			if pressed("back"):
-				main.state = S.ARENAS
+				if main.selecao.ativo_para(main.arena_choice):
+					main.state = S.SELEVENTOS
+				else:
+					main.state = S.ARENAS
+		S.SELSPELLS:
+			main.selecao.update_spells(self)
+		S.SELEVENTOS:
+			main.selecao.update_eventos(self)
 		S.EVENTOS:
 			main.events.menu_update(self)
 		S.CONTROLES:
@@ -138,7 +145,10 @@ func update(dt: float) -> void:
 				arena_sel = clampi(arena_sel + v * 4, 0, n - 1)
 			if confirm():
 				main.arena_choice = arena_list()[arena_sel]["id"]
-				main.state = S.AJUSTES
+				if main.selecao.ativo_para(main.arena_choice):
+					main.selecao.abrir_spells()   # Derruba v2: MAPA → SPELLS → EVENTOS → AJUSTES
+				else:
+					main.state = S.AJUSTES
 			elif pressed("back"):
 				main.state = S.MODES
 		S.OPTIONS:
@@ -201,6 +211,8 @@ func draw(ci: CanvasItem) -> void:
 		S.ARENAS: _draw_arenas(ci)
 		S.AJUSTES: _draw_adjust(ci)
 		S.EVENTOS: main.events.menu_draw(ci, self)
+		S.SELSPELLS: main.selecao.draw_spells(ci)
+		S.SELEVENTOS: main.selecao.draw_eventos(ci)
 		S.CONTROLES: _draw_pads(ci)
 		S.INTRO: _draw_intro(ci)
 		S.CONFIGPAD: _draw_config(ci)
@@ -341,7 +353,10 @@ func adjust_rows() -> Array:
 		"derruba": rows.append("vidas")
 		"batata": rows.append("pavio")
 		"rei": rows.append("rei")
-	rows.append_array(["eventos", "escolher", "itens", "comecar"])
+	if main.selecao.ativo_para(main.arena_choice):
+		rows.append_array(["eventos", "itens", "comecar"])   # eventos escolhidos no mosaico (D3); aqui só a frequência
+	else:
+		rows.append_array(["eventos", "escolher", "itens", "comecar"])
 	return rows
 
 ## SORTEIO + arenas do modo escolhido (data/modos.json → modos[].arenas).

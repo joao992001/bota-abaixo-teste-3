@@ -94,7 +94,10 @@ func sc(id: String) -> Dictionary:
 ## Spells que podem sair nas caixas: as AUTORIZADAS pelo mapa (manifesto). Mapa-ferramenta (laboratório/testes): o pool
 ## do modo, explícito. Outro mapa/modo sem manifesto: nenhuma (sem herdar as do Derruba).
 func pool() -> Array:
-	return MapaReg.spells(main.game_mode, main.level.id, cfg["pools"].get(main.game_mode, []))
+	var p: Array = MapaReg.spells(main.game_mode, main.level.id, cfg["pools"].get(main.game_mode, []))
+	if main.spells_mapa == String(main.level.id) and not main.spells_on.is_empty():   # Derruba v2: só as acesas (D3)
+		p = p.filter(func(id): return main.spells_on.get(id, false))
+	return p
 
 ## Classes de spell (com peso do sorteio) definidas pelo MODO.
 func classes() -> Dictionary:

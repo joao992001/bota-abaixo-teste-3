@@ -573,6 +573,11 @@
           "max": 6,
           "padrao": 4,
           "nota": "Derruba v2 (A4): uma luta só, vidas de 3 a 6 (padrão 4). Estrelas = placar da sessão (A13). Mapas-ferramenta (testes/laboratório) seguem em rodadas."
+        },
+        "selecao": {
+          "spells_min": 4,
+          "aleatorio_por_familia": 2,
+          "nota": "Telas de seleção (D3): mínimo 4 spells, sem máximo (A15); ALEATÓRIO = 2 por família (A19); eventos sem máximo (A18)."
         }
       },
       {
@@ -725,7 +730,8 @@
         "cargas": 2,
         "preparo": 0.4,
         "intervalo_s": 0.45,
-        "alcance_tiles": 4
+        "alcance_tiles": 4,
+        "icone": "s01_luva"
       },
       "A02": {
         "familia": "ataque",
@@ -733,7 +739,8 @@
         "cargas": 3,
         "preparo": 0.5,
         "intervalo_s": 0.5,
-        "alcance_tiles": 14
+        "alcance_tiles": 14,
+        "icone": "s02_laser"
       },
       "A03": {
         "familia": "ataque",
@@ -745,7 +752,8 @@
         "alcance_tiles": 14,
         "congela_s": 2.6,
         "agitar_reduz_s": 0.18,
-        "quebra_mult": 1.5
+        "quebra_mult": 1.5,
+        "icone": "s03_canhao"
       },
       "A04": {
         "familia": "ataque",
@@ -753,7 +761,8 @@
         "cargas": 1,
         "preparo": 0.45,
         "alcance_tiles": 5,
-        "vel": 950
+        "vel": 950,
+        "icone": "s04_marreta"
       },
       "A05": {
         "familia": "ataque",
@@ -763,7 +772,8 @@
         "vel": 1150,
         "ricochetes": 2,
         "perda": 0.78,
-        "vida_s": 1.2
+        "vida_s": 1.2,
+        "icone": "s05_rebiteira"
       },
       "A06": {
         "familia": "ataque",
@@ -774,7 +784,8 @@
         "marca_s": 0.65,
         "mira_vel": 700,
         "mira_alcance_tiles": 7,
-        "mira_max_s": 2.0
+        "mira_max_s": 2.0,
+        "icone": "s17_estaca"
       },
       "A07": {
         "familia": "ataque",
@@ -782,7 +793,8 @@
         "cargas": 2,
         "vel": 1250,
         "alcance_tiles": 8,
-        "max_s": 3.4
+        "max_s": 3.4,
+        "icone": "s04_marreta"
       },
       "A08": {
         "familia": "ataque",
@@ -792,7 +804,8 @@
         "vel": 760,
         "subida": 320,
         "quique": 0.72,
-        "vida_s": 1.8
+        "vida_s": 1.8,
+        "icone": "s20_canhao"
       },
       "C01": {
         "familia": "controle",
@@ -802,7 +815,8 @@
         "alcance_tiles": 7,
         "forca": 3200,
         "vel_max": 620,
-        "dono_vel_mult": 0.3
+        "dono_vel_mult": 0.3,
+        "icone": "s06_ima"
       },
       "C02": {
         "familia": "controle",
@@ -813,7 +827,8 @@
         "forca": 4200,
         "vel_max": 1100,
         "dono_vel_mult": 0.45,
-        "recuo": 160
+        "recuo": 160,
+        "icone": "s07_ventilador"
       },
       "C03": {
         "familia": "controle",
@@ -822,7 +837,8 @@
         "vel": 1800,
         "alcance_tiles": 12,
         "puxa_vel": 1250,
-        "puxa_max_s": 0.7
+        "puxa_max_s": 0.7,
+        "icone": "s08_gancho"
       },
       "C04": {
         "familia": "controle",
@@ -831,7 +847,8 @@
         "alcance_tiles": 7,
         "mira_vel": 760,
         "mira_max_s": 1.6,
-        "recupera_s": 0.2
+        "recupera_s": 0.2,
+        "icone": "icone_controle"
       },
       "C05": {
         "familia": "controle",
@@ -841,14 +858,16 @@
         "alcance_tiles": 7,
         "duracao_s": 3.5,
         "folga_tiles": 2.5,
-        "forca": 2600
+        "forca": 2600,
+        "icone": "s21_laco"
       },
       "E01": {
         "familia": "engenharia",
         "raridade": "comum",
         "cargas": 2,
         "largura_tiles": 3,
-        "duracao_s": 4.5
+        "duracao_s": 4.5,
+        "icone": "s10_tabua"
       },
       "E02": {
         "familia": "engenharia",
@@ -857,13 +876,15 @@
         "arma_s": 0.5,
         "auto_s": 12.0,
         "raio_tiles": 2.4,
-        "dano_estrutura": 2
+        "dano_estrutura": 2,
+        "icone": "s12_carga"
       },
       "E03": {
         "familia": "engenharia",
         "raridade": "incomum",
         "cargas": 2,
-        "alcance_tiles": 10
+        "alcance_tiles": 10,
+        "icone": "s27_controle"
       },
       "T01": {
         "familia": "transformacao",
@@ -875,7 +896,8 @@
         "empurrao_mult": 0.45,
         "fogo_alcance_tiles": 3.2,
         "fogo_tick_s": 0.22,
-        "explosao_raio_tiles": 2.4
+        "explosao_raio_tiles": 2.4,
+        "icone": "s13_frente"
       },
       "T02": {
         "familia": "transformacao",
@@ -890,7 +912,8 @@
         "joga_vel": 950,
         "garfo_altura": 130,
         "investida_s": 0.35,
-        "investida_vel": 760
+        "investida_vel": 760,
+        "icone": "s14_chassi"
       },
       "T03": {
         "familia": "transformacao",
@@ -904,7 +927,8 @@
         "dano_min_vel": 320,
         "contra_mult": 1.6,
         "pulo_ar_mult": 0.85,
-        "tolerancia_s": 0.12
+        "tolerancia_s": 0.12,
+        "icone": "s15_bola"
       },
       "T04": {
         "familia": "transformacao",
@@ -914,7 +938,8 @@
         "combustivel_s": 3.6,
         "sobe_vel": 520,
         "desce_vel": 140,
-        "sobe_acel": 3800
+        "sobe_acel": 3800,
+        "icone": "s16_mochila"
       },
       "T05": {
         "familia": "transformacao",
@@ -924,7 +949,8 @@
         "vel_mult": 0.75,
         "empurrao_mult": 0.6,
         "tick_s": 0.25,
-        "estrutura_tick_s": 0.45
+        "estrutura_tick_s": 0.45,
+        "icone": "s31_broca"
       },
       "T06": {
         "familia": "transformacao",
@@ -934,7 +960,8 @@
         "combustivel_s": 3.0,
         "arco_alcance": 90,
         "tick_s": 0.22,
-        "reparo_s": 0.9
+        "reparo_s": 0.9,
+        "icone": "s28_macarico"
       },
       "T07": {
         "familia": "transformacao",
@@ -944,7 +971,8 @@
         "tamanho": 0.58,
         "vel_mult": 1.35,
         "empurrao_mult": 1.5,
-        "golpe_mult": 0.6
+        "golpe_mult": 0.6,
+        "icone": "s33_mascara"
       }
     },
     "eventos": {
@@ -975,7 +1003,8 @@
           "aviso_s": 2.5,
           "dur": 9.0,
           "fim_s": 1.0,
-          "desce_s": 1.4
+          "desce_s": 1.4,
+          "icone": "g05_moitao"
         },
         {
           "id": "G06",
@@ -985,7 +1014,8 @@
           "dur": 2.0,
           "caixas": 7,
           "vida_s": 14.0,
-          "max_objetos": 12
+          "max_objetos": 12,
+          "icone": "g06_caixa"
         },
         {
           "id": "G11",
@@ -994,7 +1024,8 @@
           "aviso_s": 2.2,
           "dur": 8.0,
           "fim_s": 0.5,
-          "altura_px": 150
+          "altura_px": 150,
+          "icone": "g11_tapume"
         },
         {
           "id": "G12",
@@ -1005,7 +1036,8 @@
           "fim_s": 1.6,
           "mover_s": 1.6,
           "subir_tiles": 2,
-          "descer_tiles": 1
+          "descer_tiles": 1,
+          "icone": "s10_tabua"
         },
         {
           "id": "G13",
@@ -1023,7 +1055,8 @@
           "dur": 6.5,
           "fim_s": 0.8,
           "forca": 210,
-          "curto": "Ventania"
+          "curto": "Ventania",
+          "icone": "g02_helice"
         },
         {
           "id": "G03",
@@ -1044,7 +1077,8 @@
           "pulso_s": 1.5,
           "raio_px": 520,
           "forca": 560,
-          "teto_px_s": 780
+          "teto_px_s": 780,
+          "icone": "g04_bobina"
         },
         {
           "id": "G14",
@@ -1057,7 +1091,8 @@
           "pausa_s": 0.4,
           "ondas": 3,
           "faixas": 2,
-          "rebites_s": 26
+          "rebites_s": 26,
+          "icone": "g14_rebite"
         },
         {
           "id": "G10",
@@ -1069,7 +1104,8 @@
             1,
             3
           ],
-          "classe": "transformacao"
+          "classe": "transformacao",
+          "icone": "g10_capsula"
         },
         {
           "id": "V1",

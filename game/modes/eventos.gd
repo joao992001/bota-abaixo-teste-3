@@ -153,8 +153,8 @@ func conflict(x: String, y: String) -> bool:
 
 ## Evento pode rodar nesta arena agora?
 func eligible(e: Dictionary) -> bool:
-	if not enabled.get(e["id"], true) or main.demo == null:
-		return false
+	if main.demo == null or (not enabled.get(e["id"], true) and not String(e["id"]).begins_with("V")):
+		return false   # V# = perigo da cena (A14): não depende da seleção de eventos
 	# eventos são DO MAPA E DA CENA: o manifesto lista quais valem em cada cena; mapa-ferramenta = biblioteca inteira
 	# (exceto V#, específicos de mapa); mapa sem manifesto = nenhum. libera_tudo: testes da biblioteca.
 	if not libera_tudo:

@@ -517,6 +517,7 @@ func demolicao_test() -> void:
 	await etapas_test()
 	await verificacao_test()
 	await resultados_test()
+	await selecao_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -1950,6 +1951,74 @@ func resultados_test() -> void:
 	await tap("v0", "jump")
 	await frames(3)
 	check(main.state == S.MENU and main.players.is_empty(), "Menu principal: volta ao menu e as estrelas zeram")
+
+## Derruba v2 (D3): telas de seleção de spells e eventos (mosaico). --so=selecao
+func selecao_test() -> void:
+	print("== Seleção de spells e eventos (D3)")
+	main.go_menu()
+	main.menus.sel = 0
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v0", "jump")   # MODOS → DERRUBA
+	check(main.state == S.ARENAS, "chega às arenas do Derruba")
+	main.menus.arena_sel = 1
+	await tap("v0", "jump")
+	var sl = main.selecao
+	check(main.state == S.SELSPELLS and main.arena_choice == "canteiro_obras", "mapa escolhido → tela de SPELLS")
+	check(sl.n_on() == 23, "mapa novo: as 23 spells começam acesas (tudo liberado)")
+	await tap("v0", "jump")
+	check(sl.n_on() == 22 and not main.spells_on["A01"], "PULAR apaga a spell do cursor (A01)")
+	await tap("v0", "hammer")
+	check(sl.n_on() == 23, "ATACAR acende todas")
+	await tap("v0", "hammer")
+	check(sl.n_on() == 0, "ATACAR de novo apaga todas")
+	await tap("v0", "start")
+	check(main.state == S.SELSPELLS and sl.aviso_t > 0.0, "com menos de 4 não segue (aviso)")
+	sl.sel = 23
+	await tap("v0", "jump")
+	var por := {}
+	for id in main.spells_on:
+		if main.spells_on[id]:
+			var f: String = main.demo.spells.sc(id)["familia"]
+			por[f] = por.get(f, 0) + 1
+	check(sl.n_on() == 8 and por.values().all(func(v): return v == 2) and por.size() == 4, "ALEATÓRIO acende 8, 2 de cada família (%s)" % str(por))
+	var acesas: Array = main.spells_on.keys().filter(func(id): return main.spells_on[id])
+	await tap("v0", "start")
+	check(main.state == S.SELEVENTOS, "START → tela de EVENTOS")
+	var evs: Array = sl.eventos_do_mapa()
+	check(evs.size() == 11 and not evs.any(func(id): return String(id).begins_with("V")) and "G01" in evs, "eventos do mapa: 11 gerais, sem os perigos da cena (V#), com a G01")
+	await tap("v0", "jump")   # NENHUM
+	check(evs.all(func(id): return not main.events.enabled[id]), "NENHUM apaga todos")
+	await tap("v0", "right")
+	await tap("v0", "jump")
+	check(main.events.enabled[evs[0]], "PULAR religa o evento do cursor (%s)" % evs[0])
+	await tap("v0", "start")
+	check(main.state == S.AJUSTES and not "escolher" in main.menus.adjust_rows(), "START → AJUSTES (sem a lista antiga de eventos)")
+	await tap("v0", "back")
+	check(main.state == S.SELEVENTOS, "voltar dos ajustes → eventos")
+	await tap("v0", "start")
+	main.go_join()
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.start_match()
+	await demo_round()
+	var pool: Array = main.demo.spells.pool()
+	pool.sort()
+	acesas.sort()
+	check(pool == acesas, "as caixas só sorteiam as spells acesas (%d)" % pool.size())
+	var ev = main.events
+	ev.enabled["V1"] = false
+	check(ev.eligible(ev.ev("V1")), "perigo da cena (V1) não depende da seleção de eventos (A14)")
+	check(not ev.eligible(ev.ev(evs[1])), "evento apagado não acontece (%s)" % evs[1])
+	ev.enabled["V1"] = true
+	main.resultado_escolhe(1)
+	check(main.state == S.SELSPELLS and sl.n_on() == 8, "Configurar mapa (resultados) → SPELLS, guardando a seleção")
+	for id in ev.enabled:
+		ev.enabled[id] = true
+	main.spells_on.clear()
+	main.spells_mapa = ""
 
 ## Mecanismos da Fase 1 (catálogo M1–M9): cada um faz o que promete e responde à marretada.
 func mecanismos_test() -> void:
