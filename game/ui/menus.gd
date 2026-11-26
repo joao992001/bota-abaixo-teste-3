@@ -65,7 +65,7 @@ func update(dt: float) -> void:
 			sel = posmod(sel + move_v(), MENU_ITEMS.size())
 			if confirm():
 				match sel:
-					0: main.state = S.MODES
+					0: abrir_mapas()   # A22: só existe o Derruba → JOGAR vai direto aos mapas
 					1: main.lab.start(_who_confirmed())
 					2: main.state = S.HOWTO
 					3: main.state = S.OPTIONS
@@ -143,12 +143,15 @@ func update(dt: float) -> void:
 		S.CONFIGPAD:
 			_update_config(dt)
 		S.ARENAS:
-			var n := arena_list().size()
+			var n := arena_list().size() + mapas_bloqueados()
 			arena_sel = posmod(arena_sel + move_h(), n)
 			var v := move_v()
 			if v != 0:
 				arena_sel = clampi(arena_sel + v * 4, 0, n - 1)
-			if confirm():
+			if confirm() and arena_sel >= arena_list().size():
+				shake_card = 0.35   # cartaz bloqueado (lona e cadeado)
+				Audio.play("menu_negado")
+			elif confirm():
 				main.arena_choice = arena_list()[arena_sel]["id"]
 				if main.arena_choice == "sorteio" and main.game_mode == "derruba":
 					# Derruba: "?" = o jogo escolhe o mapa agora; depois a configuração é a mesma de quem escolheu o mapa
@@ -161,7 +164,7 @@ func update(dt: float) -> void:
 				else:
 					main.state = S.AJUSTES
 			elif pressed("back"):
-				main.state = S.MODES
+				main.state = S.MENU
 		S.OPTIONS:
 			opt_sel = posmod(opt_sel + move_v(), 9)
 			var h := move_h()
@@ -194,6 +197,15 @@ func update(dt: float) -> void:
 			if pressed("back"):
 				main.state = S.MENU
 
+## JOGAR (A22, 2026-11-26): a tela de MODOS é pulada enquanto só o Derruba existir; volta quando houver outro modo.
+func abrir_mapas() -> void:
+	var m: Dictionary = main.demo.find_mode("derruba")
+	main.game_mode = "derruba"
+	main.demo.items_on = bool(m.get("itens", true))
+	arena_sel = 0
+	adj_sel = 0
+	main.state = main.S.ARENAS
+
 ## Pausa (dentro da partida): Start/Enter abre; navega com ▲▼.
 func update_pause() -> void:
 	pause_sel = posmod(pause_sel + move_v(), PAUSE_ITEMS.size())
@@ -212,7 +224,7 @@ func update_pause() -> void:
 # ---------------------------------------------------------------- desenho
 func draw(ci: CanvasItem) -> void:
 	var S = main.S
-	if main.state != S.INTRO and main.state in main.MENU_STATES:
+	if main.state != S.INTRO and main.state != S.ARENAS and main.state in main.MENU_STATES:
 		_draw_scene(ci, [1.0, 1.0, 1.0, 1.0])
 	match main.state:
 		S.MENU: _draw_menu(ci)
@@ -266,31 +278,34 @@ func _button(ci: CanvasItem, r: Rect2, label: String, on: bool, rot := 0.0) -> v
 		Kit.text(ci, Vector2(rr.position.x, fs * 0.36), label, fs, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, rr.size.x)
 	ci.draw_set_transform(Vector2.ZERO)
 
-## Menu "Canteiro vivo" (A21): logo no alto à esquerda; placas de obra EM COLUNA penduradas por correntes numa viga
-## da grua; a escolhida é amarela e balança. O elenco brinca na laje à direita (_draw_scene).
+## Menu "Canteiro vivo" (A21), igual à prancha aprovada `art/out/menus_v2/v2_1_menu.png`: logo no alto à esquerda,
+## LIVRE (nenhum cabo passa por ele); placas de obra EM COLUNA penduradas por correntes numa viga da grua no centro-direita;
+## a escolhida é amarela e balança. O elenco brinca na laje dos dois lados da coluna (_draw_scene).
+const MENU_VX := 1180.0
 func _draw_menu(ci: CanvasItem) -> void:
-	_logo(ci, 24, 720, 440)
+	_logo(ci, 56, 720, 440)
 	menu_in = minf(menu_in + get_process_delta_time() / 0.45, 1.0)
-	var vx := 440.0
-	ci.draw_line(Vector2(vx, -10), Vector2(vx, 196), Color("#4a4f5c"), 5.0)   # cabo da grua
-	var vg := Rect2(vx - 300, 196, 600, 40)   # viga
+	var vx := MENU_VX
+	ci.draw_line(Vector2(vx, -10), Vector2(vx, 150), Color("#4a4f5c"), 5.0)   # cabo da grua
+	var vg := Rect2(vx - 280, 150, 560, 50)   # viga
 	ci.draw_rect(vg, Color("#3a3f4a"))
-	ci.draw_rect(Rect2(vg.position + Vector2(0, 12), Vector2(vg.size.x, 16)), Color("#4a5060"))
-	for k in 9:
-		ci.draw_circle(vg.position + Vector2(30 + k * 68, 20), 5.0, Color("#6b7380"))
-	var y := 266.0
+	ci.draw_rect(Rect2(vg.position + Vector2(0, 14), Vector2(vg.size.x, 20)), Color("#4a5060"))
+	for k in 8:
+		ci.draw_circle(vg.position + Vector2(30 + k * 71, 25), 5.0, Color("#6b7380"))
+	var y := vg.end.y + 34.0   # topo da placa (Obra.placa desenha a partir do topo)
+	var prev_fundo := vg.end.y - 6.0
 	for i in MENU_ITEMS.size():
 		var u := _ease_out_back(clampf(menu_in * 1.6 - i * 0.12, 0.0, 1.0))
 		var on := sel == i
-		var w := 470.0 if on else 400.0
-		var h := 104.0 if on else 82.0
-		var cx := vx - 900.0 * (1.0 - u)
-		var top := y - 30.0 if i > 0 else vg.end.y
-		Obra.corrente(ci, cx - w / 2.0 + 40, top, y)
-		Obra.corrente(ci, cx + w / 2.0 - 40, top, y)
+		var w := 520.0 if on else 440.0
+		var h := 122.0 if on else 90.0
+		var cx := vx + 1100.0 * (1.0 - u)
+		Obra.corrente(ci, cx - w / 2.0 + 40, prev_fundo, y + 8)
+		Obra.corrente(ci, cx + w / 2.0 - 40, prev_fundo, y + 8)
 		var rot := (sin(t * 3.0) * 0.035) if on else (0.012 if i % 2 else -0.01)
-		Obra.placa(ci, Vector2(cx, y), w, h, MENU_ITEMS[i], on, rot, 42 if on else 34)
-		y += h + 30.0
+		Obra.placa(ci, Vector2(cx, y), w, h, MENU_ITEMS[i], on, rot, 46 if on else 38)
+		prev_fundo = y + h - 10.0
+		y += h + 28.0
 	Obra.dica(ci, "▲▼ escolher  ·  PULAR confirmar  ·  ESC voltar")
 
 ## Ilustração do cartão; xf = transformação do cartão (girado), para não perdê-la ao desenhar peças giradas.
@@ -395,75 +410,174 @@ func adjust_rows() -> Array:
 
 ## SORTEIO + arenas do modo escolhido (data/modos.json → modos[].arenas).
 func arena_list() -> Array:
-	var out: Array = [{"id": "sorteio", "nome": "SORTEIO", "dica": "a grua escolhe o mapa por você" if main.game_mode == "derruba" else "Cada rodada numa arena do modo"}]
+	var out: Array = [{"id": "sorteio", "nome": "SORTEIO", "dica": "a grua escolhe por você" if main.game_mode == "derruba" else "Cada rodada numa arena do modo"}]
 	out.append_array(main.demo.mode_arenas(main.game_mode))
 	return out
 
+## Cartazes bloqueados de exemplo (lona + cadeado) até existirem outros mapas: o tapume sempre mostra 4 cartazes (A23).
+func mapas_bloqueados() -> int:
+	return maxi(0, 4 - arena_list().size())
+
+## Retângulos dos cartazes no tapume. 4 cartazes = posições da prancha aprovada (6_referencia_mapas_preferida.png).
+func _cartazes_rects(n: int) -> Array:
+	if n == 4:
+		return [Rect2(70, 300, 380, 500), Rect2(520, 260, 560, 560), Rect2(1150, 300, 330, 500), Rect2(1540, 300, 330, 500)]
+	var out := []
+	var w := minf(400.0, 1780.0 / n - 30.0)
+	for i in n:
+		out.append(Rect2(70 + i * (1780.0 / n) + (1780.0 / n - w) / 2.0, 300, w, 500))
+	return out
+
+## Mapas (A21/A23) = IGUAL à prancha aprovada: tapume de obra com cartazes presos por fita crepe, título pendurado no cabo
+## da grua, Sorteio "?", o mapa com foto e capacetes das cenas, cartazes bloqueados com lona/corrente/cadeado, régua dos
+## Projetos de Demolição e dois robôs na laje.
 func _draw_arenas(ci: CanvasItem) -> void:
-	# tapume de obra (A21): painéis verdes com fita zebrada em cima e embaixo; os mapas são cartazes presos nele
-	for k in 9:
+	Obra.fundo(ci, t)
+	ci.draw_rect(Rect2(0, 930, 1920, 150), Color("#b9ab8f"))   # laje
+	ci.draw_rect(Rect2(0, 930, 1920, 60), Color("#d8ccb6"))
+	ci.draw_rect(Rect2(0, 930, 1920, 10), Color("#eee5d2"))
+	for k in 24:
+		ci.draw_circle(Vector2(30 + k * 82, 1040 + (k % 3) * 12), 4.0, Color("#958a72"))
+	for k in 9:   # tapume: painéis de compensado pintados
 		var x := -40.0 + k * 230.0
-		ci.draw_rect(Rect2(x, 140, 236, 740), Color("#7fae86") if k % 2 == 0 else Color("#86b48c"))
-		ci.draw_rect(Rect2(x, 140, 236, 740), Color("#4d7a56"), false, 3.0)
-	Obra.zebra(ci, Rect2(0, 126, 1920, 24))
-	Obra.zebra(ci, Rect2(0, 872, 1920, 18))
-	Obra.titulo(ci, "ESCOLHA O MAPA" if main.game_mode == "derruba" else "ESCOLHA A ARENA")
+		ci.draw_rect(Rect2(x, 170, 236, 760), Color("#7fae86") if k % 2 == 0 else Color("#86b48c"))
+		ci.draw_rect(Rect2(x, 170, 236, 760), Color("#4d7a56"), false, 3.0)
+	Obra.zebra(ci, Rect2(0, 150, 1920, 26))
+	Obra.zebra(ci, Rect2(0, 920, 1920, 18))
+	ci.draw_line(Vector2(960, -4), Vector2(960, 58), Color("#4a4f5c"), 5.0)   # título no cabo da grua
+	Obra.corrente(ci, 820, 50, 74)
+	Obra.corrente(ci, 1100, 50, 74)
+	Obra.placa(ci, Vector2(960, 70), 560, 96, "ESCOLHA O MAPA" if main.game_mode == "derruba" else "ESCOLHA A ARENA", true, 0.0, 50)
 	var list := arena_list()
-	var nrows: int = int(ceil(list.size() / 4.0))
-	var sc := minf(1.0, 860.0 / (nrows * 400.0 - 70.0))   # mais arenas: cartões menores
-	var poucos: bool = list.size() <= 4 and main.game_mode == "derruba"   # Derruba: poucos mapas, cartazes grandes e centrados
-	for i in list.size():
-		var a: Dictionary = list[i]
+	var nb := mapas_bloqueados()
+	var rects := _cartazes_rects(list.size() + nb)
+	for i in list.size() + nb:
+		var r: Rect2 = rects[i]
 		var on := i == arena_sel
-		var col := i % 4
-		var row := i / 4
-		var c := Vector2(255 + col * 470, 175 + 165 * sc + row * 400 * sc)
-		var esc := sc
-		if poucos:
-			esc = 1.25
-			c = Vector2(960.0 + (i - (list.size() - 1) / 2.0) * 600.0, 500.0)
-		var xf := Transform2D(sin(i * 1.9) * 0.025, Vector2(esc, esc) * (1.06 if on else 1.0), 0.0, c)
+		var c := r.get_center()
+		var rot := 0.0
+		if on and shake_card > 0.0:
+			rot = sin(shake_card * 60.0) * 0.04
+		var xf := Transform2D(rot, Vector2.ONE * (1.03 if on else 1.0), 0.0, c)
 		ci.draw_set_transform_matrix(xf)
-		var r := Rect2(-205, -165, 410, 330)
+		var rr := Rect2(-r.size / 2.0, r.size)
 		if on:
-			Kit.paper(ci, r.grow(12), Color("#f2c84b"))
-		Kit.paper(ci, r)
-		for fx in [-1.0, 1.0]:   # fita crepe nos cantos
-			ci.draw_set_transform_matrix(xf * Transform2D(0.55 * fx, Vector2(fx * 185.0, -160.0)))
-			ci.draw_rect(Rect2(-46, -14, 92, 28), Color(0.91, 0.85, 0.66, 0.92))
-			ci.draw_set_transform_matrix(xf)
-		var thumb := Data.tex("ui/arena_" + a["id"])
-		var tr := Rect2(-180, -142, 360, 192)
-		if a["id"] == "sorteio":
-			ci.draw_rect(tr, Color("#9fe3ee"))
-			Kit.sticker(ci, Vector2(-180, 0), "?", 150, Color("#f2c84b"), HORIZONTAL_ALIGNMENT_CENTER, 360)
-		elif thumb != null:
-			ci.draw_texture_rect(thumb, tr, false)
+			ci.draw_style_box(Obra._sb(Obra.YEL, 14, 6), rr.grow(16))
+		if i < list.size():
+			_cartaz_mapa(ci, rr, list[i], xf)
 		else:
-			ci.draw_rect(tr, Color("#9fe3ee"))
-		Kit.text(ci, Vector2(r.position.x, 100), String(a["nome"]).to_upper(), 34 if String(a["nome"]).length() < 15 else 28, Color("#2a1a2e"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text_box(ci, Vector2(r.position.x + 14, 116), r.size.x - 28, String(a["dica"]), 21, Color("#6b5a70"), 2)
-		var mf: Dictionary = MapaReg.manifesto(main.game_mode, String(a["id"])) if main.game_mode == "derruba" else {}
-		if not mf.is_empty():   # perfil (D4): cenas descobertas deste mapa
-			var vis: int = main.perfil.dados.get("cenas_visitadas", {}).get(a["id"], []).size()
-			Kit.chunk(ci, Rect2(40, -156, 150, 40), Color("#5fc95f") if vis > 0 else Kit.CREAM, 12, 4, 4.0)
-			Kit.text(ci, Vector2(40, -127), "%d de %d cenas" % [vis, int(mf.get("topologia", 0))], 20, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, 150)
-	ci.draw_set_transform(Vector2.ZERO)
+			_cartaz_bloqueado(ci, rr)
+		if on:
+			Obra.chip(ci, rr.position + Vector2(-20, -40), 1)
+		ci.draw_set_transform(Vector2.ZERO)
 	if main.game_mode == "derruba":
-		_draw_projetos(ci, Rect2(560, 892, 800, 108))
-	Obra.dica(ci, "◄►▲▼ escolher  ·  PULAR confirmar  ·  ESC voltar")
+		_draw_projetos(ci, Rect2(1150, 830, 620, 74))
+	# elenco na laje (prancha): Picareta verde à esquerda, Marretão azul à direita
+	var now := Time.get_ticks_msec() / 1000.0
+	var po: Dictionary = RobotVis.idle_pose(now)
+	var ph := now * 14.0
+	po["feet"] = [Vector2(cos(ph) * 8.0, -maxf(sin(ph), 0.0) * 7.0), Vector2(cos(ph + PI) * 8.0, -maxf(sin(ph + PI), 0.0) * 7.0)]
+	po["lean"] = 0.12
+	RobotVis.draw_robot(ci, {"color": 1, "model": 1, "hammer": true, "fx": {}}, po, Transform2D(0.0, Vector2(1.5, 1.5), 0.0, Vector2(66, 930)))
+	RobotVis.draw_robot(ci, {"color": 0, "model": 0, "hammer": true, "fx": {}}, RobotVis.idle_pose(now + 1.0), Transform2D(0.0, Vector2(-1.5, 1.5), 0.0, Vector2(1858, 930)))
+	ci.draw_set_transform(Vector2.ZERO)
+	Obra.dica(ci, "◄► escolher  ·  PULAR confirmar  ·  ESC voltar")
+
+## Cartaz de papel com fita crepe nos cantos (comum a todos os cartazes do tapume).
+func _papel_cartaz(ci: CanvasItem, rr: Rect2, xf: Transform2D) -> void:
+	ci.draw_style_box(Obra._sb(Color(Kit.INK, 0.3), 6), Rect2(rr.position + Vector2(6, 10), rr.size))
+	ci.draw_style_box(Obra._sb(Color("#f6eedb"), 6, 5), rr)
+	for fx in [-1.0, 1.0]:   # fita crepe nos cantos
+		ci.draw_set_transform_matrix(xf * Transform2D(0.52 * fx, Vector2(rr.get_center().x + fx * (rr.size.x / 2.0 - 25.0), rr.position.y + 5.0)))
+		ci.draw_rect(Rect2(-45, -15, 90, 30), Color(0.91, 0.85, 0.66, 0.9))
+		ci.draw_set_transform_matrix(xf)
+
+func _cartaz_mapa(ci: CanvasItem, rr: Rect2, a: Dictionary, xf: Transform2D) -> void:
+	_papel_cartaz(ci, rr, xf)
+	var x := rr.position.x
+	var w := rr.size.x
+	if a["id"] == "sorteio":
+		var tr := Rect2(x + 22, rr.position.y + 22, w - 44, 290)
+		ci.draw_style_box(Obra._sb(Color("#9fe3ee"), 6, 4), tr)
+		Kit.sticker(ci, Vector2(tr.position.x, tr.get_center().y + 72), "?", 200, Obra.YEL, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
+		Kit.text(ci, Vector2(x, rr.position.y + 372), "SORTEIO", 36, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, w)
+		Kit.text(ci, Vector2(x, rr.end.y - 40), String(a.get("dica", "")), 22, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, w)
+		return
+	var th := rr.size.y * 0.58
+	var tr2 := Rect2(x + 22, rr.position.y + 22, w - 44, th)
+	var thumb := Data.tex("ui/arena_" + String(a["id"]))
+	if thumb != null:   # foto cortada no meio (slice), sem esticar
+		var ts := thumb.get_size()
+		var esc := maxf(tr2.size.x / ts.x, tr2.size.y / ts.y)
+		var src := Rect2((ts - tr2.size / esc) / 2.0, tr2.size / esc)
+		ci.draw_texture_rect_region(thumb, tr2, src)
+	else:
+		ci.draw_rect(tr2, Color("#9fe3ee"))
+	ci.draw_rect(tr2, Kit.INK, false, 4.0)
+	var nome := String(a["nome"]).to_upper()
+	Kit.text(ci, Vector2(x, rr.position.y + th + 80), nome, 36 if nome.length() < 20 else 30, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, w)
+	var mf: Dictionary = MapaReg.manifesto(main.game_mode, String(a["id"])) if main.game_mode == "derruba" else {}
+	if mf.is_empty():
+		Kit.text_box(ci, Vector2(x + 14, rr.position.y + th + 110), w - 28, String(a.get("dica", "")), 21, Kit.SOFT, 2)
+		return
+	# capacetes = cenas descobertas (amarelo + nome) / não descobertas (cinza + "?")
+	var vis: Array = main.perfil.dados.get("cenas_visitadas", {}).get(a["id"], [])
+	var cenas: Array = MapaReg.cenas(main.game_mode, String(a["id"]))
+	for k in cenas.size():
+		var cn: Dictionary = cenas[k]
+		var ok: bool = String(cn.get("id", "")) in vis
+		var cx := x + w / 2.0 - 110.0 * (cenas.size() - 1) / 2.0 + k * 110.0
+		_capacete(ci, Vector2(cx, rr.end.y - 60), ok)
+		Kit.text(ci, Vector2(cx - 60, rr.end.y - 26), String(cn.get("nome", "")).to_upper() if ok else "?", 17, Kit.INK if ok else Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, 120)
+
+func _capacete(ci: CanvasItem, c: Vector2, aceso: bool) -> void:
+	var col := Obra.YEL if aceso else Color("#c9c2b2")
+	var pts := PackedVector2Array()
+	for k in 17:
+		var a := PI + k * PI / 16.0
+		pts.append(c + Vector2(cos(a) * 32.0, sin(a) * 30.0))
+	ci.draw_colored_polygon(pts, col)
+	pts.append(pts[0])
+	ci.draw_polyline(pts, Kit.INK, 4.0, true)
+	ci.draw_style_box(Obra._sb(col, 4, 4), Rect2(c + Vector2(-40, -4), Vector2(80, 12)))
+
+## Mapa ainda bloqueado: lona azul por cima, corrente atravessada e cadeado; "???" e BLOQUEADO.
+func _cartaz_bloqueado(ci: CanvasItem, rr: Rect2) -> void:
+	ci.draw_style_box(Obra._sb(Color("#f6eedb"), 6, 5), rr)
+	var x := rr.position.x
+	var y := rr.position.y
+	var w := rr.size.x
+	var h := rr.size.y
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(x - 10, y + 20), Vector2(x + w + 10, y - 6), Vector2(x + w + 6, y + h + 10), Vector2(x - 6, y + h - 6)]), Color("#3f7fb5", 0.95))
+	for k in 5:   # dobras da lona
+		var x0 := x + 20 + k * w / 5.0
+		ci.draw_polyline(PackedVector2Array([Vector2(x0, y + 10), Vector2(x0 + 12, y + h * 0.5), Vector2(x0 - 6, y + h - 4)]), Color("#2f6595"), 5.0, true)
+	var c0 := Vector2(x - 10, y + h * 0.45)
+	var c1 := Vector2(x + w + 10, y + h * 0.55)
+	for k in 18:   # corrente tracejada
+		var u0 := k / 18.0
+		ci.draw_line(c0.lerp(c1, u0), c0.lerp(c1, u0 + 0.7 / 18.0), Color("#8d98a4"), 10.0)
+	var lc := Vector2(x + w / 2.0, y + h * 0.5)
+	ci.draw_arc(lc + Vector2(0, -30), 24.0, PI, TAU, 16, Kit.INK, 10.0, true)
+	ci.draw_line(lc + Vector2(-24, -30), lc + Vector2(-24, -8), Kit.INK, 10.0)
+	ci.draw_line(lc + Vector2(24, -30), lc + Vector2(24, -8), Kit.INK, 10.0)
+	ci.draw_style_box(Obra._sb(Obra.YEL, 10, 0), Rect2(lc + Vector2(-40, -30), Vector2(80, 66)))
+	Kit.text(ci, Vector2(x, y + h - 100), "? ? ?", 34, Color("#2f6595"), HORIZONTAL_ALIGNMENT_CENTER, w)
+	Kit.text(ci, Vector2(x, y + h - 40), "BLOQUEADO", 28, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, w, 6)
 
 ## Projetos de Demolição (perfil, D4): pontos para liberar o próximo mapa. Só na seleção de mapas e nos resultados.
 func _draw_projetos(ci: CanvasItem, rr: Rect2) -> void:
 	var pm := int(MapaReg.modo_cfg("derruba").get("progressao", {}).get("pontos_por_mapa", 6))
 	var tot := int(main.perfil.dados.get("pontos_exploracao", 0))
-	Kit.chunk(ci, rr, Kit.CREAM, 10, 5, 7.0)   # régua de obra pintada no tapume
-	Kit.text(ci, Vector2(rr.position.x + 24, rr.position.y + 44), "PROJETOS DE DEMOLIÇÃO", 24, Kit.INK)
+	ci.draw_style_box(Obra._sb(Color("#f6eedb"), 6, 4), rr)   # régua de obra pintada no tapume (prancha)
+	Kit.text(ci, Vector2(rr.position.x + 20, rr.position.y + 32), "PROJETOS DE", 20, Kit.INK)
+	Kit.text(ci, Vector2(rr.position.x + 20, rr.position.y + 58), "DEMOLIÇÃO", 20, Kit.INK)
+	var cw := minf(62.0, (rr.size.x - 260.0) / pm)
 	for k in pm:
-		var cel := Rect2(rr.position.x + 24 + k * 62, rr.position.y + 58, 62, 36)
+		var cel := Rect2(rr.position.x + 180 + k * cw, rr.position.y + 16, cw, rr.size.y - 32)
 		ci.draw_rect(cel, (Color("#d42035") if k % 2 == 0 else Color.WHITE) if k < mini(tot, pm) else Color("#e2d9c6"))
 		ci.draw_rect(cel, Kit.INK, false, 3.0)
-	Kit.text(ci, Vector2(rr.position.x + 420, rr.position.y + 86), "%d/%d → você escolhe o próximo mapa" % [mini(tot, pm), pm], 22, Kit.SOFT)
+	Kit.text(ci, Vector2(rr.position.x + 180 + pm * cw, rr.position.y + 48), "%d/%d" % [mini(tot, pm), pm], 24, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, rr.end.x - (rr.position.x + 180 + pm * cw))
 
 func _draw_howto(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.45))
@@ -951,7 +1065,7 @@ func _draw_config(ci: CanvasItem) -> void:
 
 # ---------------------------------------------------------------- cenário do menu (não depende da fase)
 const SCENE_GROUND := 880.0
-const SCENE_X := [1010.0, 1150.0, 1440.0, 1680.0]
+const SCENE_X := [270.0, 410.0, 1580.0, 1760.0]   # dos dois lados da coluna de placas do menu
 const SCENE_FACE := [1.0, -1.0, -1.0, -1.0]
 const SCENE_SCALE := 2.4
 

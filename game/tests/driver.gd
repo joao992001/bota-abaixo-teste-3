@@ -541,15 +541,10 @@ func menus_test() -> void:
 	await frames(2)
 	check(main.state == S.MENU and main.players.is_empty(), "volta ao menu principal sem jogadores")
 	await tap("v0", "jump")
-	check(main.state == S.MODES, "JOGAR abre a seleção de modo")
-	check(main.demo.cfg["modos"].size() == 4 and main.demo.cfg["modos"].filter(func(m): return m["ok"]).map(func(m): return m["id"]) == ["derruba"], "Derruba jogável; Batata, Rei e Fuga EM BREVE")
-	for k in 3:
-		await tap("v0", "right")
-	check(main.menus.mode_sel == 3, "◄► passa pelos modos")
-	for k in 3:
-		await tap("v0", "left")
+	check(main.state == S.ARENAS and main.game_mode == "derruba", "JOGAR vai direto aos mapas do Derruba (A22: tela de modos pulada)")
+	await tap("v0", "back")
+	check(main.state == S.MENU, "ESC nos mapas volta ao menu principal")
 	await tap("v0", "jump")
-	check(main.state == S.ARENAS and main.game_mode == "derruba", "DERRUBA escolhido → arenas do modo")
 	check(main.menus.arena_list().size() == 1 + main.demo.find_mode("derruba")["arenas"].size(), "só as arenas da Derruba (+ sorteio)")
 	await tap("v0", "jump")
 	check(main.state == S.SELSPELLS and main.arena_choice == "canteiro_obras", "SORTEIO no Derruba: o jogo escolhe o mapa e segue para a configuração dele (%s)" % main.arena_choice)
@@ -1934,10 +1929,13 @@ func resultados_test() -> void:
 			main.kill(main.robots[alvo], -1, null)
 			await frames(20)
 	var w := 0
+	var viu_placar := false
 	while main.state != S.WIN and w < 600:
 		await frames(1)
+		viu_placar = viu_placar or main.state == S.SCORE
 		w += 1
 	check(main.state == S.WIN and main.winner == 0, "sobrou 1: vai direto para os RESULTADOS (%.1f s)" % (w / 60.0))
+	check(not viu_placar, "sem a tela antiga de placar (\"1 de 5 estrelas\") antes do fim")
 	check(main.demo.ranking() == [0, 1, 2], "ranking pela ordem de eliminação (%s)" % str(main.demo.ranking()))
 	check(int(main.players[0]["score"]) == 1, "estrela para o vencedor")
 	check(not main.res_info.is_empty() and not main.res_info["valida"] and main.res_info["pontos"] == 0, "luta de poucos segundos: não conta para gangorra nem Projetos")
@@ -3063,7 +3061,7 @@ func controle_real_test() -> void:
 	await joy_tap(3, JOY_BUTTON_DPAD_UP)
 	check(main.menus.sel == 0, "direcional sobe no menu")
 	await joy_tap(3, JOY_BUTTON_A)
-	check(main.state == S.MODES, "A confirma no menu")
+	check(main.state == S.ARENAS, "A confirma no menu (JOGAR → mapas)")
 	main.mode = "demolicao"
 	main.game_mode = "derruba"
 	main.demo.lives_setting = 1

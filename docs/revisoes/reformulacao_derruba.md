@@ -29,6 +29,8 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A19 | Card **ALEATÓRIO** das spells acende **8 sorteadas, 2 de cada família**; depois o jogador ainda ajusta (2026-11-26). |
 | A20 | **"Spells" passam a se chamar ENGENHOCAS** em tudo o que o jogador vê (2026-11-26). No código e nos dados o nome interno continua `spell` (ids A##/C##/E##/T##). |
 | A21 | Interface "Canteiro vivo" (2026-11-26): ajustes em ETAPAS OBRIGATÓRIAS 1 Engenhocas → 2 Eventos → 3 Vidas → 4 Jogadores → 5 Detonar (entrada de jogadores vira etapa); menu com placas EM COLUNA; abertura com robô SORTEADO marretando; etapa 2 se chama EVENTOS. |
+| A22 | **Tela de MODOS pulada** enquanto só o Derruba existir: JOGAR vai direto aos mapas (2026-11-26). Batata/Rei/Fuga ficam fora da interface (dados mantidos). |
+| A23 | **Pausa** = Continuar · Reiniciar · Configurar mapa · Selecionar mapa · Menu principal (2026-11-26). Mapas = igual à prancha `6_referencia_mapas_preferida.png` (sempre 4 cartazes; os que faltam aparecem BLOQUEADOS com lona/cadeado). |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
 | A14 | **EVENTO × PERIGO DA CENA (2026-11-26):** evento é **do mapa** e selecionável; tem de acontecer em **todas as cenas** do mapa (ex.: um terremoto vale nas 3). O que é específico de uma cena é **perigo/mecanismo da cena** (ex.: a enchente da Fundação, a serra do Térreo), não evento. Os antigos `V#` viram perigos da cena. |
 | A15 | Spells na tela de seleção: **mínimo 4, sem máximo** (2026-11-26). |

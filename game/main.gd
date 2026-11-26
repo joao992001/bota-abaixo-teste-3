@@ -520,7 +520,7 @@ func _join_update() -> void:
 			players.remove_at(i)
 			PlayerInput.slots.remove_at(i)
 	if players.is_empty() and menus.pressed("back"):
-		state = S.AJUSTES if selecao.ativo_para(arena_choice) else S.MODES   # etapa 4 → volta à etapa 3 (vidas)
+		state = S.AJUSTES if selecao.ativo_para(arena_choice) else S.ARENAS   # etapa 4 → volta à etapa 3 (vidas)
 	for i in players.size():
 		if PlayerInput.pressed(i, "left"):
 			_cycle_color(i, -1)
@@ -718,9 +718,12 @@ func _run_update(dt: float) -> void:
 	if end_delay >= 0.0:
 		end_delay -= dt
 		if end_delay < 0.0:
+			match_over = demo.end_round()
+			if match_over and demo.partida_unica():
+				_after_score()   # Derruba v2: sem a tela antiga de placar ("1 de 5 estrelas"); direto ao fim (avaliação 2026-11-26)
+				return
 			state = S.SCORE
 			timer = float(demo.cfg["score_seconds"])
-			match_over = demo.end_round()
 
 func check_contacts(r: CharacterBody2D) -> void:
 	if state != S.RUN or not r.alive or r.finished:
