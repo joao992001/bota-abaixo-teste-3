@@ -186,7 +186,7 @@ Reforma grande em andamento no `teste-2`, pedida pelo usuário em 2026-11-23, ne
    sempre `by = -1`. HUD mostra até 2 avisos lado a lado. Teste: `--so=eventos`; vitrine: `--eventos=DIR --so-eventos=G02+G05`.
    Arte: g02_exaustor/helice/grade, g04_bobina, g05_carga/moitao, g06_caixa/sucata, g11_tapume, g14_rebite, g09_drone.
    Aguardando aprovação. REJEITADOS (nunca reintroduzir): S09,S22,S23,S24,S26,S29,S30,S32; G07,G08,G15,G16,G17,G18.
-**Economia (pedido do usuário):** uma sessão nova por mudança grande; sessão principal faz tudo (agentes só para lotes grandes
+**Economia (pedido do usuário):** mesma sessão sempre, salvo motivo plausível (2026-11-26); sessão principal faz tudo (agentes só para lotes grandes
 de arte em paralelo); rodar só a parte dos testes que mudou (`--so=`) e a bateria completa 1× no fim; poucas capturas.
 **Ambiente na nuvem:** Godot 4.7.1 + modelos de exportação não vêm instalados; baixe de github.com/godotengine/godot/releases
 (`Godot_v4.7.1-stable_linux.x86_64.zip` e `..._export_templates.tpz`, extrair só `windows_release_x86_64.exe`,

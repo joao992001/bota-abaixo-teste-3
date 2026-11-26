@@ -10,7 +10,7 @@ Plataforma competitivo, **multiplayer local 2–4**, Godot 4. Party game de rob�
 
 ## Economia de uso (obrigatório)
 - **A sessão principal faz tudo** (código, mapas, regras e arte ligada ao código). Subagentes só para lotes grandes de arte em paralelo (`artista-personagens`, `artista-cenarios`) e `revisor` no fim de uma etapa grande. Máximo 3 ao mesmo tempo.
-- **Uma sessão nova por mudança grande**; antes de encerrar, atualize "Retomar aqui" em `docs/ESTADO.md`.
+- **Mesma sessão sempre** (pedido do usuário, 2026-11-26): só troque de sessão com motivo plausível. Gaste o necessário para chegar ao objetivo com qualidade, nada além. Antes de encerrar, atualize "Retomar aqui" em `docs/ESTADO.md`.
 - Testes: só a parte mexida (`--autotest --so=...`) durante o trabalho; a bateria completa 1× no fim. Poucas capturas de tela.
 - Delegue com 3 linhas: objetivo · arquivos que pode mexer · como saber que ficou pronto.
 - **Não construa ferramentas antecipadamente.** Escreva um script só quando o mesmo problema aparecer duas vezes.
