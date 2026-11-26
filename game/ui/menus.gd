@@ -145,6 +145,12 @@ func update(dt: float) -> void:
 				arena_sel = clampi(arena_sel + v * 4, 0, n - 1)
 			if confirm():
 				main.arena_choice = arena_list()[arena_sel]["id"]
+				if main.arena_choice == "sorteio" and main.game_mode == "derruba":
+					# Derruba: "?" = o jogo escolhe o mapa agora; depois a configuração é a mesma de quem escolheu o mapa
+					var reais: Array = main.demo.mode_arenas("derruba").filter(func(a): return main.selecao.ativo_para(String(a["id"])))
+					if not reais.is_empty():
+						main.arena_choice = String(reais[main.rng.randi_range(0, reais.size() - 1)]["id"])
+						main.float_text(Vector2(960, 540), "SORTEADO: " + String(MapaReg.manifesto("derruba", main.arena_choice).get("nome", main.arena_choice)).to_upper(), Color("#f2c84b"))
 				if main.selecao.ativo_para(main.arena_choice):
 					main.selecao.abrir_spells()   # Derruba v2: MAPA → SPELLS → EVENTOS → AJUSTES
 				else:
