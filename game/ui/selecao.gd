@@ -214,7 +214,7 @@ func _titulo(ci: CanvasItem, txt: String) -> void:
 	Kit.text(ci, Vector2(70, 93), nm, 26, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, 340)
 
 func draw_spells(ci: CanvasItem) -> void:
-	_titulo(ci, "ESCOLHA AS SPELLS")
+	_titulo(ci, "ESCOLHA AS ENGENHOCAS")
 	var lista := spells_do_mapa()
 	var ch := 214.0
 	for i in lista.size() + 1:
@@ -245,7 +245,7 @@ func draw_spells(ci: CanvasItem) -> void:
 	_rodape(ci, "%d de %d ligadas" % [n_on(), lista.size()], leg)
 	if aviso_t > 0.0:
 		Kit.chunk(ci, Rect2(660, 820, 600, 64), Kit.YEL, 18, 5, 6.0)
-		Kit.text(ci, Vector2(660, 863), "Ligue pelo menos %d spells" % min_spells(), 30, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, 600)
+		Kit.text(ci, Vector2(660, 863), "Ligue pelo menos %d engenhocas" % min_spells(), 30, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, 600)
 	Kit.text(ci, Vector2(0, 1056), "◄►▲▼ escolher  ·  PULAR acende/apaga  ·  ATACAR tudo/nada  ·  START continuar  ·  ESC voltar", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
 
 func draw_eventos(ci: CanvasItem) -> void:

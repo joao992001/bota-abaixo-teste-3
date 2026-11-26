@@ -2035,6 +2035,7 @@ func selecao_test() -> void:
 		ev.enabled[id] = true
 	main.spells_on.clear()
 	main.spells_mapa = ""
+	main.go_menu()   # não deixa o jogo parado na tela de engenhocas para o próximo teste
 
 ## Perfil salvo local (D4, docs/manuais/derruba/perfil_salvo.md): grava/lê, recupera do .bak, migra, gangorra e
 ## Projetos de Demolição. --so=perfil

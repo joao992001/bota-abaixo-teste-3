@@ -109,7 +109,8 @@ def elenco(y, poses, xs, s=1.6):
 
 
 def plaquinha_dica(txt):
-    return (fp.R(560, 1000, 800, 56, "#e9e2d0", 8, 1.6) + f'<rect x="560" y="1000" width="800" height="56" rx="8" fill="none" stroke="{INK}" stroke-width="4"/>'
+    w = max(800, len(txt) * 13 + 60)
+    return (fp.R(960 - w / 2, 1000, w, 56, "#e9e2d0", 8, 1.6) + f'<rect x="{960 - w / 2}" y="1000" width="{w}" height="56" rx="8" fill="none" stroke="{INK}" stroke-width="4"/>'
             + ec.T(960, 1037, txt, 24, INK))
 
 
@@ -352,17 +353,17 @@ def tela_ajustes():
 
 def trilha(atual):
     """Trilha de etapas obrigatórias (ordem de serviço): feitas = OK verde; atual = amarela; próximas = cinza + cadeado."""
-    nomes = ["SPELLS", "EVENTOS", "VIDAS", "DETONAR"]
+    nomes = ["ENGENHOCAS", "EVENTOS", "VIDAS", "DETONAR"]
     b = [f'<rect x="330" y="214" width="1260" height="12" fill="#8d98a4" stroke="{INK}" stroke-width="3"/>']
     for k, nm in enumerate(nomes):
-        cx = 420 + k * 360
+        cx = 430 + k * 355
         if k < atual:
             fill, txt = "#5fc95f", "#ffffff"
         elif k == atual:
             fill, txt = YEL, INK
         else:
             fill, txt = "#cfc8b8", "#6b5a70"
-        w = 250 if k == atual else 220
+        w = 300 if k == atual else 270
         b.append(f'<rect x="{cx - w / 2 + 6}" y="{186 + 8}" width="{w}" height="64" rx="14" fill="{INK}" opacity="0.35"/>')
         b.append(f'<rect x="{cx - w / 2}" y="186" width="{w}" height="64" rx="14" fill="{fill}" stroke="{INK}" stroke-width="5"/>')
         b.append(estencil(cx + 12, 230, f"{k + 1} · {nm}", 26, txt))
@@ -408,10 +409,10 @@ def tela_etapa_vidas():
     b.append(elenco(930, [("chave", "parado", 2, False), ("marretao", "parado", 0, True)], [150, 1780], 1.5))
     b.append(plaquinha_dica("◄► muda  ·  START próxima etapa  ·  ESC etapa anterior"))
     n = ec.notes("AJUSTES em ETAPAS OBRIGATÓRIAS (ordem de serviço) — etapa 3: VIDAS", [
-        ("PROPOSTA", "Trilha no topo de TODAS as etapas: 1 SPELLS → 2 EVENTOS → 3 VIDAS → 4 DETONAR."),
+        ("PROPOSTA", "Trilha no topo de TODAS as etapas: 1 ENGENHOCAS → 2 EVENTOS → 3 VIDAS → 4 DETONAR."),
         ("PROPOSTA", "Feita = carimbo OK verde; atual = amarela; próximas = cinza com cadeado (não pula)."),
         ("PROPOSTA", "START avança; ESC volta UMA etapa; só a etapa atual aparece no quadro."),
-        ("PROPOSTA", "Etapa 1 (mosaico de spells) inclui a chave “spells nas caixas”."),
+        ("PROPOSTA", "Etapa 1 (mosaico de engenhocas) inclui a chave “engenhocas nas caixas”."),
         ("PROPOSTA", "Etapa 2 (mosaico de eventos) inclui a sirene de intensidade."),
         ("PROPOSTA", "Etapa 3: só VIDAS, grande — número em estêncil e capacetes."),
     ])
@@ -423,7 +424,7 @@ def tela_etapa_detonar():
     # ficha-resumo (ordem de serviço) à esquerda
     x, y, w, h = 420, 320, 600, 480
     b.append(prancheta(x, y, w, h, "ORDEM DE SERVIÇO", "#2a1a2e"))
-    linhas = [("MAPA", "Canteiro de Obras"), ("SPELLS", "8 acesas"), ("EVENTOS", "10 · NORMAL"), ("VIDAS", "4")]
+    linhas = [("MAPA", "Canteiro de Obras"), ("ENGENHOCAS", "8 acesas"), ("EVENTOS", "10 · NORMAL"), ("VIDAS", "4")]
     for k, (a_, v) in enumerate(linhas):
         yy = y + 150 + k * 78
         b.append(f'<path d="M{x + 40},{yy + 16} H{x + w - 40}" stroke="#d9c7a3" stroke-width="3"/>')
@@ -451,6 +452,119 @@ def tela_etapa_detonar():
         ("DECIDIR", "A entrada de jogadores vira a etapa 5 da trilha, ou fica separada?"),
     ])
     return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=16, scale=0.5, freq=0.05))
+
+
+def carta_mosaico(x, y, w, h, cor, nome, icone_img, on, cursor=False, rotulo="", fam_icone=None):
+    """Carta do mosaico no estilo novo: ficha de compensado creme com faixa da família, ícone grande e carimbo ligado."""
+    b = []
+    if cursor:
+        b.append(f'<rect x="{x - 12}" y="{y - 12}" width="{w + 24}" height="{h + 24}" rx="18" fill="{YEL}" stroke="{INK}" stroke-width="6"/>')
+    b.append(f'<rect x="{x + 5}" y="{y + 8}" width="{w}" height="{h}" rx="12" fill="{INK}" opacity="0.35"/>')
+    b.append(fp.R(x, y, w, h, CREAM if on else "#dcd4c4", 10, 1.3))
+    b.append(f'<rect x="{x}" y="{y}" width="{w}" height="38" rx="10" fill="{cor}" opacity="{1 if on else 0.4}"/>')
+    b.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="none" stroke="{INK}" stroke-width="5"/>')
+    if rotulo:
+        b.append(estencil(x + 14, y + 28, rotulo, 20, "#ffffff", "start"))
+    if fam_icone is not None:
+        b.append(ec.img(fam_icone, x + 24, y + 19, 24, 24))
+    if icone_img is not None:
+        b.append(ec.img(icone_img, x + w / 2, y + 38 + (h - 96) / 2, w - 40, h - 110, '' if on else 'opacity="0.35"'))
+    b.append(ec.lines(x + w / 2, y + h - 34, ec.wrap2(nome, 11), 16, INK if on else "#6b5a70"))
+    cx, cy = x + w - 14, y + 12   # carimbo ligado/desligado
+    if on:
+        b.append(f'<circle cx="{cx}" cy="{cy}" r="19" fill="#5fc95f" stroke="{INK}" stroke-width="4"/><path d="M{cx - 8},{cy + 1} l6,7 l11,-13" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>')
+    else:
+        b.append(f'<circle cx="{cx}" cy="{cy}" r="17" fill="#cfc8b8" stroke="{INK}" stroke-width="4"/>')
+    return "".join(b)
+
+
+def tela_etapa_engenhocas():
+    b = [fundo(0.12), chao(930), cabecalho("CANTEIRO DE OBRAS · ETAPA 1 DE 4"), trilha(0)]
+    b.append(fp.R(140, 270, 1640, 640, "#d9a35f", 16, 2.6, dark="#b57a3e") + f'<rect x="140" y="270" width="1640" height="640" rx="16" fill="none" stroke="{INK}" stroke-width="8"/>')
+    off = {"C04", "T06", "T07", "E01"}
+    cw, ch, gap = 168, 176, 18
+    x0 = 170
+    cells = list(ec.SPELLS)
+    fam_ic = {f: (lambda im: im.crop(im.getbbox()))(Image.open(os.path.join(ROOT, f"game/assets/spells/icone_{f}.png")).convert("RGBA")) for f in ec.FAM}
+    for i, (sid, nome, fam, ref) in enumerate(cells):
+        x, y = x0 + (i % 8) * (cw + gap), 300 + (i // 8) * (ch + 18)
+        im = ec.asset(ref) if ref else fam_ic[fam]
+        b.append(carta_mosaico(x, y, cw, ch, ec.FAM[fam], nome, im, sid not in off, cursor=(sid == "T03"), fam_icone=fam_ic[fam]))
+        if sid == "T03":
+            b.append(chip(x - 26, y - 34))
+    x, y = x0 + 7 * (cw + gap), 300 + 2 * (ch + 18)   # ALEATÓRIO
+    b.append(f'<rect x="{x}" y="{y}" width="{cw}" height="{ch}" rx="10" fill="{YEL}" stroke="{INK}" stroke-width="5"/>' + ec.title(x + cw / 2, y + 112, "?", 96) + estencil(x + cw / 2, y + ch - 16, "ALEATÓRIO", 20, INK))
+    # painel lateral: contador + chave "engenhocas nas caixas"
+    sx, sy = 1700, 470
+    b.append(f'<rect x="1660" y="300" width="100" height="560" rx="12" fill="#4a5060" stroke="{INK}" stroke-width="5"/>')
+    b.append(f'<rect x="{sx - 12}" y="{sy - 60}" width="24" height="120" rx="12" fill="#2a2f3a"/><path d="M{sx},{sy + 40} L{sx},{sy - 48}" stroke="#c9d1d8" stroke-width="14" stroke-linecap="round"/><circle cx="{sx}" cy="{sy - 54}" r="18" fill="#5fc95f" stroke="{INK}" stroke-width="5"/>')
+    b.append(estencil(1710, 560, "LIGA", 20, "#5fc95f") + estencil(1710, 620, "nas", 18, "#ffffff") + estencil(1710, 644, "caixas", 18, "#ffffff"))
+    b.append(estencil(1710, 770, "19", 50, YEL) + estencil(1710, 800, "de 23", 18, "#ffffff"))
+    b.append(plaquinha_dica("◄►▲▼ escolher · PULAR acende/apaga · ATACAR tudo/nada · START próxima etapa"))
+    n = ec.notes("ETAPA 1 — ENGENHOCAS (antes “spells”) no estilo Canteiro vivo", [
+        ("APROVADO", "Nome ENGENHOCAS em tudo o que o jogador vê (A20)."),
+        ("APROVADO", "Mosaico; mínimo 4; ALEATÓRIO = 8 (2 por família); ATACAR tudo/nada."),
+        ("PROPOSTA", "Cartas viram fichas de compensado com a faixa da família e carimbo ligado/desligado."),
+        ("PROPOSTA", "Coluna de metal à direita: chave “engenhocas nas caixas” + contador (19 de 23)."),
+        ("PROPOSTA", "Trilha no topo: esta é a etapa 1; START só avança com 4 ou mais acesas."),
+        ("PROPOSTA", "ESC aqui volta à escolha do mapa (é a primeira etapa)."),
+    ])
+    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=17, scale=0.5, freq=0.05))
+
+
+def tela_etapa_eventos():
+    b = [fundo(0.12), chao(930), cabecalho("CANTEIRO DE OBRAS · ETAPA 2 DE 4"), trilha(1)]
+    b.append(fp.R(140, 270, 1640, 640, "#d9a35f", 16, 2.6, dark="#b57a3e") + f'<rect x="140" y="270" width="1640" height="640" rx="16" fill="none" stroke="{INK}" stroke-width="8"/>')
+    cw, ch, gap = 160, 270, 17
+    x0 = 170
+    cells = [("NONE", "NENHUM", None, None)] + list(ec.EVENTOS) + [("RND", "ALEATÓRIO", None, None)]
+    for i, (eid, nome, ref, _c) in enumerate(cells):
+        x, y = x0 + (i % 7) * (cw + gap), 310 + (i // 7) * (ch + 34)
+        if eid == "NONE":
+            b.append(f'<rect x="{x}" y="{y}" width="{cw}" height="{ch}" rx="10" fill="#dcd4c4" stroke="{INK}" stroke-width="5"/>'
+                     f'<circle cx="{x + cw / 2}" cy="{y + 116}" r="50" fill="none" stroke="{INK}" stroke-width="11"/><path d="M{x + cw / 2 - 35},{y + 151} L{x + cw / 2 + 35},{y + 81}" stroke="{INK}" stroke-width="11"/>'
+                     + estencil(x + cw / 2, y + ch - 22, "NENHUM", 22, INK))
+            continue
+        if eid == "RND":
+            b.append(f'<rect x="{x}" y="{y}" width="{cw}" height="{ch}" rx="10" fill="{YEL}" stroke="{INK}" stroke-width="5"/>' + ec.title(x + cw / 2, y + 160, "?", 110) + estencil(x + cw / 2, y + ch - 20, "ALEATÓRIO", 18, INK))
+            continue
+        img = None if ref.startswith("@") else ec.asset(ref)
+        b.append(carta_mosaico(x, y, cw, ch, "#6aa6c8", nome, img, eid != "G11", cursor=(eid == "G03"), rotulo=eid))
+        if img is None:
+            b.append(f'<g>{ec.glyph(ref, x + cw / 2, y + 38 + (ch - 96) / 2, 0.75)}</g>')
+        if eid == "G03":
+            b.append(chip(x - 26, y - 34))
+    # sirene de intensidade (à direita)
+    gx, gy = 1500, 560
+    b.append(fp.R(1420, 300, 330, 580, CREAM, 10, 1.4) + f'<rect x="1420" y="300" width="330" height="580" rx="10" fill="none" stroke="{INK}" stroke-width="5"/>')
+    b.append(f'<rect x="1420" y="300" width="330" height="56" rx="10" fill="#d42035"/>' + estencil(1585, 340, "INTENSIDADE", 26, "#ffffff"))
+    sx, sy = 1585, 470
+    for k in range(3):
+        a = math.radians(-60 + k * 50)
+        b.append(f'<path d="M{sx},{sy - 30} L{sx + math.cos(a) * 120:.0f},{sy - 30 + math.sin(a) * 70:.0f} L{sx + math.cos(a + 0.35) * 120:.0f},{sy - 30 + math.sin(a + 0.35) * 70:.0f}Z" fill="#ffd34d" opacity="0.4"/>')
+    b.append(f'<rect x="{sx - 56}" y="{sy + 2}" width="112" height="26" rx="6" fill="#4a4f5c" stroke="{INK}" stroke-width="4"/><path d="M{sx - 44},{sy + 4} v-38 a44,44 0 0 1 88,0 v38z" fill="#e8483f" stroke="{INK}" stroke-width="5"/>')
+    gx, gy, gr = 1585, 700, 100
+    labs = ["DESL.", "BAIXA", "NORMAL", "ALTA"]
+    cols = ["#8d98a4", "#8fd46a", "#f2d04b", "#ec6448"]
+    for k in range(4):
+        a0 = math.radians(180 + k * 45)
+        a1 = math.radians(180 + (k + 1) * 45)
+        b.append(f'<path d="M{gx},{gy} L{gx + math.cos(a0) * gr:.1f},{gy + math.sin(a0) * gr:.1f} A{gr},{gr} 0 0 1 {gx + math.cos(a1) * gr:.1f},{gy + math.sin(a1) * gr:.1f}Z" fill="{cols[k]}" stroke="{INK}" stroke-width="4"/>')
+        am = math.radians(180 + (k + 0.5) * 45)
+        b.append(ec.T(gx + math.cos(am) * (gr + 30), gy + math.sin(am) * (gr + 22) + 6, labs[k], 16, INK))
+    an = math.radians(180 + 2.5 * 45)
+    b.append(f'<path d="M{gx},{gy} L{gx + math.cos(an) * (gr - 12):.1f},{gy + math.sin(an) * (gr - 12):.1f}" stroke="{INK}" stroke-width="9" stroke-linecap="round"/><circle cx="{gx}" cy="{gy}" r="12" fill="{YEL}" stroke="{INK}" stroke-width="4"/>')
+    b.append(estencil(gx, gy + 60, "NORMAL", 30, "#b0331f") + estencil(gx, gy + 92, "▲▼ na sirene", 18, "#6b5a70"))
+    b.append(plaquinha_dica("◄►▲▼ escolher · PULAR acende/apaga · START próxima etapa · ESC etapa anterior"))
+    n = ec.notes("ETAPA 2 — EVENTOS (do mapa, valem em todas as cenas) no estilo Canteiro vivo", [
+        ("APROVADO", "Só eventos do mapa (A14); NENHUM, ALEATÓRIO, sem máximo (A18)."),
+        ("PROPOSTA", "Mesmas fichas de compensado da etapa 1; carimbo ligado/desligado."),
+        ("PROPOSTA", "Intensidade dos eventos entra AQUI: sirene com mostrador (sai da etapa de vidas)."),
+        ("PROPOSTA", "Perigos da cena (betoneira, água, serra…) não aparecem: estão sempre ligados."),
+        ("PROPOSTA", "Trilha no topo: etapa 1 com OK, esta amarela, 3 e 4 com cadeado."),
+        ("DECIDIR", "Chamar esta etapa de EVENTOS ou de MODIFICAÇÕES (como na sua proposta original)?"),
+    ])
+    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=18, scale=0.5, freq=0.05))
 
 
 def tela_abertura():
@@ -501,7 +615,7 @@ def tela_abertura():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    boards = [("v2_1_menu", tela_menu()), ("v2_2_mapas", tela_mapas()), ("v2_3_etapa_vidas", tela_etapa_vidas()), ("v2_3b_etapa_detonar", tela_etapa_detonar()), ("v2_4_abertura", tela_abertura())]
+    boards = [("v2_1_menu", tela_menu()), ("v2_2_mapas", tela_mapas()), ("v2_3a_etapa_engenhocas", tela_etapa_engenhocas()), ("v2_3a2_etapa_eventos", tela_etapa_eventos()), ("v2_3_etapa_vidas", tela_etapa_vidas()), ("v2_3b_etapa_detonar", tela_etapa_detonar()), ("v2_4_abertura", tela_abertura())]
     import json, subprocess, tempfile
     tmp = tempfile.mkdtemp(prefix="menus_v2_")
     jobs = []

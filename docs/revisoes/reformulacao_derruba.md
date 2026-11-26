@@ -27,6 +27,7 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | A13 | **Estrelas = placar da sessão** (2026-11-26): continuam em Jogar de novo, Configurar mapa e Selecionar mapa; **só Menu principal zera**. Não são salvas no perfil. |
 | A18 | Eventos: **sem máximo** de ligados. Manômetro **mostra o número** (%) embaixo da agulha (2026-11-26). |
 | A19 | Card **ALEATÓRIO** das spells acende **8 sorteadas, 2 de cada família**; depois o jogador ainda ajusta (2026-11-26). |
+| A20 | **"Spells" passam a se chamar ENGENHOCAS** em tudo o que o jogador vê (2026-11-26). No código e nos dados o nome interno continua `spell` (ids A##/C##/E##/T##). |
 | A12 | Online, contas e sincronização: **não implementar**; só desenhar os dados para o futuro (`CLAUDE.md` continua proibindo online). |
 | A14 | **EVENTO × PERIGO DA CENA (2026-11-26):** evento é **do mapa** e selecionável; tem de acontecer em **todas as cenas** do mapa (ex.: um terremoto vale nas 3). O que é específico de uma cena é **perigo/mecanismo da cena** (ex.: a enchente da Fundação, a serra do Térreo), não evento. Os antigos `V#` viram perigos da cena. |
 | A15 | Spells na tela de seleção: **mínimo 4, sem máximo** (2026-11-26). |

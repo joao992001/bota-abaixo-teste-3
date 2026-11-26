@@ -14,6 +14,9 @@ quem sobra. Dano acumulado (Amassômetro %) aumenta o arremesso. Motor: `game/mo
 Rota Total* = os dois destinos possíveis de uma transição. *Evento/modificação* = ocorrência opcional escolhida na
 configuração. *Partida* = uma luta até sobrar um robô.
 
+> **Vocabulário (A20, 2026-11-26):** o que o jogador vê como **ENGENHOCA** é o que o código e os manuais antigos chamam de
+> *spell* (`modes/spells.gd`, `spell.md`, ids A##/C##/E##/T##).
+
 ## Regras do modo (valem para TODO mapa do Derruba)
 | Tema | Regra (v2, APROVADA) | No jogo hoje |
 |---|---|---|

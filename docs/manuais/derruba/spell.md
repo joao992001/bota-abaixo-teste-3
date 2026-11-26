@@ -1,5 +1,7 @@
 # Manual — criar uma SPELL (modo Derruba)
 
+> No jogo, o nome que o jogador vê é **ENGENHOCA** (A20, 2026-11-26); "spell" ficou como nome interno.
+
 Spell = item da caixa: 1 por robô, botão de ESPECIAL. 26 aprovadas (A01–T07, ver `NOMES` em `game/modes/spells.gd`).
 Princípios gerais: [`../spells.md`](../spells.md). **Classes = do modo** (`modos[derruba].classes_spells`: ataque,
 controle, engenharia, transformação). **Disponibilidade = do mapa**: uma spell só sai nas caixas de um mapa se estiver em

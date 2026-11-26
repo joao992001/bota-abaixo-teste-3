@@ -49,6 +49,8 @@ func start(dev: String) -> void:
 	main.add_player(dev)
 	main.arena_choice = "laboratorio"
 	main.game_mode = "derruba"
+	for id in main.events.enabled:   # ferramenta de testes: todos os eventos disponíveis (a seleção da partida não vale aqui)
+		main.events.enabled[id] = true
 	main.event_level = 2
 	main.events.manual = true
 	main.demo.items_on = false
@@ -144,7 +146,7 @@ func update() -> void:
 
 func _label(row: String) -> String:
 	match row:
-		"spell": return "SPELL:  ◄ %s ►" % _spell_name(spells()[spell_i])
+		"spell": return "ENGENHOCA:  ◄ %s ►" % _spell_name(spells()[spell_i])
 		"evento": return "EVENTO:  ◄ %s ►" % String(events()[event_i]["nome"]).to_upper()
 		"bot": return "BOTS:  ◄ − / + ►   %d" % _count("bot")
 		"boneco": return "BONECOS:  ◄ − / + ►   %d" % _count("boneco")
@@ -363,7 +365,7 @@ func _draw_meters(ci: CanvasItem) -> void:
 	var fl: Dictionary = sp.flags(r) if sp != null else {}
 	var prep: float = fl.get("prep", -1.0)
 	var k := prep if prep >= 0.0 else (1.0 - float(info.get("frac", 1.0)) if info.get("frac", 1.0) < 1.0 else 0.0)
-	_bar(ci, Vector2(x, y + 140), "Spell " + (String(info["id"]) + " ×%d" % int(info["charges"]) if not info.is_empty() else "—"), k, sp.FAM_COR.get(info.get("fam", ""), Color("#9aa4ae")) if sp != null else Color.GRAY)
+	_bar(ci, Vector2(x, y + 140), "Engenhoca " + (String(info["id"]) + " ×%d" % int(info["charges"]) if not info.is_empty() else "—"), k, sp.FAM_COR.get(info.get("fam", ""), Color("#9aa4ae")) if sp != null else Color.GRAY)
 	y += 186
 	Kit.text(ci, Vector2(x, y), "Esquiva no ar %s   Pulo duplo %s   Dano %d%%" % ["●" if r.air_dodge > 0 else "○", "●" if r.air_jumps > 0 else "○", int(r.dmg)], 19, Color("#2a1a2e"))
 	# entradas apertadas

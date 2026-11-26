@@ -343,7 +343,7 @@ func _draw_adjust(ci: CanvasItem) -> void:
 		"rei": "SEGUNDOS PARA VENCER:  ◄ %d ►" % main.demo.KING_GOALS[main.demo.king_setting],
 		"eventos": "EVENTOS (INTENSIDADE):  ◄ %s ►" % EVENT_LEVELS[main.event_level],
 		"escolher": "ESCOLHER EVENTOS  ▸",
-		"itens": "SPELLS:  ◄ %s ►" % ("SIM" if main.demo.items_on else "NÃO"),
+		"itens": "ENGENHOCAS:  ◄ %s ►" % ("SIM" if main.demo.items_on else "NÃO"),
 		"comecar": "COMEÇAR  ▸",
 	}
 	var rows := adjust_rows()
@@ -429,7 +429,7 @@ func _draw_howto(ci: CanvasItem) -> void:
 		["robo", "Derrube os outros no poço de espinhos. O último em pé ganha uma ★."],
 		["marreta", "GOLPE RÁPIDO (X/□): empurra e interrompe. MARRETADA PESADA (Y/△): demora,\nmas arremessa longe e quebra caixotes (▼ + pesada quebra o chão). Errou? Fica exposto."],
 		["pisao", "ESQUIVA (RB/R1): escapa de golpes por um instante, no chão ou 1 vez no ar.\nArremessado? Segure a direção para corrigir e use a esquiva para se salvar."],
-		["itens", "Caixas de SPELL: a cor mostra a família (ataque, controle, engenharia, transformação).\nEncoste para pegar · ESPECIAL usa · segure ESPECIAL em cima de outra caixa para trocar."],
+		["itens", "Caixas de ENGENHOCA: a cor mostra a família (ataque, controle, engenharia, transformação).\nEncoste para pegar · ESPECIAL usa · segure ESPECIAL em cima de outra caixa para trocar."],
 		["parado", "Caixote racha se você fica parado em cima. No fim da rodada, TERREMOTO!"],
 	]
 	for i in tips.size():
@@ -606,7 +606,7 @@ func _draw_pad_card(ci: CanvasItem, j: int, r: Rect2, k: int) -> void:
 	Kit.pad_btn(ci, c + Vector2(34, -40), 12, "start", st, Input.is_joy_button_pressed(j, JOY_BUTTON_START))
 	# o que faz cada botão no jogo
 	var y := r.position.y + 500
-	for line in [[["baixo"], " pula"], [["esquerda"], " golpe rápido"], [["cima"], " marretada pesada"], [["rb"], " esquiva"], [["lb"], " especial (spell)"], [["start"], " pausa / começa"], [["direita"], " volta nos menus"]]:
+	for line in [[["baixo"], " pula"], [["esquerda"], " golpe rápido"], [["cima"], " marretada pesada"], [["rb"], " esquiva"], [["lb"], " especial (engenhoca)"], [["start"], " pausa / começa"], [["direita"], " volta nos menus"]]:
 		var parts: Array = []
 		for e in line:
 			parts.append(e)
@@ -700,7 +700,7 @@ func _draw_intro(ci: CanvasItem) -> void:
 		Kit.text(ci, Vector2(0, 1030), "aperte qualquer botão", 30, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6, Color(0.12, 0.3, 0.33, a))
 
 # ---------------------------------------------------------------- configurar controle (aprende os sinais do controle)
-const LEARN_NAMES := {"jump": "PULAR", "hammer": "GOLPE RÁPIDO", "heavy": "MARRETADA PESADA", "dodge": "ESQUIVA", "item": "ESPECIAL (SPELL)", "start": "START (começar / pausar)", "back": "VOLTAR (nos menus)",
+const LEARN_NAMES := {"jump": "PULAR", "hammer": "GOLPE RÁPIDO", "heavy": "MARRETADA PESADA", "dodge": "ESQUIVA", "item": "ESPECIAL (ENGENHOCA)", "start": "START (começar / pausar)", "back": "VOLTAR (nos menus)",
 	"left": "ESQUERDA (analógico ou direcional)", "right": "DIREITA", "up": "CIMA", "down": "BAIXO"}
 var cfg_step := -1          # -1 = esperando escolher o controle; 0..8 = ação; 9 = pronto
 var cfg_joy := -1
