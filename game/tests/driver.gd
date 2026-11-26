@@ -1389,7 +1389,7 @@ func eventos_test() -> void:
 	var ct = main.demo.canteiro
 	main.demo.spells.spawn_t = 999.0
 	main.event_level = 2
-	check(not ev.eligible(ev.ev("G03")) and ev.eligible(ev.ev("V1")) and not ev.eligible(ev.ev("V3")) and not ev.eligible(ev.ev("G01")), "eventos do mapa por cena: no Térreo vale V1 e não G03/V3/G01 (manifesto)")
+	check(not ev.eligible(ev.ev("G03")) and ev.eligible(ev.ev("V1")) and not ev.eligible(ev.ev("V3")) and ev.eligible(ev.ev("G01")), "eventos do mapa por cena: no Térreo vale V1 e G01 (Sirene, v2), e não G03/V3 (manifesto)")
 	ev.libera_tudo = true   # daqui em diante testa a BIBLIOTECA inteira (cada evento isolado)
 	var r0 = main.robots[0]
 	var r1 = main.robots[1]

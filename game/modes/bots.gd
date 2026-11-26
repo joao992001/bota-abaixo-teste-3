@@ -330,6 +330,7 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 			if b["vy"] == 0.0 and not b["block"].has(r.pid) and b["pos"].distance_to(pos) < td * 1.2 and main.rng.randf() < float(lv["use_items"]):
 				goal = b["pos"] + Vector2(0, 26)
 				break
+	st["alvo_abaixo"] = goal.y > pos.y + 90.0
 	# 6) rival em outro andar: segue o caminho de degraus, subindo ou descendo
 	#    (andar em linha reta parava na beirada e o bot ficava travado)
 	if absf(goal.y - pos.y) > 90.0:
@@ -372,6 +373,17 @@ func _reach(L, a: Vector2i, b: Vector2i) -> bool:
 		if L.is_solid(Vector2i(b.x, y)):
 			return false
 	return true
+
+## Sair andando para a coluna c é seguro? Chão na mesma altura (e sem parede) ou um vão cujo primeiro piso embaixo dá para
+## ficar em pé (nunca espinho, água ou o fundo do mapa).
+func _queda_segura(L, c: int, row: int) -> bool:
+	if L.is_solid(Vector2i(c, row)):
+		return not L.is_solid(Vector2i(c, row - 1))
+	for y in range(row + 1, L.rows):
+		var cc := Vector2i(c, y)
+		if L.is_solid(cc) or L.ch_at(cc) == "=":
+			return _standable(L, cc) and not L.ch_at(cc) in ["^", "w"] and y < L.rows - 1
+	return false
 
 func _goal_cell(L, goal: Vector2) -> Vector2i:
 	var gx := int(goal.x / 64.0)
@@ -435,6 +447,8 @@ func _climb(r, goal: Vector2, lv: Dictionary) -> Dictionary:
 		# o caminho segue pelo mesmo andar ou desce: anda até lá (cai da beirada se preciso)
 		var ndx := nav.x * 64 + 32 - pos.x
 		cmd["dir"] = signi(int(ndx)) if absf(ndx) > 12.0 else 0
+		if nav.y > row and cmd["dir"] != 0 and r.is_on_floor() and _queda_segura(L, col + int(cmd["dir"]), row):
+			return cmd   # o caminho DESCE: sai da beirada e cai no degrau de baixo (a segurança pulava o vão e o bot ficava preso em cima)
 		var rs := _safe(r, cmd, lv)
 		if cmd["dir"] != 0 and rs.get("dir", 0) == 0:
 			rs["dir"] = cmd["dir"]   # o próximo degrau do caminho é chão: segue (e cai, se for para baixo)
@@ -545,6 +559,11 @@ func _recover(r, st: Dictionary, inp: Dictionary, prev: Dictionary, dt: float) -
 		st["hang_t"] = st.get("hang_t", 0.0) + dt
 		inp.erase("left")
 		inp.erase("right")
+		if st.get("alvo_abaixo", false) and r.stun_t <= 0.0 \
+				and _queda_segura(main.level, int(r.position.x / 64.0), int((r.position.y + 2.0) / 64.0)):
+			inp["down"] = true   # o alvo está embaixo e há chão logo abaixo: solta a borda e cai (subir de volta o deixava preso em cima)
+			inp.erase("jump")
+			return
 		inp["right" if r.hang_dir > 0 else "left"] = true
 		if st["hang_t"] > 0.25:
 			inp["jump"] = not prev.get("jump", false)
