@@ -34,6 +34,59 @@ func _ready() -> void:
 func _process(dt: float) -> void:
 	t += dt
 	_banner_age += dt
+	var et = _etapas()
+	if et != null:   # manômetro: agulha persegue o valor; quando algo cai, dá um tranco (A6)
+		var alvo: float = et.progresso
+		if alvo < gauge_v - 0.15:
+			gauge_v = alvo   # cena nova: zera na hora
+		elif alvo > gauge_v + 0.002:
+			gauge_kick = 1.0
+		gauge_v = lerpf(gauge_v, alvo, minf(1.0, dt * 6.0))
+		gauge_kick = maxf(0.0, gauge_kick - dt * 2.5)
+
+## Cenas do Derruba (o manômetro só existe onde há troca de cena).
+func _etapas():
+	var et = main.demo.etapas if main.mode == "demolicao" and main.demo != null else null
+	return et if et != null and is_instance_valid(et) else null
+
+const GAUGE_ARC := 240.0
+var gauge_v := 0.0      # valor mostrado pela agulha (0..1)
+var gauge_kick := 0.0   # tranco da agulha quando a destruição sobe
+
+## Manômetro circular da destruição da cena (Derruba v2, A6/A16/A18): mostrador de 10% a 90% em 6 zonas
+## (verde → vermelho); abaixo de 10% a agulha fica no começo, em 90% encosta no fim (= rota total); traço em 50%;
+## número embaixo da agulha.
+func draw_gauge(c: Vector2, r: float, v: float, kick := 0.0) -> void:
+	var dc: Dictionary = main.demo.etapas.dcfg if _etapas() != null else {}
+	var mm: Array = dc.get("mostrador", [0.1, 0.9])
+	var cols: Array = dc.get("zonas", ["#2e9e4f", "#8fd46a", "#f2d04b", "#f39a3a", "#ec6448", "#a8233a"])
+	var lo := float(mm[0])
+	var hi := float(mm[1])
+	var ang := func(p: float) -> float: return deg_to_rad(150.0 + GAUGE_ARC * (clampf(p, lo, hi) - lo) / (hi - lo))
+	draw_circle(c + Vector2(0, r * 0.12), r, Kit.INK)
+	draw_circle(c, r, Kit.CREAM)
+	var rm := r * 0.73
+	var wz := r * 0.26
+	for k in 6:
+		var a0: float = ang.call(lo + (hi - lo) * k / 6.0)
+		var a1: float = ang.call(lo + (hi - lo) * (k + 1) / 6.0)
+		draw_arc(c, rm, a0, a1, 10, Color(String(cols[k])), wz, true)
+	draw_arc(c, rm + wz * 0.5, ang.call(lo), ang.call(hi), 40, Kit.INK, maxf(2.0, r * 0.05), true)
+	draw_arc(c, rm - wz * 0.5, ang.call(lo), ang.call(hi), 40, Kit.INK, maxf(2.0, r * 0.05), true)
+	for k in 7:
+		var a: float = ang.call(lo + (hi - lo) * k / 6.0)
+		draw_line(c + Vector2.from_angle(a) * (rm - wz * 0.5), c + Vector2.from_angle(a) * (rm + wz * 0.5), Kit.INK, maxf(2.0, r * 0.04), true)
+	var a50: float = ang.call(float(dc.get("limiar_moderada", 0.5)))
+	draw_line(c + Vector2.from_angle(a50) * (rm - wz * 0.7), c + Vector2.from_angle(a50) * (rm + wz * 0.85), Kit.INK, maxf(3.0, r * 0.08), true)
+	draw_arc(c, r, 0.0, TAU, 48, Kit.INK, maxf(3.0, r * 0.08), true)
+	var an: float = ang.call(v) + sin(t * 40.0) * 0.07 * kick
+	var tip := c + Vector2.from_angle(an) * r * 0.72
+	var b1 := c + Vector2.from_angle(an + PI * 0.5) * r * 0.11
+	var b2 := c + Vector2.from_angle(an - PI * 0.5) * r * 0.11
+	draw_colored_polygon(PackedVector2Array([tip, b1, b2]), Kit.INK)
+	draw_circle(c, r * 0.15, Kit.INK)
+	draw_circle(c, r * 0.1, Kit.YEL)
+	Kit.title(self, Vector2(c.x - 120, c.y + r * 0.78), "%d%%" % int(round(v * 100.0)), int(r * 0.4) + int(kick * 4.0), Color.WHITE, 240)
 
 func text(pos: Vector2, s: String, sz: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT, w := -1.0, outline := 0) -> void:
 	Kit.text(self, pos, s, sz, col, align, w, outline)
@@ -118,8 +171,11 @@ func _draw_tags() -> void:
 	var xs: Array = card_slots(n)
 	for i in n:
 		_card(i, Rect2(xs[i], CARD_Y, CARD_W, CARD_H))
-	# título da rodada (topo, no meio, entre os cartões)
-	Kit.title(self, Vector2(0, 42), "RODADA %d" % main.round_no, 34)
+	# topo, no meio: manômetro da cena no Derruba com cenas (substitui o "RODADA", A6); nos outros, o título da rodada
+	if _etapas() != null:
+		draw_gauge(Vector2(960, 62), 52, gauge_v, gauge_kick)
+	else:
+		Kit.title(self, Vector2(0, 42), "RODADA %d" % main.round_no, 34)
 	if main.mode == "demolicao" and main.state == S.RUN:
 		_draw_event_note()
 	# avisos de derrubada (embaixo dos cartões da direita)

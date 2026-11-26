@@ -337,7 +337,7 @@ func demo_round() -> void:
 	main.state = S.RUN
 	main.countdown = 0.0
 	if main.demo.etapas != null:
-		main.demo.etapas.ativo = false   # testes longos: diretor e transição desligados (só etapas_test/diretor_test ligam)
+		main.demo.etapas.ativo = false   # testes longos: diretor e transição desligados (só etapas_test/verificacao_test ligam)
 	for r in main.robots:
 		r.active = true
 	await frames(3)
@@ -515,7 +515,7 @@ func demolicao_test() -> void:
 	await mapa_test()
 	await skins_test()
 	await etapas_test()
-	await diretor_test()
+	await verificacao_test()
 	await limpa_test()
 	await mecanismos_test()
 	await imagens_test()
@@ -1639,18 +1639,19 @@ func etapas_test() -> void:
 	sp.spawn_t = 999.0
 	sp.boxes.clear()
 	sp.drop_box("A02", Vector2(6 * 64.0, 17 * 64.0), false)   # caixa no térreo: tem de cair junto para a Fundação
-	# --- gatilho por DESTRUIÇÃO (90%), não por tempo
+	# --- v2: o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE
 	var ct = main.demo.canteiro
-	et.dcfg["intervalo_s"] = [999, 999]   # diretor parado: aqui só o dano dos testes conta
 	et.ativo = true
+	var tp: Array = et.tempos()
+	check(is_equal_approx(tp[0], 70.0) and absf(tp[1] - 23.3) < 0.1, "5 vidas: 1ª verificação aos 70 s, depois a cada ~23 s (%s)" % str(tp))
 	check(ct.progresso(1) == 0.0, "obra intacta: 0%")
 	for p in ct.parts:
 		if p["nucleo"] or p["kind"] == "terreo":
 			ct.damage(p, 9, p["rect"].get_center())
 	check(ct.progresso(1) == 0.0, "base fixa (núcleo e térreo) não leva dano e não conta na destruição")
-	et.t_cena = 600.0   # 10 minutos na cena, sem destruição
-	await frames(30)
-	check(et.state == "etapa", "sem destruição o tempo sozinho não vira a cena (sem cronômetro: %.0f s)" % et.t_cena)
+	et.t_cena = et.prox_verif - 0.05   # chega a hora da 1ª verificação, sem destruição
+	await frames(10)
+	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "< 50%% na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
 	var vig: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and int(p["etapa"]) == 1)
 	ct.damage(vig[0], 1, vig[0]["rect"].get_center())   # dano parcial (caminho de spells/eventos/mecanismos/ciclo)
 	var pp: float = ct.progresso(1)
@@ -1661,15 +1662,9 @@ func etapas_test() -> void:
 	await frames(5)
 	await heavy_hit("v0")
 	check(ct.progresso(1) > pp, "marretada do jogador também conta (%.1f%%)" % (ct.progresso(1) * 100.0))
-	pp = ct.progresso(1)
-	et.dcfg["limiar"] = pp + 0.001
-	await frames(10)
-	check(et.state == "etapa", "logo ABAIXO do limiar não transita")
-	et.dcfg["limiar"] = pp
-	await frames(2)
-	check(et.state == "aviso", "NO limiar transita (aviso + sirene)")
-	et.dcfg["limiar"] = 0.9
-	et.state = "etapa"   # volta ao jogo para provar os 90% de verdade: derruba as peças destrutíveis
+	et.progresso = 0.62
+	et.verificar()
+	check(et.state == "etapa" and et.destino_de("moderada") < 0, "50–90%: a rota moderada (Fachada) ainda está pendente → fica na cena")
 	put(r0, Vector2(2 * 64.0, 17 * 64.0))   # de volta à ponta do térreo (a marretada o deixou perto da beira)
 	for i in main.players.size():
 		main.demo.lives[i] = 9
@@ -1677,11 +1672,19 @@ func etapas_test() -> void:
 	for p in ct.parts:
 		if int(p["etapa"]) == 1 and not p["nucleo"] and p["kind"] != "terreo":
 			ct.damage(p, 99, p["rect"].get_center())
+	et.prox_verif = et.t_cena + 999.0
+	var w0 := 0
+	while ct.progresso(1) < 0.9 and w0 < 600:   # as peças caem aos poucos
+		await frames(1)
+		w0 += 1
+	await frames(30)
+	check(et.state == "etapa" and ct.progresso(1) >= 0.9, "90%% antes da verificação NÃO antecipa (%.0f%%, ainda na cena)" % (ct.progresso(1) * 100.0))
+	et.prox_verif = et.t_cena + 1.0
 	var w := 0
 	while et.state == "etapa" and w < 400:
 		await frames(1)
 		w += 1
-	check(et.state == "aviso" and main.demo.banner.begins_with("A OBRA") and ct.progresso(1) >= 0.9, "90%% de destruição → \"A OBRA VAI CEDER!\" (%.0f%%, %.1f s)" % [ct.progresso(1) * 100.0, w / 60.0])
+	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "na verificação, ≥ 90%% → rota TOTAL: \"A OBRA VAI CEDER!\" (%.1f s depois)" % (w / 60.0))
 	sp.equip(r1, "T04")   # jetpack ligado bem na virada (bug: voava para fora da queda)
 	sp.use(r1)
 	await frames(int(float(et.cfg["aviso_s"]) * 60.0) + 4)
@@ -1723,18 +1726,18 @@ func mapa_test() -> void:
 	check(MapaReg.spells("derruba", "demolicao", ["A01", "A02"]).size() == 2, "mapa-ferramenta (laboratório/testes) recebe o pool do modo, explícito")
 	var e1: Array = MapaReg.eventos("derruba", "canteiro_obras", 1)
 	var e2: Array = MapaReg.eventos("derruba", "canteiro_obras", 2)
-	check("V1" in e1 and not "V1" in e2 and "V3" in e2 and not "V3" in e1 and not "G01" in e1, "eventos por cena: V1 só no Térreo, V3 só na Fundação, G01 (ciclo) fora da lista")
+	check("V1" in e1 and not "V1" in e2 and "V3" in e2 and not "V3" in e1 and "G01" in e1 and "G01" in e2, "eventos por cena: V1 só no Térreo, V3 só na Fundação, G01 Sirene nas duas")
 	check(MapaReg.eventos("derruba", "mapa_sem_manifesto", 1) == [] and MapaReg.eventos("derruba", "demolicao", 1) == null, "sem manifesto: nenhum evento; ferramenta: biblioteca")
 	var mecs: Array = MapaReg.mecanismos("derruba", "canteiro_obras")
 	var por := {1: [], 2: []}
 	for d in mecs:
 		por[int(d["etapa"])].append(d["id"])
 	check(mecs.size() == 8 and por[1] == ["M1", "M2", "M4", "M5"] and por[2] == ["M6", "M7", "M8", "M9"], "mecanismos instanciados na cena certa (%s)" % str(por))
-	check(MapaReg.tem_proxima("derruba", "canteiro_obras", 1) and not MapaReg.tem_proxima("derruba", "canteiro_obras", 2), "Térreo → Fundação; Fundação é a última")
-	var bad := {"mode_id": "derruba", "spells_permitidas": ["S99"], "eventos_permitidos": [], "cenas": [
-		{"id": "a", "ordem": 1, "eventos": ["G02"], "mecanismos": [{"id": "X"}], "proxima": "a"}]}
+	check(MapaReg.rota("derruba", "canteiro_obras", 1, "total") == 2 and MapaReg.rota("derruba", "canteiro_obras", 1, "moderada") == -1 and not MapaReg.tem_proxima("derruba", "canteiro_obras", 2), "Térreo → Fundação (total); moderada = Fachada pendente; Fundação é a última")
+	var bad := {"mode_id": "derruba", "topologia": 4, "spells_permitidas": ["S99"], "eventos_permitidos": [], "cenas": [
+		{"id": "a", "ordem": 1, "nivel": 1, "eventos": ["G02"], "mecanismos": [{"id": "X"}], "rota_total": "a", "rota_moderada": null}]}
 	var errs := MapaReg.validar(bad)
-	check(errs.size() >= 5, "validação pega spell inexistente, 1 cena só, evento fora da lista, mecanismo sem posição e ciclo (%d erros)" % errs.size())
+	check(errs.size() >= 5, "validação pega spell inexistente, topologia errada, evento fora da lista, mecanismo sem posição e rota em ciclo (%d erros: %s)" % [errs.size(), str(errs)])
 
 ## Skins do mapa na entrada (modo → mapa → personagens): X/□ alterna padrão ↔ skins do mapa escolhido para o robô;
 ## trocar de robô volta ao padrão; a partida veste o robô. --so=skins
@@ -1857,17 +1860,17 @@ func limpa_test() -> void:
 	check(tg != null, "E03: há alvo ao alcance perto da betoneira/serra (%s)" % ("máquina" if tg != null and tg.has("mec") else "estrutura" if tg != null else "nenhum"))
 	sp.clear(r0)
 
-## Diretor adaptativo da destruição: jogadores parados → ele derruba peças até perto do limiar; jogadores destruindo
-## muito → quase não age. --so=diretor
-func diretor_test() -> void:
-	print("== Diretor adaptativo da destruição (90%)")
+## Derruba v2 sem diretor (A5): parado, nada cai sozinho; as verificações acontecem no tempo das vidas e ficam na
+## cena (< 50%). --so=verificacao
+func verificacao_test() -> void:
+	print("== Verificação por tempo × vidas (sem diretor)")
 	main.mode = "demolicao"
 	main.go_join()
 	await frames(2)
 	await tap("v0", "jump")
 	await tap("v1", "jump")
 	main.game_mode = "derruba"
-	main.demo.lives_setting = 5
+	main.demo.lives_setting = 3
 	main.event_level = 0
 	main.arena_choice = "canteiro_obras"
 	main.start_match()
@@ -1875,33 +1878,21 @@ func diretor_test() -> void:
 	main.demo.spells.spawn_t = 999.0
 	var et = main.demo.etapas
 	var ct = main.demo.canteiro
+	check(et.tempos()[0] == 30.0 and absf(et.tempos()[1] - 10.0) < 0.1, "3 vidas: 30 s / 10 s (%s)" % str(et.tempos()))
+	main.demo.lives_setting = 6
+	check(et.tempos()[0] == 90.0 and absf(et.tempos()[1] - 30.0) < 0.1, "6 vidas: 90 s / 30 s (%s)" % str(et.tempos()))
+	main.demo.lives_setting = 3
+	et.prox_verif = et.tempos()[0]
 	for r in main.robots:
 		put(r, Vector2(2 * 64.0 + r.pid * 40.0, 17 * 64.0))   # parados no térreo, longe da laje
 		r.active = false
 	et.ativo = true
-	et.alvo = 75.0   # o menor alvo sorteado (modos[derruba].destruicao.alvo_s)
-	var f := 0
-	while et.state == "etapa" and f < 60 * 150:
+	for k in 60 * 45:
 		await frames(1)
-		f += 1
-	var resto: Array = ct.parts.filter(func(p): return int(p["etapa"]) == 1 and not p["fallen"] and not p["nucleo"] and p["kind"] != "terreo").map(func(p): return "%s hp%d esc%d evt%s" % [p["kind"], p["hp"], p["escora_hp"], p["evt"]])
-	check(et.state != "etapa" and et.acoes >= 4 and f < 60 * 75 * 1.6, "jogadores parados: o diretor derruba peças sozinho e a cena vira (%d peças, %.0f s, alvo %.0f s, %.0f%%, de pé: %s)" % [et.acoes, f / 60.0, et.alvo, ct.progresso(1) * 100.0, str(resto)])
-	await demo_round()
-	et = main.demo.etapas
-	ct = main.demo.canteiro
-	for r in main.robots:
-		put(r, Vector2(2 * 64.0 + r.pid * 40.0, 17 * 64.0))
-		r.active = false
-	et.ativo = true
-	et.alvo = 120.0
-	et.dcfg["limiar"] = 1.5   # só observar o diretor (sem transição)
-	for p in ct.parts:   # "jogadores" destruíram quase tudo logo no começo
-		if int(p["etapa"]) == 1 and not p["nucleo"] and p["kind"] in ["laje", "andaime"]:
-			ct.damage(p, 99, p["rect"].get_center())
-	for k in 60 * 40:
-		await frames(1)
-	check(et.acoes <= 2, "jogadores destruindo muito: o diretor quase não age (%d peças em 40 s)" % et.acoes)
-	et.dcfg["limiar"] = 0.9
+	var caidas: int = ct.parts.filter(func(p): return int(p["etapa"]) == 1 and p["fallen"]).size()
+	check(caidas == 0 and ct.progresso(1) == 0.0, "sem diretor: 45 s parados e nada caiu sozinho (%d peças, %.0f%%)" % [caidas, ct.progresso(1) * 100.0])
+	check(et.state == "etapa" and et.verificacoes >= 2, "verificou aos 30 s e de novo aos 40 s, e ficou na cena (%d verificações)" % et.verificacoes)
+	check("G01" in MapaReg.eventos("derruba", "canteiro_obras", 1) and "G01" in MapaReg.eventos("derruba", "canteiro_obras", 2), "G01 Sirene volta como evento do Canteiro (nas 2 cenas)")
 	for r in main.robots:
 		r.active = true
 

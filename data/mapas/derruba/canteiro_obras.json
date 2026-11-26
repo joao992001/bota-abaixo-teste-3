@@ -1,5 +1,5 @@
 {
- "schema_version": 1,
+ "schema_version": 2,
  "mode_id": "derruba",
  "map_id": "canteiro_obras",
  "nome": "Canteiro de Obras",
@@ -33,6 +33,7 @@
   "T07"
  ],
  "eventos_permitidos": [
+  "G01",
   "G02",
   "G03",
   "G04",
@@ -85,6 +86,7 @@
    "ordem": 1,
    "nome": "Térreo",
    "eventos": [
+    "G01",
     "G05",
     "G06",
     "G10",
@@ -237,13 +239,18 @@
     "laje do núcleo (lajes.nucleo)",
     "terreos"
    ],
-   "proxima": "fundacao"
+   "nivel": 1,
+   "rota_moderada": "fachada",
+   "rota_total": "fundacao",
+   "aviso_moderada": "A LAJE VAI ESCORREGAR!",
+   "aviso_total": "A OBRA VAI CEDER!"
   },
   {
    "id": "fundacao",
    "ordem": 2,
    "nome": "Fundação",
    "eventos": [
+    "G01",
     "G14",
     "G04",
     "G06",
@@ -360,7 +367,14 @@
    "base_fixa": [
     "lajes do piso (tiles do .lvl)"
    ],
-   "proxima": null
+   "nivel": 2,
+   "rota_moderada": null,
+   "rota_total": null
   }
- ]
+ ],
+ "topologia": 3,
+ "cenas_pendentes": [
+  "fachada"
+ ],
+ "nota_v2": "Manifesto v2 (D1, 2026-11-26): cada cena tem nivel, rota_moderada e rota_total (ids; null no último nível) e o aviso de cada rota. A cena 'fachada' (Rota Moderada, aprovada) entra na D5: até lá a rota moderada fica indisponível e 50–90% na verificação = fica na cena."
 }

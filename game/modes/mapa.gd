@@ -3,7 +3,7 @@ extends RefCounted
 ## RESOLUÇÃO modo → mapa → cena (fonte única do conteúdo autorizado de cada mapa).
 ## - Modo (data/modos.json → demolicao.modos[<modo>]): regras, CLASSES de spell, destruição.
 ## - Mapa (data/mapas/<modo>/<mapa>.json): spells autorizadas, eventos, cenas ordenadas; por cena: eventos, instâncias de
-##   mecanismos/perigos, estruturas (fixas × destrutíveis) e próxima cena. Geometria das cenas fica no .lvl (etapaN…).
+##   mecanismos/perigos, estruturas (fixas × destrutíveis), nível e rotas (moderada/total, v2). Geometria no .lvl (etapaN…).
 ## - Mapa-ferramenta (data/mapas/ferramentas.json: laboratório e arenas de teste): TODAS as spells/eventos do modo, explícito.
 ## - Mapa sem manifesto e que não é ferramenta: NENHUMA spell e NENHUM evento (sem herança silenciosa entre modos).
 ## Manual: docs/manuais/derruba/README.md · biblioteca humana: docs/fases/<modo>/<mapa>/README.md
@@ -75,9 +75,24 @@ static func cena(mode_id: String, map_id: String, n: int) -> Dictionary:
 			return c
 	return {}
 
-static func tem_proxima(mode_id: String, map_id: String, n: int) -> bool:
+static func cena_id(mode_id: String, map_id: String, id: String) -> Dictionary:
+	for c in cenas(mode_id, map_id):
+		if String(c["id"]) == id:
+			return c
+	return {}
+
+## Ordem da cena de destino da rota ("moderada" | "total") a partir da cena n; -1 = sem rota (último nível) ou destino
+## ainda pendente (cena aprovada mas não implementada: `cenas_pendentes` do manifesto). Manifesto v2 (D1).
+static func rota(mode_id: String, map_id: String, n: int, tipo: String) -> int:
 	var c := cena(mode_id, map_id, n)
-	return not c.is_empty() and c.get("proxima") != null and not cena(mode_id, map_id, n + 1).is_empty()
+	var alvo = c.get("rota_" + tipo)
+	if alvo == null:
+		return -1
+	var d := cena_id(mode_id, map_id, String(alvo))
+	return int(d["ordem"]) if not d.is_empty() else -1
+
+static func tem_proxima(mode_id: String, map_id: String, n: int) -> bool:
+	return rota(mode_id, map_id, n, "moderada") > 0 or rota(mode_id, map_id, n, "total") > 0
 
 ## Instâncias de mecanismos/perigos de todas as cenas, cada uma com "etapa" = ordem da cena.
 static func mecanismos(mode_id: String, map_id: String) -> Array:
@@ -113,8 +128,6 @@ static func validar(m: Dictionary) -> Array:
 	var ids := {}
 	var ordens := {}
 	var cs: Array = m.get("cenas", [])
-	if cs.size() < 2 and mode_id == "derruba":
-		err.append("mapa do Derruba precisa de pelo menos 2 cenas")
 	for c in cs:
 		if ids.has(c["id"]):
 			err.append("cena repetida: " + str(c["id"]))
@@ -128,13 +141,39 @@ static func validar(m: Dictionary) -> Array:
 		for d in c.get("mecanismos", []):
 			if not (d.has("pos") or d.has("x") or d.has("base")):
 				err.append("cena %s: mecanismo %s sem posição" % [c["id"], d.get("id", "?")])
+	# v2: árvore de cenas por nível (3 = 1→2, 7 = 1→2→4); cada cena não-final tem as DUAS rotas para o nível seguinte;
+	# destino pode ser uma cena pendente (aprovada, ainda não implementada).
+	var pend: Array = m.get("cenas_pendentes", [])
+	var niv := {}
 	for c in cs:
-		var nx = c.get("proxima")
-		if nx != null:
+		niv[c["id"]] = int(c.get("nivel", 0))
+	var maxn := 0
+	for v in niv.values():
+		maxn = maxi(maxn, v)
+	var topo := int(m.get("topologia", 0))
+	if mode_id == "derruba":
+		if not topo in [3, 7]:
+			err.append("topologia deve ser 3 ou 7 cenas (é %d)" % topo)
+		elif cs.size() + pend.size() != topo:
+			err.append("cenas (%d) + pendentes (%d) ≠ topologia %d" % [cs.size(), pend.size(), topo])
+		if niv.values().count(1) != 1:
+			err.append("precisa de exatamente 1 cena no nível 1")
+	for c in cs:
+		var n0 := int(c.get("nivel", 0))
+		if n0 < 1:
+			err.append("cena %s sem nível" % c["id"])
+		for tipo in ["moderada", "total"]:
+			var nx = c.get("rota_" + tipo)
+			if nx == null:
+				if n0 < maxn:
+					err.append("cena %s (nível %d) sem rota_%s" % [c["id"], n0, tipo])
+				continue
+			if nx in pend:
+				continue
 			if not ids.has(nx):
-				err.append("cena %s: próxima inexistente %s" % [c["id"], nx])
-			elif ids[nx] != int(c["ordem"]) + 1:
-				err.append("cena %s: próxima %s fora de ordem (ciclo ou salto)" % [c["id"], nx])
+				err.append("cena %s: rota_%s inexistente %s" % [c["id"], tipo, nx])
+			elif int(niv[nx]) != n0 + 1:
+				err.append("cena %s: rota_%s %s fora do nível seguinte (ciclo ou salto)" % [c["id"], tipo, nx])
 	for k in ordens.size():
 		if not ordens.has(k + 1):
 			err.append("ordens das cenas não são 1..N")

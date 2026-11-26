@@ -14,6 +14,7 @@
 
 Perigos/mecanismos: M1 betoneira, M2 elevador, M4 tubos, M5 serra de bancada ([`../perigos_mecanismos.md`](../perigos_mecanismos.md)).
 Eventos: G05, G06, G10, G12, G13, G02, V1 ([`../eventos.md`](../eventos.md)).
-Deterioração espontânea: o **diretor** (sirene + fita zebrada → o trecho cede), mais ativo quando os jogadores quebram pouco.
+Deterioração espontânea: **nenhuma** (diretor removido na D1, 2026-11-26); "sirene + fita → o trecho cede" só com o evento G01.
+**Rotas (v2):** total → Fundação (implementada) · moderada → Fachada (aprovada, entra na D5; até lá 50–90% fica).
 **Transição:** aos 90% → "A OBRA VAI CEDER!" → a cena inteira (inclusive núcleo e térreo) desaba → queda lenta pelo poço
 (`buraco1: 10,30`) com a câmera descendo junto → Fundação. Pedaços da laje viram entulhos lá embaixo.

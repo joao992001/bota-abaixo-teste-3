@@ -10,7 +10,7 @@
 de erros que estão no **registro (§7)** e que o **checklist (§5)** agora pega antes da entrega. Meta para a próxima fase:
 no máximo 1 rodada de correção.
 
-Leia também: **regras do modo** em [`README.md`](README.md) (cenas, 90%, diretor, autorização), regras de desenho em
+Leia também: **regras do modo** em [`README.md`](README.md) (cenas, rotas 50/90% na verificação por tempo, autorização), regras de desenho em
 [`mapa_cartilha.md`](mapa_cartilha.md) e o exemplo completo: biblioteca [`f1_canteiro/`](../../fases/derruba/f1_canteiro/README.md),
 manifesto `data/mapas/derruba/canteiro_obras.json` e arte `art/src/cenarios/fase1_*.py`. Skill: `criar-fase`.
 
@@ -46,7 +46,7 @@ Antes dos passos 2 e 4, passe o **checklist do §5** nas imagens. Não mande sem
   cena preencha: ficha (composição, paleta, horário, assinatura, câmera, som), **E** estruturas (marque a BASE FIXA), **D** demolições,
   **M** perigos/mecanismos, **V** eventos (biblioteca + específicos), **A** fundo vivo (C0–C4) e o storyboard da transição. Exemplo: Canteiro.
 - Regras do usuário (valem para toda fase): demolições e eventos **aleatórios + dependentes da batalha**; a transição de cena
-  acontece aos **90% de destruição** (com o diretor adaptativo), não por tempo; eventos são **do mapa e da cena**.
+  é **verificada por tempo** (vidas) e a **destruição escolhe a rota** (v2, §0); eventos são **do mapa** e valem em todas as cenas (A14).
 - Prancha: cada etapa numa tela de 2560×1408 (40×22 tiles), com o elenco de `art/src/robos/elenco.py` em ação. **Para cada
   objeto, responda: onde ele se apoia? para que serve no jogo?** Se a resposta for "em nada" ou "para nada", ele sai.
 
@@ -60,8 +60,8 @@ Antes dos passos 2 e 4, passe o **checklist do §5** nas imagens. Não mande sem
 | **E Eventos** | `eventos_permitidos` do mapa + `cenas[].eventos` (G## da biblioteca + V## do mapa). Evento novo: `evento.md`. **Cada evento da biblioteca tem de ser provado NA cena** (o drone G09 travava e era inútil no Canteiro e saiu). | `modes/eventos.gd`, manifesto |
 | **F Entrega** | Testes, vitrine `--fase=DIR`, GIF, `.exe`, este manual atualizado, "Retomar aqui" em `docs/ESTADO.md`. | `tests/driver.gd` |
 
-**A transição (motor pronto em `etapas.gd`; não reinventar):** a destruição elegível da cena chega a 90% (o diretor
-adaptativo ajuda quando os jogadores quebram pouco) → aviso com sirene → `_desaba` (a cena inteira + os mecanismos dela caem;
+**A transição (motor pronto em `etapas.gd`; não reinventar):** na verificação por tempo, a destruição elegível escolhe a
+rota (`verificar()`: ≥ 90% total, 50–90% moderada) → aviso com sirene → `_desaba` (a cena inteira + os mecanismos dela caem;
 jetpack, armaduras e kits desligam; caixas de spell vão para cima do piso da próxima cena) → queda **sem controle, lenta**
 (`gravidade_queda` 0.35, `queda_vmax` 640) em arco até um ponto com piso embaixo; a câmera **desce junto** já no
 enquadramento da próxima cena (`camera_queda_mola`) → `_chega` (KO e área passam para ela; quem ficou fora renasce lá).
@@ -69,8 +69,8 @@ enquadramento da próxima cena (`camera_queda_mola`) → `_chega` (KO e área pa
 
 ## 4. Testes, capturas e entrega
 - **Durante o trabalho, só a parte mexida:** `--so=mapa` (manifesto válido, spells/eventos/mecanismos por cena), `--so=etapas` (base fixa fora, dano parcial,
-  marretada conta, abaixo/no limiar, 90%, desaba, queda sem KO, chegada, jetpack, caixas, última cena), `--so=diretor`, `--so=mecanismos`, `--so=eventos`, `--so=canteiro`, `--so=bots` (rodadas só de bots precisam
-  terminar: é a prova de que há saída para KO), `--so=lab`. Bateria completa **1× no fim**. Nos testes longos diretor e transição ficam
+  marretada conta, abaixo/no limiar, 90%, desaba, queda sem KO, chegada, jetpack, caixas, última cena), `--so=verificacao`, `--so=mecanismos`, `--so=eventos`, `--so=canteiro`, `--so=bots` (rodadas só de bots precisam
+  terminar: é a prova de que há saída para KO), `--so=lab`. Bateria completa **1× no fim**. Nos testes longos verificação e transição ficam
   desligados (`demo_round` → `etapas.ativo = false`); `etapas.forcar()` dispara a transição em vitrines (`--virada=N` no vídeo).
 - **Vitrines** (`xvfb-run … -- --fase=DIR`): bots lutando + virada, 1 quadro a cada 4. Monte **uma prancha** com os
   quadros-chave (ex.: 24 quadros da queda em grade 4×6, com PIL) e 4 quadros da etapa 2 em tamanho real — não olhe o vídeo

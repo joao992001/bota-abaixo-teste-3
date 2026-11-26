@@ -11,5 +11,5 @@
 | 2 entulhos (pedaços da laje que caíram; hp 2) | destrutível, gerado | não (pedaço gerado) |
 
 Perigos/mecanismos: M6 bate-estaca (torre), M7 água (cachoeiras e jorros do teto), M8 vagonete, M9 gerador.
-Eventos: G14, G04, G06, G10, G03, G11, V2, V3. Última cena: sem transição; o diretor só faz deterioração calma.
+Eventos: G14, G04, G06, G10, G03, G11, V2, V3. Última cena: sem transição e sem deterioração espontânea (D1).
 Composição revista pelo usuário (2026-11-25): poço aberto na terra, placas e lâmpadas presas ao cenário, nada no ar.

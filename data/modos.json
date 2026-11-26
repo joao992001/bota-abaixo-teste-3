@@ -543,19 +543,29 @@
         },
         "nota_classes": "Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
         "destruicao": {
-          "nota": "Transição de cena por DESTRUIÇÃO (não por tempo): ao chegar a limiar da destruição ELEGÍVEL da cena (base fixa, pedaços gerados e peças de outras cenas fora da conta) e havendo próxima cena, começa o aviso + desabamento. Progresso = soma(peso x HP perdido)/soma(peso), peça caída = 100%, peso = largura em tiles (laje x2). DIRETOR ADAPTATIVO (proposta do usuário, 2026-11-25): mede o ritmo; se os jogadores quebram pouco, derruba peças sozinho (sirene + fita + cai) para chegar ao limiar perto de alvo_s; se quebram muito, quase não age. alvo_s é sorteado por cena (nem toda rodada chega).",
-          "limiar": 0.9,
-          "alvo_s": [
-            75,
-            120
+          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. Chegar a 90% antes da verificação não antecipa. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
+          "limiar_moderada": 0.5,
+          "limiar_total": 0.9,
+          "verificacao": {
+            "vidas_base": 3,
+            "primeira_base_s": 30,
+            "por_vida_s": 20,
+            "intervalo_frac": 0.3334,
+            "vidas_min": 3,
+            "vidas_max": 6
+          },
+          "mostrador": [
+            0.1,
+            0.9
           ],
-          "intervalo_s": [
-            6,
-            40
-          ],
-          "chance_calma": 0.25,
-          "aviso_s": 2.5,
-          "deficit_max": 0.2
+          "zonas": [
+            "#2e9e4f",
+            "#8fd46a",
+            "#f2d04b",
+            "#f39a3a",
+            "#ec6448",
+            "#a8233a"
+          ]
         }
       },
       {
