@@ -250,6 +250,9 @@
         "ky": 240,
         "ky_por": 3.0
       },
+        "pesado_cima": {"dano": 14, "kx": 70, "kx_por": 0.8, "ky": 1050, "ky_por": 4.5},
+        "pesado_baixo": {"dano": 14, "kx": 60, "kx_por": 0.6, "ky": -760, "ky_por": -3.2},
+        "nota_combate_r3": "A47 (2026-11-27): pesado carregável (segurar até carga_max_s, +carga_mult no empurrão/dano, armadura contra o leve), 4 direções (◄► pesado, ▲ pesado_cima, ▼ no ar pesado_baixo), ponta = CRÍTICO (martelao × critico_mult; quebra a peça). Leve não quebra o cenário. Arremesso contra parede e pouso forte racham a obra.",
       "explosao": {
         "dano": 24,
         "kx": 420,

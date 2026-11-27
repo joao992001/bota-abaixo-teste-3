@@ -24,7 +24,10 @@ var atk_t := 0.0              # tempo desde o começo do golpe
 var atk_hit := false          # o impacto já aconteceu (uma vez por golpe, no fim do preparo)
 var atk_landed := false       # o impacto pegou alguém
 var atk_cd := 0.0
-var atk_dir := "frente"        # golpe rápido: "frente", "cima", "baixo" (no ar), "corrida"
+var atk_dir := "frente"        # golpe rápido: "frente", "cima", "baixo" (no ar), "corrida"; pesado: "frente", "cima", "baixo"
+var heavy_charge := 0.0        # A47: segundos de carga do golpe pesado (segurando)
+var hit_mult := 1.0            # A47: multiplicador do golpe que está saindo (carga/crítico), lido por take_hit do alvo
+var crash_cd := 0.0            # A47: arremessado contra parede/pouso forte racha a obra (1x a cada 0,4 s)
 var combo_i := 0              # sequência de golpes rápidos: 0, 1, 2 (o 3º arremessa)
 var combo_t := 0.0            # janela para encadear o próximo golpe
 var heavy_cd := 0.0           # recarga só da marretada pesada (o golpe rápido segue livre)
@@ -326,7 +329,12 @@ func _physics_process(dt: float) -> void:
 			velocity.y = maxf(velocity.y, 0.0)
 	velocity.x = own_vx + ext_vx
 	_corner_correction(dt)
+	var vx_pre := velocity.x
+	crash_cd = maxf(crash_cd - dt, 0.0)
 	move_and_slide()
+	if is_on_wall() and (stun_t > 0.0 or recover_t > 0.0) and absf(vx_pre) > 620.0 and crash_cd <= 0.0 and main.mode == "demolicao":
+		crash_cd = 0.4   # A47: ARREMESSADO contra parede/bloco: racha
+		main.demo.luta_quebra(self, position + Vector2(signf(vx_pre) * 30.0, -36.0), 2 if absf(vx_pre) > 1000.0 else 1)
 	if is_on_wall():
 		var n := get_wall_normal()
 		if signf(own_vx) == -signf(n.x):
@@ -536,6 +544,8 @@ const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "comb
 	"spell_gancho", "spell_carga", "spell_viga",
 	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_arrancada", "spell_raio1", "spell_raio2", "spell_raio3", "mecha_leve", "mecha_pesado"]
 
+const LEVES := ["rapido", "combo", "combo_final", "cima", "baixo", "corrida"]
+
 func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if invuln > 0.0 or god:
 		return false
@@ -551,6 +561,13 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if guard_t > 0.0 and by >= 0 and by != pid and kind in ROBOT_HITS:
 		_dodged()
 		return false
+	if atk == "pesado" and not atk_hit and heavy_charge > 0.0 and kind in LEVES:   # A47: carregando = armadura contra o leve
+		var am0: Dictionary = main.demo.cfg["amassometro"]
+		dmg += float(am0[kind]["dano"]) * 0.5
+		main.float_text(position + Vector2(0, -100), "+%d%%" % maxi(int(float(am0[kind]["dano"]) * 0.5), 1), main.dmg_color(dmg))
+		main.float_text(position + Vector2(0, -150), "ARMADURA!", Color("#ffd23a"))
+		vis.hurt(0.2, dir)
+		return true
 	last_hit = 0.0
 	last_cause = {"marretada": "marretada", "martelao": "marretada", "explosao": "explosão", "bola": "bola",
 		"spell_punho": "punho pneumático", "spell_gelo": "canhão criogênico", "spell_fogo": "armadura fornalha",
@@ -568,11 +585,12 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 	var sp_m = main.demo.spells if main.demo != null else null
 	var mv: Dictionary = sp_m.mecha_cfg(self) if sp_m != null else {}
 	var ma: Dictionary = sp_m.mecha_cfg(main.robots[by]) if sp_m != null and by >= 0 and by < main.robots.size() and by != pid else {}
-	var dano := float(k["dano"]) * float(mv.get("recebe", 1.0)) * float(ma.get("causa", 1.0))
+	var hm: float = main.robots[by].hit_mult if by >= 0 and by < main.robots.size() and by != pid else 1.0
+	var dano := float(k["dano"]) * float(mv.get("recebe", 1.0)) * float(ma.get("causa", 1.0)) * hm
 	dmg += dano
 	var kx := minf(float(k["kx"]) + dmg * float(k["kx_por"]), float(am["max_kx"]))
 	var ky := float(k["ky"]) + dmg * float(k["ky_por"])
-	var push := float(mv.get("empurrao", spell_push)) * float(ma.get("causa", 1.0))
+	var push := float(mv.get("empurrao", spell_push)) * float(ma.get("causa", 1.0)) * hm
 	if ancora_t > 0.0:
 		push = 0.0   # D01 Âncora: o dano conta, o empurrão não
 	kx *= push   # armadura/mecha: empurrão bem menor
@@ -733,6 +751,7 @@ func finish() -> void:
 func _start_attack(kind: String) -> void:
 	atk = kind
 	atk_t = 0.0
+	heavy_charge = 0.0
 	atk_hit = false
 	atk_landed = false
 	hammer_anim = _atk_total()
@@ -755,6 +774,8 @@ func _pick_quick(on_floor: bool) -> void:
 		atk_dir = "frente"
 	if atk_dir == "frente":
 		combo_i = (combo_i + 1) % 3 if combo_t > 0.0 else 0
+		if on_floor:   # A47: avanço curto até o rival (acertar fica fácil)
+			own_vx = facing * maxf(own_vx * facing, float(c["ataque_rapido"]["avanco_px_s"]))
 	else:
 		combo_i = 0
 	combo_t = 0.0
@@ -771,7 +792,15 @@ func _atk_total() -> float:
 func _attack_update(dt: float, on_floor: bool) -> void:
 	atk_t += dt
 	var ac := _atk_cfg()
+	# A47: segurando o pesado, o preparo fica no ponto alto e CARREGA (até carga_max_s)
+	if atk == "pesado" and not atk_hit and atk_t >= float(ac["preparo"]) * 0.85 and _held("heavy") and heavy_charge < float(ac["carga_max_s"]):
+		heavy_charge += dt
+		atk_t = float(ac["preparo"]) * 0.85
+		hammer_anim = _atk_total()
+		return
 	if not atk_hit and atk_t >= float(ac["preparo"]):
+		if atk == "pesado":   # direção escolhida na hora do golpe
+			atk_dir = "cima" if PlayerInput.held(pid, "up") else ("baixo" if (not on_floor and PlayerInput.held(pid, "down")) else "frente")
 		atk_hit = true
 		atk_landed = main.try_attack(self, atk)
 		if atk == "pesado" and on_floor:
@@ -858,6 +887,9 @@ func _dodged() -> void:
 func _on_landed() -> void:
 	air_dodge = 1
 	var hard := clampf((land_v - 300.0) / 900.0, 0.0, 1.0)
+	if land_v > 1050.0 and (stun_t > 0.0 or recover_t > 0.0) and crash_cd <= 0.0 and main.mode == "demolicao":
+		crash_cd = 0.4   # A47: POUSO forte de quem foi arremessado racha o chão
+		main.demo.luta_quebra(self, position + Vector2(0, 10), 1)
 	if hard > 0.5 and (stun_t > 0.0 or recover_t > 0.0):   # só quem foi ARREMESSADO e bate no chão; pouso comum é mudo
 		Audio.play("ba_aterrissa_pesada", 1.0, -4.0)
 	vis.land(hard, stun_t > 0.0 or recover_t > 0.0)

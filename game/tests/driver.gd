@@ -42,6 +42,10 @@ func _run() -> void:
 			await fase_frames(a.trim_prefix("--fase="))
 			get_tree().quit()
 			return
+		if a.begins_with("--luta="):
+			await luta_frames(a.trim_prefix("--luta="))
+			get_tree().quit()
+			return
 		if a.begins_with("--mechas="):
 			await mechas_frames(a.trim_prefix("--mechas="))
 			get_tree().quit()
@@ -523,6 +527,7 @@ func demolicao_test() -> void:
 	await controle_real_test()
 	await robos_test()
 	await combate_test()
+	await luta_test()
 	await lab_test()
 	await canteiro_test()
 	await spells_test()
@@ -957,6 +962,196 @@ func robos_test() -> void:
 
 ## COMBATE (relatório de 2026-11-24): golpe rápido × marretada pesada, esquiva (chão/ar, só contra robôs),
 ## arremesso com retorno gradual do controle. Cenários de aceitação da seção 8.
+## Vitrine do combate r3 (--luta=DIR): leve com avanço e combo, pesado carregado, ▲, ponta = crítico, arremesso na parede.
+func luta_frames(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	main.go_menu()
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	main.mode = "demolicao"
+	main.go_join()
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 9
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	main.demo.spells.spawn_t = 999.0
+	main.hud.visible = false
+	var ct = main.demo.canteiro
+	var r0 = main.robots[0]
+	var r1 = main.robots[1]
+	var nuc: Array = ct.parts.filter(func(p): return p["nucleo"])
+	var fy: float = nuc[0]["rect"].position.y
+	var xa: float = nuc[0]["rect"].position.x + 40.0
+	_frame_no = 0
+	var segs := [["leve", 60, 90.0], ["carga", 110, 80.0], ["cima", 60, 30.0], ["critico", 60, 90.0]]
+	for sg in segs:
+		for r in [r0, r1]:
+			r.dmg = 40.0
+			r.stun_t = 0.0
+			r.recover_t = 0.0
+			r.atk = ""
+			r.heavy_cd = 0.0
+			r.velocity = Vector2.ZERO
+			r.own_vx = 0.0
+		main.demo.lives[0] = 9
+		main.demo.lives[1] = 9
+		put(r0, Vector2(xa, fy))
+		put(r1, Vector2(xa + float(sg[2]), fy))
+		r0.facing = 1
+		r1.facing = -1
+		main.cam_lock = [2.2, Vector2(xa + 120.0, fy - 120.0)]
+		for f in int(sg[1]):
+			match String(sg[0]):
+				"leve":
+					vset("v0", "hammer", f in [6, 7, 20, 21, 34, 35])
+				"carga":
+					vset("v0", "heavy", f >= 4 and f < 78)
+				"cima":
+					vset("v0", "up", f >= 2 and f < 40)
+					vset("v0", "heavy", f in [4, 5])
+				"critico":
+					vset("v0", "heavy", f in [4, 5])
+			await frames(1)
+			if f % 2 == 0:
+				await grab(dir, "luta_" + String(sg[0]))
+		for k in ["hammer", "heavy", "up"]:
+			vset("v0", k, false)
+	main.cam_lock = []
+	print("quadros: ", _frame_no)
+
+## A47 (combate r3): pesado carregável com armadura, 4 direções, ponta = crítico que quebra a peça; leve não quebra;
+## arremessado contra parede racha. --so=luta
+func luta_test() -> void:
+	print("== Combate r3 (carga, direções, crítico, leve não quebra, a luta quebra a obra)")
+	main.go_menu()
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	main.mode = "demolicao"
+	main.go_join()
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 5
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	main.demo.spells.spawn_t = 999.0
+	var ct = main.demo.canteiro
+	var r0 = main.robots[0]
+	var r1 = main.robots[1]
+	var nuc: Array = ct.parts.filter(func(p): return p["nucleo"])
+	var fy: float = nuc[0]["rect"].position.y
+	var xa: float = nuc[0]["rect"].position.x + 40.0
+	var ap: Dictionary = Data.ctrl["ataque_pesado"]
+	var reset := func(dx: float) -> void:
+		for i in main.players.size():
+			main.demo.lives[i] = 99
+		for r in [r0, r1]:
+			r.dmg = 0.0
+			r.stun_t = 0.0
+			r.recover_t = 0.0
+			r.invuln = 0.0
+			r.atk = ""
+			r.atk_cd = 0.0
+			r.heavy_cd = 0.0
+			r.own_vx = 0.0
+			r.velocity = Vector2.ZERO
+		put(r0, Vector2(xa, fy))
+		put(r1, Vector2(xa + dx, fy))
+		r0.facing = 1
+		r1.facing = -1
+	# 1) toque × carga cheia: a carga empurra mais
+	reset.call(70.0)
+	await frames(3)
+	await tap("v0", "heavy")
+	await frames(int(float(ap["preparo"]) * 60.0) + 4)
+	var kx_toque: float = absf(r1.own_vx)
+	await frames(40)
+	reset.call(70.0)
+	await frames(3)
+	vset("v0", "heavy", true)
+	await frames(int((float(ap["preparo"]) + float(ap["carga_max_s"])) * 60.0) + 6)
+	vset("v0", "heavy", false)
+	await frames(10)
+	var kx_carga: float = absf(r1.own_vx)
+	check(kx_carga > kx_toque * 1.25, "pesado CARREGADO empurra mais que o toque (%.0f × %.0f)" % [kx_carga, kx_toque])
+	await frames(40)
+	# 2) armadura: golpe leve do rival não interrompe a carga
+	reset.call(60.0)
+	r1.facing = -1
+	await frames(3)
+	vset("v0", "heavy", true)
+	await frames(int(float(ap["preparo"]) * 60.0) + 8)
+	await tap("v1", "hammer")
+	await frames(6)
+	var ainda: bool = r0.atk == "pesado" and r0.heavy_charge > 0.0 and r1.dmg == 0.0
+	vset("v0", "heavy", false)
+	await frames(20)
+	check(ainda and r0.dmg > 0.0 and r1.dmg > 0.0, "carregando: o golpe leve NÃO interrompe (armadura) e o pesado sai")
+	await frames(40)
+	# 3) ▲ pesado para cima: joga para o alto
+	reset.call(20.0)
+	await frames(3)
+	vset("v0", "up", true)
+	await tap("v0", "heavy")
+	var y0: float = r1.position.y
+	var topo: float = y0
+	for k in int(float(ap["preparo"]) * 60.0) + 40:
+		await frames(1)
+		topo = minf(topo, r1.position.y)
+	vset("v0", "up", false)
+	check(r1.dmg > 0.0 and y0 - topo > 120.0, "▲ pesado joga o rival para CIMA (%.0f px)" % (y0 - topo))
+	await frames(40)
+	# 4) ponta da marreta = CRÍTICO (mais forte que de perto)
+	reset.call(30.0)
+	await frames(3)
+	await tap("v0", "heavy")
+	await frames(int(float(ap["preparo"]) * 60.0) + 4)
+	var kx_perto: float = absf(r1.own_vx)
+	await frames(40)
+	reset.call(24.0 + float(ap["alcance_px"]) * 0.95)
+	await frames(3)
+	await tap("v0", "heavy")
+	await frames(int(float(ap["preparo"]) * 60.0) + 4)
+	var kx_ponta: float = absf(r1.own_vx)
+	check(r1.last_cause == "marretada" and kx_ponta > kx_perto * 1.2, "ponta da marreta = CRÍTICO (%.0f × %.0f)" % [kx_ponta, kx_perto])
+	await frames(40)
+	# 5) golpe leve não quebra a obra
+	var hp_tot := func() -> int:
+		var n := 0
+		for p in ct.parts:
+			n += int(p["hp"])
+		return n
+	reset.call(400.0)
+	var h0: int = hp_tot.call()
+	for k in 6:
+		vset("v0", "down", k % 2 == 0)
+		await tap("v0", "hammer")
+		await frames(12)
+	vset("v0", "down", false)
+	check(hp_tot.call() == h0, "golpe LEVE não quebra o cenário")
+	# 6) arremessado contra parede racha a peça
+	var alvo = null
+	for p in ct.parts:
+		if not p["fallen"] and not p["nucleo"] and p["kind"] == "laje":
+			alvo = p
+			break
+	if alvo != null:
+		var hr: Rect2 = ct.hit_rect(alvo)
+		var hpa: int = int(alvo["hp"])
+		reset.call(400.0)
+		put(r1, Vector2(hr.position.x - 40.0, hr.get_center().y + 10.0))
+		r1.stun_t = 0.3
+		r1.recover_t = 0.5
+		main.demo.luta_quebra(r1, Vector2(hr.position.x + 4.0, hr.get_center().y), 1)
+		check(int(alvo["hp"]) < hpa or alvo["fallen"], "robô ARREMESSADO contra a obra racha a peça (%d → %d)" % [hpa, int(alvo["hp"])])
+	main.go_menu()
+
 func combate_test() -> void:
 	print("== Combate (rápido, pesado, esquiva, arremesso)")
 	main.mode = "demolicao"

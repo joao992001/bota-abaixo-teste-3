@@ -226,7 +226,7 @@ func hit_rect(p: Dictionary) -> Rect2:
 	return r
 
 ## Marretada pesada: acerta o trecho à frente (no chão onde a marreta bate) ou, com ▼, o trecho embaixo dos pés.
-func hammer(r, hit: Rect2, down: bool) -> bool:
+func hammer(r, hit: Rect2, down: bool, critico := false) -> bool:
 	if down and r.is_on_floor():
 		var c := Vector2i(int(r.position.x / T), int((r.position.y + 6.0) / T))
 		if owner_of.has(c):
@@ -250,6 +250,12 @@ func hammer(r, hit: Rect2, down: bool) -> bool:
 	for p in parts:
 		if not p["fallen"] and reach.intersects(hit_rect(p)):
 			var at := Vector2(clampf(reach.get_center().x, p["rect"].position.x, p["rect"].end.x), p["rect"].position.y)
+			if critico and not p["nucleo"] and not hit_rect(p).grow(2).has_point(r.position + Vector2(0, 8)):   # A47: CRÍTICO quebra a peça
+				damage(p, 9999, at)
+				if p["crit_t"] > 0.0:
+					p["crit_t"] = 0.0
+					_collapse(p)
+				return true
 			damage(p, int(cfg["dano_pesada"]), at)
 			return true
 	return false

@@ -935,6 +935,12 @@ func current_pose() -> Dictionary:
 					if k > 0.6:
 						st["hf"] += Vector2(sin(t * 90.0), cos(t * 83.0)) * 1.2
 				p["glint"] = clampf((k - 0.5) / 0.35, 0.0, 1.0) * (1.0 - sw)
+				if robot.heavy_charge > 0.0:   # A47: CARREGANDO — treme cada vez mais e a cabeça da marreta brilha forte
+					var ck := clampf(robot.heavy_charge / float(hp["carga_max_s"]), 0.0, 1.0)
+					st["hf"] += Vector2(sin(t * 95.0), cos(t * 87.0)) * (1.0 + 2.5 * ck)
+					st["lean"] = float(st["lean"]) - 0.1 * ck
+					p["glint"] = 1.0
+					p["charge"] = ck
 				if String(esp.get("pesado", "")) == "giro":
 					p["spin"] = cos(sw * 0.6 * TAU)
 			elif at < pre + act:
@@ -943,6 +949,12 @@ func current_pose() -> Dictionary:
 				smear_from = float(st["a"])
 				_blend(st, fhit, 0.6 + 0.4 * _ease_out(k), 1)
 				smear_a = 1.0
+				if robot.atk_dir == "cima":   # A47: ▲ golpe para cima (arco por cima da cabeça)
+					st["a"] = lerpf(-1.4, -0.15, _ease_out(k))
+					st["hf"] = Vector2(10, -58)
+				elif robot.atk_dir == "baixo":   # ▼ no ar: crava para baixo
+					st["a"] = lerpf(0.6, PI, _ease_out(k))
+					st["hf"] = Vector2(14, -20)
 				if String(esp.get("pesado", "")) == "giro":
 					p["spin"] = cos((0.6 + 0.4 * k) * TAU)
 			else:
@@ -1450,6 +1462,11 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	var gl := float(pose.get("glint", 0.0))
 	if gl > 0.0:
 		var head := hf + Vector2(sin(ham_ang), -cos(ham_ang)) * reach
+		var chg := float(pose.get("charge", 0.0))
+		if chg > 0.0:   # A47: aura da carga na cabeça da marreta + anel que fecha quando enche
+			ci.draw_set_transform_matrix(base)
+			ci.draw_circle(head, 10.0 + 16.0 * chg, Color(1.0, 0.7, 0.25, 0.25 + 0.3 * chg))
+			ci.draw_arc(head, 26.0, -PI / 2.0, -PI / 2.0 + TAU * chg, 24, Color(1.0, 0.85, 0.3, 0.9), 3.0, true)
 		ci.draw_set_transform_matrix(base * Transform2D(Time.get_ticks_msec() / 200.0, head))
 		var st := Data.tex("cenario/brilho")
 		var sz := 10.0 + 18.0 * gl

@@ -444,6 +444,21 @@ func _draw_canvas() -> void:
 ## Golpe rápido ("rapido"): só combate (robôs, passa a TNT, derruba o capacete) e alavancas.
 ## Marretada pesada ("pesado"): golpe mais forte + destruição (caixotes, chão com ▼, barris) e alavancas.
 ## O Martelão (item) fortalece só a pesada. Retorna true se acertou um robô.
+## A47: a obra quebra com a LUTA — robô arremessado contra parede/bloco ou pouso forte racha a peça no ponto.
+func luta_quebra(r, pt: Vector2, forca: int) -> void:
+	if canteiro == null or not is_instance_valid(canteiro):
+		return
+	for p in canteiro.parts:
+		if p["fallen"] or p["nucleo"]:
+			continue
+		if canteiro.hit_rect(p).grow(10).has_point(pt):
+			canteiro.damage(p, forca, pt)
+			main.spark(pt, 6)
+			main.dust(pt, 1.0)
+			main.shake(4.0 + 3.0 * forca)
+			Audio.play("caixote_pancada", 0.9, -2.0)
+			return
+
 func attack(r, kind: String) -> bool:
 	var heavy := kind == "pesado"
 	var big := false
@@ -457,6 +472,27 @@ func attack(r, kind: String) -> bool:
 	var hit := Rect2(cx if r.facing > 0 else cx - w, rr.position.y - (10.0 if heavy else 0.0), w, rr.size.y + (10.0 if heavy else 0.0))
 	var hk := ("martelao" if big else "pesado") if heavy else "rapido"
 	var hdir: int = r.facing
+	var critico := false
+	var ap: Dictionary = r.c["ataque_pesado"]
+	if heavy:   # A47: carga, direção e crítico na ponta
+		r.hit_mult = 1.0 + float(ap["carga_mult"]) * clampf(r.heavy_charge / float(ap["carga_max_s"]), 0.0, 1.0)
+		match r.atk_dir:
+			"cima":
+				hit = Rect2(cx - 60, rr.position.y - float(ap["alcance_cima_px"]), 120, float(ap["alcance_cima_px"]) + 40)
+				hk = "pesado_cima"
+			"baixo":
+				hit = Rect2(cx - 56, rr.end.y - 30, 112, float(ap["alcance_baixo_px"]) + 30)
+				hk = "pesado_baixo"
+			_:
+				for o in main.robots:   # o rival está na PONTA da marreta? → crítico
+					if o != r and o.alive and hit.intersects(o.rect()):
+						var dd: float = (o.rect().get_center().x - cx) * r.facing
+						if dd >= rr.size.x / 2.0 + reach * float(ap["critico_frac"]) - 12.0:
+							critico = true
+				if critico or r.heavy_charge >= float(ap["carga_max_s"]) * 0.95:
+					critico = true
+					hk = "martelao"
+					r.hit_mult *= float(ap["critico_mult"])
 	if not heavy:
 		var cc: Dictionary = r.c["combo"]
 		match r.atk_dir:
@@ -492,6 +528,12 @@ func attack(r, kind: String) -> bool:
 			main.shake((7.0 if heavy else 2.5) * mult)
 			main.impact_fx(o.rect().get_center() + Vector2(-r.facing * 10, 0), r.facing, 1.0 if heavy else 0.3)
 			main.add_stat(r.pid, "golpes")
+			if critico:
+				main.float_text(o.position + Vector2(0, -150), "CRÍTICO!", Color("#d42035"))
+				o.hitstop = float(hs["max"]) + 0.04
+				r.hitstop = o.hitstop
+				main.shake(12.0)
+				main.ring_fx(o.rect().get_center(), 1.2)
 			hit_robot = true
 	if spells != null and spells.decoy_hit(r, hit, heavy):   # D06: bateu no boneco de teste
 		hit_robot = true
@@ -510,7 +552,7 @@ func attack(r, kind: String) -> bool:
 			r.hitstop = float(hs["rapido"])   # entulho do evento G06
 	if heavy and canteiro != null and is_instance_valid(canteiro):
 		canteiro.mute_hit = true   # o clang aprovado substitui a pancada genérica da peça
-		if canteiro.hammer(r, hit, PlayerInput.held(r.pid, "down")):
+		if canteiro.hammer(r, hit, PlayerInput.held(r.pid, "down"), critico):
 			struct_hit = true
 			if not hit_robot:
 				r.hitstop = float(hs["rapido"])
@@ -518,6 +560,7 @@ func attack(r, kind: String) -> bool:
 		canteiro.mute_hit = false
 	if not hit_robot and struct_hit:   # acertou estrutura/máquina: clang da marreta no metal (nunca junto do impacto no robô)
 		Audio.play("ba_marreta_pesada" if heavy else "ba_marreta_rapida")
+	r.hit_mult = 1.0
 	if hit_robot or not heavy:
 		return hit_robot
 	var lv = main.level
