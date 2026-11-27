@@ -23,6 +23,8 @@ var demo: Node
 var cfg: Dictionary
 var boxes: Array = []        # {fam, id, charges, pos, vy, t, land_t, block: {pid: s}, special}
 var slot := {}               # pid -> {id, fam, charges, cd, prep, prep_len, fire, t, data}
+var rivet_hits := {}         # A05: pid -> {n, t} acertos seguidos (3 = pregado)
+var pinned := {}             # A05: pid -> {t, len, pos} robô pregado
 var puffs := []              # A04: poeira na cor do concreto {pos, vel, r, t, life}
 var craters := []            # A04: clarão da cratera {rect, t}
 var punch_fly := []          # A01: rivais voando do soco carregado {pid, owner, t, dir} (quicam na parede)
@@ -478,7 +480,7 @@ func hand(r) -> Vector2:
 # ---------------------------------------------------------------- usar
 func use(r) -> void:
 	var s: Dictionary = slot[r.pid]
-	if s["cd"] > 0.0 or s["prep"] >= 0.0 or s.has("empty_t") or s["channel"]:
+	if s["cd"] > 0.0 or s["prep"] >= 0.0 or s.has("empty_t") or s["channel"] or s.has("beam") or int(s.get("burst", 0)) > 0:
 		return
 	var c: Dictionary = sc(s["id"])
 	_set_aim(r, s, aim_vec(r))
@@ -495,6 +497,8 @@ func use(r) -> void:
 		"A03", "A02", "A08":
 			s["prep"] = 0.0
 			s["prep_len"] = float(c["preparo"])
+			if s["id"] == "A02" and _is_bot(r.pid):
+				bot_hold[r.pid] = float(c["preparo"]) + 0.9
 			Audio.play({"A01": "pistao_aviso", "A03": "gelo", "A02": "laser_carga", "A08": "pulo_mola"}[s["id"]], 1.3 if s["id"] != "A08" else 0.6, -4.0)
 		"A04":   # só apoiado no chão (no ar avisa e não gasta)
 			if not r.is_on_floor():
@@ -503,7 +507,10 @@ func use(r) -> void:
 			s["prep"] = 0.0
 			s["prep_len"] = float(c["preparo"])
 			Audio.play("marreta_vento", 0.7, -2.0)
-		"A05":
+		"A05":   # auditoria 2026-11-27: RAJADA de 3 rebites em brasa (1 carga por rajada)
+			s["burst"] = int(c["rajada"])
+			s["burst_t"] = 0.0
+			_spend(r, s)
 			_fire_rivet(r, s)
 		"A06":
 			if _is_bot(r.pid):
@@ -1019,6 +1026,7 @@ func update(dt: float, alive: Array) -> void:
 			Audio.play("menu_mover", 1.4, -6.0)
 	_update_teles(dt)
 	_update_frozen(dt)
+	_update_pinned(dt)
 	for r in main.robots:
 		if not slot.has(r.pid):
 			continue
@@ -1052,6 +1060,15 @@ func update(dt: float, alive: Array) -> void:
 			elif s["prep"] >= s["prep_len"]:
 				s["prep"] = -1.0
 				_fire(r, s)
+		if s.has("beam"):
+			_update_beam(r, s, dt)
+		if int(s.get("burst", 0)) > 0 and s["id"] == "A05":
+			s["burst_t"] -= dt
+			if r.stun_t > 0.0:
+				s["burst"] = 0
+				s["cd"] = float(sc("A05")["intervalo_s"])
+			elif s["burst_t"] <= 0.0:
+				_fire_rivet(r, s)
 		if s["channel"] and s["id"] in ["C01", "C02"] or (s["id"] == "T01" and flames.has(r.pid) and s["channel"]):
 			_set_aim(r, s, aim_vec(r), 7.0, dt)
 		if s["id"] == "C01" and s["channel"]:
@@ -1804,28 +1821,115 @@ func _floor_below(x: float, y: float, n := 8) -> float:
 			return (cy + k) * T
 	return -1.0
 
+## A02 (auditoria 2026-11-27): feixe contínuo. Segura = continua (feixe_min_s..feixe_max_s); ▲▼ varre a mira; quem
+## toca leva 1 acerto e é ARRASTADO na direção do feixe; andaime/viga/plataforma/tábua/grelha atravessados por
+## corte_s são CORTADOS (despencam na hora) e ficam com a marca em brasa.
+func _update_beam(r, s: Dictionary, dt: float) -> void:
+	var c: Dictionary = sc("A02")
+	var b: Dictionary = s["beam"]
+	b["t"] += dt
+	s["fire"] = 0.0   # pose de mira enquanto o feixe sai
+	if dt > 0.0:
+		_set_aim(r, s, aim_vec(r), float(c["varre_rad_s"]), dt)
+	var a := muzzle(r, "A02")
+	var dv := aim_dir(r)
+	var maxd := float(c["alcance_tiles"]) * T
+	var d := 0.0
+	while d < maxd and not _hard_at(a + dv * (d + 8.0)):
+		d += 8.0
+	var bp := a + dv * d
+	var e: Dictionary = b["laser"]
+	e["a"] = a
+	e["b"] = bp
+	e["t"] = minf(e["t"], 0.1)   # mantém o feixe cheio
+	for o in main.robots:
+		if o.pid == r.pid or not o.alive or not _seg_rect(a, bp, o.rect(), 10.0):
+			continue
+		if not (o.pid in b["hit"]):
+			b["hit"].append(o.pid)
+			_hit_dir(o, r.pid, dv, "spell_laser")
+		elif dt > 0.0 and o.invuln <= 0.0:   # arrastado pelo feixe
+			var mx := float(c["arrasto_max"])
+			o.own_vx = clampf(o.own_vx + dv.x * float(c["arrasto"]) * dt, -mx, mx)
+			o.velocity.y += dv.y * float(c["arrasto"]) * dt
+	b["mark"] -= dt
+	if d < maxd and b["mark"] <= 0.0:
+		scorch.append({"pos": bp, "t": 0.0})
+		b["mark"] = 0.06
+	var ct = demo.canteiro
+	if ct != null and is_instance_valid(ct) and dt > 0.0:
+		for p in ct.parts:
+			if p["fallen"] or not (p["kind"] in c["corta"]) or p["nucleo"]:
+				continue
+			var hr: Rect2 = ct.hit_rect(p)
+			if not _seg_rect(a, bp, hr, 0.0):
+				continue
+			var k: int = int(p["idx"]) if p.has("idx") else ct.parts.find(p)
+			b["cut"][k] = float(b["cut"].get(k, 0.0)) + dt
+			var cp: Vector2 = Geometry2D.get_closest_point_to_segment(hr.get_center(), a, bp)
+			if fmod(b["t"], 0.05) < dt:
+				main.spark(cp, 2)
+			if b["cut"][k] >= float(c["corte_s"]):
+				ct.damage(p, 9999, cp)
+				if p["crit_t"] > 0.0:
+					p["crit_t"] = 0.0
+					ct._collapse(p)
+				for j in 4:
+					scorch.append({"pos": cp + Vector2(randf_range(-6, 6), randf_range(-10, 10)), "t": 0.0})
+				Audio.play("serra", 1.4, -6.0)
+	var dmin := float(c["feixe_min_s"])
+	if dt > 0.0 and (r.stun_t > 0.0 or b["t"] >= float(c["feixe_max_s"]) or (b["t"] >= dmin and not held(r))):
+		e["hold"] = false
+		s.erase("beam")
+		s["fire"] = 0.0
+		r.own_vx -= dv.x * 90.0
+		_spend(r, s)
+
+## A05 (auditoria 2026-11-27): 3 acertos seguidos de rebite = PREGADO (preso onde está, sem controle) por pino_s.
+## Outro golpe solta o pregado (ele voa normalmente).
+func _rivet_hit(o, owner: int) -> void:
+	var c: Dictionary = sc("A05")
+	var rh: Dictionary = rivet_hits.get(o.pid, {"n": 0, "t": 0.0})
+	rh["n"] = int(rh["n"]) + 1
+	rh["t"] = 0.0
+	rivet_hits[o.pid] = rh
+	if rh["n"] >= int(c["pino_n"]) and not pinned.has(o.pid):
+		rivet_hits.erase(o.pid)
+		pinned[o.pid] = {"t": 0.0, "len": float(c["pino_s"]), "pos": o.position, "owner": owner}
+		o.velocity = Vector2.ZERO
+		o.own_vx = 0.0
+		main.float_text(o.position + Vector2(0, -130), "PREGADO!", Color("#ffb24a"))
+		Audio.play("pistao", 0.8, 0.0)
+		main.shake(5.0)
+
+func _update_pinned(dt: float) -> void:
+	for pid in rivet_hits.keys():
+		rivet_hits[pid]["t"] += dt
+		if rivet_hits[pid]["t"] > float(sc("A05")["pino_janela_s"]):
+			rivet_hits.erase(pid)
+	for pid in pinned.keys():
+		var pn: Dictionary = pinned[pid]
+		var o = main.robots[pid] if pid < main.robots.size() else null
+		pn["t"] += dt
+		if o == null or not o.alive or pn["t"] >= pn["len"] or (pn["t"] > 0.05 and o.last_hit < 0.03):
+			pinned.erase(pid)   # acabou ou levou outro golpe: solta (o golpe joga normalmente)
+			continue
+		o.stun_t = maxf(o.stun_t, 0.05)
+		o.velocity = Vector2.ZERO
+		o.own_vx = 0.0
+		o.position = pn["pos"]
+
 ## Disparos com preparo: laser (A02), marreta sísmica (A04), canhão de molas (A08).
 func _fire2(r, s: Dictionary) -> void:
 	var c: Dictionary = sc(s["id"])
 	match s["id"]:
-		"A02":   # feixe instantâneo até a parede, atravessa robôs (1 acerto cada)
-			var a := muzzle(r, "A02")
-			var dv := aim_dir(r)
-			var maxd := float(c["alcance_tiles"]) * T
-			var d := 0.0
-			while d < maxd and not _hard_at(a + dv * (d + 8.0)):
-				d += 8.0
-			var b := a + dv * d
-			lasers.append({"owner": r.pid, "t": 0.0, "a": a, "b": b})
-			for o in main.robots:
-				if o.pid != r.pid and _seg_rect(a, b, o.rect(), 10.0):
-					_hit_dir(o, r.pid, dv, "spell_laser")
-			if d < maxd:
-				scorch.append({"pos": b, "t": 0.0})
+		"A02":   # auditoria 2026-11-27: feixe CONTÍNUO enquanto segura (varre, arrasta, corta) — ver _update_beam
+			var e := {"owner": r.pid, "t": 0.0, "a": muzzle(r, "A02"), "b": muzzle(r, "A02"), "hold": true}
+			lasers.append(e)
+			s["beam"] = {"t": 0.0, "hit": [], "cut": {}, "laser": e, "mark": 0.0}
+			_update_beam(r, s, 0.0)
 			Audio.play("laser", 1.0, 0.0)
 			main.shake(3.0)
-			r.own_vx -= dv.x * 90.0
-			_spend(r, s)
 		"A04":   # onda pela superfície contínua, para em buracos e paredes
 			if not r.is_on_floor():
 				_fail(r, "SÓ NO CHÃO")
@@ -1896,17 +2000,19 @@ func _fire2(r, s: Dictionary) -> void:
 ## A05: rebite em linha (▲/▼ inclinam 45°), ricocheteia até 2 vezes perdendo força.
 func _fire_rivet(r, s: Dictionary) -> void:
 	var c: Dictionary = sc("A05")
-	if s["cd"] > 0.0:
-		return
 	var dirv := aim_dir(r)
 	rivets.append({"owner": r.pid, "pos": muzzle(r, "A05"), "vel": dirv * float(c["vel"]), "bounces": 0, "t": 0.0, "hit": [], "trail": []})
-	s["cd"] = float(c["intervalo_s"])
 	s["fire"] = 0.0
-	Audio.play("chave", 1.6, -2.0)
+	s["burst"] = int(s.get("burst", 1)) - 1
+	s["burst_t"] = float(c["rajada_intervalo_s"])
+	if s["burst"] <= 0:
+		s["cd"] = float(c["intervalo_s"])
+	Audio.play("chave", 1.6 + randf() * 0.2, -2.0)
 	Audio.play("pistao", 1.9, -10.0)
 	tings.append({"pos": muzzle(r, "A05"), "t": 0.0, "big": true})
-	r.own_vx -= r.facing * 50.0
-	_spend(r, s)
+	r.own_vx -= r.facing * 70.0   # coice a cada tiro
+	for k in 2:
+		main.spark(muzzle(r, "A05"), 1)
 
 ## A06: marca uma faixa à frente (no chão) e a estaca desce lá depois do aviso.
 func _pile_floor(r, x: float) -> float:
@@ -2034,7 +2140,8 @@ func _update_attack2(dt: float) -> void:
 		for o in main.robots:
 			if o.pid != rv["owner"] and o.alive and not (o.pid in rv["hit"]) and o.rect().grow(4).has_point(rv["pos"]):
 				rv["hit"].append(o.pid)
-				_hit_dir(o, rv["owner"], rv["vel"].normalized(), "spell_rebite")
+				if _hit_dir(o, rv["owner"], rv["vel"].normalized(), "spell_rebite"):
+					_rivet_hit(o, rv["owner"])
 				rv["dead"] = true
 		if rv["t"] > float(c5["vida_s"]):
 			rv["dead"] = true
@@ -2308,10 +2415,40 @@ func _draw_attack2() -> void:
 		draw_set_transform(rv["pos"], rv["vel"].angle())
 		draw_rect(Rect2(-16, -4.5, 16, 9), INK)
 		draw_rect(Rect2(-15, -3, 14, 6), Color("#c9d1d8"))
+		draw_circle(Vector2(2, 0), 13.0, Color(1, 0.55, 0.15, 0.3))   # em brasa: halo laranja
 		draw_circle(Vector2(2, 0), 9.0, INK)
-		draw_circle(Vector2(2, 0), 7.5, Color("#f2c84b"))
-		draw_circle(Vector2(4, -2.5), 2.5, Color(1, 1, 1, 0.85))
+		draw_circle(Vector2(2, 0), 7.5, Color("#ff9a2a"))
+		draw_circle(Vector2(3, -1.5), 4.0, Color("#ffd27a"))
+		draw_circle(Vector2(4, -2.5), 2.0, Color(1, 1, 0.9, 0.95))
 		draw_set_transform(Vector2.ZERO)
+	for pid in rivet_hits:   # A05: acertos seguidos (pontinhos sobre a cabeça; o 3º prega)
+		var ro = main.robots[pid]
+		if not ro.alive:
+			continue
+		var n: int = rivet_hits[pid]["n"]
+		var c0: Vector2 = ro.position + Vector2(-16, -112)
+		for k in 3:
+			draw_circle(c0 + Vector2(k * 16.0, 0), 6.5, INK)
+			draw_circle(c0 + Vector2(k * 16.0, 0), 4.8, Color("#ff9a2a") if k < n else Color(0.85, 0.85, 0.85, 0.7))
+	for pid in pinned:   # A05 pregado: 3 rebites cravados em volta + estrelas girando + tremidinha
+		var ro = main.robots[pid]
+		var pn: Dictionary = pinned[pid]
+		var fr := 1.0 - clampf(pn["t"] / pn["len"], 0.0, 1.0)
+		var cc: Vector2 = ro.position + Vector2(0, -36)
+		for k in 3:
+			var off := Vector2(-26.0 if k != 1 else 26.0, -24.0 + k * 22.0)
+			draw_set_transform(cc + off, 0.0 if off.x < 0.0 else PI)
+			draw_rect(Rect2(-4, -2.5, 16, 5), Color("#c9d1d8"))
+			draw_circle(Vector2(-4, 0), 7.0, INK)
+			draw_circle(Vector2(-4, 0), 5.5, Color("#ff9a2a").lerp(Color("#8a8f99"), 1.0 - fr))
+			draw_set_transform(Vector2.ZERO)
+		for k in 3:
+			var a := t * 7.0 + k * TAU / 3.0
+			var sp: Vector2 = ro.position + Vector2(cos(a) * 26.0, -92.0 + sin(a) * 8.0)
+			var st := PackedVector2Array()
+			for j in 10:
+				st.append(sp + Vector2.from_angle(j * TAU / 10.0) * (7.0 if j % 2 == 0 else 3.0))
+			draw_colored_polygon(st, Color(1, 0.9, 0.4, 0.9))
 	for e in tings:   # estrelinha no ricochete / sopro de ar na boca
 		var u: float = e["t"] / 0.18
 		var rad := (26.0 if e["big"] else 18.0) * (0.5 + u)

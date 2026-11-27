@@ -2639,6 +2639,8 @@ func spells_test() -> void:
 			r.stun_t = 0.0
 			r.recover_t = 0.0
 			r.frozen_t = 0.0
+			main.demo.spells.pinned.erase(r.pid)
+			main.demo.spells.rivet_hits.erase(r.pid)
 			r.spell_lock = false
 			r.invuln = 0.0
 			r.atk = ""
@@ -2832,7 +2834,37 @@ func spells_test() -> void:
 	await tap("v0", "item")
 	check(sp.flags(r0)["prep"] >= 0.0, "A02: mira antes de disparar")
 	await frames(int(float(sp.sc("A02")["preparo"]) * 60.0) + 4)
-	check(r1.dmg > 0.0 and sp.hud_info(0)["charges"] == 2, "A02: feixe acerta à distância (dano %d%%)" % int(r1.dmg))
+	check(r1.dmg > 0.0 and sp.lasers.size() > 0, "A02: feixe acerta à distância e segue saindo (dano %d%%)" % int(r1.dmg))
+	await frames(int(float(sp.sc("A02")["feixe_min_s"]) * 60.0) + 4)
+	check(sp.hud_info(0)["charges"] == 2 and not sp.slot[0].has("beam"), "A02: soltou o botão: o feixe acaba no mínimo e gasta 1 carga")
+	# feixe segurado corta o andaime (auditoria 2026-11-27)
+	var ct2 = main.demo.canteiro
+	var and2: Array = ct2.parts.filter(func(p): return p["kind"] == "andaime" and not p["fallen"]) if ct2 != null else []
+	check(and2.size() > 0, "A02: há andaime de pé para testar o corte")
+	if and2.size() > 0:
+		var pa = and2[and2.size() - 1]   # o último: os testes de plataforma usam os primeiros
+		place.call(6.0)
+		sp.slot[0]["cd"] = 0.0
+		var hr2: Rect2 = ct2.hit_rect(pa)
+		var xa: float = hr2.position.x - 200.0
+		var fy2: float = sp._floor_below(xa, hr2.position.y)
+		put(r0, Vector2(xa, fy2 if fy2 > 0.0 else floor_y))
+		r0.facing = 1
+		put(r1, Vector2(hr2.position.x - 900.0, floor_y))
+		await frames(4)
+		sp.slot[0]["aim"] = (hr2.get_center() - sp.muzzle(r0, "A02")).normalized()
+		vset("v0", "item", true)
+		var cortou := false
+		for q in 120:
+			await frames(1)
+			if not sp.slot.has(0):
+				break
+			sp.slot[0]["aim"] = (hr2.get_center() - sp.muzzle(r0, "A02")).normalized()
+			if pa["fallen"] or pa["crit_t"] > 0.0:
+				cortou = true
+				break
+		vset("v0", "item", false)
+		check(cortou, "A02: feixe segurado CORTA o andaime")
 	# A04 marreta sísmica: no ar não gasta; no chão a onda pega quem está apoiado no mesmo trecho
 	place.call(3.0)
 	sp.clear(r0)
@@ -2905,7 +2937,13 @@ func spells_test() -> void:
 	await frames(2)
 	await tap("v0", "item")
 	await frames(25)
-	check(r1.dmg > 0.0 and sp.hud_info(0)["charges"] == 3, "A05: rebite acerta (dano %d%%)" % int(r1.dmg))
+	check(r1.dmg > 0.0 and sp.hud_info(0)["charges"] == int(sp.sc("A05")["cargas"]) - 1, "A05: rajada acerta e gasta 1 carga (dano %d%%)" % int(r1.dmg))
+	check(sp.pinned.has(1), "A05: 3 rebites seguidos = PREGADO")
+	var pin_pos: Vector2 = r1.position
+	await frames(20)
+	check(r1.position.distance_to(pin_pos) < 2.0, "A05: pregado fica preso onde está")
+	await frames(int(float(sp.sc("A05")["pino_s"]) * 60.0))
+	check(not sp.pinned.has(1), "A05: solta depois de %.1f s" % float(sp.sc("A05")["pino_s"]))
 	# ricochete: atira de costas para a parede de longe e o rebite volta
 	var rv_test := {"owner": 0, "pos": Vector2(x0, floor_y - 40.0), "vel": Vector2(0, 900.0), "bounces": 0, "t": 0.0, "hit": [], "trail": []}
 	sp.rivets.append(rv_test)
@@ -3046,7 +3084,7 @@ func spells_test() -> void:
 		if pt["kind"] == "laje" and not pt["fallen"] and not sp._hard_at(Vector2(pt["rect"].position.x - 20.0, floor_y + 20.0)):
 			edge_x = pt["rect"].position.x + 30.0
 			break
-	var and0: Dictionary = ct.parts.filter(func(p): return p["kind"] == "andaime")[0]
+	var and0: Dictionary = ct.parts.filter(func(p): return p["kind"] == "andaime" and not p["fallen"])[0]
 	check(not sp._hard_at(and0["rect"].get_center()) and sp._grab_at(and0["rect"].get_center()) and sp._hard_at(nuc[0]["rect"].get_center()),
 		"plataforma vazada não para tiro (mas o gancho agarra); a laje para")
 	place.call(6.0)
@@ -4253,7 +4291,7 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
@@ -4306,6 +4344,15 @@ func spells_frames(dir: String) -> void:
 		elif nm == "porte":
 			sp.equip(r0, "A05")
 			sp.equip(r1, "E01")
+		elif nm == "A02corte":
+			sp.equip(r0, "A02")
+			var ct2 = main.demo.canteiro
+			var an: Array = ct2.parts.filter(func(p): return p["kind"] == "andaime" and not p["fallen"])
+			if an.size() > 0:
+				var hr: Rect2 = ct2.hit_rect(an[an.size() - 1])
+				var xa: float = hr.position.x - 120.0
+				put(r0, Vector2(xa, sp._floor_below(xa, hr.end.y + 8.0)))
+				put(r1, Vector2(hr.position.x + 70.0, hr.position.y))
 		elif nm == "A01cheio":
 			sp.equip(r0, "A01")
 			put(r1, Vector2(x0 + 2.6 * 64.0, fy))
@@ -4328,6 +4375,10 @@ func spells_frames(dir: String) -> void:
 					a["v0"]["item"] = f == 14 or f == 15
 				"A01cheio":   # auditoria 2026-11-27: segura até encher e solta
 					a["v0"]["item"] = f >= 10 and f < 76
+				"A02corte":   # segura o feixe e varre para cima até o andaime
+					a["v0"]["item"] = f >= 10 and f < 100
+					a["v0"]["up"] = f >= 8 and f < 70
+					a["v0"]["right"] = f >= 8 and f < 12
 				"C02":
 					a["v0"]["item"] = f >= 10 and f < 80
 				"C03", "C05", "E03":

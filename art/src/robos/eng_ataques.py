@@ -275,7 +275,8 @@ def exportar_jogo():
     out = os.path.join(ab.ROOT, "art/out/game/spells")
     os.makedirs(out, exist_ok=True)
     itens = [("a04_marreta", f'<g transform="translate(56,40)">{marreta_sismica()}</g>', 112, 140, 4),
-             ("s01_canhao", canhao_jogo(), 128, 64, 2), ("s01_luva", luva_jogo(), 62, 50, 2.0645)]
+             ("s01_canhao", canhao_jogo(), 128, 64, 2), ("s01_luva", luva_jogo(), 62, 50, 2.0645),
+             ("s02_laser", laser_jogo(), 128, 64, 2), ("s05_rebiteira", rebiteira_jogo(), 128, 64, 2)]
     for nome, g, w, h, sc in itens:
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{g}</svg>'
         queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, sc)
