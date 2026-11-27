@@ -3921,6 +3921,8 @@ func mechas_frames(dir: String) -> void:
 		await tap(d, "jump")
 	for i in 4:
 		main.players[i]["model"] = i
+	if OS.get_environment("MECHAS_MODELO") != "":   # vitrine: escolhe o robô do P1
+		main.players[0]["model"] = int(OS.get_environment("MECHAS_MODELO"))
 	main.game_mode = "derruba"
 	main.demo.lives_setting = 9
 	main.event_level = 0

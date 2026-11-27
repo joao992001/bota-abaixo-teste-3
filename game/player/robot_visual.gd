@@ -1218,6 +1218,10 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			ci.draw_texture_rect(Data.tex("spells/" + kd[3]), Rect2(-kd[4] / 2.0, kd[4]), false)
 		ci.draw_set_transform_matrix(base * bx * Transform2D(float(kd[2]), anchor))
 		ci.draw_texture_rect(Data.tex("spells/" + kd[0]), Rect2(-kd[1] / 2.0, kd[1]), false)
+	var moch_on: bool = sid0 in MECHA_CART and not armor and not sf.has("form") and not sf.get("fading", false) and not sf.has("mecha")
+	var moch_anc: Vector2 = (_v(sh[0]) + _v(hips[0])) / 2.0 + Vector2(-13, -4) + MOCH_OFF.get(mname, Vector2.ZERO)
+	if moch_on:   # A aprovada (2026-11-27): a cápsula do mecha vai nas COSTAS, como mochila (nada na mão)
+		_draw_mochila(ci, base * bx, sid0, moch_anc, 1.0, -0.12)
 	if BACK_PROPS.has(sid0) and not armor and not sf.get("fading", false) and not (sid0 == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or float(sf.get("fire", -1.0)) >= 0.0)):
 		var bp: Array = BACK_PROPS[sid0]
 		ci.draw_set_transform_matrix(base * bx * Transform2D(float(bp[2]), _v(sh[0]) + Vector2(-12, 10)))
@@ -1276,6 +1280,17 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		ci.draw_rect(Rect2(-5, 0, 11, 14), limb.lightened(0.25))
 		ci.draw_rect(Rect2(-5, 11, 11, 3), limb)
 		ci.draw_circle(Vector2(0, 2), 1.8, Color("#c9d1d8"))
+	if moch_on:   # alça da mochila cruzando o peito
+		ci.draw_set_transform_matrix(base * bx)
+		var s0: Vector2 = _v(sh[0]) + Vector2(-1, -2)
+		var s1: Vector2 = (_v(sh[1]) + _v(hips[1])) / 2.0 + Vector2(2, 3)
+		var sc: Vector2 = s0.lerp(s1, 0.5) + Vector2(5, -5)
+		var pts := PackedVector2Array()
+		for i in 9:
+			var u := i / 8.0
+			pts.append(s0.lerp(sc, u).lerp(sc.lerp(s1, u), u))
+		ci.draw_polyline(pts, Color("#2b2b33"), 3.4, true)
+		ci.draw_circle(s1, 2.6, Color("#5d6672"))
 	var ab := _v(g["antenna"])
 	ci.draw_set_transform_matrix(base * bx * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
 	ci.draw_texture(Data.tex("robo/antena_" + mname), Vector2.ZERO)
@@ -1385,38 +1400,27 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if gd > 0.0:
 		ci.draw_set_transform_matrix(base)
 		ci.draw_arc(PIVOT, 46.0, 0, TAU, 32, Color(1, 1, 1, 0.45 * gd), 3.0, true)
-	if sid0 in MECHA_CART and not armor and not sf.has("form") and not sf.get("fading", false) and not sf.has("mecha"):
-		_draw_cartucho(ci, base, sid0, hf)
 	var hand := Data.tex("robo/mao")
 	for p in [hb, hf]:
 		ci.draw_set_transform_matrix(base * Transform2D(0.0, hand_q, 0.0, p))
 		ci.draw_texture(hand, -Vector2(8, 8) * 4.0)
 	ci.draw_set_transform_matrix(base)
 
-## CARTUCHO DE MECHA (aprovado 2026-11-27): antes de ativar, o robô segura a cápsula do mecha na mão da frente; o núcleo
-## pulsa e projeta o HOLOGRAMA do mecha girando (art/src/robos/mecha_cartucho.py --jogo).
+## MOCHILA DO MECHA (proposta A aprovada 2026-11-27, substitui o cartucho na mão + holograma): a cápsula do mecha vai
+## presa nas COSTAS com uma alça no peito; o núcleo pulsa. Arte: art/src/robos/mecha_porte.py --jogo (spells/mochila_T0x).
+const MOCH_OFF := {"britadeira": Vector2(-3, 9)}   # a betoneira da Brita cobre as costas: mochila mais baixa e recuada
 const MECHA_CART := ["T01", "T02", "T03", "T04", "T05", "T06", "T07"]
 
-static func _draw_cartucho(ci: CanvasItem, base: Transform2D, id: String, at: Vector2, k := 1.0) -> void:
+static func _draw_mochila(ci: CanvasItem, xf: Transform2D, id: String, at: Vector2, k := 1.0, rot := 0.0) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	var ct: Texture2D = Data.tex("spells/cartucho_" + id)
-	var ht: Texture2D = Data.tex("mecha/%s_inteiro" % id)
-	var c := at + Vector2(4, -8)
-	if ht != null:   # holograma: cone de luz + o mecha girando, piscando como projeção
-		var hp := c + Vector2(0, -26)
-		ci.draw_set_transform_matrix(base)
-		ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-3, -12), hp + Vector2(-20, -40), hp + Vector2(20, -40), c + Vector2(3, -12)]), Color(0.55, 0.92, 1.0, 0.16))
-		ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(1.0, 0.28), 0.0, hp))
-		ci.draw_circle(Vector2.ZERO, 14.0, Color(0.55, 0.92, 1.0, 0.35))
-		var rk := cos(now * 2.2)
-		ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(0.105 * rk, 0.105) * k, 0.0, hp))
-		ci.draw_texture(ht, -Vector2(252, 470), Color(0.55, 0.93, 1.0, (0.5 + 0.18 * sin(now * 11.0)) * (1.0 if fmod(now, 1.3) > 0.06 else 0.2)))
-	if ct != null:
-		var pul := (1.0 + 0.05 * sin(now * 6.0)) * k
-		ci.draw_set_transform_matrix(base * Transform2D(-0.14, Vector2(0.085, 0.085) * pul, 0.0, c))
-		ci.draw_texture(ct, -Vector2(160, 208))
-		ci.draw_set_transform_matrix(base)
-		ci.draw_circle(c + Vector2(0, -1), 7.0 + 3.0 * sin(now * 6.0), Color(1, 0.95, 0.75, 0.25))
+	var mt: Texture2D = Data.tex("spells/mochila_" + id)
+	if mt == null:
+		return
+	var sc := 0.135 * k
+	ci.draw_set_transform_matrix(xf * Transform2D(rot, Vector2(sc, sc), 0.0, at))
+	ci.draw_texture(mt, -Vector2(192, 352))
+	ci.draw_circle(Vector2(0, -20), 70.0 + 22.0 * sin(now * 6.0), Color(1, 0.95, 0.75, 0.22))
+	ci.draw_set_transform_matrix(xf)
 
 ## Placa da Armadura Fornalha (T01): arte de design 150x130 em escala 0,48 (o robô "vira" a fornalha), vigia (75,50) em `at`.
 ## Montagem: cai de cima e assenta; nos últimos instantes pisca avisando que vai desmontar.
@@ -1561,8 +1565,8 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 		var lk2 := lk.duplicate()
 		lk2["fx"] = {}
 		draw_robot(ci, lk2, pose, base)
-		var hand_p := Vector2(18, -38).lerp(Vector2(10, -84), _smooth(ua * 2.0)).lerp(Vector2(2, -46), _smooth(ua * 2.0 - 1.0))
-		_draw_cartucho(ci, base, mid, hand_p, 1.0 + 0.4 * ua)
+		var mp := Vector2(-16, -36).lerp(Vector2(-2, -92), _smooth(ua * 2.0)).lerp(Vector2(2, -46), _smooth(ua * 2.0 - 1.0))
+		_draw_mochila(ci, base, mid, mp, 1.0 + 0.4 * ua, lerpf(-0.12, TAU, _smooth(ua)))
 		if ua > 0.55:
 			var f2 := (ua - 0.55) / 0.45
 			ci.draw_set_transform_matrix(base)

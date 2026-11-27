@@ -33,6 +33,10 @@ def detalhe_topo(tid, x, y, s):
     g = f'<g transform="translate({x},{y}) scale({s})">'
     if det == "brasa":
         g += R(-9, -14, 6, 14, 2, DARK, k=0.2) + R(-1, -17, 6, 17, 2, DARK, k=0.2) + E(2, -20, 3, 3, "#ff8a2a", k=0.1)
+    elif det == "garfo":
+        g += R(-9, -16, 4, 16, 1.2, STEEL, k=0.2) + R(5, -16, 4, 16, 1.2, STEEL, k=0.2) + R(-10, -3, 20, 4, 1.5, STEEL_D, k=0.1)
+    elif det == "espinhos":
+        g += "".join(P_([(x - 4, 0), (x + 4, 0), (x, -10)], STEEL_D, k=0.2) for x in (-9, 0, 9))
     elif det == "aletas":
         g += P_([(-14, 0), (-22, 10), (-10, 6)], STEEL_D, k=0.2) + P_([(14, 0), (22, 10), (10, 6)], STEEL_D, k=0.2)
     elif det == "aerofolio":
@@ -135,5 +139,24 @@ def prancha():
     print(render_all(), out)
 
 
+def exportar_jogo():
+    """A aprovada (2026-11-27): textura spells/mochila_T0x (só a cápsula das costas; a alça é desenhada no jogo).
+    Centro da cápsula em (0,0) da caixa -24..24 × -44..20 (unidades), 8 px por unidade."""
+    out = os.path.join(ab.ROOT, "art/out/game/spells")
+    os.makedirs(out, exist_ok=True)
+    so = [a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--so=")]
+    for tid in mc.TEMAS:
+        if so and tid not in so[0]:
+            continue
+        mc._fn(tid)
+        g = mochila(tid, {"costas": (4, 0)}, True)   # mochila() desloca -4 em x: centro fica em 0
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="48" height="64" viewBox="-24 -44 48 64">{g}</svg>'
+        queue(svg, os.path.join(HERE, f"svg/mochila_{tid}.svg"), os.path.join(out, f"mochila_{tid}.png"), 48, 64, 8)
+    print("mochilas:", render_all())
+
+
 if __name__ == "__main__":
-    prancha()
+    if "--jogo" in sys.argv:
+        exportar_jogo()
+    else:
+        prancha()

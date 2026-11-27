@@ -23,6 +23,8 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
   Velocidade ×1,7, pulo ×1,15; SEGURAR especial = ARRANCADA (3 s de combustível, sobe parede, atropela). Golpes:
   joelhada-relâmpago (leve) e voadora deslizante (pesado). Arte `art/src/robos/mecha_corredor.py` (prancha) → export `--so=T07`.
   `selecao_test` agora calcula as contagens pelos dados (estava desatualizado desde a A31). Vídeo `out/videos/mecha_corredor.mp4`.
+- **A37:** o mecha vai como MOCHILA nas costas antes de ativar (sai o cartucho na mão + holograma). Vitrine:
+  `MECHAS_SO=T07 MECHAS_SEGURA=120 MECHAS_MODELO=0..4 ... --mechas=DIR` (anda carregando, card da seleção, ativação).
 
 **PRÓXIMO passo (esperando o usuário jogar o último .exe):** ajustar o que ele apontar na animação dos mechas
 (estilos/golpes em `robot_visual.gd`), depois os 7 pontos da avaliação de interface (`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`).
