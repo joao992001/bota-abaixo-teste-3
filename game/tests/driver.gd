@@ -1739,9 +1739,9 @@ func mapa_test() -> void:
 	var m := MapaReg.manifesto("derruba", "canteiro_obras")
 	check(not m.is_empty() and MapaReg.validar(m).is_empty(), "manifesto do Canteiro carrega e valida (%s)" % str(MapaReg.validar(m)))
 	var classes: Dictionary = MapaReg.modo_cfg("derruba")["classes_spells"]
-	check(classes.keys() == ["ataque", "controle", "engenharia", "transformacao"], "classes de spell pertencem ao MODO Derruba (%s)" % str(classes.keys()))
+	check(classes.keys() == ["ataque", "controle", "transformacao"], "classes de spell pertencem ao MODO Derruba (%s)" % str(classes.keys()))
 	var sp: Array = MapaReg.spells("derruba", "canteiro_obras", [])
-	check(sp.size() == 23, "Canteiro autoriza as 23 spells aprovadas (%d)" % sp.size())
+	check(sp.size() == 21, "Canteiro autoriza as 21 spells aprovadas (sem E01/E03) (%d)" % sp.size())
 	check(MapaReg.spells("batata", "obra_concreto", ["A01"]).is_empty() and MapaReg.spells("derruba", "mapa_sem_manifesto", ["A01"]).is_empty(), "sem manifesto: nenhuma spell (outro modo não herda as do Derruba)")
 	check(MapaReg.spells("derruba", "demolicao", ["A01", "A02"]).size() == 2, "mapa-ferramenta (laboratório/testes) recebe o pool do modo, explícito")
 	var e1: Array = MapaReg.eventos("derruba", "canteiro_obras", 1)
@@ -2642,7 +2642,7 @@ func spells_test() -> void:
 		var d: Dictionary = sp.pick()
 		cnt[d["fam"]] = cnt.get(d["fam"], 0) + 1
 		check(d["id"] in sp.pool() and sp.sc(d["id"])["familia"] == d["fam"], "sorteio dá spell do pool na família certa") if k == 0 else null
-	check(cnt.size() == 4 and cnt["ataque"] > cnt["controle"] and cnt["ataque"] > cnt["transformacao"], "sorteio: 4 famílias, ataque mais frequente %s" % str(cnt))
+	check(cnt.size() == 3 and cnt["ataque"] > cnt["controle"] and cnt["ataque"] > cnt["transformacao"], "sorteio: 3 famílias, ataque mais frequente %s" % str(cnt))
 	check(sp.spawn_points().size() >= 6 and sp.spawn_points().any(func(q): return q["fixo"]), "pontos de caixa fixos e variáveis no Canteiro (%d)" % sp.spawn_points().size())
 	# coleta por contato com slot vazio
 	place.call(6.0)

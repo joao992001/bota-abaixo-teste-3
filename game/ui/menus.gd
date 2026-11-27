@@ -613,7 +613,7 @@ func _draw_howto(ci: CanvasItem) -> void:
 		["robo", "Derrube os outros no poço de espinhos. O último em pé ganha uma ★."],
 		["marreta", "GOLPE RÁPIDO (X/□): empurra e interrompe. MARRETADA PESADA (Y/△): demora,\nmas arremessa longe e quebra caixotes (▼ + pesada quebra o chão). Errou? Fica exposto."],
 		["pisao", "ESQUIVA (RB/R1): escapa de golpes por um instante, no chão ou 1 vez no ar.\nArremessado? Segure a direção para corrigir e use a esquiva para se salvar."],
-		["itens", "Caixas de ENGENHOCA: a cor mostra a família (ataque, controle, engenharia, transformação).\nEncoste para pegar · ESPECIAL usa · segure ESPECIAL em cima de outra caixa para trocar."],
+		["itens", "Caixas de ENGENHOCA: a cor mostra a família (ataque, controle, mecha).\nEncoste para pegar · ESPECIAL usa · segure ESPECIAL em cima de outra caixa para trocar."],
 		["parado", "Caixote racha se você fica parado em cima. No fim da rodada, TERREMOTO!"],
 	]
 	for i in tips.size():
@@ -630,8 +630,8 @@ func _draw_howto(ci: CanvasItem) -> void:
 				po["expr"] = "susto"
 				RobotVis.draw_robot(ci, {"color": 2, "model": 2}, po, Transform2D(0.0, Vector2(0.9, 0.9), 0.0, c + Vector2(0, 60)))
 			"itens":
-				var names := ["ataque", "controle", "engenharia", "transformacao"]
-				for k in 4:
+				var names := ["ataque", "controle", "transformacao"]
+				for k in 3:
 					ci.draw_texture_rect(Data.tex("spells/caixa_" + names[k]), Rect2(c + Vector2(-70 + (k % 2) * 60, -40 + (k / 2) * 52), Vector2(54, 54)), false)
 			"parado":
 				ci.draw_texture_rect(Data.tex("cenario/caixote_0"), Rect2(c - Vector2(40, 30), Vector2(80, 80)), false)

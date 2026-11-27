@@ -534,14 +534,11 @@
           "controle": {
             "peso": 20
           },
-          "engenharia": {
-            "peso": 20
-          },
           "transformacao": {
             "peso": 7
           }
         },
-        "nota_classes": "Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
+        "nota_classes": "3 classes (2026-11-27): ataque, controle, transformação (mechas); a classe engenharia saiu — E01 Andaime Relâmpago e E03 Controle Remoto REMOVIDOS do jogo, E02 Carga Remota virou ataque. Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
         "destruicao": {
           "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. Chegar a 90% antes da verificação não antecipa. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
           "limiar_moderada": 0.5,
@@ -729,9 +726,7 @@
           "C03",
           "C04",
           "C05",
-          "E01",
           "E02",
-          "E03",
           "T01",
           "T02",
           "T03",
@@ -887,7 +882,7 @@
         "icone": "s10_tabua"
       },
       "E02": {
-        "familia": "engenharia",
+        "familia": "ataque",
         "raridade": "comum",
         "cargas": 1,
         "arma_s": 0.5,
