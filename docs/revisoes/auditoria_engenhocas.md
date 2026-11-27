@@ -25,3 +25,18 @@ Classes hoje (A31): **Ataque, Controle, Mechas**. A **Defesa** entra como 4ª cl
 ## Defesa (nova) — pendente
 Ideias levadas ao usuário: Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola (revide), Remendo Rápido, Botas
 Magnéticas, Teleporte (sairia do Controle). Proibido: escudo segurado na mão (S28 Escudo de Solda reprovado).
+
+## Propostas APROVADAS para o Ataque (2026-11-27) — ordem: A04+A01 → A02+A05 → A08+E02 → A06+A07
+- **A01 Punho Pneumático:** segurar carrega a pressão (agacha, pistão chia, vapor); soltar = soco que arremessa em linha
+  reta (mais longe quanto mais carregou); bateu em parede/bloco → quica e racha o bloco; coice no robô; toque = soco médio.
+- **A02 Laser de Corte:** mira vermelha antes; feixe grosso (núcleo branco/borda laranja) varrível enquanto segura; CORTA
+  andaime/viga/plataforma (rompem e caem com quem está em cima); arrasta o rival; linha incandescente que esfria.
+- **A04 Marreta Sísmica:** a mais destrutiva: marreta gigante, cratera que destrói laje/blocos num raio de 2–3 tiles à
+  frente, onda de choque que levanta todos no chão e joga longe os de perto; tremor forte, rachaduras, pedras, anel de poeira.
+- **A05 Rebiteira Ricochete:** rajada de 3 rebites em brasa, até 3 quiques; cada acerto empurra; 3 acertos = PREGADO ~1 s.
+- **A06 Bate-Estaca:** crava estaca à frente → sobe COLUNA de concreto que lança o rival para cima e fica de plataforma.
+- **A07 Arremesso da arma:** cada robô arremessa a SUA arma (marreta, gancho com corrente que traz o rival, britadeira
+  vibrando, chave bumerangue, caçamba com terra).
+- **A08 Canhão de Molas:** mesmo efeito; projétil = mola grossa comprimida com tampão e faixa de perigo, estica no impacto (BOING).
+- **E02 Carga Remota:** dinamite com detonador de antena (sem fio azul), gruda, bip acelerando; explosão DESTRÓI peças no
+  raio e lança longe; explode sozinha em 4 s.
