@@ -19,7 +19,7 @@ Classes hoje (A31): **Ataque, Controle, Mechas**. A **Defesa** entra como 4ª cl
 | A06 | Bate-Estaca | REPENSAR | — | é a que menos se conecta com as outras: manter só se mudar completamente a utilização (ou sai) |
 | A07 | Marreta-Bumerangue | manter | AJUSTAR por robô | gosta muito. A ideia é AUMENTAR O ALCANCE DA ARMA DO PRÓPRIO ROBÔ: quem tem marreta arremessa a marreta; o Guindaste lança a corrente/gancho, que vai e volta; cada robô com a sua arma |
 | A08 | Canhão de Molas | manter | MELHORAR | já é muito impactante; o PROJÉTIL deixa a desejar |
-| E02 | Carga Remota | ? | ? | (sem decisão ainda) |
+| E02 | Carga Remota | MELHORAR | MELHORAR | (o fio azul hoje repete o do Laço C05) |
 
 ## Controle — pendente (C01–C05)
 ## Defesa (nova) — pendente
