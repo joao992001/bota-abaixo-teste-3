@@ -101,21 +101,37 @@ def punho(x, y, casco, s=1.0):
     return o + R(x - 12 * s, y - 10 * s, 24 * s, 6 * s, 3, casco, k=0.2)
 
 
-def mecha(col, casco, arma, extra_costas="", extra_peito="", cab=(30, 26)):
-    """Mecha humanoide padrão: curvado para a frente, ombros enormes, cockpit no peito, braço-arma à frente."""
-    o = extra_costas
-    o += perna_mecha(-14, -58, -22, shade(casco, -0.15), 0.6)                                           # perna de trás
-    o += f'<path d="M-30,-104 L-44,-78 L-40,-52" stroke="{DARK}" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(-40, -46, shade(casco, -0.15), 0.9)  # braço de trás
-    o += R(-22, -66, 40, 14, 5, DARK, k=0.4)                                                            # quadril
-    o += S("M-34,-62 L-40,-112 L-14,-126 L30,-122 L40,-96 L26,-60 Z", casco, (-41, -127, 41, -59), k=0.7)   # tronco em V
+def mecha(col, casco, arma, extra_costas="", extra_peito="", cab=(30, 26), H=58, tw=1.0, th=1.0, gorila=False, ombro=1.0, perna=1.0):
+    """Mecha humanoide com CORPO PRÓPRIO: H = altura do quadril, tw/th = largura/altura do tronco, gorila = braço de trás
+    apoiado no chão (punho), ombro = tamanho das ombreiras. A arma é desenhada no quadro padrão e levada até o ombro."""
+    def T(x, y):   # quadro padrão do tronco (quadril em -58) → corpo deste mecha
+        return x * tw, -H + (y + 58) * th
+    sx, sy = T(34, -106)
+    dx, dy = sx - 34, sy + 106
+    tr = f"translate(0,{-H}) scale({tw},{th}) translate(0,58)"
+    o = f'<g transform="translate({dx:.1f},{dy:.1f})">{extra_costas}</g>' if extra_costas else ""
+    o += perna_mecha(-14 * tw, -H, -22 * perna, shade(casco, -0.15), 0.6)                               # perna de trás
+    bx, by = T(-30, -104)
+    if gorila:   # braço de trás enorme, nó dos dedos no chão
+        o += f'<path d="M{bx},{by} L{bx - 22},{by + (-by) * 0.45} L{bx - 18},-20" stroke="{DARK}" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 18, -12, shade(casco, -0.15), 1.4)
+    else:
+        o += f'<path d="M{bx},{by} L{bx - 14},{by + 26} L{bx - 10},{by + 52}" stroke="{DARK}" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 10, by + 58, shade(casco, -0.15), 0.9)
+    o += f'<g transform="{tr}">'
+    o += R(-22, -66, 40, 14, 5, DARK, k=0.4)
+    o += S("M-34,-62 L-40,-112 L-14,-126 L30,-122 L40,-96 L26,-60 Z", casco, (-41, -127, 41, -59), k=0.7)
     o += P_([(-30, -112), (-14, -122), (28, -118), (20, -110), (-22, -106)], shade(casco, 0.18), k=0.2)
-    o += cb.faixa(-30, -72, 54, 7, n=7) + faixa_jogador(-36, -86, 74, col)
-    o += cabine_peito(4, -102, cab[0], cab[1], col) + extra_peito
-    o += perna_mecha(12, -58, 18, casco, 1.0)                                                           # perna da frente
-    o += cabeca_mecha(10, -136, casco)
-    o += ombreira(-24, -118, shade(casco, -0.1), 1.0)
-    o += arma
-    o += ombreira(30, -116, casco, 1.15)
+    o += cb.faixa(-30, -72, 54, 7, n=7) + faixa_jogador(-36, -86, 74, col) + "</g>"
+    cx, cy = T(4, -102)
+    o += cabine_peito(cx, cy, cab[0], cab[1], col)
+    o += f'<g transform="{tr}">{extra_peito}</g>'
+    o += perna_mecha(12 * tw, -H, 18 * perna, casco, 1.0)                                                # perna da frente
+    hx, hy = T(10, -136)
+    o += cabeca_mecha(hx, hy, casco)
+    ox, oy = T(-24, -118)
+    o += ombreira(ox, oy, shade(casco, -0.1), ombro)
+    o += f'<g transform="translate({dx:.1f},{dy:.1f})">{arma}</g>'
+    ox, oy = T(30, -116)
+    o += ombreira(ox, oy, casco, 1.15 * ombro)
     return o
 
 
@@ -127,7 +143,7 @@ def fornalha(col):
     arma = f'<path d="M34,-106 L56,-90 L66,-92" stroke="{DARK}" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
     arma += R(56, -102, 34, 20, 6, casco, k=0.4) + R(88, -98, 10, 12, 3, DARK, k=0.3)
     arma += P_([(98, -100), (140, -110), (128, -92), (146, -80), (98, -82)], "#ff6a1a", k=0.4) + P_([(98, -96), (122, -100), (114, -92), (126, -86), (98, -86)], "#ffe27a", k=0.3)
-    return mecha(col, casco, arma, costas, peito)
+    return mecha(col, casco, arma, costas, peito, cab=(36, 26), H=40, tw=1.35, th=0.85, ombro=1.2, perna=1.3)   # BAIXA e LARGA
 
 
 # ---------------------------------------------------------------- T02 EMPILHADEIRA: mecha de carga, mastro hidráulico nas costas, braço-GARFO de 2 lâminas
@@ -138,7 +154,7 @@ def empilhadeira(col):
     arma += R(60, -104, 14, 40, 4, DARK, k=0.4)
     for y in (-100, -74):
         arma += S(f"M72,{y} L132,{y + 2} L140,{y + 8} L72,{y + 8} Z", STEEL, (71, y - 1, 141, y + 9), k=0.4, dark=STEEL_D, light=STEEL_L)
-    return mecha(col, casco, arma, costas)
+    return mecha(col, casco, arma, costas, H=66, tw=1.1, th=1.15, ombro=0.9)   # ALTA e QUADRADA, ereta
 
 
 # ---------------------------------------------------------------- T03 BOLA: mecha de demolição, punho = BOLA de aço na corrente (e se enrola numa bola para rolar)
@@ -148,7 +164,7 @@ def bola(col):
     arma += "".join(f'<ellipse cx="{72 + i * 7}" cy="{-66 + i * 3}" rx="3.4" ry="2.4" fill="none" stroke="{STEEL_D}" stroke-width="2"/>' for i in range(6))
     arma += E(128, -40, 24, 24, STEEL_D, k=0.6) + E(124, -44, 20, 20, STEEL, k=0.3, light=STEEL_L)
     arma += "".join(P_([(128 + math.cos(a) * 22, -40 + math.sin(a) * 22), (128 + math.cos(a + 0.18) * 34, -40 + math.sin(a + 0.18) * 34), (128 + math.cos(a + 0.36) * 22, -40 + math.sin(a + 0.36) * 22)], STEEL_L, k=0.1) for a in (-1.2, 0.2, 1.6, 3.0, 4.4))
-    return mecha(col, casco, arma)
+    return mecha(col, casco, arma, H=40, tw=1.25, th=1.05, gorila=True, ombro=1.45, perna=0.8)   # GORILA: punho no chão
 
 
 # ---------------------------------------------------------------- T05 BROCA: mecha perfurador laranja, braço = broca enorme girando
@@ -159,7 +175,7 @@ def broca(col):
     arma += S("M80,-112 L150,-94 L80,-76 Z", STEEL, (79, -113, 151, -75), k=0.5, dark=STEEL_D, light=STEEL_L)
     arma += "".join(f'<path d="M{88 + i * 14},{-110 + i * 3.6} L{96 + i * 14},{-78 - i * 3.6}" stroke="{STEEL_D}" stroke-width="3"/>' for i in range(4))
     arma += "".join(f'<path d="M154,{-94 + d} l12,{d * 0.6}" stroke="#c8a27a" stroke-width="3.4" stroke-linecap="round"/>' for d in (-10, 0, 10))
-    return mecha(col, casco, arma)
+    return mecha(col, casco, arma, cab=(26, 24), H=78, tw=0.75, th=0.95, ombro=0.8, perna=0.8)   # ALTA e MAGRA, pernas compridas
 
 
 # ---------------------------------------------------------------- T06 SOLDADOR: mecha de solda, tanques nas costas, visor verde sobre o cockpit, maçarico
@@ -171,15 +187,15 @@ def soldador(col):
     arma += R(60, -100, 30, 14, 5, STEEL_D, k=0.3) + R(88, -104, 9, 22, 2, STEEL, k=0.3)
     arma += P_([(97, -98), (128, -93), (97, -88)], "#7fd3ff", k=0.2) + E(130, -93, 8, 8, "#ffffff", k=0.2)
     arma += "".join(f'<path d="M130,-93 l{dx},{dy}" stroke="#ffd36b" stroke-width="2.4" stroke-linecap="round"/>' for dx, dy in ((14, -10), (16, 2), (10, 14), (2, 16), (-6, 14)))
-    return mecha(col, casco, arma, costas, peito)
+    return mecha(col, casco, arma, costas, peito, H=50, tw=1.0, th=1.0)   # CORCUNDA de tanques
 
 
-ARMAS = [("T01 · FORNALHA", fornalha, "#4f86d9"), ("T02 · EMPILHADEIRA", empilhadeira, "#5cc45c"), ("T03 · BOLA DE DEMOLIÇÃO", bola, "#f06aa8"),
-         ("T05 · BROCA", broca, "#f2c84b"), ("T06 · SOLDADOR", soldador, "#4f86d9")]
+ARMAS = [("T01 · FORNALHA (baixa e larga)", fornalha, "#4f86d9"), ("T02 · EMPILHADEIRA (alta, ereta)", empilhadeira, "#5cc45c"), ("T03 · BOLA (gorila)", bola, "#f06aa8"),
+         ("T05 · BROCA (alta e magra)", broca, "#f2c84b"), ("T06 · SOLDADOR (corcunda)", soldador, "#4f86d9")]
 
 REGRAS = ["1  TODA armadura é um MECHA humanoide (2 pernas, 2 braços), nunca o veículo: o robô PILOTA de dentro, cabeça visível no COCKPIT do peito.",
           "2  FAIXA NA COR DO JOGADOR sempre no mesmo lugar do casco: quem é quem em 1 segundo.",
-          "3  AMEAÇA: ~2× o robô, curvado para a frente, ombreiras enormes com espetos, cabecinha baixa com FENDA DE OLHO VERMELHA acesa, pés com garras.",
+          "3  AMEAÇA: ~2× o robô, ombreiras com espetos, cabecinha com FENDA DE OLHO VERMELHA, pés com garras — e SILHUETA PRÓPRIA (baixo/largo, alto/magro, gorila…).",
           "4  O tema da máquina vira o BRAÇO-ARMA da frente (lança-chamas, garfo, bola na corrente, broca, maçarico) e um detalhe nas costas/peito.",
           "5  Papel e giz, sem contorno; brasa, fumaça ou faísca dizem que está LIGADO. Mesmas regras de jogo de hoje (só muda o visual)."]
 
@@ -195,7 +211,7 @@ def prancha():
         x = 20 + i * (cw + 5)
         cx = x + cw / 2
         b.append(f'<rect x="{x}" y="300" width="{cw}" height="980" rx="22" fill="#ffffff" opacity="0.5"/>')
-        b.append(label(cx, 344, nome, 24, INK))
+        b.append(label(cx, 344, nome, 19, INK))
         gy = 820
         b.append(f'<rect x="{x + 16}" y="{gy}" width="{cw - 32}" height="8" rx="3" fill="#c9b99a"/>')
         b.append(f'<g transform="translate({cx - 50},{gy}) scale(2.25)">{fn(col)}</g>')
