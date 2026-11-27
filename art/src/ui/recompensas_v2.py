@@ -19,25 +19,150 @@ OUT = os.path.join(ec.ROOT, "art/out/recompensas")
 ZC = [z[2] for z in ec.ZONAS]
 
 
-def presente(cx, cy, s=1.0, cat="SKIN", tampa=0.0, brilho=0.0):
-    """Caixa de presente de obra: caixote amarelo com fita zebrada em cruz e laço; tampa sobe com 'tampa' (0..1)."""
-    w = 150 * s
+# ---------- CAIXAS POR CATEGORIA (sem texto: a forma diz o que tem dentro) ----------
+SKIN_C, SKIN_E, SKIN_D, TEAL = "#d9539b", "#a8336f", "#f4a6cc", "#2fb5a8"
+ACO, ACO_E, LAR = "#7d8fa3", "#5b6b7d", "#f08a2b"
+MAD, MAD_E = "#c98a4a", "#94602c"
+
+
+def engrenagem(cx, cy, r, col, dentes=8, furo=True):
+    pts = []
+    for k in range(dentes * 2):
+        a0 = k * math.pi / dentes
+        rr = r if k % 2 == 0 else r * 0.74
+        for da in (-0.17, 0.17):
+            pts.append((cx + math.cos(a0 + da) * rr, cy + math.sin(a0 + da) * rr))
+    out = f'<polygon points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in pts)}" fill="{col}" stroke="{INK}" stroke-width="5" stroke-linejoin="round"/>'
+    if furo:
+        out += f'<circle cx="{cx}" cy="{cy}" r="{r * 0.3:.1f}" fill="#3a3f4a" stroke="{INK}" stroke-width="4"/>'
+    return out
+
+
+def _cabide(y, roupa=False, col="#4f86d9"):
     b = []
+    if roupa:   # macacão de robô pendurado (a roupa nova)
+        b.append(f'<path d="M-56,{y + 36} L-20,{y + 18} Q0,{y + 34} 20,{y + 18} L56,{y + 36} L44,{y + 66} L30,{y + 60} L30,{y + 128} L-30,{y + 128} '
+                 f'L-30,{y + 60} L-44,{y + 66} Z" fill="{col}" stroke="{INK}" stroke-width="5" stroke-linejoin="round"/>')
+        b.append(fp.cd.zebra(-30, y + 92, 60, 12))
+        b.append(f'<circle cx="0" cy="{y + 70}" r="9" fill="{YEL}" stroke="{INK}" stroke-width="4"/>')
+    b.append(f'<path d="M-60,{y + 36} L0,{y + 6} L60,{y + 36} Z" fill="none" stroke="#8d98a4" stroke-width="8" stroke-linejoin="round"/>'
+             f'<path d="M0,{y + 6} v-12 a13,13 0 1 1 13,-13" stroke="#8d98a4" stroke-width="8" fill="none" stroke-linecap="round"/>')
+    return "".join(b)
+
+
+def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0):
+    """Caixa de presente que DIZ o prêmio pela forma (sem palavra):
+    skin   = caixa de figurino (rosa de bolinhas, fita turquesa, cabide saindo pela tampa, selo com cara de robô);
+    spell  = maleta de ferramentas de aço (faixa zebrada, rebites, alça; engrenagem laranja e mola no lugar do laço);
+    evento = caixote de madeira (tábuas, travessa, pregos; placa de alerta; sirene giratória em cima)."""
+    cat = {"SKIN": "skin", "ENGENHOCA": "spell", "EVENTO": "evento"}.get(cat, cat)
+    b = [f'<g transform="translate({cx},{cy}) rotate({rot}) scale({s})">']
     if brilho > 0:
         for k in range(14):
             a = k * math.pi / 7
-            b.append(f'<path d="M{cx},{cy} L{cx + math.cos(a) * 320 * s * brilho:.0f},{cy + math.sin(a) * 320 * s * brilho:.0f} '
-                     f'L{cx + math.cos(a + 0.2) * 320 * s * brilho:.0f},{cy + math.sin(a + 0.2) * 320 * s * brilho:.0f}Z" fill="#fff4c8" opacity="0.8"/>')
-    b.append(f'<rect x="{cx - w / 2}" y="{cy - w / 2 + 16 * s}" width="{w}" height="{w - 16 * s}" rx="12" fill="{YEL}" stroke="{INK}" stroke-width="{7 * s:.1f}"/>')
-    b.append(f'<rect x="{cx - 14 * s}" y="{cy - w / 2 + 16 * s}" width="{28 * s}" height="{w - 16 * s}" fill="#d42035" stroke="{INK}" stroke-width="{4 * s:.1f}"/>')
-    ty = cy - w / 2 + 16 * s - 240 * s * tampa
-    rot = -35 * tampa
-    b.append(f'<g transform="rotate({rot} {cx} {ty})"><rect x="{cx - w / 2 - 12 * s}" y="{ty - 34 * s}" width="{w + 24 * s}" height="{36 * s}" rx="10" fill="#f5d870" stroke="{INK}" stroke-width="{7 * s:.1f}"/>'
-             f'<rect x="{cx - 14 * s}" y="{ty - 34 * s}" width="{28 * s}" height="{36 * s}" fill="#d42035" stroke="{INK}" stroke-width="{4 * s:.1f}"/>'
-             f'<path d="M{cx},{ty - 34 * s} c-40,-50 -80,-10 -30,0 M{cx},{ty - 34 * s} c40,-50 80,-10 30,0" stroke="#d42035" stroke-width="{12 * s:.1f}" fill="none" stroke-linecap="round"/></g>')
-    if cat and tampa < 0.05:
-        b.append(ec.chunk(cx - 80 * s, cy - w / 2 - 70 * s, 160 * s, 46 * s, CREAM, 10, 4, 6) + ec.T(cx, cy - w / 2 - 37 * s, cat, int(26 * s)))
+            r = 320 * brilho
+            b.append(f'<path d="M0,0 L{math.cos(a) * r:.0f},{math.sin(a) * r:.0f} L{math.cos(a + 0.2) * r:.0f},{math.sin(a + 0.2) * r:.0f}Z" fill="#fff4c8" opacity="0.8"/>')
+    ty, tr, tx = -200 * tampa, 40 * tampa, 190 * tampa   # a tampa voa para o lado e libera a vista do conteúdo
+    # conteúdo que salta quando abre
+    if tampa > 0.05:
+        if cat == "skin":
+            b.append(_cabide(-150 - 120 * tampa, True))
+        elif cat == "spell":
+            b.append(f'<path d="M0,-50 ' + " ".join(f"q{(-1) ** k * 26},-8 0,-{16 + 10 * tampa:.0f}" for k in range(7)) + f'" stroke="#c7ced6" stroke-width="7" fill="none"/>')
+            b.append(engrenagem(-70, -150 - 60 * tampa, 34, LAR) + engrenagem(64, -120 - 90 * tampa, 26, "#c7ced6"))
+        else:
+            for a in (-60, -20, 20, 60):
+                b.append(f'<path d="M0,-70 L{math.sin(math.radians(a)) * 300:.0f},{-70 - math.cos(math.radians(a)) * 300:.0f} '
+                         f'L{math.sin(math.radians(a + 12)) * 300:.0f},{-70 - math.cos(math.radians(a + 12)) * 300:.0f}Z" fill="#ff5a3c" opacity="0.55"/>')
+    # corpo
+    if cat == "skin":
+        b.append(f'<clipPath id="cxs"><rect x="-75" y="-59" width="150" height="134" rx="12"/></clipPath>')
+        b.append(f'<rect x="-75" y="-59" width="150" height="134" rx="12" fill="{SKIN_C}"/><g clip-path="url(#cxs)">')
+        for i in range(5):
+            for j in range(4):
+                b.append(f'<circle cx="{-70 + i * 36 + (j % 2) * 18}" cy="{-44 + j * 36}" r="7" fill="{SKIN_D}"/>')
+        b.append(f'</g><rect x="-75" y="-59" width="150" height="134" rx="12" fill="none" stroke="{INK}" stroke-width="7"/>')
+        b.append(f'<rect x="-14" y="-59" width="28" height="134" fill="{TEAL}" stroke="{INK}" stroke-width="4"/>')
+        b.append(f'<circle cx="0" cy="14" r="34" fill="#fff8ec" stroke="{INK}" stroke-width="5"/>'
+                 f'<path d="M0,-14 v-8" stroke="{INK}" stroke-width="4"/><circle cx="0" cy="-24" r="4" fill="#ff5a3c" stroke="{INK}" stroke-width="2"/>'
+                 f'<rect x="-22" y="-12" width="44" height="40" rx="12" fill="#3a3f4a"/>'
+                 f'<circle cx="-9" cy="7" r="7" fill="#fff"/><circle cx="9" cy="7" r="7" fill="#fff"/>'
+                 f'<circle cx="-7" cy="8" r="3" fill="{INK}"/><circle cx="11" cy="8" r="3" fill="{INK}"/>')
+    elif cat == "spell":
+        b.append(f'<rect x="-75" y="-59" width="150" height="134" rx="10" fill="{ACO}" stroke="{INK}" stroke-width="7"/>')
+        for yy in (-30, 46):
+            b.append(f'<path d="M-68,{yy} H68" stroke="{ACO_E}" stroke-width="5"/>')
+        b.append(fp.cd.zebra(-75, -6, 150, 22) + f'<rect x="-75" y="-6" width="150" height="22" fill="none" stroke="{INK}" stroke-width="4"/>')
+        for x, y in ((-62, -46), (62, -46), (-62, 62), (62, 62)):
+            b.append(f'<circle cx="{x}" cy="{y}" r="5" fill="#c7ced6" stroke="{INK}" stroke-width="3"/>')
+        b.append(f'<circle cx="0" cy="44" r="0"/>' + engrenagem(0, 46, 20, LAR, 7))
+    else:
+        b.append(f'<rect x="-75" y="-59" width="150" height="134" rx="6" fill="{MAD}" stroke="{INK}" stroke-width="7"/>')
+        for yy in (-14, 31):
+            b.append(f'<path d="M-72,{yy} H72" stroke="{MAD_E}" stroke-width="5"/>')
+        b.append(f'<path d="M-66,66 L66,-50" stroke="{MAD_E}" stroke-width="14" stroke-linecap="round"/>')
+        for x, y in ((-64, -50), (64, -50), (-64, 66), (64, 66)):
+            b.append(f'<circle cx="{x}" cy="{y}" r="4" fill="#4a4f5c"/>')
+        b.append(f'<path d="M0,-34 L36,30 H-36 Z" fill="{YEL}" stroke="{INK}" stroke-width="6" stroke-linejoin="round"/>'
+                 f'<path d="M0,-14 v22" stroke="{INK}" stroke-width="8" stroke-linecap="round"/><circle cx="0" cy="20" r="5" fill="{INK}"/>')
+    # tampa + enfeite de cima (no lugar do laço)
+    b.append(f'<g transform="translate({tx:.0f},{ty:.0f}) rotate({tr:.0f} 0 -75)">')
+    if cat == "skin":
+        if tampa <= 0.05:
+            b.append(_cabide(-128))
+        b.append(f'<rect x="-87" y="-93" width="174" height="36" rx="10" fill="{SKIN_E}" stroke="{INK}" stroke-width="7"/>'
+                 f'<rect x="-14" y="-93" width="28" height="36" fill="{TEAL}" stroke="{INK}" stroke-width="4"/>')
+    elif cat == "spell":
+        b.append(f'<path d="M-34,-93 v-22 a12,12 0 0 1 12,-12 h44 a12,12 0 0 1 12,12 v22" stroke="{INK}" stroke-width="16" fill="none"/>'
+                 f'<path d="M-34,-93 v-22 a12,12 0 0 1 12,-12 h44 a12,12 0 0 1 12,12 v22" stroke="#4a4f5c" stroke-width="8" fill="none"/>')
+        if tampa <= 0.05:
+            b.append(f'<path d="M58,-93 ' + " ".join(f"q{(-1) ** k * 14},-4 0,-10" for k in range(4)) + f'" stroke="#c7ced6" stroke-width="6" fill="none"/>')
+            b.append(engrenagem(-52, -112, 30, LAR))
+        b.append(f'<rect x="-87" y="-93" width="174" height="36" rx="8" fill="{ACO_E}" stroke="{INK}" stroke-width="7"/>')
+        for x in (-50, 50):
+            b.append(f'<rect x="{x - 10}" y="-70" width="20" height="22" rx="4" fill="#c7ced6" stroke="{INK}" stroke-width="4"/>')
+    else:
+        if tampa <= 0.05 or True:
+            b.append(f'<rect x="-30" y="-108" width="60" height="16" rx="4" fill="#4a4f5c" stroke="{INK}" stroke-width="5"/>'
+                     f'<path d="M-24,-108 v-24 a24,24 0 0 1 48,0 v24 Z" fill="#ff5a3c" stroke="{INK}" stroke-width="6"/>'
+                     f'<path d="M-10,-120 a10,10 0 0 1 10,-10" stroke="#ffd0c4" stroke-width="6" fill="none" stroke-linecap="round"/>')
+            for a in (-150, -30):
+                ax, ay = math.cos(math.radians(a)), math.sin(math.radians(a))
+                b.append(f'<path d="M{ax * 40:.0f},{-120 + ay * 40:.0f} L{ax * 62:.0f},{-120 + ay * 62:.0f}" stroke="#ff5a3c" stroke-width="7" stroke-linecap="round"/>')
+        b.append(f'<rect x="-87" y="-93" width="174" height="36" rx="5" fill="{MAD_E}" stroke="{INK}" stroke-width="7"/>'
+                 f'<path d="M-30,-93 v36 M30,-93 v36" stroke="{INK}" stroke-width="4"/>')
+    b.append("</g></g>")
     return "".join(b)
+
+
+def presente(cx, cy, s=1.0, cat="SKIN", tampa=0.0, brilho=0.0):
+    return caixa(cat or "SKIN", cx, cy, s, tampa, brilho)
+
+
+def tela_caixas():
+    b = [mv.fundo(0.15), mv.chao(930), mv.placa(960, 44, 1000, 96, "CAIXAS QUE DIZEM O PRÊMIO", True)]
+    cats = [("skin", "SKIN", "caixa de figurino: bolinhas, cabide saindo,", "selo com cara de robô"),
+            ("spell", "ENGENHOCA", "maleta de aço: zebrada, rebites, alça,", "engrenagem e mola no lugar do laço"),
+            ("evento", "EVENTO", "caixote de madeira: tábuas, placa de", "alerta, sirene em cima")]
+    for i, (c, nome, l1, l2) in enumerate(cats):
+        x = 30 + i * 630
+        b.append(ec.chunk(x, 160, 600, 650, CREAM, 22, 5, 8))
+        b.append(ec.T(x + 300, 214, nome, 34))
+        b.append(caixa(c, x + 170, 480, 1.25))
+        b.append(f'<rect x="{x + 330}" y="250" width="250" height="430" rx="16" fill="#3a3f55"/>')
+        b.append(f'<clipPath id="ab{i}"><rect x="{x + 330}" y="250" width="250" height="430" rx="16"/></clipPath><g clip-path="url(#ab{i})">'
+                 + caixa(c, x + 430, 610, 0.8, tampa=0.6, brilho=0.6) + "</g>")
+        b.append(ec.T(x + 455, 282, "ABRINDO", 20, "#ffffff"))
+        b.append(ec.T(x + 300, 735, l1, 22, "#2a4a58", w=600) + ec.T(x + 300, 765, l2, 22, "#2a4a58", w=600))
+    b.append(ec.chunk(30, 836, 1860, 76, CREAM, 18, 5, 6))
+    b.append(ec.T(960, 884, "Na gangorra A, os cestos levam essas caixas: o jogador vê de longe se a ponta é roupa, arma ou evento.", 24, INK, w=600))
+    n = ec.notes("CAIXAS — o presente mostra a categoria pela forma, sem escrever (proposta)", [
+        ("APROVADO", "Gangorra A · Balança da grua (escolha do usuário, 2026-11-27)."),
+        ("PROPOSTA", "Skin = figurino com cabide · Engenhoca = maleta de aço · Evento = caixote com sirene."),
+        ("PROPOSTA", "Abrindo: sobe o cabide com a roupa / pulam mola e engrenagens / a sirene gira."),
+        ("PROPOSTA", "A mesma caixa voa ao centro e abre nos 5 tempos (prancha g2 refeita com ela)."),
+    ])
+    return ec.page(f'<g filter="url(#rough)">{"".join(b)}</g>', n, rough(seed=23, scale=0.6, freq=0.05))
 
 
 def regua_cores(cx, cy, R1, R2):
@@ -157,7 +282,7 @@ def tela_presente():
             b.append(f'<g transform="rotate(-12 {cx} {cy})">{presente(cx, cy, 1.1, "SKIN")}</g>')
         elif i == 3:
             b.append(f'<rect x="{x}" y="{y}" width="{pw}" height="{ph}" fill="#1a1a2a" opacity="0.5"/>')
-            b.append(presente(cx, cy + 40, 1.1, "", tampa=0.6, brilho=1.0))
+            b.append(presente(cx, cy + 40, 1.1, "SKIN", tampa=0.6, brilho=1.0))
             for k in range(18):
                 a = k * 0.35
                 b.append(f'<rect x="{cx + math.cos(a) * (60 + k * 6):.0f}" y="{cy - 60 + math.sin(a) * (40 + k * 5):.0f}" width="10" height="16" fill="{["#d42035", "#5cc45c", "#4f86d9", YEL][k % 4]}" transform="rotate({k * 37} {cx} {cy})"/>')
@@ -249,7 +374,10 @@ def tela_mapas_grade():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    boards = [("g1_gangorra_formatos", tela_formatos()), ("g2_presente", tela_presente()), ("m1_mapas_grade", tela_mapas_grade())]
+    boards = [("g3_caixas", tela_caixas()), ("g1_gangorra_formatos", tela_formatos()), ("g2_presente", tela_presente()), ("m1_mapas_grade", tela_mapas_grade())]
+    so = [a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--so=")]
+    if so:
+        boards = [bd for bd in boards if bd[0] in so[0]]
     import json, subprocess, tempfile
     tmp = tempfile.mkdtemp(prefix="recompensas2_")
     jobs = []
