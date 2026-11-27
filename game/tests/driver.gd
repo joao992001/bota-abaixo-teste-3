@@ -409,7 +409,7 @@ func demolicao_test() -> void:
 	r0 = main.robots[0]
 	r1 = main.robots[1]
 	put(r0, Vector2(col_x(11), 576))
-	put(r1, Vector2(col_x(11) + 60, 576))
+	put(r1, Vector2(col_x(11) + 34, 576))   # colado (a ponta da marreta = crítico, A47)
 	r0.facing = 1
 	await frames(3)
 	var x1: float = r1.position.x
@@ -2458,7 +2458,7 @@ func moderada_test() -> void:
 		w += 1
 	await frames(40)
 	check(et.etapa == 3 and main.level.area == a3 and 3 in et.visitadas, "chegam na Fachada (%.1f s); área, KO e câmera passam para ela" % (w / 60.0))
-	check(main.robots.all(func(r): return r.alive and a3.has_point(r.position) and r.is_on_floor()) and main.demo.lives == lives0, "todos de pé nas pranchas, sem perder vida (%s, vidas %s → %s)" % [str(main.robots.map(func(r): return [r.pid, r.position.round(), r.is_on_floor(), r.alive])), str(lives0), str(main.demo.lives)])
+	check(main.robots.all(func(r): return r.alive and a3.has_point(r.position) and (r.is_on_floor() or bool(main.players[r.pid].get("bot", false)))) and main.demo.lives == lives0, "todos de pé nas pranchas (o bot pode estar no meio de um pulo: a luta segue), sem perder vida (%s, vidas %s → %s)" % [str(main.robots.map(func(r): return [r.pid, r.position.round(), r.is_on_floor(), r.alive])), str(lives0), str(main.demo.lives)])
 	check(not et.tem_proxima(), "a Fachada é a última cena (sem nova transição)")
 	main.go_menu()   # tira os bots (os testes seguintes contam com só 2 jogadores parados)
 
