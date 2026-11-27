@@ -8,6 +8,10 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
+**▶ SESSÃO 7 (cont. 2): SKINS v2 FEITAS** — 15 skins (3 por robô) aprovadas e no jogo (`art/src/robos/skins_lote.py --jogo`,
+biblioteca `docs/fases/derruba/f1_canteiro/skins.md`, vídeo `art/out/skins_v2/skins_no_jogo.mp4`). Corrigido: Defesa sumia (config
+salva antes dela → agora engenhoca nova entra acesa) e a tela de engenhocas cabe inteira (grade se ajusta). .exe entregue.
+Próximo: perguntar ao usuário. Pendência menor: joelheiras das skins do Marretão não aparecem no jogo (membros são do código).
 **▶ SESSÃO 7 (cont.): RECOMPENSAS + MAPAS FEITO — A49** (pranchas `art/out/recompensas/g1–g3, m1`, aprovadas 2026-11-27):
 gangorra = A · Balança da grua (`game/ui/fim.gd`, arte `art/src/ui/premio_export.py` → `game/assets/premio/`); caixas sem texto
 que dizem o prêmio (skin = figurino com cabide; engenhoca = maleta de aço; evento = caixote com sirene); presente em 5 tempos
