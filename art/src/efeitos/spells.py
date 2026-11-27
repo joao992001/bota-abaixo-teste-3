@@ -21,6 +21,7 @@ FAM = {  # cor, forma da caixa, ícone
     "controle": ("#8a63d2", "capsula", "ima"),
     "engenharia": ("#f2c84b", "hexagono", "chave"),
     "transformacao": ("#3fc1c9", "losango", "engrenagem"),
+    "defesa": ("#4fae5b", "cupula", "capacete"),   # 2026-11-27: classe nova DEFESA (capacete de obra, placa em cúpula)
 }
 ICE, ICE_D, FIRE, FIRE_L = "#9fe3f5", "#5fb6d6", "#f08a3d", "#ffd36b"
 
@@ -50,6 +51,11 @@ def icon(name, col="#ffffff"):
     if name == "chave":
         return (f'<path d="M20,48 L36,32" stroke="{col}" stroke-width="8" stroke-linecap="round"/>'
                 f'<path d="M36,32 C32,24 38,14 48,16 L42,22 L44,28 L50,30 L56,24 C58,34 48,40 40,36 Z" fill="{col}"/>')
+    if name == "capacete":   # capacete de obra: cúpula com friso, aba e luz
+        return (f'<path d="M12,42 C12,24 22,14 32,14 C42,14 52,24 52,42 Z" fill="{col}"/>'
+                f'<rect x="6" y="40" width="52" height="8" rx="4" fill="{col}"/>'
+                f'<path d="M32,14 V40" stroke="{INK}" stroke-width="3" opacity="0.4"/>'
+                f'<path d="M22,20 C18,26 17,32 17,40 M42,20 C46,26 47,32 47,40" stroke="{INK}" stroke-width="2" opacity="0.3" fill="none"/>')
     if name == "engrenagem":
         teeth = []
         for k in range(8):
@@ -80,6 +86,8 @@ def caixa_body(fam):
         plate = "M48,30 L56,38 L66,36 L62,46 L68,54 L58,56 L54,66 L48,60 L42,66 L38,56 L28,54 L34,46 L30,36 L40,38 Z"
     elif form == "capsula":
         plate = rect_d(28, 34, 40, 30, 15)
+    elif form == "cupula":
+        plate = "M28,64 V48 C28,36 37,28 48,28 C59,28 68,36 68,48 V64 Z"
     elif form == "hexagono":
         plate = "M38,30 H58 L68,48 L58,66 H38 L28,48 Z"
     else:
