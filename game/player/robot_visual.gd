@@ -133,6 +133,7 @@ var flash_t := 0.0
 var tumble := 0.0                      # giro acumulado do arremesso (rad)
 var cena_pose := ""                    # transição de cena: "cai" (pânico, se debatendo) ou "desliza" (surfando a laje)
 var tumbling := false
+var walk_d := 0.0                      # distância andada no chão (px): a passada do MECHA segue o chão sem escorregar (A34)
 var flip_t := -1.0                     # pulo duplo (0..1): chute, cambalhota, abre
 var heavy_was_cd := false
 var land_t := 0.0                      # amortecimento depois de pousar arremessado
@@ -308,6 +309,8 @@ func tick(r, dt: float) -> void:
 			flip_t = -1.0
 	if r.atk == "":
 		atk_kind = ""
+	if on_floor and r.dodge_t <= 0.0:
+		walk_d += spd * dt
 	# passada pela distância percorrida + poeirinha a cada passo
 	if on_floor and spd > 30.0 and r.dodge_t <= 0.0:
 		var before := int(phase / PI)
@@ -1035,7 +1038,7 @@ func current_pose() -> Dictionary:
 	p["smear"] = [smear_from, ang, smear_a]
 	p["panel"] = panel[0]
 	# estado de movimento para os MECHAS (A34): passada, ar, pulo duplo, dash, parede, pouso
-	p["mv"] = {"phase": phase, "run": run_k, "air": air_k, "vy": vy, "flip": flip_t, "land": land_t, "wall": on_wall,
+	p["mv"] = {"dist": walk_d, "phase": phase, "run": run_k, "air": air_k, "vy": vy, "flip": flip_t, "land": land_t, "wall": on_wall,
 		"dodge": (robot.dodge_t / maxf(robot.dodge_len, 0.01)) if robot != null and robot.get("dodge_t") != null and robot.dodge_t > 0.0 else 0.0,
 		"hurt": hurt_t, "t": t}
 	return p
@@ -1398,226 +1401,418 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 
 ## Placa da Armadura Fornalha (T01): arte de design 150x130 em escala 0,48 (o robô "vira" a fornalha), vigia (75,50) em `at`.
 ## Montagem: cai de cima e assenta; nos últimos instantes pisca avisando que vai desmontar.
-## ---------------------------------------------------------------- ARMADURAS-MECHA (A29): o robô PILOTA um mecha
-## Peças exportadas por art/src/robos/armaduras_export.py (mesma caixa e origem; pés em 0,0, unidades do desenho).
-## Transformação estilo Transformers: cada peça chega voando, girando e encaixa (fx["assemble"] 0→1); o rosto do
-## robô aparece no cockpit; a arma gira no ombro para mirar (fx["aim_a"]).
-const MECHA_CHEGADA := {   # peça: [início, fim, de onde vem dx, dy, giro em graus] (tempo da montagem 0.3→1.2)
+## ---------------------------------------------------------------- ARMADURAS-MECHA (A29/A34): o robô PILOTA um mecha
+## Peças de art/src/robos/armaduras_export.py (mesma caixa e origem; pés em 0,0; unidades do desenho). O mecha é um
+## ESQUELETO: pelve/tronco (B), pernas coxa→canela→pé e braço de trás braço→antebraço resolvidos por cinemática
+## inversa (o pé PLANTA no chão durante o apoio: não escorrega), cabeça com atraso, braço-arma girando no ombro.
+## Cada mecha tem um jeito próprio (MECHA_ESTILO) de ficar parado, andar/correr, pular, pousar, dar pulo duplo, dash e
+## golpear (MECHA_GOLPES: antecipação → impacto → continuação → volta).
+const MECHA_CHEGADA := {   # grupo: [início, fim, de onde vem dx, dy, giro em graus] (tempo da montagem 0.3→1.2)
 	"perna_b": [0.40, 0.62, -160, 120, -90], "perna_f": [0.44, 0.66, 160, 120, 90], "tronco": [0.52, 0.76, 0, -260, 25],
 	"cabine": [0.58, 0.82, 0, -60, 0], "peito": [0.62, 0.84, 0, -200, -20], "braco_b": [0.70, 0.90, -220, -40, -140],
 	"ombro_b": [0.74, 0.94, -200, -160, -120], "arma": [0.80, 1.0, 260, -30, 160], "ombro_f": [0.84, 1.04, 220, -170, 140],
 	"costas": [0.88, 1.08, -120, -240, -60], "cabeca": [0.98, 1.16, 0, -300, 200]}
+const MECHA_GRUPO := {"coxa_b": "perna_b", "canela_b": "perna_b", "pe_b": "perna_b", "coxa_f": "perna_f", "canela_f": "perna_f",
+	"pe_f": "perna_f", "braco_b_sup": "braco_b", "braco_b_inf": "braco_b"}
 const MECHA_MIRA := ["T01", "T04", "T06"]
-## Jeito de mexer de cada mecha (A34): passada (graus), balanço do corpo, inclinação correndo, pisão (poeira/tremor),
-## giro no pulo duplo, flutua (Jato), braço de trás que balança (gorila).
-const MECHA_ESTILO := {
-	"T01": {"passo": 16.0, "bob": 6.0, "incl": 5.0, "pisao": 1.0, "gira": false, "flutua": false, "braco": 18.0},
-	"T02": {"passo": 14.0, "bob": 4.0, "incl": 4.0, "pisao": 0.7, "gira": false, "flutua": false, "braco": 14.0},
-	"T03": {"passo": 20.0, "bob": 8.0, "incl": 12.0, "pisao": 1.0, "gira": false, "flutua": false, "braco": 34.0},
-	"T04": {"passo": 7.0, "bob": 3.0, "incl": 14.0, "pisao": 0.0, "gira": true, "flutua": true, "braco": 10.0},
-	"T05": {"passo": 26.0, "bob": 6.0, "incl": 9.0, "pisao": 0.5, "gira": true, "flutua": false, "braco": 22.0},
-	"T06": {"passo": 18.0, "bob": 5.0, "incl": 6.0, "pisao": 0.4, "gira": true, "flutua": false, "braco": 18.0}}
-## Escala de jogo do mecha (A32, 2026-11-27): ~2 blocos de altura (≈125 px) para caber nas passagens do cenário;
-## a colisão continua a do robô. 0,74 × a escala do desenho (0,84 px/unidade) = 0,62.
+## Escala de jogo do mecha (A32): ~2 blocos de altura; a colisão continua a do robô.
 const MECHA_ESCALA := 0.74
 
 static func mecha_px() -> float:
-	return float(Data.mecha_meta.get("px", 0.84)) * MECHA_ESCALA   # armaduras cuja arma gira para mirar
+	return float(Data.mecha_meta.get("px", 0.84)) * MECHA_ESCALA
+
+## Jeito de cada mecha. ciclo = px andados por ciclo (2 passos); duty = fração do ciclo com o pé no chão; passo_h =
+## altura do pé no passo; queda = afunda ao pisar; quica = sobe no voo da corrida; incl = inclina correndo; ginga =
+## balança de lado; agacha = joelho dobrado parado; braco = balanço do braço de trás; cab = atraso da cabeça (graus).
+const MECHA_ESTILO := {
+	"T01": {"tipo": "pesado", "ciclo": 120.0, "duty": 0.62, "passo_h": 9.0, "queda": 6.0, "quica": 3.0, "incl": 6.0, "ginga": 5.0, "agacha": 3.0, "braco": 8.0, "cab": 6.0, "resp": 1.8},
+	"T02": {"tipo": "mecanico", "ciclo": 150.0, "duty": 0.55, "passo_h": 14.0, "queda": 2.0, "quica": 2.0, "incl": 3.0, "ginga": 0.0, "agacha": 1.5, "braco": 5.0, "cab": 2.0, "resp": 0.8},
+	"T03": {"tipo": "gorila", "ciclo": 130.0, "duty": 0.6, "passo_h": 8.0, "queda": 7.0, "quica": 4.0, "incl": 14.0, "ginga": 4.0, "agacha": 4.0, "braco": 0.0, "cab": 7.0, "resp": 2.2},
+	"T04": {"tipo": "voo", "ciclo": 160.0, "duty": 0.5, "passo_h": 6.0, "queda": 0.0, "quica": 0.0, "incl": 16.0, "ginga": 0.0, "agacha": 0.0, "braco": 6.0, "cab": 4.0, "resp": 2.5},
+	"T05": {"tipo": "corredor", "ciclo": 190.0, "duty": 0.42, "passo_h": 20.0, "queda": 3.0, "quica": 6.0, "incl": 13.0, "ginga": 2.0, "agacha": 6.0, "braco": 16.0, "cab": 4.0, "resp": 1.2},
+	"T06": {"tipo": "corcunda", "ciclo": 95.0, "duty": 0.55, "passo_h": 7.0, "queda": 3.0, "quica": 2.0, "incl": 16.0, "ginga": 3.0, "agacha": 5.0, "braco": 9.0, "cab": 8.0, "resp": 1.5}}
+
+## Golpes: [antecipação, impacto]. bx/by = corpo (unidades), br = giro do corpo, ar/ax = giro/avanço do braço-arma,
+## hbx/hby = mão de trás, ffx/ffy = pé da frente, fbx = pé de trás, cr = cabeça (graus).
+const MECHA_GOLPES := {
+	"pesado_rapido": [{"bx": -6, "br": -8, "ar": -40, "ax": -16, "hbx": 6, "cr": -5}, {"bx": 10, "br": 10, "ar": 14, "ax": 30, "hbx": -12, "ffx": 10, "cr": 6}],
+	"pesado_pesado": [{"by": -8, "br": -12, "ar": -70, "hby": -24, "ffx": 6, "ffy": -30, "cr": -8}, {"by": 12, "br": 8, "ar": 24, "hby": 8, "ffx": 12, "cr": 8}],
+	"mecanico_rapido": [{"bx": -8, "br": -4, "ax": -20}, {"bx": 14, "br": 8, "ax": 46, "ffx": 14}],
+	"mecanico_pesado": [{"by": -8, "br": -14, "ar": -125}, {"by": 10, "br": 16, "ar": 38, "ax": 16, "ffx": 16}],
+	"gorila_rapido": [{"bx": -6, "br": -6, "ar": -30, "ax": -12, "hbx": -16}, {"bx": 12, "br": 12, "ar": 10, "ax": 26, "hbx": 70, "hby": -34, "ffx": 12}],
+	"gorila_pesado": [{"by": -18, "br": -16, "ar": -150, "hbx": 30, "hby": -100, "cr": -10}, {"by": 14, "br": 26, "ar": 66, "hbx": 70, "hby": 24, "ffx": 10}],
+	"corredor_rapido": [{"bx": -6, "br": -5, "ax": -18}, {"bx": 16, "br": 10, "ax": 42, "ffx": 16}],
+	"corredor_pesado": [{"bx": -14, "by": 6, "br": -14, "ax": -26, "ar": -10, "ffx": -6}, {"bx": 30, "by": 4, "br": 18, "ax": 52, "ffx": 28, "fbx": -10}],
+	"corcunda_rapido": [{"bx": -4, "br": -10, "ar": -28, "ax": -10}, {"bx": 10, "br": 8, "ar": 6, "ax": 30, "ffx": 10}],
+	"corcunda_pesado": [{"by": -14, "br": -20, "ar": -115, "hbx": -10, "hby": -74, "cr": -14}, {"by": 6, "br": 14, "ar": 42, "hbx": -30, "hby": 20, "cr": 10}],
+	"voo_rapido": [{"bx": -8, "br": -8, "ar": -22, "ax": -14}, {"bx": 16, "br": 12, "ax": 46}],
+	"voo_pesado": [{"by": 6, "br": -16, "ar": 60, "ax": -10}, {"by": -14, "br": -10, "ar": -85, "ax": 30}]}
 
 static func _ease_back(u: float) -> float:
 	var s := 1.9
 	u -= 1.0
 	return u * u * ((s + 1.0) * u + s) + 1.0
 
+static func _smooth(u: float) -> float:
+	u = clampf(u, 0.0, 1.0)
+	return u * u * (3.0 - 2.0 * u)
+
+static func _jv(j) -> Vector2:
+	return Vector2(float(j[0]), float(j[1]))
+
+## Cinemática inversa de 2 ossos: raiz a, alvo c, comprimentos l1/l2, lado da dobra sgn. Devolve [junta do meio, ponta].
+static func _ik2(a: Vector2, c: Vector2, l1: float, l2: float, sgn: float) -> Array:
+	var v := c - a
+	var d := clampf(v.length(), absf(l1 - l2) + 0.01, l1 + l2 - 0.01)
+	var dir := v.normalized() if v.length() > 0.001 else Vector2.DOWN
+	var c2 := a + dir * d
+	var x := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
+	var h := sqrt(maxf(l1 * l1 - x * x, 0.0))
+	return [a + dir * x + Vector2(-dir.y, dir.x) * h * sgn, c2]
+
+static func _dobra(a: Vector2, b: Vector2, c: Vector2) -> float:
+	return 1.0 if (b - a).cross(c - a) < 0.0 else -1.0
+
+## Transformação de um osso: o segmento p0→q0 do desenho vai para p1→q1 (gira em volta da junta).
+static func _osso(p0: Vector2, q0: Vector2, p1: Vector2, q1: Vector2) -> Transform2D:
+	var ang := (q1 - p1).angle() - (q0 - p0).angle()
+	return Transform2D(0.0, p1) * Transform2D(ang, Vector2.ZERO) * Transform2D(0.0, -p0)
+
+static func _golpe(st: Dictionary, fx: Dictionary) -> Dictionary:
+	var ak := String(fx.get("matk", ""))
+	if ak == "":
+		return {}
+	var key := String(st["tipo"]) + "_" + ("pesado" if ak == "pesado" else "rapido")
+	if not MECHA_GOLPES.has(key):
+		return {}
+	var kf: Array = MECHA_GOLPES[key]
+	var at := float(fx.get("matk_t", 0.0))
+	var pre := maxf(float(fx.get("matk_pre", 0.1)), 0.01)
+	var tot := maxf(float(fx.get("matk_tot", 0.3)), pre + 0.1)
+	var out := {}
+	var ant: Dictionary = kf[0]
+	var hit: Dictionary = kf[1]
+	for k in ["bx", "by", "br", "ar", "ax", "hbx", "hby", "ffx", "ffy", "fbx", "cr"]:
+		var va := float(ant.get(k, 0.0))
+		var vh := float(hit.get(k, 0.0))
+		var v := 0.0
+		if at < pre:   # antecipação: vai juntando força (devagar no começo)
+			v = va * _smooth(at / pre)
+		elif at < pre + 0.07:   # impacto: rápido, passa um pouco do ponto
+			v = lerpf(va, vh, _ease_back((at - pre) / 0.07))
+		else:   # continuação e volta com mola amortecida
+			var u := clampf((at - pre - 0.07) / (tot - pre - 0.07), 0.0, 1.0)
+			v = vh * (1.0 - _smooth(u)) * (1.0 + 0.12 * sin(u * 9.0) * (1.0 - u))
+		out[k] = v
+	return out
+
 static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: Transform2D, fx: Dictionary, mname: String, col_idx: int) -> void:
 	var mid := String(fx["mecha"])
 	var M: Dictionary = Data.mecha_meta
 	var m: Dictionary = M["mechas"][mid]
+	if not m.has("juntas"):
+		return
 	var px := mecha_px()
 	var cx: Array = M["caixa"]
 	var box := Rect2(float(cx[0]), float(cx[1]), float(cx[2]), float(cx[3]))
+	var J: Dictionary = m["juntas"]
+	var st: Dictionary = MECHA_ESTILO.get(mid, MECHA_ESTILO["T01"])
+	var tipo := String(st["tipo"])
 	var a := clampf(float(fx.get("assemble", 1.0)), 0.0, 1.0)
 	var tt := lerpf(0.3, 1.2, a)
-	var now := Time.get_ticks_msec() / 1000.0
-	var bob := Vector2(0, sin(now * 5.5) * 1.6) if a >= 1.0 else Vector2.ZERO
-	var U := base * Transform2D(0.0, Vector2(px, px), 0.0, Vector2.ZERO)
-	var blink := Color(1.6, 1.5, 1.4) if float(fx.get("armor_end", 0.0)) > 0.0 and fmod(now, 0.16) < 0.08 else Color.WHITE
-	# atrás: raios de luz e brilho enquanto monta
-	if a < 1.0:
-		var ck: Array = m["cockpit"]
-		var c := Vector2(float(ck[0]), float(ck[1]) - 20.0)
-		ci.draw_set_transform_matrix(U)
-		var op := 0.55 * sin(a * PI)
-		for k in 12:
-			var ang := deg_to_rad(now * 90.0 + k * 30.0)
-			ci.draw_colored_polygon(PackedVector2Array([c, c + Vector2.from_angle(ang) * 240.0, c + Vector2.from_angle(ang + 0.18) * 240.0]), Color(1, 0.95, 0.7, op * 0.5))
-		ci.draw_circle(c, 80.0 + 60.0 * a, Color(1, 0.97, 0.85, op))
-	var aim := float(fx.get("aim_a", 0.0)) if mid in MECHA_MIRA else 0.0
-	var sh := Vector2(float(m["ombro"][0]), float(m["ombro"][1]))
-	# golpe leve/pesado do mecha (A33): preparo → impacto → volta
-	var b_dy := 0.0
-	var b_dx := 0.0
-	var b_sq := 1.0
-	var b_rot := 0.0
-	var a_rot := 0.0
-	var a_dx := 0.0
-	var bb_rot := 0.0
-	var ak := String(fx.get("matk", ""))
-	if ak != "":
-		var at := float(fx.get("matk_t", 0.0))
-		var pre := maxf(float(fx.get("matk_pre", 0.1)), 0.01)
-		var tot := maxf(float(fx.get("matk_tot", 0.3)), pre + 0.02)
-		var kp := clampf(at / pre, 0.0, 1.0)                                   # preparo
-		var kh := clampf((at - pre) / 0.07, 0.0, 1.0) if at >= pre else 0.0    # impacto rápido
-		var kr := clampf((at - pre - 0.07) / maxf(tot - pre - 0.07, 0.01), 0.0, 1.0)   # volta
-		var hold := (1.0 - kr) if at >= pre else 0.0
-		var cfg: Dictionary = Data.mecha_meta.get("ataques", {})
-		var volta: bool = ak == "pesado" and mid in ["T01", "T03", "T06"]
-		var ph_k := 1.0 if at < pre else hold
-		if ak == "rapido":
-			a_rot = deg_to_rad(lerpf(-45.0 * kp, 35.0, kh) * ph_k)
-			a_dx = lerpf(-12.0 * kp, 38.0, kh) * ph_k
-			b_rot = deg_to_rad(lerpf(-8.0 * kp, 12.0, kh) * ph_k)
-			b_dx = lerpf(-6.0 * kp, 16.0, kh) * ph_k
-			if mid == "T03":   # soco duplo: o braço de trás também dá um direto
-				bb_rot = deg_to_rad(lerpf(30.0 * kp, -95.0, kh) * ph_k)
-		elif volta:   # pesado em volta: dá um salto com os braços para o alto e bate no chão com tudo
-			b_dy = lerpf(-34.0 * kp, 18.0, kh) * ph_k
-			b_sq = lerpf(1.0 + 0.1 * kp, 0.78, kh) if at < pre + 0.2 else lerpf(0.78, 1.0, kr)
-			a_rot = deg_to_rad(lerpf(-130.0 * kp, 50.0, kh) * ph_k)
-			bb_rot = deg_to_rad(lerpf(140.0 * kp, -40.0, kh) * ph_k)
-		else:   # pesado para a frente: inclina para trás, arma no alto, golpe que leva o corpo inteiro
-			b_rot = deg_to_rad(lerpf(-20.0 * kp, 22.0, kh) * ph_k)
-			b_dy = lerpf(-10.0 * kp, 10.0, kh) * ph_k
-			b_dx = lerpf(-14.0 * kp, 30.0, kh) * ph_k
-			a_rot = deg_to_rad(lerpf(-100.0 * kp, 60.0, kh) * ph_k)
-			a_dx = lerpf(0.0, 30.0, kh) * ph_k
-	var hip_p := Vector2(0.0, -40.0)
-	# ---- locomoção (A34): passada, balanço, ar, pulo duplo, dash
-	var st: Dictionary = MECHA_ESTILO.get(mid, MECHA_ESTILO["T01"])
 	var mv: Dictionary = pose.get("mv", {})
-	var ph := float(mv.get("phase", now * 6.0))
+	var now := float(mv.get("t", Time.get_ticks_msec() / 1000.0))
+	var dist := float(mv.get("dist", 0.0))
 	var run := clampf(float(mv.get("run", 0.0)), 0.0, 1.0)
 	var air := clampf(float(mv.get("air", 0.0)), 0.0, 1.0)
 	var vyy := float(mv.get("vy", 0.0))
 	var flip := float(mv.get("flip", -1.0))
 	var dge := float(mv.get("dodge", 0.0))
-	var land := float(mv.get("land", 0.0))
+	var land := clampf(float(mv.get("land", 0.0)) / 0.28, 0.0, 1.0)
+	var hurt := clampf(float(mv.get("hurt", 0.0)) / 0.24, 0.0, 1.0)
 	var ground := 1.0 - air
-	var sw := sin(ph) * deg_to_rad(float(st["passo"])) * run * ground
-	var leg_b_rot := sw
-	var leg_f_rot := -sw
-	var leg_b_dy := -maxf(0.0, -sin(ph)) * 10.0 * run * ground
-	var leg_f_dy := -maxf(0.0, sin(ph)) * 10.0 * run * ground
-	b_dy += -absf(sin(ph)) * float(st["bob"]) * run * ground
-	b_rot += deg_to_rad(float(st["incl"])) * run * ground
-	bb_rot += -sw * float(st["braco"]) / maxf(float(st["passo"]), 1.0)
-	a_rot += sw * 0.35
-	if a >= 1.0 and run < 0.1 and air < 0.1:   # parado: respira pesado
-		b_dy += sin(now * 2.6) * 1.6
-	if land > 0.0:   # pousou: amortece
-		b_dy += 10.0 * land / 0.28
-	if air > 0.05:   # no ar: encolhe as pernas, inclina com a velocidade
-		leg_f_rot += deg_to_rad(-28.0) * air
-		leg_b_rot += deg_to_rad(22.0) * air
-		leg_f_dy += -8.0 * air
-		leg_b_dy += -6.0 * air
-		b_rot += deg_to_rad(clampf(vyy / 60.0, -10.0, 12.0)) * air
-		bb_rot += deg_to_rad(-30.0) * air
+	var w := clampf(run * 1.4, 0.0, 1.0) * ground
+	var g := _golpe(st, fx)
+	var U := base * Transform2D(0.0, Vector2(px, px), 0.0, Vector2.ZERO)
+	var blink := Color(1.6, 1.5, 1.4) if float(fx.get("armor_end", 0.0)) > 0.0 and fmod(now, 0.16) < 0.08 else Color.WHITE
+	# ---------------- juntas do desenho (repouso)
+	var hip0 := _jv(J["quadril"])
+	var lb: Dictionary = J["perna_b"]
+	var lf: Dictionary = J["perna_f"]
+	var ab_: Dictionary = J["braco_b"]
+	var sh0 := _jv(m["ombro"])
+	var head0 := _jv(J.get("cabeca", [10, -130]))
+	# ---------------- corpo (pelve/tronco): respiração, passada, ar, pouso, golpe, dash, dano
+	var ph := dist / float(st["ciclo"])   # ciclos andados
+	var bx := 0.0
+	var by := 0.0
+	var br := 0.0
+	var cr := 0.0
+	by += sin(now * float(st["resp"]) * 2.0) * 1.2 * (1.0 - w) * ground + float(st["agacha"]) * ground
+	# passada: afunda ao pisar, sobe no "voo" da corrida, inclina e ginga
+	var u0 := fposmod(ph, 1.0)
+	var pulse := 0.0
+	for off in [0.0, 0.5]:
+		var uu := fposmod(ph + off, 1.0)
+		if uu < 0.22:
+			pulse = maxf(pulse, 1.0 - uu / 0.22)
+	by += (float(st["queda"]) * pulse - float(st["quica"]) * absf(sin(TAU * u0)) * (1.0 - pulse)) * w
+	br += deg_to_rad(float(st["incl"])) * w + deg_to_rad(float(st["ginga"])) * sin(TAU * u0) * w
+	cr += deg_to_rad(float(st["cab"])) * sin(TAU * u0 * 2.0 - 1.2) * w
+	if tipo == "voo" and ground > 0.5:   # Jato paira: não pisa
+		by += -6.0 + sin(now * 4.0) * 2.0
+		br = deg_to_rad(float(st["incl"])) * run
+	if air > 0.05:
+		br += deg_to_rad(clampf(vyy / 45.0, -12.0, 14.0)) * air
+	by += 9.0 * land
+	br += deg_to_rad(5.0) * land
+	if hurt > 0.0:
+		br -= deg_to_rad(14.0) * hurt
+		cr -= deg_to_rad(14.0) * hurt
+		bx -= 6.0 * hurt
+	if not g.is_empty():
+		bx += g["bx"]
+		by += g["by"]
+		br += deg_to_rad(g["br"])
+		cr += deg_to_rad(g["cr"])
+	# pulo duplo (flip 0..1) e dash (dge 1..0): cada tipo do seu jeito
 	var spin := 0.0
-	var tuck := 0.0
-	if flip >= 0.0:   # pulo duplo: os pesados encolhem e soltam propulsor; os leves dão uma cambalhota
-		tuck = sin(clampf(flip, 0.0, 1.0) * PI)
-		if bool(st["gira"]):
-			spin = -TAU * (1.0 - pow(1.0 - clampf(flip, 0.0, 1.0), 2.0))
-		leg_f_rot += deg_to_rad(-30.0) * tuck
-		leg_b_rot += deg_to_rad(30.0) * tuck
-		leg_f_dy -= 12.0 * tuck
-		leg_b_dy -= 12.0 * tuck
-	var dash_lean := 0.0
-	if dge > 0.0:   # dash: inclina forte para a frente, pernas para trás
-		dash_lean = deg_to_rad(24.0) * dge
-		leg_b_rot += deg_to_rad(30.0) * dge
-		leg_f_rot += deg_to_rad(16.0) * dge
-		bb_rot += deg_to_rad(40.0) * dge
-	if bool(st["flutua"]) and ground > 0.5:   # Jato: paira um pouco acima do chão
-		b_dy += -4.0 + sin(now * 4.0) * 2.0
+	var sq := Vector2.ONE
+	var tuck := sin(clampf(flip, 0.0, 1.0) * PI) if flip >= 0.0 else 0.0
+	if flip >= 0.0:
+		match tipo:
+			"corredor":
+				spin = -TAU * _smooth(flip)
+			"corcunda":
+				spin = TAU * _smooth(flip)
+			"mecanico":
+				sq = Vector2(1.0 - 0.1 * tuck, 1.0 + 0.18 * tuck)
+			"voo":
+				sq = Vector2(0.9, 1.15).lerp(Vector2.ONE, flip)
+			_:
+				sq = Vector2(1.0 + 0.14 * tuck, 1.0 - 0.18 * tuck)
+	if dge > 0.0:
+		var dl := {"pesado": 26.0, "mecanico": 14.0, "gorila": 34.0, "corredor": 22.0, "corcunda": 18.0, "voo": 40.0}
+		br += deg_to_rad(float(dl.get(tipo, 20.0))) * _smooth(dge * 1.4)
+		by += (6.0 if tipo == "gorila" else 2.0) * dge
+	# habilidade em uso: postura firme (fogo, raio) ou disparada (dash da broca)
+	var fire_k := float(fx.get("flame", 0.0))
+	if fire_k > 0.05 or fx.get("arc", false):
+		by += 4.0
+		br -= deg_to_rad(6.0)
+		bx += sin(now * 70.0) * 1.2
+	var drill_dash: bool = fx.get("drill_dash", false)
+	if drill_dash:
+		br += deg_to_rad(22.0)
+		by += 3.0
 	var cen := Vector2(0.0, -60.0)
 	var G := Transform2D.IDENTITY
-	if spin != 0.0 or dash_lean != 0.0 or tuck != 0.0:
-		G = Transform2D(spin + dash_lean, cen) * Transform2D(0.0, Vector2(1.0 + 0.12 * tuck, 1.0 - 0.18 * tuck), 0.0, Vector2.ZERO) * Transform2D(0.0, -cen)
+	if spin != 0.0 or sq != Vector2.ONE:
+		G = Transform2D(spin, cen) * Transform2D(0.0, sq, 0.0, Vector2.ZERO) * Transform2D(0.0, -cen)
 	U = U * G
-	# rastro do dash e propulsores (atrás do mecha)
-	ci.draw_set_transform_matrix(U)
-	if dge > 0.05:
-		for k in 3:
-			ci.draw_rect(Rect2(-60.0 - k * 34.0, -150.0 + k * 6.0, 70.0, 150.0 - k * 12.0), Color(0.75, 0.9, 1.0, 0.18 * dge * (1.0 - k * 0.28)))
-		for k in 6:
-			var yy := -140.0 + k * 22.0
-			ci.draw_line(Vector2(-70.0, yy), Vector2(-70.0 - 60.0 - fmod(k * 37.0 + now * 900.0, 80.0), yy), Color(1, 1, 1, 0.7 * dge), 4.0, true)
-	var jet_k := 0.0
-	if flip >= 0.0:
-		jet_k = 1.0 - clampf(flip, 0.0, 1.0)
-	if bool(st["flutua"]):
-		jet_k = maxf(jet_k, 0.35 + 0.5 * maxf(run, air))
-	if dge > 0.0:
-		jet_k = maxf(jet_k, dge)
-	if jet_k > 0.02:   # chamas dos propulsores: nos pés (pulo duplo/Jato) e nas costas (dash)
-		var fl := 0.8 + 0.2 * sin(now * 50.0)
-		for lp in ["perna_b", "perna_f"]:
-			if not m["pivos"].has(lp):
-				continue
-			var fx0 := Vector2(float(m["pivos"][lp][0]) + (8.0 if lp == "perna_f" else -6.0), 4.0)
-			var L := 50.0 * jet_k * fl
-			ci.draw_colored_polygon(PackedVector2Array([fx0 + Vector2(-11, 0), fx0 + Vector2(11, 0), fx0 + Vector2(0, L)]), Color(1.0, 0.6, 0.2, 0.9))
-			ci.draw_colored_polygon(PackedVector2Array([fx0 + Vector2(-5, 0), fx0 + Vector2(5, 0), fx0 + Vector2(0, L * 0.55)]), Color(1.0, 0.97, 0.75, 0.95))
+	var B := Transform2D(0.0, hip0 + Vector2(bx, by)) * Transform2D(br, Vector2.ZERO) * Transform2D(0.0, -hip0)
+	# ---------------- pernas: alvo do tornozelo (passada plantada, ar, pulo duplo, dash, golpe)
+	var feet := {}
+	for side in ["b", "f"]:
+		var L: Dictionary = lb if side == "b" else lf
+		var h0 := _jv(L["quadril"])
+		var k0 := _jv(L["joelho"])
+		var a0 := _jv(L["tornozelo"])
+		var l1 := h0.distance_to(k0)
+		var l2 := k0.distance_to(a0)
+		var hipw: Vector2 = B * h0
+		var reach := l1 + l2
+		var off := 0.0 if side == "f" else 0.5
+		var uu := fposmod(ph + off, 1.0)
+		# passo: tamanho limitado pelo alcance da perna; o pé anda para trás exatamente com o chão no apoio
+		var hh := absf(a0.y - h0.y)
+		var max_s := 2.0 * sqrt(maxf(reach * reach * 0.94 - hh * hh * 0.7, 1.0))
+		var S := minf(float(st["duty"]) * float(st["ciclo"]) / px, max_s)
+		var de := S * px / float(st["ciclo"])
+		var fxo := 0.0
+		var fyo := 0.0
+		var frot := 0.0
+		if uu < de:
+			fxo = S * 0.5 - (uu / de) * S
+			if uu > de * 0.8:
+				frot = -0.25 * (uu / de - 0.8) / 0.2   # empurra com o calcanhar subindo
+		else:
+			var s := (uu - de) / (1.0 - de)
+			fxo = -S * 0.5 + _smooth(s) * S
+			fyo = -float(st["passo_h"]) * sin(PI * s)
+			frot = 0.35 * sin(PI * s) * (1.0 if s > 0.5 else -0.6)
+		fxo *= w
+		fyo *= w
+		frot *= w
+		if tipo == "voo" and ground > 0.5:   # pernas soltas, balançando como pêndulo
+			fxo = -6.0 * run + sin(now * 3.0 + off * 3.0) * 2.0
+			fyo = -4.0
+			frot = 0.2
+		var tgt := a0 + Vector2(fxo + (bx * 0.3 if side == "f" else 0.0), fyo)
+		if air > 0.05:   # no ar: sobe estendido, encolhe no alto, abre para pousar
+			var t_up := clampf(-vyy / 600.0, 0.0, 1.0)
+			var t_dn := clampf(vyy / 600.0, 0.0, 1.0)
+			var apex := 1.0 - maxf(t_up, t_dn)
+			var sgn_s := 1.0 if side == "f" else -1.0
+			var air_t := Vector2(-6.0 * t_up + 6.0 * t_dn + 5.0 * sgn_s, -16.0 * apex - 2.0 * t_up)
+			tgt = tgt.lerp((B * h0) + (a0 - h0) + air_t + Vector2(0, -float(st["agacha"])), air)
+			frot = lerpf(frot, 0.3 * apex - 0.25 * t_up, air)
+		if tuck > 0.0:
+			tgt += Vector2(4.0 if side == "f" else -2.0, -18.0 * tuck)
 		if dge > 0.0:
-			var bk := Vector2(-50.0, -110.0)
-			ci.draw_colored_polygon(PackedVector2Array([bk + Vector2(0, -12), bk + Vector2(0, 12), bk + Vector2(-70.0 * dge * fl, 0)]), Color(0.6, 0.85, 1.0, 0.9))
-	# pisão: poeira saindo do pé que encosta no chão
-	if float(st["pisao"]) > 0.0 and run > 0.3 and ground > 0.9:
-		var cpl := absf(cos(ph))
-		if cpl > 0.85:
-			var side := -1.0 if sin(ph) > 0.0 else 1.0
-			var fp := Vector2(side * 18.0, 0.0)
+			var dd := _smooth(dge * 1.4)
+			tgt += Vector2((14.0 if side == "f" else -22.0) * dd, (-6.0 if side == "f" else 0.0) * dd)
+		if not g.is_empty():
+			if side == "f":
+				tgt += Vector2(g["ffx"], g["ffy"])
+			else:
+				tgt += Vector2(g["fbx"], 0.0)
+		if fire_k > 0.05 or fx.get("arc", false) or drill_dash:   # firma as pernas (base larga)
+			tgt.x += (10.0 if side == "f" else -10.0)
+		var sol := _ik2(hipw, tgt, l1, l2, _dobra(h0, k0, a0))
+		feet[side] = [h0, k0, a0, hipw, sol[0], sol[1], frot]
+	# ---------------- braço de trás: balança com a passada (ou anda apoiado nos nós dos dedos: gorila)
+	var s0 := _jv(ab_["ombro"])
+	var e0 := _jv(ab_["cotovelo"])
+	var hnd0 := _jv(ab_["mao"])
+	var la1 := s0.distance_to(e0)
+	var la2 := e0.distance_to(hnd0)
+	var sw: Vector2 = B * s0
+	var htgt: Vector2 = B * hnd0
+	if tipo == "gorila":
+		var ua := fposmod(ph + 0.25, 1.0)
+		var Sa := 26.0
+		if ua < 0.55:
+			htgt = hnd0 + Vector2((Sa * 0.5 - ua / 0.55 * Sa) * w, 0.0)
+		else:
+			var sa := (ua - 0.55) / 0.45
+			htgt = hnd0 + Vector2((-Sa * 0.5 + _smooth(sa) * Sa) * w, -12.0 * sin(PI * sa) * w)
+		htgt += Vector2(bx, by * 0.5)
+	else:
+		htgt += Vector2(-float(st["braco"]) * sin(TAU * u0) * w, 0.0)
+	if air > 0.05:
+		htgt += Vector2(-6.0, -10.0 * clampf(-vyy / 600.0, 0.0, 1.0) - 4.0) * air
+	if tuck > 0.0:
+		htgt += (Vector2(10.0, -70.0) if tipo == "gorila" else Vector2(-8.0, -10.0)) * tuck
+	if dge > 0.0:
+		htgt += (Vector2(40.0, 6.0) if tipo == "gorila" else Vector2(10.0, -14.0)) * _smooth(dge * 1.4)
+	if hurt > 0.0:
+		htgt += Vector2(-10.0, -18.0) * hurt
+	if not g.is_empty():
+		htgt += Vector2(g["hbx"], g["hby"])
+	var arm := _ik2(sw, htgt, la1, la2, _dobra(s0, e0, hnd0))
+	# braço-arma: mira + balanço + golpe + recuo da habilidade
+	var aim := float(fx.get("aim_a", 0.0)) if mid in MECHA_MIRA else 0.0
+	var a_rot := aim + deg_to_rad(4.0) * sin(TAU * u0 + PI) * w
+	var a_dx := 0.0
+	if not g.is_empty():
+		a_rot += deg_to_rad(g["ar"])
+		a_dx += g["ax"]
+	if fire_k > 0.05:
+		a_dx -= 3.0 + sin(now * 60.0) * 1.5
+	if dge > 0.0 and tipo in ["mecanico", "corredor"]:
+		a_rot = lerpf(a_rot, 0.0, dge)
+		a_dx += 12.0 * dge
+	# ---------------- fundo: raios da montagem, rastro do dash, propulsores
+	ci.draw_set_transform_matrix(U)
+	if a < 1.0:
+		var ck: Array = m["cockpit"]
+		var c := Vector2(float(ck[0]), float(ck[1]) - 20.0)
+		var op := 0.55 * sin(a * PI)
+		for k in 12:
+			var ang := deg_to_rad(now * 90.0 + k * 30.0)
+			ci.draw_colored_polygon(PackedVector2Array([c, c + Vector2.from_angle(ang) * 240.0, c + Vector2.from_angle(ang + 0.18) * 240.0]), Color(1, 0.95, 0.7, op * 0.5))
+		ci.draw_circle(c, 80.0 + 60.0 * a, Color(1, 0.97, 0.85, op))
+	if dge > 0.05:
+		var dcol := Color(0.55, 0.85, 1.0) if tipo in ["corcunda", "voo"] else (Color(1.0, 0.7, 0.35) if tipo == "pesado" else Color(0.85, 0.92, 1.0))
+		for k in 3:
+			ci.draw_rect(Rect2(-70.0 - k * 36.0, -150.0 + k * 8.0, 74.0, 150.0 - k * 14.0), Color(dcol, 0.2 * dge * (1.0 - k * 0.3)))
+		for k in 7:
+			var yy := -150.0 + k * 22.0
+			var x0 := -60.0 - fmod(k * 37.0 + now * 900.0, 70.0)
+			ci.draw_line(Vector2(x0, yy), Vector2(x0 - 50.0 - k * 6.0, yy), Color(1, 1, 1, 0.75 * dge), 4.0, true)
+		if tipo == "corcunda":
 			for k in 3:
-				ci.draw_circle(fp + Vector2(-20.0 + k * 20.0, -6.0), (8.0 + k * 3.0) * float(st["pisao"]) * (cpl - 0.85) / 0.15, Color(0.85, 0.78, 0.66, 0.6))
+				var y2 := -40.0 - k * 36.0
+				ci.draw_polyline(PackedVector2Array([Vector2(-150, y2), Vector2(-110, y2 - 8), Vector2(-80, y2 + 6), Vector2(-40, y2 - 4)]), Color(0.8, 0.97, 1.0, 0.9 * dge), 3.0, true)
+	var jet := 0.0
+	if flip >= 0.0:
+		jet = 1.0 - clampf(flip, 0.0, 1.0)
+	if tipo == "voo":
+		jet = maxf(jet, 0.35 + 0.55 * maxf(run, air))
+	if jet > 0.02:
+		var fl := 0.8 + 0.2 * sin(now * 50.0)
+		for side in ["b", "f"]:
+			var an: Vector2 = feet[side][5]
+			var L2 := (60.0 if tipo != "voo" else 46.0) * jet * fl
+			ci.draw_colored_polygon(PackedVector2Array([an + Vector2(-11, 10), an + Vector2(11, 10), an + Vector2(0, 10 + L2)]), Color(1.0, 0.58, 0.18, 0.92))
+			ci.draw_colored_polygon(PackedVector2Array([an + Vector2(-5, 10), an + Vector2(5, 10), an + Vector2(0, 10 + L2 * 0.55)]), Color(1.0, 0.97, 0.75, 0.95))
+	if tipo == "corcunda" and flip >= 0.0:   # anel elétrico do giro
+		ci.draw_arc(cen, 70.0 + 30.0 * tuck, 0, TAU, 32, Color(0.7, 0.95, 1.0, 0.8 * tuck), 4.0, true)
+	# ---------------- peças
+	var parts_xf := {}
+	for side in ["b", "f"]:
+		var F: Array = feet[side]
+		parts_xf["coxa_" + side] = _osso(F[0], F[1], F[3], F[4])
+		parts_xf["canela_" + side] = _osso(F[1], F[2], F[4], F[5])
+		parts_xf["pe_" + side] = Transform2D(0.0, F[5]) * Transform2D(float(F[6]), Vector2.ZERO) * Transform2D(0.0, -F[2])
+	parts_xf["braco_b_sup"] = _osso(s0, e0, sw, arm[0])
+	parts_xf["braco_b_inf"] = _osso(e0, hnd0, arm[0], arm[1])
+	for p in ["costas", "tronco", "cabine", "peito", "ombro_b", "ombro_f"]:
+		parts_xf[p] = B
+	parts_xf["cabeca"] = B * Transform2D(cr, head0) * Transform2D(0.0, -head0)
+	parts_xf["arma"] = B * Transform2D(0.0, Vector2(a_dx, 0.0)) * Transform2D(a_rot, sh0) * Transform2D(0.0, -sh0)
+	var mod := blink
+	if dge > 0.0 and tipo == "corcunda":   # piscada elétrica: fica meio transparente e azulado
+		mod = Color(0.75, 0.95, 1.2, 1.0 - 0.45 * sin(dge * PI))
 	for p in M["pecas"]:
-		if not (p in m["tem"]):
+		if not (p in m["tem"]) or not parts_xf.has(p):
 			continue
 		var tx: Texture2D = Data.tex("mecha/%s_%s%s" % [mid, p, ("_p%d" % (col_idx + 1)) if p == "tronco" else ""])
 		if tx == null:
 			continue
-		var piv := Vector2(float(m["pivos"][p][0]), float(m["pivos"][p][1]))
-		var xf := Transform2D(0.0, bob)
-		if MECHA_CHEGADA.has(p):
-			var ch: Array = MECHA_CHEGADA[p]
+		var xf: Transform2D = parts_xf[p]
+		var grp := String(MECHA_GRUPO.get(p, p))
+		var al := 1.0
+		if MECHA_CHEGADA.has(grp):   # transformação: o grupo chega voando e encaixa
+			var ch: Array = MECHA_CHEGADA[grp]
 			var u := clampf((tt - float(ch[0])) / (float(ch[1]) - float(ch[0])), 0.0, 1.0)
 			if u <= 0.0:
 				continue
 			var k := 1.0 - _ease_back(u)
-			var sc := lerpf(0.6, 1.0, 1.0 - pow(1.0 - u, 3.0))
-			xf = xf * Transform2D(0.0, Vector2(float(ch[2]), float(ch[3])) * k) * Transform2D(deg_to_rad(float(ch[4])) * k, piv) * Transform2D(0.0, Vector2(sc, sc), 0.0, Vector2.ZERO) * Transform2D(0.0, -piv)
-		if p == "perna_b" and (leg_b_rot != 0.0 or leg_b_dy != 0.0):
-			xf = xf * Transform2D(0.0, Vector2(0.0, leg_b_dy)) * Transform2D(leg_b_rot, piv) * Transform2D(0.0, -piv)
-		if p == "perna_f" and (leg_f_rot != 0.0 or leg_f_dy != 0.0):
-			xf = xf * Transform2D(0.0, Vector2(0.0, leg_f_dy)) * Transform2D(leg_f_rot, piv) * Transform2D(0.0, -piv)
-		if not (p in ["perna_b", "perna_f"]) and (b_dy != 0.0 or b_rot != 0.0 or b_dx != 0.0 or b_sq != 1.0):
-			xf = xf * Transform2D(0.0, Vector2(b_dx, b_dy)) * Transform2D(b_rot, hip_p) * Transform2D(0.0, Vector2(1.0 / sqrt(b_sq), b_sq), 0.0, Vector2.ZERO) * Transform2D(0.0, -hip_p)
-		if p == "arma" and (aim != 0.0 or a_rot != 0.0 or a_dx != 0.0):
-			xf = xf * Transform2D(0.0, Vector2(a_dx, 0.0)) * Transform2D(aim + a_rot, sh) * Transform2D(0.0, -sh)
-		if p == "braco_b" and bb_rot != 0.0:
-			xf = xf * Transform2D(bb_rot, piv) * Transform2D(0.0, -piv)
+			var piv := _jv(m["pivos"].get(p, [0, -60]))
+			xf = Transform2D(0.0, Vector2(float(ch[2]), float(ch[3])) * k) * Transform2D(deg_to_rad(float(ch[4])) * k, piv) * Transform2D(0.0, -piv) * xf
+			al = clampf(u * 4.0, 0.0, 1.0)
 		ci.draw_set_transform_matrix(U * xf)
-		ci.draw_texture_rect(tx, box, false, blink)
-		if p == "cabine":   # o rosto do próprio robô dentro do cockpit
-			_mecha_piloto(ci, U * Transform2D(0.0, bob), m, mname, col_idx, lk, pose)
-	# faísca de encaixe + olho acendendo no fim da montagem
+		ci.draw_texture_rect(tx, box, false, Color(mod, mod.a * al))
+		if p == "cabine" and al >= 0.99:
+			_mecha_piloto(ci, U * B, m, mname, col_idx, lk, pose)
+	# ---------------- frente: poeira dos passos, vapor, faíscas, olho acendendo
+	ci.draw_set_transform_matrix(U)
+	if w > 0.3 and tipo != "voo":
+		for side in ["b", "f"]:
+			var uu2 := fposmod(ph + (0.0 if side == "f" else 0.5), 1.0)
+			if uu2 < 0.16:
+				var k2 := 1.0 - uu2 / 0.16
+				var an2: Vector2 = feet[side][5]
+				for q in 3:
+					ci.draw_circle(an2 + Vector2(-16.0 + q * 16.0 - (1.0 - k2) * 10.0, 6.0 - (1.0 - k2) * 6.0), (5.0 + q * 2.0) * (1.4 if tipo in ["pesado", "gorila"] else 0.9) * (0.5 + k2), Color(0.86, 0.79, 0.67, 0.6 * k2))
+	if tipo == "pesado":   # vapor saindo da chaminé, mais forte correndo
+		for q in 3:
+			var uq := fposmod(now * (0.8 + w) + q * 0.33, 1.0)
+			var cs: Vector2 = B * Vector2(-44.0, -150.0)
+			ci.draw_circle(cs + Vector2(-14.0 * uq - 20.0 * w * uq, -40.0 * uq), 5.0 + 12.0 * uq, Color(0.55, 0.55, 0.58, 0.45 * (1.0 - uq)))
+	if tipo == "corcunda" and fmod(now, 0.5) < 0.12:   # faísca solta da bobina
+		var cs2: Vector2 = B * Vector2(-50.0, -186.0)
+		ci.draw_polyline(PackedVector2Array([cs2, cs2 + Vector2(10, -8), cs2 + Vector2(4, -16), cs2 + Vector2(14, -24)]), Color(0.85, 0.98, 1.0, 0.9), 2.0, true)
+	if tipo == "mecanico" and w > 0.3:   # chiado hidráulico nos joelhos
+		var kn: Vector2 = feet["f"][4]
+		var uq2 := fposmod(now * 3.0, 1.0)
+		ci.draw_circle(kn + Vector2(-8.0 - 10.0 * uq2, -4.0 * uq2), 3.0 + 4.0 * uq2, Color(1, 1, 1, 0.5 * (1.0 - uq2)))
 	if a < 1.0 and a > 0.85:
 		var ol: Array = m["olho"]
-		ci.draw_set_transform_matrix(U)
 		var e := (a - 0.85) / 0.15
-		ci.draw_circle(Vector2(float(ol[0]), float(ol[1])), 6.0 + 26.0 * e, Color(1, 0.25, 0.2, 0.55 * (1.0 - e)))
+		ci.draw_circle(B * Vector2(float(ol[0]), float(ol[1])), 6.0 + 26.0 * e, Color(1, 0.25, 0.2, 0.55 * (1.0 - e)))
 	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 static func _mecha_piloto(ci: CanvasItem, U: Transform2D, m: Dictionary, mname: String, col_idx: int, lk: Dictionary, pose: Dictionary) -> void:

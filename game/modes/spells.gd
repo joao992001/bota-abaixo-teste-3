@@ -1172,6 +1172,7 @@ func flags(r) -> Dictionary:
 			out["armor_end"] = clampf(1.0 - s["t"] / 1.2, 0.0, 1.0)
 			out["arc"] = s["data"].get("arc", false)
 			out["busy"] = s["data"].get("arc", false) or s["id"] == "T05"
+			out["drill_dash"] = s["data"].get("dash", false)
 			out["mecha"] = s["id"]
 	if s["id"] == "T03" and s["t"] > 0.0 and r.spell_form != "bola":
 		out["mecha"] = "T03"

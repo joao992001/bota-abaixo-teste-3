@@ -77,6 +77,20 @@ def perna_mecha(hx, hy, fx, casco, k=1.0):
     return o
 
 
+def perna_partes(hx, hy, fx, casco, k=1.0):
+    """A mesma perna de perna_mecha() separada em COXA, CANELA e PÉ (o jogo articula com cinemática inversa, A34).
+    Devolve (coxa, canela, pe, juntas) com juntas = quadril, joelho, tornozelo."""
+    kx, ky = (hx + fx) / 2 + 8 * k, hy + (0 - hy) * 0.5
+    coxa = f'<path d="M{hx},{hy} L{kx},{ky}" stroke="{DARK}" stroke-width="16" fill="none" stroke-linecap="round"/>'
+    coxa += S(f"M{hx - 12},{hy - 6} L{hx + 12},{hy - 6} L{kx + 8},{ky} L{kx - 10},{ky + 2} Z", casco, (hx - 13, hy - 7, kx + 9, ky + 3), k=0.5)
+    can = f'<path d="M{kx},{ky} L{fx},-12" stroke="{DARK}" stroke-width="16" fill="none" stroke-linecap="round"/>'
+    can += S(f"M{kx - 9},{ky + 4} L{kx + 9},{ky + 4} L{fx + 11},-12 L{fx - 11},-12 Z", casco, (kx - 10, ky + 3, fx + 12, -11), k=0.5)
+    can += P_([(kx - 9, ky - 8), (kx + 11, ky - 4), (kx + 6, ky + 10), (kx - 8, ky + 6)], shade(casco, -0.25), k=0.3)   # joelheira
+    pe = P_([(fx - 16, 0), (fx - 12, -14), (fx + 12, -14), (fx + 22, 0)], DARK, k=0.4)
+    pe += "".join(P_([(fx + 10 + d, 0), (fx + 16 + d, -6), (fx + 26 + d, 0)], STEEL_L, k=0.1) for d in (0, -8))
+    return coxa, can, pe, {"quadril": [hx, hy], "joelho": [kx, ky], "tornozelo": [fx, -12]}
+
+
 def ombreira(x, y, casco, s=1.0, spikes=True):
     o = S(f"M{x - 20 * s},{y + 10 * s} C{x - 22 * s},{y - 14 * s} {x - 4 * s},{y - 24 * s} {x + 14 * s},{y - 18 * s} L{x + 22 * s},{y + 6 * s} Z",
           casco, (x - 23 * s, y - 25 * s, x + 23 * s, y + 11 * s), k=0.6)
@@ -108,6 +122,7 @@ PARTES = {}
 MIRA = [0.0]
 OMBRO = [(0.0, 0.0)]
 ESTATICO = [True]
+JUNTAS = {}       # juntas da última chamada de mecha(): perna_b/perna_f (quadril, joelho, tornozelo), braco_b (ombro, cotovelo, mao)
 PILOTO = [True]   # False = cockpit vazio (o jogo desenha o rosto do próprio robô lá dentro)
 
 
@@ -133,13 +148,20 @@ def mecha(col, casco, arma, extra_costas="", extra_peito="", cab=(30, 26), H=58,
     dx, dy = sx - 34, sy + 106
     tr = f"translate(0,{-H}) scale({tw},{th}) translate(0,58)"
     o = _g("costas", f'<g transform="translate({dx:.1f},{dy:.1f})">{extra_costas}</g>', T(-30, -110)) if extra_costas else ""
-    o += _g("perna_b", perna_mecha(-14 * tw, -H, -22 * perna, shade(casco, -0.15), 0.6), (-14 * tw, -H))
+    cb_, kb_, pb_, jb = perna_partes(-14 * tw, -H, -22 * perna, shade(casco, -0.15), 0.6)
+    JUNTAS["perna_b"] = jb
+    o += _g("coxa_b", cb_, jb["quadril"]) + _g("canela_b", kb_, jb["joelho"]) + _g("pe_b", pb_, jb["tornozelo"])
     bx, by = T(-30, -104)
     if gorila:   # braço de trás enorme, nó dos dedos no chão
-        bb = f'<path d="M{bx},{by} L{bx - 22},{by + (-by) * 0.45} L{bx - 18},-20" stroke="{DARK}" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 18, -12, shade(casco, -0.15), 1.4)
+        ex, ey, hx_, hy_, w_, ps = bx - 22, by + (-by) * 0.45, bx - 18, -20, 18, 1.4
+        fist = punho(bx - 18, -12, shade(casco, -0.15), 1.4)
     else:
-        bb = f'<path d="M{bx},{by} L{bx - 14},{by + 26} L{bx - 10},{by + 52}" stroke="{DARK}" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 10, by + 58, shade(casco, -0.15), 0.9)
-    o += _g("braco_b", bb, (bx, by))
+        ex, ey, hx_, hy_, w_, ps = bx - 14, by + 26, bx - 10, by + 52, 13, 0.9
+        fist = punho(bx - 10, by + 58, shade(casco, -0.15), 0.9)
+    JUNTAS["braco_b"] = {"ombro": [bx, by], "cotovelo": [ex, ey], "mao": [hx_, hy_]}
+    sup = f'<path d="M{bx},{by} L{ex},{ey}" stroke="{DARK}" stroke-width="{w_}" fill="none" stroke-linecap="round"/>'
+    inf = f'<path d="M{ex},{ey} L{hx_},{hy_}" stroke="{DARK}" stroke-width="{w_}" fill="none" stroke-linecap="round"/>' + fist
+    o += _g("braco_b_sup", sup, (bx, by)) + _g("braco_b_inf", inf, (ex, ey))
     t = f'<g transform="{tr}">' + R(-22, -66, 40, 14, 5, DARK, k=0.4)
     t += S("M-34,-62 L-40,-112 L-14,-126 L30,-122 L40,-96 L26,-60 Z", casco, (-41, -127, 41, -59), k=0.7)
     t += P_([(-30, -112), (-14, -122), (28, -118), (20, -110), (-22, -106)], shade(casco, 0.18), k=0.2)
@@ -148,9 +170,14 @@ def mecha(col, casco, arma, extra_costas="", extra_peito="", cab=(30, 26), H=58,
     o += _g("tronco", t, T(0, -90))
     o += _g("cabine", cabine_peito(cx, cy, cab[0], cab[1], col), (cx, cy))
     o += _g("peito", f'<g transform="{tr}">{extra_peito}</g>', T(0, -90))
-    o += _g("perna_f", perna_mecha(12 * tw, -H, 18 * perna, casco, 1.0), (12 * tw, -H))
+    cf_, kf_, pf_, jf = perna_partes(12 * tw, -H, 18 * perna, casco, 1.0)
+    JUNTAS["perna_f"] = jf
+    o += _g("coxa_f", cf_, jf["quadril"]) + _g("canela_f", kf_, jf["joelho"]) + _g("pe_f", pf_, jf["tornozelo"])
     hx, hy = T(10, -136)
     o += _g("cabeca", cabeca_mecha(hx, hy, casco), (hx, hy))
+    JUNTAS["ombro_f"] = [sx, sy]
+    JUNTAS["cabeca"] = [hx, hy]
+    JUNTAS["quadril"] = [0, -H]
     ox, oy = T(-24, -118)
     o += _g("ombro_b", ombreira(ox, oy, shade(casco, -0.1), ombro), (ox, oy))
     o += _g("arma", f'<g transform="rotate({MIRA[0]:.1f} {sx:.1f} {sy:.1f}) translate({dx:.1f},{dy:.1f})">{arma}</g>', (sx, sy))

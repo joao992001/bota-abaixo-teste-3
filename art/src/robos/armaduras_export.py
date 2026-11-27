@@ -20,7 +20,8 @@ PX = 0.84                                     # px de jogo por unidade (mesma es
 SS = 2                                        # supersample
 OUT = os.path.join(ab.ROOT, "art/out/game/mecha")
 SRC = os.path.join(HERE, "svg/mecha")
-PECAS = ["costas", "perna_b", "braco_b", "tronco", "cabine", "peito", "perna_f", "cabeca", "ombro_b", "arma", "ombro_f"]
+PECAS = ["costas", "coxa_b", "canela_b", "pe_b", "braco_b_sup", "braco_b_inf", "tronco", "cabine", "peito", "coxa_f", "canela_f", "pe_f",
+         "cabeca", "ombro_b", "arma", "ombro_f"]
 MECHAS = {"T01": ac.fornalha, "T02": ac.empilhadeira, "T03": ac.bola, "T04": ac.jato, "T05": ac.broca, "T06": ah.para_raios}
 # ponta da arma (a partir do ombro, sem giro) — de onde saem fogo, raio, broca, garfo, jato de ar
 PONTA = {"T01": (64, 15), "T02": (80, 6), "T03": (30, 70), "T04": (60, 14), "T05": (80, 12), "T06": (84, 13)}
@@ -74,7 +75,8 @@ def main():
         fn(COLORS[0])
         sh = ac.OMBRO[0]
         n = fn.__name__
-        cfg = {"pivos": pv, "ombro": [round(sh[0], 2), round(sh[1], 2)], "ponta": list(PONTA[tid]), "tem": [p for p in PECAS if p in pv]}
+        cfg = {"pivos": pv, "ombro": [round(sh[0], 2), round(sh[1], 2)], "ponta": list(PONTA[tid]), "tem": [p for p in PECAS if p in pv],
+               "juntas": json.loads(json.dumps(ac.JUNTAS))}
         meta["mechas"][tid] = cfg
     for ci, col in enumerate(COLORS[:4]):   # T03 fechada (bola blindada) para rolar
         svg, w, h = doc(f'<g transform="translate(0,0)">{ac.bola_fechada(col, 0)}</g>')
