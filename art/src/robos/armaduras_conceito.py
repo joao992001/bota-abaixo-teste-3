@@ -101,37 +101,59 @@ def punho(x, y, casco, s=1.0):
     return o + R(x - 12 * s, y - 10 * s, 24 * s, 6 * s, 3, casco, k=0.2)
 
 
+# ---- animação por peças (armaduras_video.py): PARTES[nome] = dict(dx, dy, rot, s, op); MIRA = giro do braço-arma (graus);
+# OMBRO = último ponto de ombro calculado (para os efeitos saírem da arma); ESTATICO = desenha chama/faísca fixas da prancha.
+PARTES = {}
+MIRA = [0.0]
+OMBRO = [(0.0, 0.0)]
+ESTATICO = [True]
+
+
+def _g(nome, svg, piv=(0, 0)):
+    p = PARTES.get(nome)
+    if not p:
+        return svg
+    if p.get("op", 1) <= 0.001:
+        return ""
+    return (f'<g opacity="{p.get("op", 1):.3f}" transform="translate({p.get("dx", 0):.1f},{p.get("dy", 0):.1f}) '
+            f'rotate({p.get("rot", 0):.1f} {piv[0]:.1f} {piv[1]:.1f}) translate({piv[0]:.1f},{piv[1]:.1f}) scale({p.get("s", 1):.3f}) '
+            f'translate({-piv[0]:.1f},{-piv[1]:.1f})">{svg}</g>')
+
+
 def mecha(col, casco, arma, extra_costas="", extra_peito="", cab=(30, 26), H=58, tw=1.0, th=1.0, gorila=False, ombro=1.0, perna=1.0):
     """Mecha humanoide com CORPO PRÓPRIO: H = altura do quadril, tw/th = largura/altura do tronco, gorila = braço de trás
-    apoiado no chão (punho), ombro = tamanho das ombreiras. A arma é desenhada no quadro padrão e levada até o ombro."""
+    apoiado no chão (punho), ombro = tamanho das ombreiras. A arma é desenhada no quadro padrão e levada até o ombro.
+    Cada peça passa por _g() para poder ser animada (transformação estilo Transformers)."""
     def T(x, y):   # quadro padrão do tronco (quadril em -58) → corpo deste mecha
         return x * tw, -H + (y + 58) * th
     sx, sy = T(34, -106)
+    OMBRO[0] = (sx, sy)
     dx, dy = sx - 34, sy + 106
     tr = f"translate(0,{-H}) scale({tw},{th}) translate(0,58)"
-    o = f'<g transform="translate({dx:.1f},{dy:.1f})">{extra_costas}</g>' if extra_costas else ""
-    o += perna_mecha(-14 * tw, -H, -22 * perna, shade(casco, -0.15), 0.6)                               # perna de trás
+    o = _g("costas", f'<g transform="translate({dx:.1f},{dy:.1f})">{extra_costas}</g>', T(-30, -110)) if extra_costas else ""
+    o += _g("perna_b", perna_mecha(-14 * tw, -H, -22 * perna, shade(casco, -0.15), 0.6), (-14 * tw, -H))
     bx, by = T(-30, -104)
     if gorila:   # braço de trás enorme, nó dos dedos no chão
-        o += f'<path d="M{bx},{by} L{bx - 22},{by + (-by) * 0.45} L{bx - 18},-20" stroke="{DARK}" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 18, -12, shade(casco, -0.15), 1.4)
+        bb = f'<path d="M{bx},{by} L{bx - 22},{by + (-by) * 0.45} L{bx - 18},-20" stroke="{DARK}" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 18, -12, shade(casco, -0.15), 1.4)
     else:
-        o += f'<path d="M{bx},{by} L{bx - 14},{by + 26} L{bx - 10},{by + 52}" stroke="{DARK}" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 10, by + 58, shade(casco, -0.15), 0.9)
-    o += f'<g transform="{tr}">'
-    o += R(-22, -66, 40, 14, 5, DARK, k=0.4)
-    o += S("M-34,-62 L-40,-112 L-14,-126 L30,-122 L40,-96 L26,-60 Z", casco, (-41, -127, 41, -59), k=0.7)
-    o += P_([(-30, -112), (-14, -122), (28, -118), (20, -110), (-22, -106)], shade(casco, 0.18), k=0.2)
-    o += cb.faixa(-30, -72, 54, 7, n=7) + faixa_jogador(-36, -86, 74, col) + "</g>"
+        bb = f'<path d="M{bx},{by} L{bx - 14},{by + 26} L{bx - 10},{by + 52}" stroke="{DARK}" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(bx - 10, by + 58, shade(casco, -0.15), 0.9)
+    o += _g("braco_b", bb, (bx, by))
+    t = f'<g transform="{tr}">' + R(-22, -66, 40, 14, 5, DARK, k=0.4)
+    t += S("M-34,-62 L-40,-112 L-14,-126 L30,-122 L40,-96 L26,-60 Z", casco, (-41, -127, 41, -59), k=0.7)
+    t += P_([(-30, -112), (-14, -122), (28, -118), (20, -110), (-22, -106)], shade(casco, 0.18), k=0.2)
+    t += cb.faixa(-30, -72, 54, 7, n=7) + faixa_jogador(-36, -86, 74, col) + "</g>"
     cx, cy = T(4, -102)
-    o += cabine_peito(cx, cy, cab[0], cab[1], col)
-    o += f'<g transform="{tr}">{extra_peito}</g>'
-    o += perna_mecha(12 * tw, -H, 18 * perna, casco, 1.0)                                                # perna da frente
+    o += _g("tronco", t, T(0, -90))
+    o += _g("cabine", cabine_peito(cx, cy, cab[0], cab[1], col), (cx, cy))
+    o += _g("peito", f'<g transform="{tr}">{extra_peito}</g>', T(0, -90))
+    o += _g("perna_f", perna_mecha(12 * tw, -H, 18 * perna, casco, 1.0), (12 * tw, -H))
     hx, hy = T(10, -136)
-    o += cabeca_mecha(hx, hy, casco)
+    o += _g("cabeca", cabeca_mecha(hx, hy, casco), (hx, hy))
     ox, oy = T(-24, -118)
-    o += ombreira(ox, oy, shade(casco, -0.1), ombro)
-    o += f'<g transform="translate({dx:.1f},{dy:.1f})">{arma}</g>'
+    o += _g("ombro_b", ombreira(ox, oy, shade(casco, -0.1), ombro), (ox, oy))
+    o += _g("arma", f'<g transform="rotate({MIRA[0]:.1f} {sx:.1f} {sy:.1f}) translate({dx:.1f},{dy:.1f})">{arma}</g>', (sx, sy))
     ox, oy = T(30, -116)
-    o += ombreira(ox, oy, casco, 1.15 * ombro)
+    o += _g("ombro_f", ombreira(ox, oy, casco, 1.15 * ombro), (ox, oy))
     return o
 
 
@@ -142,7 +164,8 @@ def fornalha(col):
     peito = R(-22, -74, 40, 10, 3, "#2a1a14", k=0.3) + "".join(R(-19 + i * 8, -73, 5, 8, 1.5, "#ff7a1f", k=0.2) for i in range(5)) + '<ellipse cx="-2" cy="-66" rx="30" ry="9" fill="#ff8a2a" opacity="0.4"/>'
     arma = f'<path d="M34,-106 L56,-90 L66,-92" stroke="{DARK}" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
     arma += R(56, -102, 34, 20, 6, casco, k=0.4) + R(88, -98, 10, 12, 3, DARK, k=0.3)
-    arma += P_([(98, -100), (140, -110), (128, -92), (146, -80), (98, -82)], "#ff6a1a", k=0.4) + P_([(98, -96), (122, -100), (114, -92), (126, -86), (98, -86)], "#ffe27a", k=0.3)
+    if ESTATICO[0]:
+        arma += P_([(98, -100), (140, -110), (128, -92), (146, -80), (98, -82)], "#ff6a1a", k=0.4) + P_([(98, -96), (122, -100), (114, -92), (126, -86), (98, -86)], "#ffe27a", k=0.3)
     return mecha(col, casco, arma, costas, peito, cab=(36, 26), H=40, tw=1.35, th=0.85, ombro=1.2, perna=1.3)   # BAIXA e LARGA
 
 
