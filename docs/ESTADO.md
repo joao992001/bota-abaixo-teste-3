@@ -4,8 +4,29 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (sessão 4)
-**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado; `.exe` entregue).
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (fim da sessão 4)
+**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
+bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
+
+**▶ PRÓXIMO PASSO: Auditoria das engenhocas, ATAQUE lote 3 = A08 Canhão de Molas + E02 Carga Remota** (propostas já
+APROVADAS em `docs/revisoes/auditoria_engenhocas.md`, seção "Propostas APROVADAS"). Depois lote 4 = A06 Bate-Estaca (vira
+lançador: coluna de concreto que lança para cima e fica de plataforma) + A07 (cada robô arremessa a SUA arma). Depois: pedir
+ao usuário as notas do CONTROLE (C01–C05; proposta: C04 Teleporte → Defesa) e criar a classe nova DEFESA (ideias levadas:
+Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola, Remendo Rápido, Botas Magnéticas; PROIBIDO escudo na mão — S28).
+**Fluxo que o usuário aprovou (repetir igual por lote de 2):**
+1. Prancha 4 tempos (preparo → ação → impacto → resultado) + arte nova da arma em `art/src/robos/eng_ataques.py`
+   (`prancha()` = lote 1, `prancha2()`/`--l2` = lote 2; criar `prancha3()`/`--l3`). Render: `NODE_PATH=$(npm root -g) python3
+   art/src/robos/eng_ataques.py --l3` → `art/out/robos_v2/eng_ataques_l3.png`. Mandar ao usuário e ESPERAR aprovação.
+2. Código em `game/modes/spells.gd` (+ pose em `game/player/robot_visual.gd`), números em `data/modos.json` (edição
+   PONTUAL; nunca regravar o JSON inteiro), arte exportada por `exportar_jogo()` (`--jogo`) no espaço de design 128x64 com
+   a pega/bico de `RobotVis.SPELL_TOOLS` → copiar para `game/assets/spells/`.
+3. Testes em `game/tests/driver.gd` (`spells_test`), rodar `--so=spells,combate,bots`; captura `--spells=DIR
+   --so-spells=ID+...` (há segmentos extras: A01cheio, A02corte) → vídeo com ffmpeg (30 fps = tempo real; 10–12 = lento).
+4. Commit + push, registrar decisão (A40…) em `docs/revisoes/reformulacao_derruba.md`, marcar o lote na auditoria.
+**Lições desta sessão:** impacto tem que parecer do cenário (poeira cor de concreto, lascas com borda escura — o usuário
+reprovou rachadura amarela em zigue-zague e a textura `laje_2` com fita zebrada: peça destruída por engenhoca desaba direto
+com `ct._collapse(p)`); tiros saem do bico DESENHADO (`muzzle()` lê o meta "bico" gravado em `draw_robot`); testes que
+dependem de sorteio precisam de `seed()` (bots e renascer já têm). A laje cai por TRECHO de 4 tiles; o núcleo nunca cai.
 
 **Feito nesta sessão (decisões A28–A35 em `docs/revisoes/reformulacao_derruba.md`):**
 - Elenco A27 no jogo; Guindaste (G2 Lança) e Escavadeira (E2 Trator) refeitos (A28). Ids internos antigos mantidos:
