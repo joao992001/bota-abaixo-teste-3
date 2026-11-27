@@ -898,8 +898,19 @@ func _update_flame(r, s: Dictionary, dt: float) -> void:
 	for oid in fl["hitcd"].keys():
 		fl["hitcd"][oid] -= dt
 	var reach: float = float(c["fogo_alcance_tiles"]) * T * fl["k"]
-	var o0: Vector2 = r.position + Vector2(r.facing * 26.0, -46.0)
+	var o0: Vector2 = mecha_muzzle(r)   # sai da boca do lança-chamas do mecha (A29)
 	var ad := aim_dir(r)
+	# partículas do jato (A30: "o mais animado possível"): ~140/s, saem da boca na mira e espalham
+	var nps: int = int(float(fl.get("acc", 0.0)) + dt * 140.0)
+	fl["acc"] = fl.get("acc", 0.0) + dt * 140.0 - nps
+	for i in nps:
+		var ang: float = ad.angle() + main.rng.randf_range(-0.16, 0.16)
+		var spd: float = main.rng.randf_range(430.0, 600.0) * float(fl["k"])
+		fire_ps.append({"pos": o0 + ad * main.rng.randf_range(0, 10), "vel": Vector2.from_angle(ang) * spd + r.velocity * 0.3,
+			"t": 0.0, "life": main.rng.randf_range(0.32, 0.48), "s": main.rng.randf_range(0.8, 1.25), "em": false})
+		if main.rng.randf() < 0.3:   # brasas que caem
+			fire_ps.append({"pos": o0, "vel": Vector2.from_angle(ang + main.rng.randf_range(-0.5, 0.5)) * main.rng.randf_range(200, 420),
+				"t": 0.0, "life": main.rng.randf_range(0.6, 0.9), "s": 1.0, "em": true})
 	for o in main.robots:
 		if o != r and o.alive and _seg_rect(o0, o0 + ad * reach, o.rect(), 20.0) and float(fl["hitcd"].get(o.pid, 0.0)) <= 0.0:
 			fl["hitcd"][o.pid] = float(c["fogo_tick_s"])
@@ -933,8 +944,34 @@ func _end_armor(r, natural: bool) -> void:
 		slot.erase(r.pid)
 
 # ---------------------------------------------------------------- quadro a quadro
+var fire_ps: Array = []   # partículas de fogo da Fornalha (A30)
+var trans_fx: Array = []  # fecho da transformação: clarão, raios, onda de choque no chão, nome (A29)
+
+## Mecha montado (fim da transformação estilo Transformers): o olho acende, clarão, onda de choque, poeira e o NOME.
+func _assembled(r, id: String) -> void:
+	var fy := _floor_below(r.position.x, r.position.y - 10.0, 4)
+	trans_fx.append({"pos": r.position + Vector2(0, -90), "ground": Vector2(r.position.x, fy if fy > 0.0 else r.position.y), "t": 0.0})
+	main.float_text(r.position + Vector2(0, -230), NOMES.get(id, id) + "!", FAM_COR["transformacao"])
+	main.dust(r.position, 1.8)
+	main.shake(9.0)
+	for k in 14:
+		main.spark(r.position + Vector2(randf_range(-60, 60), randf_range(-160, -20)), 1)
+	Audio.play("caixote_pancada", 0.7, 0.0)
+
 func update(dt: float, alive: Array) -> void:
 	t += dt
+	for fp in fire_ps:
+		fp["t"] += dt
+		fp["pos"] += fp["vel"] * dt
+		if fp["em"]:
+			fp["vel"].y += 700.0 * dt
+		else:
+			fp["vel"] *= 0.985
+			fp["vel"].y -= 160.0 * dt   # o fogo sobe
+	fire_ps = fire_ps.filter(func(fp): return fp["t"] < fp["life"])
+	for tf in trans_fx:
+		tf["t"] += dt
+	trans_fx = trans_fx.filter(func(tf): return tf["t"] < 0.7)
 	for pid in bot_hold.keys():
 		bot_hold[pid] -= dt
 		if bot_hold[pid] <= 0.0:
@@ -983,12 +1020,18 @@ func update(dt: float, alive: Array) -> void:
 			if not slot.has(r.pid):
 				continue
 		if s["id"] == "T04" and s["t"] > 0.0:
-			s["data"]["assemble"] = minf(float(s["data"].get("assemble", 0.0)) + dt / 0.9, 1.0)
+			var ab4: float = float(s["data"].get("assemble", 0.0))
+			s["data"]["assemble"] = minf(ab4 + dt / 0.9, 1.0)
+			if ab4 < 1.0 and s["data"]["assemble"] >= 1.0:
+				_assembled(r, "T04")
 			_update_jet(r, s, dt)
 			if not slot.has(r.pid):
 				continue
 		if s["id"] == "T01" and s["t"] > 0.0:
-			s["data"]["assemble"] = minf(float(s["data"].get("assemble", 0.0)) + dt / 0.9, 1.0)
+			var ab1: float = float(s["data"].get("assemble", 0.0))
+			s["data"]["assemble"] = minf(ab1 + dt / 0.9, 1.0)
+			if ab1 < 1.0 and s["data"]["assemble"] >= 1.0:
+				_assembled(r, "T01")
 			_update_flame(r, s, dt)
 			if slot.has(r.pid) and s["t"] > 0.0:
 				s["t"] -= dt
@@ -1164,6 +1207,7 @@ func _draw() -> void:
 	_draw_holds()
 	_draw_magnets()
 	_draw_flames()
+	_draw_trans_fx()
 	_draw_fists()
 	_draw_attack2()
 	_draw_etapa3()
@@ -1433,6 +1477,33 @@ func _draw_magnets() -> void:
 					draw_arc(c, 34.0, a0, a0 + 1.0, 6, Color(1, 0.9, 0.5, 0.9), 2.5, true)
 
 # ---------------------------------------------------------------- T01 jato da fornalha
+const FOGO_GRAD := [[0.0, Color("#fffbe0")], [0.15, Color("#ffe35a")], [0.38, Color("#ff9a1f")], [0.62, Color("#e8401a")], [0.8, Color("#6b4a44")], [1.0, Color("#8a8a90")]]
+
+static func _fogo_cor(u: float) -> Color:
+	for i in range(FOGO_GRAD.size() - 1):
+		var a: Array = FOGO_GRAD[i]
+		var b: Array = FOGO_GRAD[i + 1]
+		if u <= float(b[0]):
+			return (a[1] as Color).lerp(b[1], (u - float(a[0])) / (float(b[0]) - float(a[0])))
+	return FOGO_GRAD[-1][1]
+
+func _draw_trans_fx() -> void:
+	for tf in trans_fx:
+		var u: float = tf["t"] / 0.7
+		var c: Vector2 = tf["pos"]
+		if u < 0.35:   # clarão + raios de luz
+			var k := 1.0 - u / 0.35
+			for i in 14:
+				var ang := i * TAU / 14.0 + u * 2.0
+				draw_colored_polygon(PackedVector2Array([c, c + Vector2.from_angle(ang) * 320.0, c + Vector2.from_angle(ang + 0.16) * 320.0]), Color(1, 0.95, 0.7, 0.4 * k))
+			draw_circle(c, 60.0 + 200.0 * u, Color(1, 1, 1, 0.65 * k))
+		var g: Vector2 = tf["ground"]   # onda de choque achatada no chão
+		draw_set_transform(g, 0.0, Vector2(1.0, 0.2))
+		draw_arc(Vector2.ZERO, 40.0 + 330.0 * (1.0 - pow(1.0 - u, 3.0)), 0, TAU, 48, Color(1, 1, 1, 1.0 - u), 14.0 * (1.0 - u) + 2.0, true)
+		draw_set_transform(Vector2.ZERO)
+
+## T01 lança-chamas (A30): jato de PARTÍCULAS (branco → amarelo → laranja → vermelho → fumaça), núcleo claro, brasas
+## caindo, clarão na boca e luz no chão. As partículas vivem em fire_ps (update) e nascem em _update_flame.
 func _draw_flames() -> void:
 	for pid in flames:
 		var fl: Dictionary = flames[pid]
@@ -1440,41 +1511,37 @@ func _draw_flames() -> void:
 		var k: float = fl["k"]
 		if k <= 0.01 or not r.alive:
 			continue
-		var reach := float(sc("T01")["fogo_alcance_tiles"]) * T * k
-		var ow: Vector2 = r.position + Vector2(r.facing * 26.0, -46.0)
-		var adw := aim_dir(r)
-		draw_set_transform(ow, adw.angle(), Vector2(1.0, -1.0 if adw.x < -0.1 else 1.0))   # quadro do jato
-		var d := 1.0
-		var o := Vector2.ZERO
-		# jato reto e contido: tubo de fogo com bordas tremendo, núcleo claro, fumaça na ponta
-		var layers := [[Color(0.86, 0.3, 0.14), 24.0], [Color(1.0, 0.6, 0.2), 17.0], [Color(1.0, 0.88, 0.45), 10.0], [Color(1.0, 0.98, 0.86), 4.5]]
-		for li in layers.size():
-			var col: Color = layers[li][0]
-			var w0: float = layers[li][1]
-			var top := PackedVector2Array()
-			var bot := PackedVector2Array()
-			var n := 16
-			var len := reach * (1.0 - li * 0.08)
-			for i in n + 1:
-				var u := float(i) / n
-				var w := w0 * (0.55 + 0.45 * sin(minf(u * 1.4, 1.0) * PI * 0.5)) * (1.0 - 0.35 * pow(u, 3))
-				var fl1 := sin(u * 22.0 - t * 48.0 + li) * 3.5 * u
-				var fl2 := sin(u * 19.0 - t * 41.0 + li * 2.0) * 3.5 * u
-				top.append(o + Vector2(d * len * u, -w - fl1))
-				bot.append(o + Vector2(d * len * u, w + fl2))
-			var poly := top.duplicate()
-			poly.append(o + Vector2(d * (len + 10.0 - li * 3.0), sin(t * 30.0) * 3.0))
-			bot.reverse()
-			poly.append_array(bot)
-			draw_colored_polygon(poly, Color(col, minf(k * 1.5, 1.0)))
-		for j in 6:   # brasas
-			var u := fposmod(t * 2.2 + j * 0.17, 1.0)
-			var q := o + Vector2(d * reach * (0.3 + 0.8 * u), sin(j * 2.1 + t * 6.0) * 18.0 - 14.0 * u)
-			draw_circle(q, 2.6, Color(1, 0.85, 0.4, (1.0 - u) * k))
-		draw_circle(o + Vector2(d * (reach + 16.0), -10.0), 12.0 + 6.0 * sin(t * 9.0), Color(0.35, 0.3, 0.32, 0.3 * k))
-		# boca da fornalha brilhando
-		draw_circle(o, 9.0, Color(1.0, 0.9, 0.5, 0.9 * k))
-		draw_set_transform(Vector2.ZERO)
+		var o0 := mecha_muzzle(r)
+		var fy := _floor_below(o0.x, o0.y, 6)
+		if fy > 0.0:   # luz do fogo no chão
+			draw_set_transform(Vector2(o0.x + aim_dir(r).x * 120.0, fy), 0.0, Vector2(1.0, 0.18))
+			draw_circle(Vector2.ZERO, 150.0, Color(1.0, 0.65, 0.25, 0.22 * k))
+			draw_set_transform(Vector2.ZERO)
+	# fumaça e fogo velho primeiro, núcleo por cima
+	for pass_i in 2:
+		for fp in fire_ps:
+			var u: float = fp["t"] / fp["life"]
+			if fp["em"]:
+				if pass_i == 1:
+					draw_circle(fp["pos"], 2.6 * (1.0 - u) + 0.8, Color(1.0, 0.82, 0.35, 1.0 - u))
+				continue
+			if (pass_i == 0) != (u > 0.55):
+				continue
+			var rad: float = (6.0 + 26.0 * pow(u, 0.8)) * float(fp["s"])
+			var col := _fogo_cor(u)
+			col.a = pow(1.0 - u, 0.7) * (0.95 if u < 0.75 else 0.5)
+			draw_circle(fp["pos"], rad, col)
+			if u < 0.4:
+				draw_circle(fp["pos"], rad * 0.45, Color(1, 0.99, 0.88, 0.7 * (1.0 - u / 0.4)))
+	for pid in flames:
+		var fl2: Dictionary = flames[pid]
+		var r2 = main.robots[pid]
+		if fl2["k"] <= 0.01 or not r2.alive:
+			continue
+		var o2 := mecha_muzzle(r2)
+		var flick := 0.8 + 0.2 * sin(t * 60.0)
+		draw_circle(o2, 50.0 * flick, Color(1.0, 0.7, 0.25, 0.3 * fl2["k"]))
+		draw_circle(o2, 24.0 * flick, Color(1.0, 0.96, 0.7, 0.85 * fl2["k"]))
 
 # ---------------------------------------------------------------- E01 andaime relâmpago
 func _ease_back(u: float) -> float:
@@ -2841,8 +2908,7 @@ func _start_form(r, s: Dictionary) -> void:
 			r.spell_speed = float(c["vel_mult"])
 			r.spell_push = float(c["empurrao_mult"])
 			r.spell_hit = float(c["golpe_mult"])
-	main.float_text(r.position + Vector2(0, -150), NOMES[s["id"]] + "!", FAM_COR["transformacao"])
-	main.dust(r.position + Vector2(0, -20), 1.0)
+	main.dust(r.position + Vector2(0, -20), 1.0)   # o NOME aparece no fim da montagem (_assembled)
 	main.shake(5.0)
 	Audio.play("caixote_pancada", 0.8, 0.0)
 	for k in 8:
@@ -2999,6 +3065,8 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 	var d: Dictionary = s["data"]
 	var a_before: float = float(d.get("assemble", 0.0))
 	d["assemble"] = minf(a_before + dt / (0.55 if s["id"] == "T07" else 0.9), 1.0)   # transformação estilo Transformers (A29)
+	if a_before < 1.0 and d["assemble"] >= 1.0:
+		_assembled(r, s["id"])
 	if a_before < 1.0 and d["assemble"] >= 1.0:   # travou: clarão, faíscas, robô dá uma achatada
 		for k in 10:
 			main.spark(r.rect().get_center() + Vector2(randf_range(-26, 26), randf_range(-36, 26)), 1)
@@ -3354,6 +3422,22 @@ func _draw_ball(r, d: Dictionary, fk: float, mod: Color) -> void:
 		spin = (1.0 - u) * 6.0
 		draw_circle(c, 70.0 * (1.0 - u) + 20.0, Color(1, 0.97, 0.8, 0.5 * (1.0 - u)))
 	var sq: float = float(d.get("squash", 0.0))
+	var vx: float = r.own_vx
+	if grow >= 1.0 and absf(vx) > 220.0:   # rolando rápido (A30): rastro de bolas, arco de giro e faíscas no chão
+		var dirx := signf(vx)
+		for k in 3:
+			var gp: Vector2 = c - Vector2(dirx * (26.0 + k * 26.0), 0) - r.velocity * Vector2(0, 0.02 * k)
+			draw_circle(gp, 38.0, Color(0.75, 0.9, 1.0, 0.22 - k * 0.06))
+		draw_arc(c, 46.0, PI * 0.55 if dirx > 0 else -PI * 0.45, PI * 1.15 if dirx > 0 else PI * 0.15, 16, Color(1, 1, 1, 0.65), 6.0, true)
+		if r.is_on_floor():
+			var g: Vector2 = r.position + Vector2(-dirx * 18.0, -2.0)
+			for k in 7:
+				var u := fposmod(t * 6.0 + k * 0.14, 1.0)
+				var sp := g + Vector2(-dirx * (u * 90.0 + k * 4.0), -sin(u * PI) * (24.0 + k * 3.0))
+				draw_line(sp, sp + Vector2(-dirx * 7.0, -2.0), Color(1, 0.84, 0.4, 1.0 - u), 2.5, true)
+			for k in 4:
+				var u2 := fposmod(t * 3.0 + k * 0.25, 1.0)
+				draw_circle(g + Vector2(-dirx * (20.0 + u2 * 70.0), -6.0 - u2 * 10.0), 8.0 + u2 * 12.0, Color(0.85, 0.78, 0.66, 0.5 * (1.0 - u2)))
 	draw_set_transform(c, spin, Vector2(1.0 + 0.2 * sq, 1.0 - 0.2 * sq) * grow)
 	draw_texture_rect(tex, box, false, mod)
 	draw_set_transform(Vector2.ZERO)
