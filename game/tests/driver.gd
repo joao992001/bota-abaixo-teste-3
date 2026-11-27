@@ -2351,7 +2351,12 @@ func perfil_test() -> void:
 	main.spells_mapa = ""
 	pf.dados["ultima_config"] = {"mapa": "canteiro_obras", "vidas": 5, "spells": ["A01", "A02", "C01", "T03"], "eventos": ["G02"]}
 	main.selecao.abrir_spells()
-	check(main.selecao.n_on() == 4 and main.spells_on["T03"] and not main.events.enabled["G01"] and main.events.enabled["G02"] and main.demo.lives_setting == 5, "reabrir o mapa volta a última configuração (spells, eventos, vidas)")
+	var n_def: int = main.selecao.spells_do_mapa().filter(func(id): return String(main.selecao._sc(id)["familia"]) == "defesa").size()
+	check(main.selecao.n_on() == 4 + n_def and main.spells_on["T03"] and not main.spells_on["A03"] and not main.events.enabled["G01"] and main.events.enabled["G02"] and main.demo.lives_setting == 5, "reabrir o mapa volta a última configuração (spells, eventos, vidas); a família que não existia (Defesa, %d) entra acesa" % n_def)
+	main.spells_mapa = ""
+	pf.dados["ultima_config"] = {"mapa": "canteiro_obras", "vidas": 5, "spells": ["A01", "D02"], "eventos": ["G02"], "conhecidas": ["A01", "A02", "D01", "D02"]}
+	main.selecao.abrir_spells()
+	check(main.spells_on["D02"] and not main.spells_on["D01"] and not main.spells_on["A02"] and main.spells_on["C01"], "com a lista de conhecidas: apagada continua apagada; engenhoca nova entra acesa")
 	for id in main.events.enabled:
 		main.events.enabled[id] = true
 	main.spells_on.clear()

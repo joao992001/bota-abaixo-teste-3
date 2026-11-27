@@ -53,8 +53,15 @@ func abrir_spells() -> void:
 		main.spells_on.clear()
 		var uc: Dictionary = main.perfil.dados.get("ultima_config", {})
 		var volta: bool = String(uc.get("mapa", "")) == main.arena_choice   # perfil (D4): volta a última configuração deste mapa
+		# engenhoca que NÃO existia quando a configuração foi guardada entra acesa (a Defesa sumia: configs antigas)
+		var salvas: Array = uc.get("spells", [])
+		var conhecidas = uc.get("conhecidas", null)
+		var fams := {}
+		for id in salvas:
+			fams[String(_sc(id).get("familia", ""))] = true
 		for id in spells_do_mapa():
-			main.spells_on[id] = (id in uc.get("spells", [])) if volta else true
+			var nova: bool = (not id in conhecidas) if conhecidas is Array else not fams.has(String(_sc(id).get("familia", "")))
+			main.spells_on[id] = (id in salvas or nova) if volta else true
 		if volta:
 			for id in eventos_do_mapa():
 				main.events.enabled[id] = id in uc.get("eventos", [])

@@ -660,6 +660,7 @@ func start_match() -> void:
 	if selecao.ativo_para(arena_choice) and spells_mapa == arena_choice:   # última configuração (perfil, D4)
 		perfil.guardar_config({"mapa": arena_choice, "vidas": demo.lives_setting,
 			"spells": spells_on.keys().filter(func(id): return spells_on[id]),
+			"conhecidas": selecao.spells_do_mapa(),
 			"eventos": selecao.eventos_do_mapa().filter(func(id): return events.enabled.get(id, true)),
 			"jogadores": players.map(func(p): return {"dispositivo": String(p.get("dev", "")), "robo": int(p.get("model", 0)), "skin": String(p.get("skin", "")), "bot": bool(p.get("bot", false))})})
 	for p in players:
