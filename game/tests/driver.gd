@@ -3925,6 +3925,13 @@ func mechas_frames(dir: String) -> void:
 	main.demo.lives_setting = 9
 	main.event_level = 0
 	main.arena_choice = "canteiro_obras"
+	if OS.get_environment("MECHAS_SEGURA") != "" and OS.get_environment("MECHAS_SO") != "":   # vitrine: card na tela de engenhocas
+		main.selecao.abrir_spells()
+		await frames(10)
+		main.selecao.sel = main.selecao.spells_do_mapa().find(OS.get_environment("MECHAS_SO").split(",")[0])
+		await frames(20)
+		await grab(dir, "selecao")
+		main.state = S.JOIN
 	main.start_match()
 	await demo_round()
 	var sp = main.demo.spells
@@ -3947,6 +3954,15 @@ func mechas_frames(dir: String) -> void:
 		await frames(4)
 		sp.equip(r0, st[0])
 		await frames(2)
+		var segura := int(OS.get_environment("MECHAS_SEGURA"))   # vitrine: anda segurando o cartucho antes de usar
+		for k in segura:
+			vset("v0", "right", k < segura / 2)
+			await frames(1)
+			if k % 4 == 0:
+				await grab(dir, "segura")
+				var sp_s: Vector2 = (r0.position - main.cam_center) * main.cam_zoom + Vector2(960, 540)
+				log.append(["segura", k, int(sp_s.x), int(sp_s.y), main.cam_zoom])
+		vset("v0", "right", false)
 		await tap("v0", "item")
 		var n := 0
 		while n < 400:
