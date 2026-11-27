@@ -457,17 +457,40 @@ def canhao_molas_jogo():
 
 
 def mola(x, y, ang=0.0, compr=1.0, s=1.0):
-    """Projétil do A08: mola GROSSA de aço com tampão vermelho (frente) e faixa de perigo. compr: 1 = comprimida,
-    >1 = esticada (BOING), <1 = amassada."""
+    """Projétil do A08 (combina com a arma C · Pistão-mola): pilha de molas grossas presa entre a BASE vermelha de trás e o
+    TAMPÃO vermelho com faixa de perigo. compr: 1 = comprimida (no voo), >1 = esticada (BOING), <1 = amassada."""
     L = 22.0 * compr
-    o = R(-L / 2 - 8, -10, 8, 20, 3, STEEL_D, k=0.2)   # base de trás
-    n = 6
-    for i in range(n):   # espiras
-        xx = -L / 2 + (i + 0.5) * L / n
-        o += f'<ellipse cx="{xx:.1f}" cy="0" rx="{max(1.2, L / n * 0.55):.1f}" ry="9" fill="none" stroke="#3f4654" stroke-width="5"/>'
-        o += f'<ellipse cx="{xx:.1f}" cy="0" rx="{max(1.2, L / n * 0.55):.1f}" ry="9" fill="none" stroke="{STEEL_L}" stroke-width="2.2"/>'
-    o += R(L / 2, -12, 10, 24, 4, "#e54b3c", k=0.3) + ab.cb.faixa(L / 2 + 2, -4, 6, 8, n=2)   # tampão com faixa
+    o = R(-L / 2 - 9, -11, 9, 22, 3, "#c0392b", k=0.3) + R(-L / 2 - 9, -11, 9, 5, 2, "#e0574a", k=0.1)   # base
+    o += _espiras(-L / 2, L / 2, 0, 9, max(4, int(5 * min(compr, 1.6))))
+    o += R(L / 2, -13, 11, 26, 4, "#e54b3c", k=0.3) + ab.cb.faixa(L / 2 + 2, -6, 7, 12, n=2)               # tampão
     return f'<g transform="translate({x},{y}) rotate({ang}) scale({s})">{o}</g>'
+
+
+def projetil_a08():
+    W, H = 1920, 420
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "A08 · arma C (Pistão-mola) + PROJÉTIL", 32)]
+    b.append(f'<rect x="30" y="80" width="560" height="310" rx="22" fill="#ffffff" opacity="0.5"/>' + label(310, 116, "arma C", 22, INK))
+    b.append(f'<g transform="translate(60,150) scale(3.8)">{molas_c()}</g>')
+    estados = [("na boca (pronto)", 1.0, 0, ""), ("voando: gira comprimida", 1.0, -35, "rastro"), ("bate no chão: AMASSA", 0.4, -90, "poeira"),
+               ("BOING: estica e quica", 2.0, -70, "boing"), ("acerta: estica TODA", 2.8, 0, "estrela")]
+    for i, (txt, cp, ang, fx) in enumerate(estados):
+        x = 640 + i * 254
+        b.append(f'<rect x="{x}" y="80" width="240" height="310" rx="22" fill="#ffffff" opacity="0.5"/>' + label(x + 120, 116, txt, 15, INK, "middle", 700))
+        g = f'<g transform="translate({x + 120},270) scale({2.6 if cp < 1.5 else 1.9})">'
+        if fx == "rastro":
+            g += linhas_vel(-14, 0, 3, 26, 1)
+        if fx == "poeira":
+            g += poeira(0, 22, 6, 5, 20)
+        g += mola(0, 0, ang, cp)
+        if fx == "boing":
+            g += boing(0, -36, 13)
+        if fx == "estrela":
+            g += estrela(40, 0, 12) + boing(0, -34, 13)
+        b.append(g + "</g>")
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/a08_projetil.png")
+    queue(svg, os.path.join(HERE, "svg/a08_projetil.svg"), out, W, H, 1)
+    print(render_all(), out)
 
 
 def dinamite(s=1.0, luz=1.0, num=""):
@@ -672,5 +695,7 @@ if __name__ == "__main__":
         prancha3()
     elif "--a08" in sys.argv:
         opcoes_mola()
+    elif "--a08p" in sys.argv:
+        projetil_a08()
     else:
         prancha()
