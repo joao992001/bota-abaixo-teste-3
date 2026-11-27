@@ -1,0 +1,27 @@
+# Auditoria das engenhocas (2026-11-27) — decisões do usuário, NÃO EXECUTAR sem prancha aprovada
+
+Folha com capturas reais: `out/videos/auditoria_engenhocas.png` (gerada de `--spells=DIR --so-spells=...`).
+Classes hoje (A31): **Ataque, Controle, Mechas**. A **Defesa** entra como 4ª classe NOVA (ainda não existe).
+
+## Critérios do usuário
+- **Melhoria de UTILIZAÇÃO** = efeito que muda a partida: tira o rival do lugar, joga longe, destrói cenário — não só dano.
+- **Melhoria de ANIMAÇÃO** = subir ao padrão das animações recentes (mechas articulados, golpes em 4 tempos);
+  as engenhocas foram as primeiras grandes animações do jogo.
+
+## Ataque
+| Id | Engenhoca | Utilização | Animação | Nota do usuário |
+|---|---|---|---|---|
+| A01 | Punho Pneumático | MELHORAR | MELHORAR | efeitos mais impactantes |
+| A02 | Laser de Corte | MELHORAR | MELHORAR | visual não está legal |
+| A03 | Canhão Criogênico | manter | manter | "já está bacana" — não mexer |
+| A04 | Marreta Sísmica | MELHORAR | MELHORAR | deveria ser a de MAIOR poder destrutivo de cenário e hoje não causa impacto nenhum no cenário; animação "terrível" |
+| A05 | Rebiteira Ricochete | MELHORAR | MELHORAR | "impacto zero no jogo"; animação muito simples |
+| A06 | Bate-Estaca | REPENSAR | — | é a que menos se conecta com as outras: manter só se mudar completamente a utilização (ou sai) |
+| A07 | Marreta-Bumerangue | manter | AJUSTAR por robô | gosta muito. A ideia é AUMENTAR O ALCANCE DA ARMA DO PRÓPRIO ROBÔ: quem tem marreta arremessa a marreta; o Guindaste lança a corrente/gancho, que vai e volta; cada robô com a sua arma |
+| A08 | Canhão de Molas | manter | MELHORAR | já é muito impactante; o PROJÉTIL deixa a desejar |
+| E02 | Carga Remota | ? | ? | (sem decisão ainda) |
+
+## Controle — pendente (C01–C05)
+## Defesa (nova) — pendente
+Ideias levadas ao usuário: Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola (revide), Remendo Rápido, Botas
+Magnéticas, Teleporte (sairia do Controle). Proibido: escudo segurado na mão (S28 Escudo de Solda reprovado).
