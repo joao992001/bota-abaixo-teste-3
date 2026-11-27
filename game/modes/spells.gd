@@ -1833,6 +1833,16 @@ func _floor_below(x: float, y: float, n := 8) -> float:
 			return (cy + k) * T
 	return -1.0
 
+## A06 (sessão 6): altura da coluna (0..1) em função de u = tempo/sobe_s: acelera saindo do buraco, passa ~7% do
+## ponto em 75% do tempo e assenta (tranco)
+func pile_rise(u: float) -> float:
+	if u <= 0.0:
+		return 0.0
+	if u < 0.75:
+		var v := u / 0.75
+		return 1.07 * (1.0 - pow(1.0 - v, 2.2))
+	return lerpf(1.07, 1.0, ease(clampf((u - 0.75) / 0.25, 0.0, 1.0), 0.5))
+
 ## A02 (auditoria 2026-11-27): feixe contínuo. Segura = continua (feixe_min_s..feixe_max_s); ▲▼ varre a mira; quem
 ## toca leva 1 acerto e é ARRASTADO na direção do feixe; andaime/viga/plataforma/tábua/grelha atravessados por
 ## corte_s são CORTADOS (despencam na hora) e ficam com a marca em brasa.
@@ -2204,31 +2214,65 @@ func _update_attack2(dt: float) -> void:
 			p["done"] = true
 			var fy: float = p["floor_y"]
 			var zona := Rect2(p["x"] - hw17, fy - colH - T, hw17 * 2.0, colH + T)
+			p["sobre"] = []   # quem está em cima vai SUBINDO com a coluna e é lançado no fim da subida
 			for o in main.robots:
 				if o.alive and zona.intersects(o.rect()):
-					o.position.y = minf(o.position.y, fy - colH - 1.0)
+					p["sobre"].append(o.pid)
 					if o.pid != p["owner"]:
 						_hit(o, p["owner"], 1 if o.position.x >= p["x"] else -1, "spell_estaca")
-					o.velocity.y = minf(o.velocity.y, -float(c17["lanca_vel"]) * (1.0 if o.pid != p["owner"] else 0.8))
+						o.own_vx *= 0.25   # o golpe não tira de cima: a coluna é que lança
 			var body := StaticBody2D.new()
 			body.collision_layer = 1
 			body.collision_mask = 0
 			var cs := CollisionShape2D.new()
 			var shp := RectangleShape2D.new()
-			shp.size = Vector2(hw17 * 2.0, colH)
+			shp.size = Vector2(hw17 * 2.0, 8.0)
 			cs.shape = shp
-			cs.position = Vector2(p["x"], fy - colH / 2.0)
+			cs.position = Vector2(p["x"], fy - 4.0)
 			body.add_child(cs)
 			add_child(body)
 			p["body"] = body
-			main.shake(12.0)
+			p["shp"] = shp
+			p["cs"] = cs
+			main.shake(7.0)
 			Audio.play("pistao", 0.7, 2.0)
-			Audio.play("caixote_pancada", 0.6, 0.0)
-			main.dust(Vector2(p["x"], fy), 1.8)
-			for k in 12:
-				rocks.append({"pos": Vector2(p["x"] + randf_range(-hw17, hw17), fy - randf_range(0, colH)), "vel": Vector2(randf_range(-260, 260), randf_range(-700, -250)),
-					"t": 0.0, "rot": randf() * TAU, "size": randf_range(4, 9)})
-		if tt > mark + 0.15 + stay17 and not p.get("gone", false):   # desaba
+			Audio.play("terremoto", 1.6, -6.0)
+			for k in 6:   # o chão estoura na boca do buraco
+				rocks.append({"pos": Vector2(p["x"] + randf_range(-hw17, hw17), fy - 4.0), "vel": Vector2(randf_range(-240, 240), randf_range(-520, -200)),
+					"t": 0.0, "rot": randf() * TAU, "size": randf_range(4, 8)})
+		# sessão 6: a coluna SOBE em sobe_s (sai do buraco, passa um pouco do ponto e assenta com tranco)
+		var sobe: float = float(c17["sobe_s"])
+		var hgt17: float = colH * pile_rise((tt - mark) / sobe)
+		var shp17 = p.get("shp")
+		if shp17 != null and not p.get("gone", false) and tt - mark <= sobe + 0.1:
+			shp17.size = Vector2(hw17 * 2.0, maxf(hgt17, 8.0))
+			p["cs"].position = Vector2(p["x"], p["floor_y"] - maxf(hgt17, 8.0) / 2.0)
+		if p.has("sobre") and not p.get("lancou", false) and not p.get("gone", false):
+			var u17: float = (tt - mark) / sobe
+			for pid in p["sobre"]:
+				var o = main.robots[pid]
+				if not o.alive:
+					continue
+				o.position.y = p["floor_y"] - hgt17 - 1.0   # colado no topo enquanto sobe
+				o.position.x = clampf(o.position.x, p["x"] - hw17 - 10.0, p["x"] + hw17 + 10.0)
+				o.velocity.y = -colH / sobe
+				if u17 >= 0.6:
+					o.velocity.y = -float(c17["lanca_vel"]) * (1.0 if pid != p["owner"] else 0.8)
+			if u17 >= 0.6:
+				p["lancou"] = true
+		if tt - mark < sobe and fmod(tt, 0.03) < dt:   # poeira subindo junto, dos dois lados
+			for sd in [-1.0, 1.0]:
+				puffs.append({"pos": Vector2(p["x"] + sd * (hw17 + randf_range(0, 10)), p["floor_y"] - randf_range(0, hgt17 * 0.6)), "vel": Vector2(sd * randf_range(30, 110), randf_range(-160, -40)),
+					"r": randf_range(9, 16), "t": 0.0, "life": randf_range(0.5, 0.8)})
+		if tt - mark >= sobe * 0.82 and not p.get("assentou", false):   # tranco ao assentar
+			p["assentou"] = true
+			main.shake(10.0)
+			Audio.play("caixote_pancada", 0.55, 0.0)
+			for sd in [-1.0, 1.0]:
+				for k in 4:
+					puffs.append({"pos": Vector2(p["x"] + sd * (hw17 + 6.0), p["floor_y"] - 6.0), "vel": Vector2(sd * randf_range(80, 220), randf_range(-60, -10)),
+						"r": randf_range(10, 18), "t": 0.0, "life": randf_range(0.5, 0.9)})
+		if tt > mark + float(c17["sobe_s"]) + stay17 and not p.get("gone", false):   # desaba
 			p["gone"] = true
 			var b17 = p.get("body")
 			if b17 != null and is_instance_valid(b17):
@@ -2241,7 +2285,7 @@ func _update_attack2(dt: float) -> void:
 			main.dust(Vector2(p["x"], fy2), 1.6)
 			main.shake(6.0)
 			Audio.play("caixote_quebra", 0.8, 0.0)
-	piles = piles.filter(func(p): return p["t"] < mark + 0.15 + stay17 + 0.6)
+	piles = piles.filter(func(p): return p["t"] < mark + float(c17["sobe_s"]) + stay17 + 0.6)
 	# A07 (A41): arremesso da arma de cada robô; todos VOLTAM para a mão no fim (fase "volta", atravessa tudo)
 	var c19: Dictionary = sc("A07")
 	for h in hammers:
@@ -2663,20 +2707,36 @@ func _draw_attack2() -> void:
 			continue
 		if p.get("gone", false):
 			continue
-		var rise := clampf((tt - mark) / 0.15, 0.0, 1.0)
-		var hgt := colH * (1.0 - pow(1.0 - rise, 3.0))
-		var crack := clampf((tt - (mark + 0.15 + stay - 1.0)) / 1.0, 0.0, 1.0)
+		var sobe := float(c17["sobe_s"])
+		var rise := clampf((tt - mark) / sobe, 0.0, 1.0)
+		var hgt := colH * pile_rise((tt - mark) / sobe)
+		var crack := clampf((tt - (mark + sobe + stay - 1.0)) / 1.0, 0.0, 1.0)
+		# boca do buraco no chão + rachaduras escuras abrindo a partir da estaca (cor do concreto, não amarelo)
+		var ab := clampf((tt - mark) / (sobe * 0.6), 0.0, 1.0)
+		var fade := clampf(1.0 - (tt - mark - sobe - 1.5) / 1.0, 0.25, 1.0)
+		for sd in [-1.0, 1.0]:
+			var pts := PackedVector2Array([Vector2(x + sd * hw, fy)])
+			var xx2: float = x + sd * hw
+			for i in 4:
+				xx2 += sd * (10.0 + 6.0 * i) * ab
+				pts.append(Vector2(xx2, fy + (3.0 if i % 2 == 0 else -1.0) * ab))
+			draw_polyline(pts, Color(0.32, 0.26, 0.22, 0.85 * fade), 3.0, true)
+			draw_line(Vector2(x + sd * (hw + 14.0 * ab), fy + 1), Vector2(x + sd * (hw + 22.0 * ab), fy + 10.0 * ab), Color(0.32, 0.26, 0.22, 0.7 * fade), 2.0, true)
+		draw_rect(Rect2(x - hw - 6.0 * ab, fy - 2, hw * 2.0 + 12.0 * ab, 6), Color(0.22, 0.18, 0.16, 0.8 * fade))
 		var jx := sin(t * 70.0) * 2.5 * crack
 		var top := fy - hgt
 		var rr := Rect2(x - hw + jx, top, hw * 2.0, hgt)
 		draw_rect(rr.grow(2.0), Color("#8a7a5e"))
 		draw_rect(rr, Color("#cdbfa3"))
 		draw_rect(Rect2(rr.position, Vector2(rr.size.x, minf(8.0, hgt))), Color("#e3d7bf"))
-		if hgt > 16.0:   # faixa zebrada no alto
-			for i in 5:
-				var xx := rr.position.x + i * rr.size.x / 5.0
-				draw_colored_polygon(PackedVector2Array([Vector2(xx, top + 8), Vector2(xx + rr.size.x / 10.0, top + 8), Vector2(xx + rr.size.x / 5.0, top + 15), Vector2(xx + rr.size.x / 10.0, top + 15)]), INK)
-			draw_rect(Rect2(rr.position.x, top + 8, rr.size.x, 7), Color(0.95, 0.78, 0.29, 0.6))
+		if hgt > 24.0:   # faixa zebrada no alto (mais grossa, contornada)
+			draw_rect(Rect2(rr.position.x, top + 8, rr.size.x, 14), INK)
+			draw_rect(Rect2(rr.position.x + 1, top + 9.5, rr.size.x - 2, 11), Color("#f2c84b"))
+			var nz := 5
+			for i in nz:
+				var xx := rr.position.x + 1 + i * (rr.size.x - 2) / nz
+				var wz := (rr.size.x - 2) / nz
+				draw_colored_polygon(PackedVector2Array([Vector2(xx, top + 9.5), Vector2(xx + wz * 0.5, top + 9.5), Vector2(xx + wz, top + 20.5), Vector2(xx + wz * 0.5, top + 20.5)]), Color("#2b2233"))
 		var yy := top + 34.0
 		while yy < fy - 6.0:   # juntas da forma
 			draw_line(Vector2(rr.position.x + 5, yy), Vector2(rr.end.x - 5, yy), Color("#a8987a"), 2.0)
@@ -2685,10 +2745,9 @@ func _draw_attack2() -> void:
 		draw_line(Vector2(x + 8 + jx, top), Vector2(x + 8 + jx, top - 10), Color("#8a5a3a"), 2.4)
 		if crack > 0.0:
 			draw_polyline(PackedVector2Array([Vector2(x - 6 + jx, top + 18), Vector2(x + 4 + jx, top + 40), Vector2(x - 4 + jx, top + 66), Vector2(x + 8 + jx, top + 100), Vector2(x + jx, fy - 10)]), Color(0.3, 0.24, 0.2, crack), 3.0, true)
-		if rise < 1.0:   # anel de poeira na base enquanto sobe
-			draw_set_transform(Vector2(x, fy), 0.0, Vector2(1.0, 0.25))
-			draw_arc(Vector2.ZERO, hw + 60.0 * rise, 0, TAU, 32, Color(1, 1, 1, 1.0 - rise), 10.0, true)
-			draw_set_transform(Vector2.ZERO)
+		if rise < 1.0:   # bordas do buraco por cima da base da coluna (ela SAI de dentro do chão)
+			draw_rect(Rect2(x - hw - 4, fy - 3, 8, 7), Color("#a8987a"))
+			draw_rect(Rect2(x + hw - 4, fy - 3, 8, 7), Color("#a8987a"))
 	# A07: voa a FERRAMENTA DO PRÓPRIO ROBÔ (com a skin), girando, com rastro de cópias, arco de energia e faíscas
 	for h in hammers:
 		var ow = main.robots[h["owner"]]

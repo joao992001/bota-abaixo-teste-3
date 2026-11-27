@@ -8,14 +8,11 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
-**▶ PRÓXIMO PASSO (sessão 5 terminou aqui):** Auditoria das engenhocas — ATAQUE CONCLUÍDO (lotes 1–4, A38–A41; vídeos
-`out/videos/ataques_lote3.mp4`, `ataques_lote4.mp4`; bateria completa 0 falhas). **1º: refazer a ANIMAÇÃO DE SUBIDA da
-coluna do A06** (o usuário achou "estranha", parece uma pedra caindo: sobe em 0,15 s e aparece inteira). Proposta já
-mostrada (opção A): subir em ~0,35 s saindo de um BURACO no chão, rachaduras abrindo a partir da estaca, poeira subindo
-junto, coluna com mais "peso" (desacelera e assenta com tranco). Código: `game/modes/spells.gd` (update "A06 (A41)" e
-desenho "A06 (A41): aviso zebrado"), vitrine `--spells=DIR --so-spells=A06col`. Também pendente no A06: ícone da seleção
-ainda é o antigo (`s17_estaca` → fazer da cravadeira) e faixa zebrada fina no topo. **2º:** pedir ao usuário as notas do
-CONTROLE (C01–C05; proposta C04 Teleporte → Defesa) e depois a classe nova DEFESA.
+**▶ PRÓXIMO PASSO:** Auditoria das engenhocas — ATAQUE CONCLUÍDO (lotes 1–4, A38–A41) e a subida da coluna do A06 REFEITA
+(sessão 6, A42: sai de um buraco em 0,35 s, passa do ponto e assenta com tranco, rachaduras escuras, poeira dos dois lados,
+o rival sobe COLADO no topo e é lançado aos 60% da subida; colisão cresce junto; faixa zebrada grossa; ícone = cravadeira;
+vídeos `out/videos/a06_coluna*.mp4`). **Agora:** pedir ao usuário as notas do CONTROLE (C01–C05; proposta C04 Teleporte →
+Defesa) e depois criar a classe nova DEFESA (mesmo fluxo: proposta → prancha 4 tempos → aprovação → código → vídeo).
 **Lição da sessão 5:** arte copiada para `game/assets` só aparece depois de `godot --headless --path game --import`; conferir
 SEMPRE de perto (recorte) antes de entregar — o usuário reprovou o lote 3 na 1ª entrega por isso.
 APROVADAS em `docs/revisoes/auditoria_engenhocas.md`, seção "Propostas APROVADAS"). Depois lote 4 = A06 Bate-Estaca (vira
