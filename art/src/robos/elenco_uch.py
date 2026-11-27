@@ -221,12 +221,15 @@ def chave(g, ang, pose):
     body = R(-14, -3.5, 46, 7, 3, STEEL, k=0.5, dark=STEEL_D, light=STEEL_L)
     body += S("M30,-12 L44,-12 L46,-4 L38,-4 L38,4 L46,4 L44,12 L30,12 Z", STEEL, (29, -13, 47, 13), k=0.5, dark=STEEL_D, light=STEEL_L)
     body += E(32, 0, 2.5, 2.5, STEEL_D, k=0.2) + R(-14, -4, 12, 8, 3, "#c0392b", k=0.3)
+    q = pose.get("quente", 0.0)
+    if q > 0.01:   # chave aquecida no maçarico: brilha laranja/vermelho na cabeça
+        body += f'<path d="M12,-3.5 L46,-12 L46,12 L12,3.5 Z" fill="#ff5a1f" opacity="{0.55 * q:.2f}"/><circle cx="38" cy="0" r="{12 + 8 * q:.1f}" fill="#ffb347" opacity="{0.3 * q:.2f}"/>'
     g2 = (g[0] - math.cos(math.radians(ang)) * 10, g[1] - math.sin(math.radians(ang)) * 10)
     return f'<g transform="translate({g[0]:.1f},{g[1]:.1f}) rotate({ang:.1f})">{body}</g>', g, g2
 
 
 def solda_fx(pose):
-    if pose.get("face") == "raiva":
+    if pose.get("face") == "raiva" and pose.get("fx_fixo", True):
         return "".join(f'<path d="M58,-30 l{math.cos(a) * 12:.1f},{math.sin(a) * 12:.1f}" stroke="#ffd36b" stroke-width="2" stroke-linecap="round"/>' for a in (-2.6, -2.0, -1.4, -0.8, -0.2))
     return ""
 
