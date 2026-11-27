@@ -592,6 +592,77 @@ def prancha3():
     print(render_all(), out)
 
 
+# ---- A08: 3 opções de arma (o usuário não gostou do canhão amarelo da prancha do lote 3)
+def _espiras(x0, x1, cy, ry, n, w=4.2):
+    o = ""
+    for i in range(n):
+        xx = x0 + (i + 0.5) * (x1 - x0) / n
+        rx = max(1.4, (x1 - x0) / n * 0.55)
+        o += f'<ellipse cx="{xx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{ry}" fill="none" stroke="#3f4654" stroke-width="{w + 2}"/>'
+        o += f'<ellipse cx="{xx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{ry}" fill="none" stroke="{STEEL_L}" stroke-width="{w * 0.5}"/>'
+    return o
+
+
+def molas_a():
+    """A · LANÇA-MOLA ABERTO: a mola fica À MOSTRA num trilho (tipo besta), puxada por uma catraca; tampão na frente."""
+    o = f'<path d="M18,52 C6,60 2,48 8,42" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(18, 38, 14, 22, 4, "#2b2b33", k=0.3)
+    o += R(10, 34, 112, 8, 3, "#3f4654", k=0.4) + R(10, 34, 112, 3, 2, "#5a6372", k=0.1)        # trilho
+    o += R(8, 18, 16, 22, 4, "#e0702a", k=0.4) + E(16, 29, 5, 5, STEEL_D, k=0.1)                 # catraca
+    o += "".join(f'<path d="M{9 + i * 4},18 l2,-4 l2,4" stroke="{STEEL_D}" stroke-width="1.4" fill="none"/>' for i in range(4))
+    o += _espiras(26, 88, 26, 10, 7)                                                           # mola exposta
+    o += R(88, 12, 18, 28, 5, "#e54b3c", k=0.4) + ab.cb.faixa(92, 20, 10, 12, n=3)              # tampão pronto
+    o += R(108, 22, 16, 12, 3, STEEL, k=0.3) + R(118, 14, 6, 28, 2, STEEL_D, k=0.2)            # boca-guia
+    return o
+
+
+def molas_b():
+    """B · BACAMARTE DE OBRA: boca de trombeta feita de cone de trânsito; a mola gigante sai pelas COSTAS (vê-se comprimir)."""
+    o = f'<path d="M30,52 C18,60 14,48 20,42" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(30, 38, 14, 22, 4, "#2b2b33", k=0.3)
+    o += _espiras(2, 34, 30, 13, 5, 5.0) + R(0, 18, 6, 24, 2, STEEL_D, k=0.2)                   # mola atrás
+    o += R(30, 20, 46, 22, 7, "#5a6372", k=0.5) + R(30, 20, 46, 6, 4, "#7a828f", k=0.1)
+    o += R(40, 14, 8, 8, 2, "#e0702a", k=0.2)
+    o += P_([(74, 22), (124, 4), (124, 58), (74, 40)], "#f07a2a", k=0.5)                        # cone de trânsito
+    o += P_([(88, 17), (100, 13), (100, 49), (88, 45)], "#ffffff", k=0.1) + P_([(108, 10), (116, 7), (116, 55), (108, 52)], "#ffffff", k=0.1)
+    o += R(120, 2, 6, 60, 2, "#c25a1a", k=0.2)
+    return o
+
+
+def molas_c():
+    """C · PISTÃO-MOLA COMPACTO: caixa industrial vermelha e preta; a mola é um cilindro de molas EMPILHADAS na frente,
+    com o tampão já encaixado na boca e manômetro de pressão."""
+    o = f'<path d="M18,52 C6,60 2,48 8,42" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(18, 38, 14, 22, 4, "#2b2b33", k=0.3)
+    o += R(10, 14, 54, 34, 8, "#c0392b", k=0.5) + R(10, 14, 54, 9, 6, "#e0574a", k=0.2) + ab.cb.faixa(14, 38, 46, 6, n=6)
+    o += E(30, 26, 8, 8, "#f3ead8", k=0.1) + f'<circle cx="30" cy="26" r="8" fill="none" stroke="{DARK}" stroke-width="2.2"/><path d="M30,26 l5,-4" stroke="{EYE}" stroke-width="2" stroke-linecap="round"/>'
+    o += R(62, 18, 46, 26, 4, "#2b2b33", k=0.4)
+    o += _espiras(64, 106, 31, 10, 5)
+    o += R(106, 14, 18, 34, 5, "#e54b3c", k=0.4) + ab.cb.faixa(110, 24, 10, 14, n=3)
+    return o
+
+
+def opcoes_mola():
+    W, H = 1920, 820
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "A08 CANHÃO DE MOLAS — 3 opções de arma (o efeito aprovado não muda)", 32)]
+    tiro = dict(hip=(0, -22), lean=-8, head=4, feet=[(-14, 0), (12, 0)], tool=(9, -34, -150), bk=(8, -30), fr=(14, -36), face="foco")
+    for i, (nome, txt, fn) in enumerate([("A · LANÇA-MOLA ABERTO", "mola à mostra num trilho, catraca puxa; tampão na frente", molas_a),
+                                          ("B · BACAMARTE DE OBRA", "boca de cone de trânsito; molona sai pelas costas", molas_b),
+                                          ("C · PISTÃO-MOLA COMPACTO", "caixa vermelha industrial; molas empilhadas na boca", molas_c)]):
+        x = 30 + i * 630
+        b.append(f'<rect x="{x}" y="90" width="610" height="700" rx="22" fill="#ffffff" opacity="0.5"/>')
+        b.append(label(x + 305, 132, nome, 26, INK) + label(x + 305, 162, txt, 16, "#2a4a58", "middle", 600))
+        b.append(f'<g transform="translate({x + 50},200) scale(4)">{fn()}</g>')
+        chao = f'<rect x="{x + 40}" y="740" width="530" height="8" rx="3" fill="#c9b99a"/>'
+        robo = marretao(tiro, sem_ferramenta=True) + f'<g transform="translate(14,-36) rotate(-14) scale(0.42) translate(-24,-54)">{fn()}</g>'
+        b.append(chao + f'<g transform="translate({x + 200},740) scale(2.6)">{robo}</g>')
+        b.append(label(x + 470, 600, "na mão", 15, "#2a4a58", "middle", 600))
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/a08_opcoes.png")
+    queue(svg, os.path.join(HERE, "svg/a08_opcoes.svg"), out, W, H, 1)
+    print(render_all(), out)
+
+
 if __name__ == "__main__":
     if "--jogo" in sys.argv:
         exportar_jogo()
@@ -599,5 +670,7 @@ if __name__ == "__main__":
         prancha2()
     elif "--l3" in sys.argv:
         prancha3()
+    elif "--a08" in sys.argv:
+        opcoes_mola()
     else:
         prancha()
