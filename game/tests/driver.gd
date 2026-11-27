@@ -3890,7 +3890,7 @@ func mechas_frames(dir: String) -> void:
 			sp.clear(r)
 			r.dmg = 0.0
 			main.demo.lives[i] = 9
-			put(r, Vector2(520.0 + (0.0 if i == 0 else 260.0 + i * 170.0), 832.0))
+			put(r, Vector2(620.0 + (0.0 if i == 0 else 60.0 + i * 170.0), 832.0))
 			r.facing = 1 if i == 0 else -1
 		await frames(4)
 		sp.equip(r0, st[0])
@@ -3919,6 +3919,7 @@ func mechas_frames(dir: String) -> void:
 				await tap("v0", "item")
 			for i in range(1, 4):
 				main.demo.lives[i] = 9
+			main.cam_lock = [1.6, Vector2(clampf(main.robots[0].position.x + 220.0, 700.0, 1300.0), 700.0)]
 			await frames(1)
 			if n % 2 == 0:
 				await grab(dir, "mecha")
