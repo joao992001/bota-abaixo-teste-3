@@ -2019,29 +2019,33 @@ func selecao_test() -> void:
 	main.demo.spells = null   # como no jogo de verdade vindo do menu: ainda não existe partida (derrubava o .exe)
 	await tap("v0", "jump")
 	var sl = main.selecao
+	var n_sp: int = sl.spells_do_mapa().size()   # A31: 3 famílias, engenhocas sem E01/E03 (números lidos dos dados)
+	var fams := {}
+	for id in sl.spells_do_mapa():
+		fams[String(sl._sc(id)["familia"])] = true
 	sl.aleatorio_spells()
-	check(sl.n_on() == 8, "a tela de spells funciona sem partida criada (veio direto do menu)")
+	check(sl.n_on() == 2 * fams.size(), "a tela de spells funciona sem partida criada (veio direto do menu)")
 	main.demo.spells = spells_partida
 	main.spells_mapa = ""
 	sl.abrir_spells()
 	check(main.state == S.SELSPELLS and main.arena_choice == "canteiro_obras", "mapa escolhido → tela de SPELLS")
-	check(sl.n_on() == 23, "mapa novo: as 23 spells começam acesas (tudo liberado)")
+	check(sl.n_on() == n_sp, "mapa novo: as %d spells começam acesas (tudo liberado)" % n_sp)
 	await tap("v0", "jump")
-	check(sl.n_on() == 22 and not main.spells_on["A01"], "PULAR apaga a spell do cursor (A01)")
+	check(sl.n_on() == n_sp - 1 and not main.spells_on["A01"], "PULAR apaga a spell do cursor (A01)")
 	await tap("v0", "hammer")
-	check(sl.n_on() == 23, "ATACAR acende todas")
+	check(sl.n_on() == n_sp, "ATACAR acende todas")
 	await tap("v0", "hammer")
 	check(sl.n_on() == 0, "ATACAR de novo apaga todas")
 	await tap("v0", "start")
 	check(main.state == S.SELSPELLS and sl.aviso_t > 0.0, "com menos de 4 não segue (aviso)")
-	sl.sel = 23
+	sl.sel = n_sp
 	await tap("v0", "jump")
 	var por := {}
 	for id in main.spells_on:
 		if main.spells_on[id]:
 			var f: String = main.demo.spells.sc(id)["familia"]
 			por[f] = por.get(f, 0) + 1
-	check(sl.n_on() == 8 and por.values().all(func(v): return v == 2) and por.size() == 4, "ALEATÓRIO acende 8, 2 de cada família (%s)" % str(por))
+	check(sl.n_on() == 2 * fams.size() and por.values().all(func(v): return v == 2) and por.size() == fams.size(), "ALEATÓRIO acende 2 de cada família (%s)" % str(por))
 	var acesas: Array = main.spells_on.keys().filter(func(id): return main.spells_on[id])
 	await tap("v0", "start")
 	check(main.state == S.SELEVENTOS, "START → tela de EVENTOS")
@@ -2086,7 +2090,7 @@ func selecao_test() -> void:
 	check(not ev.eligible(ev.ev(evs[1])), "evento apagado não acontece (%s)" % evs[1])
 	ev.enabled["V1"] = true
 	main.resultado_escolhe(1)
-	check(main.state == S.SELSPELLS and sl.n_on() == 8, "Configurar mapa (resultados) → SPELLS, guardando a seleção")
+	check(main.state == S.SELSPELLS and sl.n_on() == acesas.size(), "Configurar mapa (resultados) → SPELLS, guardando a seleção")
 	for id in ev.enabled:
 		ev.enabled[id] = true
 	main.spells_on.clear()
@@ -3181,15 +3185,28 @@ func spells_test() -> void:
 		vset("v0", "item", false)
 		check(int(lp["hp"]) == int(lp["max"]), "T06: parado com ▼ conserta o trecho rachado")
 	sp.clear(r0)
-	# T07 minirrobô: encolhe (hitbox junto), corre mais, empurra menos; volta ao tamanho
+	# T07 MECHA CORREDOR (A36): não encolhe; monta o mecha, corre/pula mais, ARRANCADA (segurar) atropela; acaba no tempo
 	place.call(5.0)
 	sp.equip(r0, "T07")
 	await frames(2)
 	await tap("v0", "item")
+	await frames(70)
+	var cfg_t07: Dictionary = sp.sc("T07")
+	check(r0.size_k == 1.0 and sp.mecha_of(r0) == "T07" and is_equal_approx(r0.spell_speed, float(cfg_t07["vel_mult"])) and is_equal_approx(r0.spell_jump, float(cfg_t07["pulo_mult"])),
+		"T07: vira o mecha Corredor (sem encolher), corre ×%.1f e pula ×%.2f" % [r0.spell_speed, r0.spell_jump])
+	check(sp.flags(r0).get("mecha", "") == "T07" and sp.flags(r0).get("armor", false), "T07: desenhado como mecha (flags)")
+	var dano_t07: float = r1.dmg
+	put(r0, Vector2(x0, floor_y))
+	put(r1, Vector2(x0 + 260.0, floor_y))
+	r0.facing = 1
+	await frames(2)
+	var x_t07: float = r0.position.x
+	vset("v0", "item", true)
 	await frames(30)
-	check(r0.size_k < 0.7 and r0.rect().size.y < 50.0 and r0.spell_hit < 1.0, "T07: encolhe (hitbox %s)" % str(r0.rect().size))
-	await frames(int(float(sp.sc("T07")["duracao_s"]) * 60.0))
-	check(r0.size_k == 1.0 and r0.spell_hit == 1.0, "T07: volta ao tamanho no fim")
+	vset("v0", "item", false)
+	check(r0.position.x - x_t07 > 250.0 and r1.dmg > dano_t07, "T07: ARRANCADA dispara para a frente (%.0f px) e atropela o rival (%.0f%%)" % [r0.position.x - x_t07, r1.dmg])
+	await frames(int(float(cfg_t07["duracao_s"]) * 60.0))
+	check(r0.spell_speed == 1.0 and r0.spell_jump == 1.0 and sp.mecha_of(r0) == "", "T07: o mecha acaba no tempo e o robô volta ao normal")
 	# G10 carga especial: holofotes em 2 pontos e duas cápsulas descem
 	main.event_level = 2
 	main.events.manual = true
@@ -3915,7 +3932,9 @@ func mechas_frames(dir: String) -> void:
 	_frame_no = 0
 	var log := []
 	# cada mecha recém-montado: anda → leve → pesado → pulo → pulo duplo → dash → habilidade (A34)
-	var seq := [["T01", "fogo"], ["T05", "dash"], ["T03", "rola"], ["T02", "garfo"], ["T06", "raio"], ["T04", "voa"]]
+	var seq := [["T01", "fogo"], ["T05", "dash"], ["T03", "rola"], ["T02", "garfo"], ["T06", "raio"], ["T04", "voa"], ["T07", "arrancada"]]
+	if OS.get_environment("MECHAS_SO") != "":   # ex.: MECHAS_SO=T07 → só esse mecha
+		seq = seq.filter(func(x): return x[0] in OS.get_environment("MECHAS_SO").split(","))
 	for st in seq:
 		var r0 = main.robots[0]
 		for i in 4:
@@ -3958,7 +3977,7 @@ func mechas_frames(dir: String) -> void:
 					for i in range(1, 4):
 						put(main.robots[i], r0.position + Vector2(150.0 + i * 120.0, 0))
 					match st[1]:
-						"fogo", "dash", "raio", "rola":
+						"fogo", "dash", "raio", "rola", "arrancada":
 							vset("v0", "item", true)
 						"garfo":
 							await tap("v0", "item")

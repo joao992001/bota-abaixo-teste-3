@@ -11,6 +11,7 @@ HERE = os.path.dirname(__file__)
 sys.path.insert(0, HERE)
 import armaduras_conceito as ac  # noqa: E402
 import armaduras_habilidades as ah  # noqa: E402
+import mecha_corredor as mcor  # noqa: E402
 from armaduras_conceito import ab  # noqa: E402
 from elenco import COLORS  # noqa: E402
 from svg import queue, render_all  # noqa: E402
@@ -22,9 +23,9 @@ OUT = os.path.join(ab.ROOT, "art/out/game/mecha")
 SRC = os.path.join(HERE, "svg/mecha")
 PECAS = ["costas", "coxa_b", "canela_b", "pe_b", "braco_b_sup", "braco_b_inf", "tronco", "cabine", "peito", "coxa_f", "canela_f", "pe_f",
          "cabeca", "ombro_b", "arma", "ombro_f"]
-MECHAS = {"T01": ac.fornalha, "T02": ac.empilhadeira, "T03": ac.bola, "T04": ac.jato, "T05": ac.broca, "T06": ah.para_raios}
+MECHAS = {"T01": ac.fornalha, "T02": ac.empilhadeira, "T03": ac.bola, "T04": ac.jato, "T05": ac.broca, "T06": ah.para_raios, "T07": mcor.velocista}
 # ponta da arma (a partir do ombro, sem giro) — de onde saem fogo, raio, broca, garfo, jato de ar
-PONTA = {"T01": (64, 15), "T02": (80, 6), "T03": (30, 70), "T04": (60, 14), "T05": (80, 12), "T06": (84, 13)}
+PONTA = {"T01": (64, 15), "T02": (80, 6), "T03": (30, 70), "T04": (60, 14), "T05": (80, 12), "T06": (84, 13), "T07": (58, 8)}
 
 
 def doc(body):
@@ -62,8 +63,14 @@ def main():
     os.makedirs(SRC, exist_ok=True)
     ac.ESTATICO[0] = False
     ac.PILOTO[0] = False
+    mcor.INCLINA[0] = False
+    so_ids = [a.split("=", 1)[1] for a in sys.argv if a.startswith("--so=")]
     meta = {"px": PX, "caixa": [X0, Y0, CWU, CHU], "pecas": PECAS, "mechas": {}}
+    if so_ids and os.path.exists(f"{OUT}/mechas.json"):   # só alguns mechas: mantém os outros do json
+        meta["mechas"] = json.load(open(f"{OUT}/mechas.json"))["mechas"]
     for tid, fn in MECHAS.items():
+        if so_ids and tid not in so_ids[0].split(","):
+            continue
         cfg = {}
         for p in PECAS:
             cores = COLORS[:4] if p == "tronco" else [COLORS[0]]
@@ -78,13 +85,15 @@ def main():
         cfg = {"pivos": pv, "ombro": [round(sh[0], 2), round(sh[1], 2)], "ponta": list(PONTA[tid]), "tem": [p for p in PECAS if p in pv],
                "juntas": json.loads(json.dumps(ac.JUNTAS))}
         meta["mechas"][tid] = cfg
-    for ci, col in enumerate(COLORS[:4]):   # T03 fechada (bola blindada) para rolar
+    for ci, col in enumerate(COLORS[:4] if (not so_ids or "T03" in so_ids[0]) else []):   # T03 fechada (bola blindada) para rolar
         svg, w, h = doc(f'<g transform="translate(0,0)">{ac.bola_fechada(col, 0)}</g>')
         queue(svg, f"{SRC}/T03_bola_p{ci + 1}.svg", f"{OUT}/T03_bola_p{ci + 1}.png", w, h, SS)
     # cockpit / olho: mesma conta do mecha() (quadro padrão do tronco → corpo de cada um)
     corpo = {"T01": (40, 1.35, 0.85, (36, 26)), "T02": (66, 1.1, 1.15, (30, 26)), "T03": (40, 1.25, 1.05, (30, 26)),
-             "T04": (62, 0.95, 1.0, (30, 26)), "T05": (78, 0.75, 0.95, (26, 24)), "T06": (50, 1.0, 1.0, (30, 26))}
+             "T04": (62, 0.95, 1.0, (30, 26)), "T05": (78, 0.75, 0.95, (26, 24)), "T06": (50, 1.0, 1.0, (30, 26)), "T07": (70, 0.82, 0.9, (26, 22))}
     for tid, (Hh, tw, th, cab) in corpo.items():
+        if tid not in meta["mechas"]:
+            continue
         meta["mechas"][tid]["cockpit"] = [round(4 * tw, 2), round(-Hh + (-102 + 58) * th, 2), cab[0], cab[1]]
         meta["mechas"][tid]["olho"] = [round(10 * tw + 8, 2), round(-Hh + (-136 + 58) * th - 1, 2)]
     print("mecha:", render_all())
@@ -92,6 +101,7 @@ def main():
         json.dump(meta, f, indent=1)
     ac.ESTATICO[0] = True
     ac.PILOTO[0] = True
+    mcor.INCLINA[0] = True
 
 
 if __name__ == "__main__":

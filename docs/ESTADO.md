@@ -4,7 +4,7 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (fim da sessão 3)
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (sessão 4)
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado; `.exe` entregue).
 
 **Feito nesta sessão (decisões A28–A35 em `docs/revisoes/reformulacao_derruba.md`):**
@@ -18,11 +18,15 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 - Animação ARTICULADA (A34): `RobotVis._draw_mecha` = esqueleto com IK (coxa/canela/pé, braço/antebraço), pé plantado
   (`walk_d`), estilos `MECHA_ESTILO` e golpes `MECHA_GOLPES`. Peças: `art/src/robos/armaduras_export.py` → `game/assets/mecha`.
 - Cartucho de Mecha na mão + holograma, ativação cravando no peito, ícones = cartucho, duração +50% (A35).
-- Vitrines: `--mechas=DIR` (grava pos.json para recortar), `--equipa=DIR` (inclui kits T01–T06). Vídeos em `out/videos/`.
+- Vitrines: `--mechas=DIR` (grava pos.json para recortar; `MECHAS_SO=T07` filtra), `--equipa=DIR` (inclui kits T01–T06). Vídeos em `out/videos/`.
+- **Sessão 4 (A36):** T07 Minirrobô Veloz virou **MECHA CORREDOR** (variante A Velocista: pernas-lâmina, aerofólio, escapes).
+  Velocidade ×1,7, pulo ×1,15; SEGURAR especial = ARRANCADA (3 s de combustível, sobe parede, atropela). Golpes:
+  joelhada-relâmpago (leve) e voadora deslizante (pesado). Arte `art/src/robos/mecha_corredor.py` (prancha) → export `--so=T07`.
+  `selecao_test` agora calcula as contagens pelos dados (estava desatualizado desde a A31). Vídeo `out/videos/mecha_corredor.mp4`.
 
 **PRÓXIMO passo (esperando o usuário jogar o último .exe):** ajustar o que ele apontar na animação dos mechas
 (estilos/golpes em `robot_visual.gd`), depois os 7 pontos da avaliação de interface (`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`).
-**Decisões pendentes:** T07 Minirrobô Veloz (virar mecha "Corredor"?) ainda com visual antigo; skins K1–K5 a refazer no
+**Decisões pendentes:** atributos do Corredor (A36) PROVISÓRIOS até o usuário jogar; skins K1–K5 a refazer no
 estilo novo; prancha de combate `r2_combate.png` (A/B) sem resposta; números PROVISÓRIOS (atributos dos mechas, 100/60/35%
 do raio, limiares 30/70%). Animações do elenco (robôs a pé) no jogo ainda usam as poses antigas, não as dos vídeos.
 

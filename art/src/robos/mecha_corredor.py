@@ -15,6 +15,7 @@ import mecha_cartucho as mc  # noqa: E402
 from armaduras_conceito import R, E, S, P_, DARK, STEEL, STEEL_D, STEEL_L, ab, eu, label, INK, queue, render_all, shade  # noqa: E402
 
 PERNA_ORIG = ac.perna_partes
+INCLINA = [True]   # prancha: corpo inclinado; exportação para o jogo: reto (quem inclina é a animação, MECHA_ESTILO)
 CASCO = "#d9483b"      # vermelho de corrida (nenhum outro mecha usa)
 NUCLEO = "#ffe14a"
 
@@ -67,7 +68,7 @@ def velocista(col):
     arma += R(56, -112, 8, 28, 3, CASCO, k=0.3)
     peito = R(-8, -84, 24, 5, 2.5, NUCLEO, k=0.2)
     corpo = _com_pernas(pernas_lamina, lambda: ac.mecha(col, CASCO, arma, costas, peito, cab=(26, 22), H=70, tw=0.82, th=0.9, ombro=0.75, perna=1.15))
-    return f'<g transform="skewX(-14)">{corpo}</g>'   # inclinado para a frente (os pés ficam no chão)
+    return f'<g transform="skewX(-14)">{corpo}</g>' if INCLINA[0] else corpo   # inclinado para a frente (os pés ficam no chão)
 
 
 def patinador(col):

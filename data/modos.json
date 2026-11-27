@@ -175,7 +175,8 @@
       "T03": {"recebe": 0.75, "empurrao": 0.55, "causa": 1.35, "alcance_leve": 110, "alcance_pesado": 170, "area_pesado": "volta", "leve": "soco duplo", "pesado": "socão no chão"},
       "T04": {"recebe": 0.85, "empurrao": 0.65, "causa": 1.25, "alcance_leve": 120, "alcance_pesado": 140, "area_pesado": "frente", "leve": "soco-jato", "pesado": "mergulho do ar"},
       "T05": {"recebe": 0.8, "empurrao": 0.6, "causa": 1.4, "alcance_leve": 140, "alcance_pesado": 175, "area_pesado": "frente", "leve": "cutucada de broca", "pesado": "perfuração carregada"},
-      "T06": {"recebe": 0.85, "empurrao": 0.65, "causa": 1.25, "alcance_leve": 120, "alcance_pesado": 160, "area_pesado": "volta", "leve": "choque curto", "pesado": "descarga em anel"}
+      "T06": {"recebe": 0.85, "empurrao": 0.65, "causa": 1.25, "alcance_leve": 120, "alcance_pesado": 160, "area_pesado": "volta", "leve": "choque curto", "pesado": "descarga em anel"},
+      "T07": {"recebe": 0.9, "empurrao": 0.85, "causa": 1.1, "alcance_leve": 100, "alcance_pesado": 150, "area_pesado": "frente", "leve": "joelhada-relâmpago", "pesado": "voadora deslizante"}
     },
     "amassometro": {
       "rapido": {
@@ -449,6 +450,7 @@
         "ky_por": 0.4
       },
         "spell_broca_dash": {"dano": 8, "kx": 430, "kx_por": 3.0, "ky": 260, "ky_por": 1.0},
+        "spell_arrancada": {"dano": 7, "kx": 520, "kx_por": 3.4, "ky": 320, "ky_por": 1.2},
         "spell_raio1": {"dano": 4, "kx": 120, "kx_por": 0.8, "ky": 90, "ky_por": 0.4},
         "spell_raio2": {"dano": 2.4, "kx": 90, "kx_por": 0.5, "ky": 70, "ky_por": 0.3},
         "spell_raio3": {"dano": 1.4, "kx": 60, "kx_por": 0.3, "ky": 50, "ky_por": 0.2},
@@ -991,15 +993,19 @@
         "raio_alcance": 300, "raio_salto": 230, "raio_alvos": 3, "metal_alcance": 240, "nota_raio": "A30 PARA-RAIOS: segurar = raio na mira; pula para o próximo robô a até raio_salto (até 3, golpes spell_raio1/2/3 = 100/60/35%) e conduz em estrutura de METAL (grelha/estaca) danificando.", "icone": "icone_mecha_T06"
       },
       "T07": {
+        "nota": "A36 (2026-11-27): MECHA CORREDOR (ex-Minirrobô Veloz, não encolhe mais). Segurar o especial = ARRANCADA (corre em linha reta, atropela, sobe parede). Números PROVISÓRIOS.",
         "familia": "transformacao",
         "raridade": "comum",
         "cargas": 1,
-        "duracao_s": 5.5,
-        "tamanho": 0.58,
-        "vel_mult": 1.35,
-        "empurrao_mult": 1.5,
-        "golpe_mult": 0.6,
-        "icone": "s33_mascara"
+        "duracao_s": 10.0,
+        "vel_mult": 1.7,
+        "pulo_mult": 1.15,
+        "empurrao_mult": 1.0,
+        "combustivel_s": 3.0,
+        "arrancada_vel": 1500,
+        "arrancada_tick_s": 0.4,
+        "sobe_parede_vel": 700,
+        "icone": "icone_mecha_T07"
       }
     },
     "eventos": {

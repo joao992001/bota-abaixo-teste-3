@@ -313,7 +313,8 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 		"T04": it_ok = not r.is_on_floor() and r.velocity.y > 200.0
 		"T05": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dy) < 40.0 and absf(dx) < 220.0
 		"T06": it_ok = absf(dy) < 40.0 and absf(dx) < 120.0
-		"T07": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 320.0
+		"T07":   # A36: vira o mecha Corredor; já montado, ARRANCADA quando o rival está na frente, na mesma altura
+			it_ok = (sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 420.0) or (sp.slot[r.pid]["t"] > 0.0 and absf(dy) < 40.0 and absf(dx) < 460.0 and signf(dx) == float(r.facing))
 		"C03": it_ok = absf(dy) < 40.0 and absf(dx) > 120.0 and absf(dx) < 480.0
 		"C05": it_ok = absf(dy) < 50.0 and absf(dx) > 100.0 and absf(dx) < 400.0
 		"E03":

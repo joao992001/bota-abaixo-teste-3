@@ -60,7 +60,8 @@ var grip := 1.0               # aderência na parede/borda (1 = cheia); gasta se
 var wall_side := 0            # lado da parede em que está escorregando (desenho)
 var frozen_t := 0.0           # congelado (A03 Canhão Criogênico): preso no gelo; agitar o direcional quebra mais rápido
 var size_k := 1.0             # T07 Minirobô: tamanho (a hitbox acompanha o desenho)
-var spell_hit := 1.0          # força dos golpes DESTE robô nos outros (minirobô empurra menos)
+var spell_hit := 1.0          # força dos golpes DESTE robô nos outros
+var spell_jump := 1.0         # pulo de spells/transformações (T07 mecha Corredor, A36)
 var spell_fly := false        # T04 jetpack ligado: sem gravidade (o jetpack controla a subida)
 var spell_form := ""          # transformação que muda o movimento ("bola" = T03 rola com inércia)
 var body_cs: CollisionShape2D
@@ -350,7 +351,7 @@ func _ix() -> float:
 	return 0.0 if stun_t > 0.0 or spell_lock else PlayerInput.axis_x(pid)
 
 func _jump_speed() -> float:
-	var js := float(c["jump_speed"])
+	var js := float(c["jump_speed"]) * spell_jump
 	return js * (0.55 + 0.45 * env_slow)
 
 ## T03 Bola de Demolição (revista 2026-11-25: "só vai para a frente, difícil de controlar, não pula"): ainda rola com
@@ -523,7 +524,7 @@ const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "comb
 	"spell_punho", "spell_gelo", "spell_fogo", "spell_explosao",
 	"spell_laser", "spell_sismo", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
 	"spell_gancho", "spell_carga", "spell_viga",
-	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_raio1", "spell_raio2", "spell_raio3", "mecha_leve", "mecha_pesado"]
+	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_arrancada", "spell_raio1", "spell_raio2", "spell_raio3", "mecha_leve", "mecha_pesado"]
 
 func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if invuln > 0.0 or god:

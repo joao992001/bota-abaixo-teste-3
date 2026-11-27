@@ -74,9 +74,7 @@ const BACK_PROPS := {"A04": ["s04_marreta", Vector2(30, 60), -0.5], "E01": ["s10
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
-const KITS := {
-	"T07": ["a34_raio", Vector2(48, 32), -1.57, "", Vector2.ZERO, 0.0],
-}
+const KITS := {}   # A35/A36: os mechas vão no CARTUCHO (MECHA_CART); o T07 deixou de ser o kit do raio encolhedor
 const HAND_PROPS := {"E02": ["s12_carga", Vector2(30, 22)], "E03": ["s27_controle", Vector2(18, 24)]}
 # aparência
 var color_idx := 0
@@ -1397,7 +1395,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 
 ## CARTUCHO DE MECHA (aprovado 2026-11-27): antes de ativar, o robô segura a cápsula do mecha na mão da frente; o núcleo
 ## pulsa e projeta o HOLOGRAMA do mecha girando (art/src/robos/mecha_cartucho.py --jogo).
-const MECHA_CART := ["T01", "T02", "T03", "T04", "T05", "T06"]
+const MECHA_CART := ["T01", "T02", "T03", "T04", "T05", "T06", "T07"]
 
 static func _draw_cartucho(ci: CanvasItem, base: Transform2D, id: String, at: Vector2, k := 1.0) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -1451,7 +1449,9 @@ const MECHA_ESTILO := {
 	"T03": {"tipo": "gorila", "ciclo": 130.0, "duty": 0.6, "passo_h": 8.0, "queda": 7.0, "quica": 4.0, "incl": 14.0, "ginga": 4.0, "agacha": 4.0, "braco": 0.0, "cab": 7.0, "resp": 2.2},
 	"T04": {"tipo": "voo", "ciclo": 160.0, "duty": 0.5, "passo_h": 6.0, "queda": 0.0, "quica": 0.0, "incl": 16.0, "ginga": 0.0, "agacha": 0.0, "braco": 6.0, "cab": 4.0, "resp": 2.5},
 	"T05": {"tipo": "corredor", "ciclo": 190.0, "duty": 0.42, "passo_h": 20.0, "queda": 3.0, "quica": 6.0, "incl": 13.0, "ginga": 2.0, "agacha": 6.0, "braco": 16.0, "cab": 4.0, "resp": 1.2},
-	"T06": {"tipo": "corcunda", "ciclo": 95.0, "duty": 0.55, "passo_h": 7.0, "queda": 3.0, "quica": 2.0, "incl": 16.0, "ginga": 3.0, "agacha": 5.0, "braco": 9.0, "cab": 8.0, "resp": 1.5}}
+	"T06": {"tipo": "corcunda", "ciclo": 95.0, "duty": 0.55, "passo_h": 7.0, "queda": 3.0, "quica": 2.0, "incl": 16.0, "ginga": 3.0, "agacha": 5.0, "braco": 9.0, "cab": 8.0, "resp": 1.5},
+	# A36 Corredor: passada enorme e rápida, pouco tempo no chão, quica muito, inclinado como velocista
+	"T07": {"tipo": "velocista", "ciclo": 260.0, "duty": 0.34, "passo_h": 26.0, "queda": 2.0, "quica": 10.0, "incl": 20.0, "ginga": 1.5, "agacha": 7.0, "braco": 22.0, "cab": 5.0, "resp": 2.0}}
 
 ## Golpes: [antecipação, impacto]. bx/by = corpo (unidades), br = giro do corpo, ar/ax = giro/avanço do braço-arma,
 ## hbx/hby = mão de trás, ffx/ffy = pé da frente, fbx = pé de trás, cr = cabeça (graus).
@@ -1466,6 +1466,8 @@ const MECHA_GOLPES := {
 	"corredor_pesado": [{"bx": -14, "by": 6, "br": -14, "ax": -26, "ar": -10, "ffx": -6}, {"bx": 30, "by": 4, "br": 18, "ax": 52, "ffx": 28, "fbx": -10}],
 	"corcunda_rapido": [{"bx": -4, "br": -10, "ar": -28, "ax": -10}, {"bx": 10, "br": 8, "ar": 6, "ax": 30, "ffx": 10}],
 	"corcunda_pesado": [{"by": -14, "br": -20, "ar": -115, "hbx": -10, "hby": -74, "cr": -14}, {"by": 6, "br": 14, "ar": 42, "hbx": -30, "hby": 20, "cr": 10}],
+	"velocista_rapido": [{"bx": -4, "br": -6, "ffx": -8, "ffy": 0}, {"bx": 12, "br": 6, "ffx": 26, "ffy": -44, "ax": 14, "cr": 6}],   # joelhada-relâmpago
+	"velocista_pesado": [{"bx": -12, "by": 8, "br": -10, "ffx": -10, "fbx": -6}, {"bx": 34, "by": 30, "br": -18, "ffx": 46, "ffy": -10, "fbx": -24, "ar": -30, "cr": 10}],   # voadora deslizante
 	"voo_rapido": [{"bx": -8, "br": -8, "ar": -22, "ax": -14}, {"bx": 16, "br": 12, "ax": 46}],
 	"voo_pesado": [{"by": 6, "br": -16, "ar": 60, "ax": -10}, {"by": -14, "br": -10, "ar": -85, "ax": 30}]}
 
@@ -1614,7 +1616,7 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 	var tuck := sin(clampf(flip, 0.0, 1.0) * PI) if flip >= 0.0 else 0.0
 	if flip >= 0.0:
 		match tipo:
-			"corredor":
+			"corredor", "velocista":
 				spin = -TAU * _smooth(flip)
 			"corcunda":
 				spin = TAU * _smooth(flip)
@@ -1625,7 +1627,7 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 			_:
 				sq = Vector2(1.0 + 0.14 * tuck, 1.0 - 0.18 * tuck)
 	if dge > 0.0:
-		var dl := {"pesado": 26.0, "mecanico": 14.0, "gorila": 34.0, "corredor": 22.0, "corcunda": 18.0, "voo": 40.0}
+		var dl := {"pesado": 26.0, "mecanico": 14.0, "gorila": 34.0, "corredor": 22.0, "velocista": 26.0, "corcunda": 18.0, "voo": 40.0}
 		br += deg_to_rad(float(dl.get(tipo, 20.0))) * _smooth(dge * 1.4)
 		by += (6.0 if tipo == "gorila" else 2.0) * dge
 	# habilidade em uso: postura firme (fogo, raio) ou disparada (dash da broca)
@@ -1638,6 +1640,9 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 	if drill_dash:
 		br += deg_to_rad(22.0)
 		by += 3.0
+	if fx.get("arrancada", false):   # A36: ARRANCADA, deitado para a frente como velocista na largada
+		br += deg_to_rad(16.0)
+		by += 4.0 + sin(now * 40.0) * 1.5
 	var cen := Vector2(0.0, -60.0)
 	var G := Transform2D.IDENTITY
 	if spin != 0.0 or sq != Vector2.ONE:
@@ -1743,7 +1748,7 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 		a_dx += g["ax"]
 	if fire_k > 0.05:
 		a_dx -= 3.0 + sin(now * 60.0) * 1.5
-	if dge > 0.0 and tipo in ["mecanico", "corredor"]:
+	if dge > 0.0 and tipo in ["mecanico", "corredor", "velocista"]:
 		a_rot = lerpf(a_rot, 0.0, dge)
 		a_dx += 12.0 * dge
 	# ---------------- fundo: raios da montagem, rastro do dash, propulsores

@@ -15,7 +15,7 @@ const NOMES := {"A01": "PUNHO PNEUMÁTICO", "A03": "CANHÃO CRIOGÊNICO", "C01":
 	"C02": "TURBOVENTILADOR", "C03": "GANCHO DE ARRASTO", "C05": "LAÇO DE ENERGIA", "E02": "CARGA REMOTA",
 	"E03": "CONTROLE REMOTO",
 	"T02": "MECHA EMPILHADEIRA", "T03": "MECHA BOLA", "T04": "MECHA JATO", "T05": "MECHA BROCA",
-	"T06": "PARA-RAIOS", "T07": "MINIRROBÔ VELOZ"}
+	"T06": "PARA-RAIOS", "T07": "MECHA CORREDOR"}
 const FORMS := ["T02", "T03", "T05", "T06", "T07"]   # transformações com duração (T01 tem código próprio)
 
 var main: Node
@@ -523,6 +523,10 @@ func use(r) -> void:
 				s["channel"] = true   # segura: raio em cadeia (A30)
 				if _is_bot(r.pid):
 					bot_hold[r.pid] = 0.8
+			elif s["id"] == "T07":
+				s["channel"] = true   # segura: ARRANCADA (A36)
+				if _is_bot(r.pid):
+					bot_hold[r.pid] = 0.7
 		"T04":
 			if s["t"] < 0.0:
 				s["t"] = float(c["duracao_s"])
@@ -1165,14 +1169,15 @@ func flags(r) -> Dictionary:
 	if s["id"] in FORMS and s["t"] > 0.0:
 		out["form"] = s["id"]
 		out["fk"] = float(s["data"].get("assemble", 1.0))
-		if s["id"] in ["T02", "T05", "T06"]:   # armaduras: o robô veste a máquina (desenhado por robot_visual)
+		if s["id"] in ["T02", "T05", "T06", "T07"]:   # armaduras: o robô veste a máquina (desenhado por robot_visual)
 			out["armor"] = true
 			out["armor_set"] = s["id"]
 			out["assemble"] = out["fk"]
 			out["armor_end"] = clampf(1.0 - s["t"] / 1.2, 0.0, 1.0)
 			out["arc"] = s["data"].get("arc", false)
-			out["busy"] = s["data"].get("arc", false) or s["id"] == "T05"
-			out["drill_dash"] = s["data"].get("dash", false)
+			out["busy"] = s["data"].get("arc", false) or s["id"] == "T05" or (s["id"] == "T07" and s["data"].get("dash", false))
+			out["drill_dash"] = s["data"].get("dash", false) and s["id"] == "T05"
+			out["arrancada"] = s["data"].get("dash", false) and s["id"] == "T07"
 			out["mecha"] = s["id"]
 	if s["id"] == "T03" and s["t"] > 0.0 and r.spell_form != "bola":
 		out["mecha"] = "T03"
@@ -2923,10 +2928,11 @@ func _start_form(r, s: Dictionary) -> void:
 			s["energy"] = float(c["combustivel_s"])
 		"T06":
 			s["energy"] = float(c["combustivel_s"])
-		"T07":
+		"T07":   # A36: mecha Corredor
 			r.spell_speed = float(c["vel_mult"])
 			r.spell_push = float(c["empurrao_mult"])
-			r.spell_hit = float(c["golpe_mult"])
+			r.spell_jump = float(c["pulo_mult"])
+			s["energy"] = float(c["combustivel_s"])
 	main.dust(r.position + Vector2(0, -20), 1.0)   # o NOME aparece no fim da montagem (_assembled)
 	main.shake(5.0)
 	Audio.play("caixote_pancada", 0.8, 0.0)
@@ -2941,6 +2947,7 @@ func _end_form(r, natural: bool) -> void:
 	r.spell_speed = 1.0
 	r.spell_push = 1.0
 	r.spell_hit = 1.0
+	r.spell_jump = 1.0
 	r.spell_form = ""
 	r.vis.visible = true
 	if r.size_k != 1.0:
@@ -2950,7 +2957,7 @@ func _end_form(r, natural: bool) -> void:
 	if slot.has(r.pid):
 		slot[r.pid]["t"] = -1.0
 		slot[r.pid]["channel"] = false
-	if id in ["T02", "T03", "T05", "T06"]:
+	if id in ["T02", "T03", "T05", "T06", "T07"]:
 		_mecha_explode(r)
 	else:
 		main.dust(r.position + Vector2(0, -20), 1.0)
@@ -2965,7 +2972,7 @@ func mecha_of(r) -> String:
 		return ""
 	var s: Dictionary = slot[r.pid]
 	var id: String = s["id"]
-	if not (id in ["T01", "T02", "T03", "T04", "T05", "T06"]) or float(s["t"]) <= 0.0:
+	if not (id in ["T01", "T02", "T03", "T04", "T05", "T06", "T07"]) or float(s["t"]) <= 0.0:
 		return ""
 	if float(s["data"].get("assemble", 0.0)) < 1.0:
 		return ""
@@ -3009,6 +3016,11 @@ func _mecha_heavy_fx(r, id: String, reach: float) -> void:
 		"T05":   # perfuração: chuva de faíscas na frente
 			for i in 16:
 				main.spark(g + Vector2(r.facing * main.rng.randf_range(60, reach), main.rng.randf_range(-80, -20)), 1)
+		"T07":   # voadora deslizante: desliza rente ao chão para a frente
+			r.forced_t = 0.28
+			r.forced_vel = Vector2(r.facing * 950.0, 0.0 if r.is_on_floor() else 600.0)
+			for i in 10:
+				main.spark(g + Vector2(r.facing * main.rng.randf_range(0, 60), -4.0), 1)
 		"T04":   # mergulho: se está no ar, desce em diagonal
 			if not r.is_on_floor():
 				r.forced_t = 0.22
@@ -3176,7 +3188,7 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 	var c: Dictionary = sc(s["id"])
 	var d: Dictionary = s["data"]
 	var a_before: float = float(d.get("assemble", 0.0))
-	d["assemble"] = minf(a_before + dt / (0.55 if s["id"] == "T07" else 0.9), 1.0)   # transformação estilo Transformers (A29)
+	d["assemble"] = minf(a_before + dt / 0.9, 1.0)   # transformação estilo Transformers (A29)
 	if a_before < 1.0 and d["assemble"] >= 1.0:
 		_assembled(r, s["id"])
 	if a_before < 1.0 and d["assemble"] >= 1.0:   # travou: clarão, faíscas, robô dá uma achatada
@@ -3411,13 +3423,40 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 					Audio.play("item", 1.4)
 			else:
 				d["rep_t"] = 0.0
-		"T07":
-			var target: float = lerpf(1.0, float(c["tamanho"]), float(d["assemble"]))
-			if s["t"] < 0.4:
-				target = lerpf(float(c["tamanho"]), 1.0, 1.0 - s["t"] / 0.4)
-			r.set_size(target)
-			if absf(r.velocity.x) > 200.0 and fmod(t, 0.06) < dt and r.is_on_floor():
-				main.dust(r.position, 0.3)
+		"T07":   # A36 ARRANCADA: segurando o especial dispara em linha reta, atropela, sobe parede correndo
+			var hc7: Dictionary = d.get("hitcd", {})
+			for oid in hc7.keys():
+				hc7[oid] -= dt
+			d["hitcd"] = hc7
+			var corre: bool = s["channel"] and held(r) and s["energy"] > 0.0 and float(d.get("assemble", 0.0)) >= 1.0
+			if s["channel"] and not corre:
+				s["channel"] = false
+				if d.get("dash", false):   # freia derrapando
+					for k in 6:
+						main.spark(r.position + Vector2(randf_range(-20, 20), -4), 1)
+					main.dust(r.position, 1.0)
+			d["dash"] = corre
+			if corre:
+				s["energy"] -= dt
+				var parede: bool = r.is_on_wall() and int(signf(r.get_wall_normal().x)) == -r.facing
+				r.forced_t = dt * 2.0
+				if parede:   # sobe a parede correndo
+					r.forced_vel = Vector2(r.facing * 60.0, -float(c["sobe_parede_vel"]))
+				else:
+					r.forced_vel = Vector2(r.facing * float(c["arrancada_vel"]), 0.0 if r.is_on_floor() else 160.0)
+				var front7 := Rect2(r.position + Vector2(r.facing * 14.0 - 34.0, -84.0), Vector2(68, 80))
+				for o in main.robots:
+					if o != r and o.alive and front7.intersects(o.rect()) and float(hc7.get(o.pid, 0.0)) <= 0.0:
+						hc7[o.pid] = float(c["arrancada_tick_s"])
+						if _hit_dir(o, r.pid, Vector2(r.facing, -0.45), "spell_arrancada"):
+							main.shake(5.0)
+				for side in [-1.0, -0.6]:   # fogo dos escapamentos (atrás, em cima)
+					fire_ps.append({"pos": r.position + Vector2(-r.facing * 34.0, -78.0 + side * 6.0), "vel": Vector2(-r.facing * randf_range(260, 420), randf_range(-60, 40)),
+						"t": 0.0, "life": randf_range(0.18, 0.3), "s": randf_range(0.5, 0.8), "em": false})
+				if fmod(t, 0.05) < dt and r.is_on_floor():
+					main.dust(r.position + Vector2(-r.facing * 24.0, 0), 0.7)
+				if fmod(t, 0.14) < dt:
+					Audio.play("foguete", 1.4, -8.0)
 	if s["t"] <= 0.0:
 		_end_form(r, true)
 
@@ -3485,27 +3524,6 @@ func _draw_etapa4() -> void:
 		var u: float = m["t"] / 0.9
 		draw_circle(m["pos"], m["size"] * (0.6 + u), Color(0.42, 0.4, 0.44, 0.5 * (1.0 - u)))
 		draw_circle(m["pos"] + Vector2(-3, -3), m["size"] * 0.4 * (0.6 + u), Color(0.7, 0.7, 0.72, 0.4 * (1.0 - u)))
-	# T07: raio encolhedor (escaneamento) e rastro de vultos correndo
-	for r in main.robots:
-		if not r.alive or not slot.has(r.pid) or slot[r.pid]["id"] != "T07" or slot[r.pid]["t"] <= 0.0:
-			continue
-		var s34: Dictionary = slot[r.pid]
-		var fk: float = float(s34["data"].get("assemble", 1.0))
-		var ending: bool = s34["t"] < 0.5
-		if fk < 1.0 or ending:
-			var u: float = fk if not ending else 1.0 - s34["t"] / 0.5
-			var top: float = r.position.y - 96.0
-			var y := lerpf(top, r.position.y, u) if not ending else lerpf(r.position.y, top, u)
-			draw_set_transform(Vector2(r.position.x, y), 0.0, Vector2(1.0, 0.28))
-			draw_arc(Vector2.ZERO, 42.0, 0, TAU, 28, Color(0.72, 0.6, 1.0, 0.9), 5.0, true)
-			draw_arc(Vector2.ZERO, 42.0, 0, TAU, 28, Color.WHITE, 2.0, true)
-			draw_set_transform(Vector2.ZERO)
-			draw_rect(Rect2(r.position.x - 40, y, 80, r.position.y - y), Color(0.72, 0.6, 1.0, 0.15))
-			if not ending:   # raio do aparelho na mão até o anel
-				var hnd := hand(r)
-				_draw_bolt(hnd, Vector2(r.position.x + r.facing * 30.0, y), 0.2, 0.0, t)
-			for k in 3:
-				main.spark(Vector2(r.position.x + randf_range(-30, 30), y), 1) if fmod(t, 0.05) < 0.02 else null
 	_draw_trails()
 func _ptag(r, at: Vector2) -> void:   # marcador "P1" quando o robô está escondido dentro da transformação
 	var pc: Color = main.player_color(r.pid)
@@ -3652,13 +3670,12 @@ func _draw_trail_node() -> void:
 			trail_pts.erase(r.pid)
 			continue
 		var arr: Array = trail_pts.get(r.pid, [])
-		if absf(r.velocity.x) > 250.0:
+		if absf(r.velocity.x) > 700.0:   # A36: vultos só correndo muito (Corredor)
 			if arr.is_empty() or arr[-1].distance_to(r.position) > 22.0:
 				arr.append(r.position)
-		if arr.size() > 4 or (absf(r.velocity.x) <= 250.0 and arr.size() > 0 and fmod(t, 0.05) < 0.02):
+		if arr.size() > 4 or (absf(r.velocity.x) <= 700.0 and arr.size() > 0 and fmod(t, 0.05) < 0.02):
 			arr.pop_front()
 		trail_pts[r.pid] = arr
 		var pose: Dictionary = r.vis.current_pose() if r.vis.has_method("current_pose") else RobotVis.idle_pose(t)
 		for i in arr.size():
-			var sc_k: float = r.size_k
-			RobotVis.draw_robot(trail_node, r.vis.look(), pose, Transform2D(0.0, Vector2(r.facing * sc_k, sc_k), 0.0, arr[i]))
+			RobotVis.draw_robot(trail_node, r.vis.look(), pose, Transform2D(0.0, Vector2(r.facing, 1.0), 0.0, arr[i]))
