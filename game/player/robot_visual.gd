@@ -1063,7 +1063,7 @@ func _draw_tag() -> void:
 	var meter: bool = (hanging or on_wall or not robot.is_on_floor()) and grip < 0.999
 	var top := float(Data.model_meta(model)["top"]) - ORIGIN.y
 	if robot.has_method("fx_flags") and String(robot.fx_flags().get("mecha", "")) != "":
-		top = minf(top, -178.0)   # pilotando um mecha (A29): a etiqueta vai acima da cabeça da máquina
+		top = minf(top, -138.0)   # pilotando um mecha (A29): a etiqueta vai acima da cabeça da máquina
 	var y := (top - 48.0) if meter else (top - 14.0)
 	var col: Color = Data.COLORS[color_idx % Data.COLORS.size()]
 	draw_colored_polygon(PackedVector2Array([Vector2(-9, y), Vector2(9, y), Vector2(0, y + 10)]), col)
@@ -1403,7 +1403,13 @@ const MECHA_CHEGADA := {   # peça: [início, fim, de onde vem dx, dy, giro em g
 	"cabine": [0.58, 0.82, 0, -60, 0], "peito": [0.62, 0.84, 0, -200, -20], "braco_b": [0.70, 0.90, -220, -40, -140],
 	"ombro_b": [0.74, 0.94, -200, -160, -120], "arma": [0.80, 1.0, 260, -30, 160], "ombro_f": [0.84, 1.04, 220, -170, 140],
 	"costas": [0.88, 1.08, -120, -240, -60], "cabeca": [0.98, 1.16, 0, -300, 200]}
-const MECHA_MIRA := ["T01", "T04", "T06"]   # armaduras cuja arma gira para mirar
+const MECHA_MIRA := ["T01", "T04", "T06"]
+## Escala de jogo do mecha (A32, 2026-11-27): ~2 blocos de altura (≈125 px) para caber nas passagens do cenário;
+## a colisão continua a do robô. 0,74 × a escala do desenho (0,84 px/unidade) = 0,62.
+const MECHA_ESCALA := 0.74
+
+static func mecha_px() -> float:
+	return float(Data.mecha_meta.get("px", 0.84)) * MECHA_ESCALA   # armaduras cuja arma gira para mirar
 
 static func _ease_back(u: float) -> float:
 	var s := 1.9
@@ -1414,7 +1420,7 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 	var mid := String(fx["mecha"])
 	var M: Dictionary = Data.mecha_meta
 	var m: Dictionary = M["mechas"][mid]
-	var px := float(M["px"])
+	var px := mecha_px()
 	var cx: Array = M["caixa"]
 	var box := Rect2(float(cx[0]), float(cx[1]), float(cx[2]), float(cx[3]))
 	var a := clampf(float(fx.get("assemble", 1.0)), 0.0, 1.0)

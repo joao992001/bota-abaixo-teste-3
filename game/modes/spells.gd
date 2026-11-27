@@ -950,12 +950,12 @@ var trans_fx: Array = []  # fecho da transformação: clarão, raios, onda de ch
 ## Mecha montado (fim da transformação estilo Transformers): o olho acende, clarão, onda de choque, poeira e o NOME.
 func _assembled(r, id: String) -> void:
 	var fy := _floor_below(r.position.x, r.position.y - 10.0, 4)
-	trans_fx.append({"pos": r.position + Vector2(0, -90), "ground": Vector2(r.position.x, fy if fy > 0.0 else r.position.y), "t": 0.0})
-	main.float_text(r.position + Vector2(0, -230), NOMES.get(id, id) + "!", FAM_COR["transformacao"])
+	trans_fx.append({"pos": r.position + Vector2(0, -66), "ground": Vector2(r.position.x, fy if fy > 0.0 else r.position.y), "t": 0.0})
+	main.float_text(r.position + Vector2(0, -175), NOMES.get(id, id) + "!", FAM_COR["transformacao"])
 	main.dust(r.position, 1.8)
 	main.shake(9.0)
 	for k in 14:
-		main.spark(r.position + Vector2(randf_range(-60, 60), randf_range(-160, -20)), 1)
+		main.spark(r.position + Vector2(randf_range(-45, 45), randf_range(-120, -15)), 1)
 	Audio.play("caixote_pancada", 0.7, 0.0)
 
 func update(dt: float, alive: Array) -> void:
@@ -2946,7 +2946,7 @@ func mecha_muzzle(r) -> Vector2:
 	if not M.get("mechas", {}).has(id):
 		return r.position + Vector2(r.facing * 40.0, -60.0)
 	var m: Dictionary = M["mechas"][id]
-	var px := float(M["px"])
+	var px := RobotVis.mecha_px()
 	var sh := Vector2(float(m["ombro"][0]), float(m["ombro"][1]))
 	var off := Vector2(float(m["ponta"][0]), float(m["ponta"][1])).rotated(aim_local(r))
 	var p := (sh + off) * px
@@ -2954,7 +2954,7 @@ func mecha_muzzle(r) -> Vector2:
 
 ## Fim da armadura-mecha: as peças se soltam num estouro de faíscas, fumaça e poeira.
 func _mecha_explode(r) -> void:
-	var c: Vector2 = r.position + Vector2(0, -70)
+	var c: Vector2 = r.position + Vector2(0, -55)
 	for k in 18:
 		main.spark(c + Vector2(randf_range(-50, 50), randf_range(-60, 50)), 1)
 	for k in 8:
@@ -3137,7 +3137,7 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 				r.forced_vel = Vector2(r.facing * float(c["dash_vel"]), 0.0 if r.is_on_floor() else 120.0)
 				_set_aim(r, s, Vector2(r.facing, 0), 30.0, dt)
 				# fura o que estiver na frente e atropela quem estiver no caminho
-				var front := Rect2(r.position + Vector2(r.facing * 20.0 - 40.0, -110.0), Vector2(80, 104))
+				var front := Rect2(r.position + Vector2(r.facing * 20.0 - 40.0, -90.0), Vector2(80, 84))
 				d["dt_t"] = float(d.get("dt_t", 0.0)) - dt
 				if d["dt_t"] <= 0.0:
 					d["dt_t"] = float(c["dash_tick_s"])
@@ -3155,7 +3155,7 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 						if _hit_dir(o, r.pid, Vector2(r.facing, -0.3), "spell_broca_dash"):
 							main.shake(6.0)
 				if fmod(t, 0.03) < dt:
-					main.spark(r.position + Vector2(r.facing * 70.0, -60.0), 1)
+					main.spark(r.position + Vector2(r.facing * 70.0, -50.0), 1)
 				if fmod(t, 0.05) < dt:
 					main.dust(r.position + Vector2(-r.facing * 24.0, 0), 0.7)
 				if fmod(t, 0.12) < dt:
@@ -3461,13 +3461,13 @@ func _draw_drill_dash(r, d: Dictionary) -> void:
 	for i in tr.size():
 		var p: Vector2 = tr[i]
 		var k := float(i + 1) / float(tr.size() + 1)
-		draw_rect(Rect2(p + Vector2(-45, -170), Vector2(90, 170)), Color(0.75, 0.9, 1.0, 0.10 + 0.12 * k))
+		draw_rect(Rect2(p + Vector2(-34, -125), Vector2(68, 125)), Color(0.75, 0.9, 1.0, 0.10 + 0.12 * k))
 	for k in 10:   # linhas de velocidade
-		var yy: float = r.position.y - 160.0 + fmod(k * 37.0, 160.0)
+		var yy: float = r.position.y - 120.0 + fmod(k * 37.0, 120.0)
 		var ln := 60.0 + fmod(k * 53.0 + t * 900.0, 120.0)
 		var x0: float = r.position.x - f * (60.0 + fmod(k * 71.0 + t * 1400.0, 260.0))
 		draw_line(Vector2(x0, yy), Vector2(x0 - f * ln, yy), Color(1, 1, 1, 0.75), 3.0 + fmod(k, 3.0), true)
-	var tip: Vector2 = r.position + Vector2(f * 100.0, -84.0)
+	var tip: Vector2 = r.position + Vector2(f * 74.0, -62.0)
 	draw_circle(tip, 22.0 + sin(t * 70.0) * 5.0, Color(1, 0.95, 0.6, 0.45))
 	for k in 6:   # faíscas espirrando da broca
 		var ang := (PI if f > 0 else 0.0) + sin(t * 40.0 + k * 1.7) * 1.1
@@ -3480,7 +3480,7 @@ func _draw_welder(r, d: Dictionary, fk: float, mod: Color) -> void:
 	var en: float = float(slot[r.pid].get("energy", 0.0)) if slot.has(r.pid) else 0.0
 	# bobina das costas estalando sempre que tem carga
 	if en > 0.0 and fk >= 1.0:
-		var coil: Vector2 = r.position + Vector2(-r.facing * 46.0, -150.0)
+		var coil: Vector2 = r.position + Vector2(-r.facing * 34.0, -112.0)
 		draw_circle(coil, 14.0 + sin(t * 40.0) * 3.0, Color(0.5, 0.9, 1.0, 0.35))
 		for k in 2:
 			var ang := t * 9.0 + k * 2.6
