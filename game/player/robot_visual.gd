@@ -1034,6 +1034,10 @@ func current_pose() -> Dictionary:
 	p["ant"] = ant + ant_extra + 0.12 * dmg_level
 	p["smear"] = [smear_from, ang, smear_a]
 	p["panel"] = panel[0]
+	# estado de movimento para os MECHAS (A34): passada, ar, pulo duplo, dash, parede, pouso
+	p["mv"] = {"phase": phase, "run": run_k, "air": air_k, "vy": vy, "flip": flip_t, "land": land_t, "wall": on_wall,
+		"dodge": (robot.dodge_t / maxf(robot.dodge_len, 0.01)) if robot != null and robot.get("dodge_t") != null and robot.dodge_t > 0.0 else 0.0,
+		"hurt": hurt_t, "t": t}
 	return p
 
 func _draw() -> void:
@@ -1404,6 +1408,15 @@ const MECHA_CHEGADA := {   # peça: [início, fim, de onde vem dx, dy, giro em g
 	"ombro_b": [0.74, 0.94, -200, -160, -120], "arma": [0.80, 1.0, 260, -30, 160], "ombro_f": [0.84, 1.04, 220, -170, 140],
 	"costas": [0.88, 1.08, -120, -240, -60], "cabeca": [0.98, 1.16, 0, -300, 200]}
 const MECHA_MIRA := ["T01", "T04", "T06"]
+## Jeito de mexer de cada mecha (A34): passada (graus), balanço do corpo, inclinação correndo, pisão (poeira/tremor),
+## giro no pulo duplo, flutua (Jato), braço de trás que balança (gorila).
+const MECHA_ESTILO := {
+	"T01": {"passo": 16.0, "bob": 6.0, "incl": 5.0, "pisao": 1.0, "gira": false, "flutua": false, "braco": 18.0},
+	"T02": {"passo": 14.0, "bob": 4.0, "incl": 4.0, "pisao": 0.7, "gira": false, "flutua": false, "braco": 14.0},
+	"T03": {"passo": 20.0, "bob": 8.0, "incl": 12.0, "pisao": 1.0, "gira": false, "flutua": false, "braco": 34.0},
+	"T04": {"passo": 7.0, "bob": 3.0, "incl": 14.0, "pisao": 0.0, "gira": true, "flutua": true, "braco": 10.0},
+	"T05": {"passo": 26.0, "bob": 6.0, "incl": 9.0, "pisao": 0.5, "gira": true, "flutua": false, "braco": 22.0},
+	"T06": {"passo": 18.0, "bob": 5.0, "incl": 6.0, "pisao": 0.4, "gira": true, "flutua": false, "braco": 18.0}}
 ## Escala de jogo do mecha (A32, 2026-11-27): ~2 blocos de altura (≈125 px) para caber nas passagens do cenário;
 ## a colisão continua a do robô. 0,74 × a escala do desenho (0,84 px/unidade) = 0,62.
 const MECHA_ESCALA := 0.74
@@ -1443,6 +1456,8 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 	var sh := Vector2(float(m["ombro"][0]), float(m["ombro"][1]))
 	# golpe leve/pesado do mecha (A33): preparo → impacto → volta
 	var b_dy := 0.0
+	var b_dx := 0.0
+	var b_sq := 1.0
 	var b_rot := 0.0
 	var a_rot := 0.0
 	var a_dx := 0.0
@@ -1458,20 +1473,115 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 		var hold := (1.0 - kr) if at >= pre else 0.0
 		var cfg: Dictionary = Data.mecha_meta.get("ataques", {})
 		var volta: bool = ak == "pesado" and mid in ["T01", "T03", "T06"]
+		var ph_k := 1.0 if at < pre else hold
 		if ak == "rapido":
-			a_rot = deg_to_rad(lerpf(-28.0 * kp, 22.0, kh) * (1.0 if at < pre else hold))
-			a_dx = lerpf(-6.0 * kp, 20.0, kh) * (1.0 if at < pre else hold)
-			b_rot = deg_to_rad(5.0 * kh * hold)
-		elif volta:   # pesado em volta: sobe com os braços para o alto e bate no chão
-			b_dy = lerpf(-14.0 * kp, 12.0, kh) * (1.0 if at < pre else hold)
-			a_rot = deg_to_rad(lerpf(-105.0 * kp, 35.0, kh) * (1.0 if at < pre else hold))
-			bb_rot = deg_to_rad(lerpf(110.0 * kp, -20.0, kh) * (1.0 if at < pre else hold))
-		else:   # pesado para a frente: inclina para trás, arma levantada, golpe que leva o corpo
-			b_rot = deg_to_rad(lerpf(-10.0 * kp, 12.0, kh) * (1.0 if at < pre else hold))
-			b_dy = lerpf(-6.0 * kp, 8.0, kh) * (1.0 if at < pre else hold)
-			a_rot = deg_to_rad(lerpf(-75.0 * kp, 45.0, kh) * (1.0 if at < pre else hold))
-			a_dx = 14.0 * kh * hold
+			a_rot = deg_to_rad(lerpf(-45.0 * kp, 35.0, kh) * ph_k)
+			a_dx = lerpf(-12.0 * kp, 38.0, kh) * ph_k
+			b_rot = deg_to_rad(lerpf(-8.0 * kp, 12.0, kh) * ph_k)
+			b_dx = lerpf(-6.0 * kp, 16.0, kh) * ph_k
+			if mid == "T03":   # soco duplo: o braço de trás também dá um direto
+				bb_rot = deg_to_rad(lerpf(30.0 * kp, -95.0, kh) * ph_k)
+		elif volta:   # pesado em volta: dá um salto com os braços para o alto e bate no chão com tudo
+			b_dy = lerpf(-34.0 * kp, 18.0, kh) * ph_k
+			b_sq = lerpf(1.0 + 0.1 * kp, 0.78, kh) if at < pre + 0.2 else lerpf(0.78, 1.0, kr)
+			a_rot = deg_to_rad(lerpf(-130.0 * kp, 50.0, kh) * ph_k)
+			bb_rot = deg_to_rad(lerpf(140.0 * kp, -40.0, kh) * ph_k)
+		else:   # pesado para a frente: inclina para trás, arma no alto, golpe que leva o corpo inteiro
+			b_rot = deg_to_rad(lerpf(-20.0 * kp, 22.0, kh) * ph_k)
+			b_dy = lerpf(-10.0 * kp, 10.0, kh) * ph_k
+			b_dx = lerpf(-14.0 * kp, 30.0, kh) * ph_k
+			a_rot = deg_to_rad(lerpf(-100.0 * kp, 60.0, kh) * ph_k)
+			a_dx = lerpf(0.0, 30.0, kh) * ph_k
 	var hip_p := Vector2(0.0, -40.0)
+	# ---- locomoção (A34): passada, balanço, ar, pulo duplo, dash
+	var st: Dictionary = MECHA_ESTILO.get(mid, MECHA_ESTILO["T01"])
+	var mv: Dictionary = pose.get("mv", {})
+	var ph := float(mv.get("phase", now * 6.0))
+	var run := clampf(float(mv.get("run", 0.0)), 0.0, 1.0)
+	var air := clampf(float(mv.get("air", 0.0)), 0.0, 1.0)
+	var vyy := float(mv.get("vy", 0.0))
+	var flip := float(mv.get("flip", -1.0))
+	var dge := float(mv.get("dodge", 0.0))
+	var land := float(mv.get("land", 0.0))
+	var ground := 1.0 - air
+	var sw := sin(ph) * deg_to_rad(float(st["passo"])) * run * ground
+	var leg_b_rot := sw
+	var leg_f_rot := -sw
+	var leg_b_dy := -maxf(0.0, -sin(ph)) * 10.0 * run * ground
+	var leg_f_dy := -maxf(0.0, sin(ph)) * 10.0 * run * ground
+	b_dy += -absf(sin(ph)) * float(st["bob"]) * run * ground
+	b_rot += deg_to_rad(float(st["incl"])) * run * ground
+	bb_rot += -sw * float(st["braco"]) / maxf(float(st["passo"]), 1.0)
+	a_rot += sw * 0.35
+	if a >= 1.0 and run < 0.1 and air < 0.1:   # parado: respira pesado
+		b_dy += sin(now * 2.6) * 1.6
+	if land > 0.0:   # pousou: amortece
+		b_dy += 10.0 * land / 0.28
+	if air > 0.05:   # no ar: encolhe as pernas, inclina com a velocidade
+		leg_f_rot += deg_to_rad(-28.0) * air
+		leg_b_rot += deg_to_rad(22.0) * air
+		leg_f_dy += -8.0 * air
+		leg_b_dy += -6.0 * air
+		b_rot += deg_to_rad(clampf(vyy / 60.0, -10.0, 12.0)) * air
+		bb_rot += deg_to_rad(-30.0) * air
+	var spin := 0.0
+	var tuck := 0.0
+	if flip >= 0.0:   # pulo duplo: os pesados encolhem e soltam propulsor; os leves dão uma cambalhota
+		tuck = sin(clampf(flip, 0.0, 1.0) * PI)
+		if bool(st["gira"]):
+			spin = -TAU * (1.0 - pow(1.0 - clampf(flip, 0.0, 1.0), 2.0))
+		leg_f_rot += deg_to_rad(-30.0) * tuck
+		leg_b_rot += deg_to_rad(30.0) * tuck
+		leg_f_dy -= 12.0 * tuck
+		leg_b_dy -= 12.0 * tuck
+	var dash_lean := 0.0
+	if dge > 0.0:   # dash: inclina forte para a frente, pernas para trás
+		dash_lean = deg_to_rad(24.0) * dge
+		leg_b_rot += deg_to_rad(30.0) * dge
+		leg_f_rot += deg_to_rad(16.0) * dge
+		bb_rot += deg_to_rad(40.0) * dge
+	if bool(st["flutua"]) and ground > 0.5:   # Jato: paira um pouco acima do chão
+		b_dy += -4.0 + sin(now * 4.0) * 2.0
+	var cen := Vector2(0.0, -60.0)
+	var G := Transform2D.IDENTITY
+	if spin != 0.0 or dash_lean != 0.0 or tuck != 0.0:
+		G = Transform2D(spin + dash_lean, cen) * Transform2D(0.0, Vector2(1.0 + 0.12 * tuck, 1.0 - 0.18 * tuck), 0.0, Vector2.ZERO) * Transform2D(0.0, -cen)
+	U = U * G
+	# rastro do dash e propulsores (atrás do mecha)
+	ci.draw_set_transform_matrix(U)
+	if dge > 0.05:
+		for k in 3:
+			ci.draw_rect(Rect2(-60.0 - k * 34.0, -150.0 + k * 6.0, 70.0, 150.0 - k * 12.0), Color(0.75, 0.9, 1.0, 0.18 * dge * (1.0 - k * 0.28)))
+		for k in 6:
+			var yy := -140.0 + k * 22.0
+			ci.draw_line(Vector2(-70.0, yy), Vector2(-70.0 - 60.0 - fmod(k * 37.0 + now * 900.0, 80.0), yy), Color(1, 1, 1, 0.7 * dge), 4.0, true)
+	var jet_k := 0.0
+	if flip >= 0.0:
+		jet_k = 1.0 - clampf(flip, 0.0, 1.0)
+	if bool(st["flutua"]):
+		jet_k = maxf(jet_k, 0.35 + 0.5 * maxf(run, air))
+	if dge > 0.0:
+		jet_k = maxf(jet_k, dge)
+	if jet_k > 0.02:   # chamas dos propulsores: nos pés (pulo duplo/Jato) e nas costas (dash)
+		var fl := 0.8 + 0.2 * sin(now * 50.0)
+		for lp in ["perna_b", "perna_f"]:
+			if not m["pivos"].has(lp):
+				continue
+			var fx0 := Vector2(float(m["pivos"][lp][0]) + (8.0 if lp == "perna_f" else -6.0), 4.0)
+			var L := 50.0 * jet_k * fl
+			ci.draw_colored_polygon(PackedVector2Array([fx0 + Vector2(-11, 0), fx0 + Vector2(11, 0), fx0 + Vector2(0, L)]), Color(1.0, 0.6, 0.2, 0.9))
+			ci.draw_colored_polygon(PackedVector2Array([fx0 + Vector2(-5, 0), fx0 + Vector2(5, 0), fx0 + Vector2(0, L * 0.55)]), Color(1.0, 0.97, 0.75, 0.95))
+		if dge > 0.0:
+			var bk := Vector2(-50.0, -110.0)
+			ci.draw_colored_polygon(PackedVector2Array([bk + Vector2(0, -12), bk + Vector2(0, 12), bk + Vector2(-70.0 * dge * fl, 0)]), Color(0.6, 0.85, 1.0, 0.9))
+	# pisão: poeira saindo do pé que encosta no chão
+	if float(st["pisao"]) > 0.0 and run > 0.3 and ground > 0.9:
+		var cpl := absf(cos(ph))
+		if cpl > 0.85:
+			var side := -1.0 if sin(ph) > 0.0 else 1.0
+			var fp := Vector2(side * 18.0, 0.0)
+			for k in 3:
+				ci.draw_circle(fp + Vector2(-20.0 + k * 20.0, -6.0), (8.0 + k * 3.0) * float(st["pisao"]) * (cpl - 0.85) / 0.15, Color(0.85, 0.78, 0.66, 0.6))
 	for p in M["pecas"]:
 		if not (p in m["tem"]):
 			continue
@@ -1488,8 +1598,12 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 			var k := 1.0 - _ease_back(u)
 			var sc := lerpf(0.6, 1.0, 1.0 - pow(1.0 - u, 3.0))
 			xf = xf * Transform2D(0.0, Vector2(float(ch[2]), float(ch[3])) * k) * Transform2D(deg_to_rad(float(ch[4])) * k, piv) * Transform2D(0.0, Vector2(sc, sc), 0.0, Vector2.ZERO) * Transform2D(0.0, -piv)
-		if not (p in ["perna_b", "perna_f"]) and (b_dy != 0.0 or b_rot != 0.0):
-			xf = xf * Transform2D(0.0, Vector2(0.0, b_dy)) * Transform2D(b_rot, hip_p) * Transform2D(0.0, -hip_p)
+		if p == "perna_b" and (leg_b_rot != 0.0 or leg_b_dy != 0.0):
+			xf = xf * Transform2D(0.0, Vector2(0.0, leg_b_dy)) * Transform2D(leg_b_rot, piv) * Transform2D(0.0, -piv)
+		if p == "perna_f" and (leg_f_rot != 0.0 or leg_f_dy != 0.0):
+			xf = xf * Transform2D(0.0, Vector2(0.0, leg_f_dy)) * Transform2D(leg_f_rot, piv) * Transform2D(0.0, -piv)
+		if not (p in ["perna_b", "perna_f"]) and (b_dy != 0.0 or b_rot != 0.0 or b_dx != 0.0 or b_sq != 1.0):
+			xf = xf * Transform2D(0.0, Vector2(b_dx, b_dy)) * Transform2D(b_rot, hip_p) * Transform2D(0.0, Vector2(1.0 / sqrt(b_sq), b_sq), 0.0, Vector2.ZERO) * Transform2D(0.0, -hip_p)
 		if p == "arma" and (aim != 0.0 or a_rot != 0.0 or a_dx != 0.0):
 			xf = xf * Transform2D(0.0, Vector2(a_dx, 0.0)) * Transform2D(aim + a_rot, sh) * Transform2D(0.0, -sh)
 		if p == "braco_b" and bb_rot != 0.0:

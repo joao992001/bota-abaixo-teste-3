@@ -3929,7 +3929,7 @@ func mechas_frames(dir: String) -> void:
 		await tap("v0", "item")
 		main.cam_lock = [1.45, Vector2(900, 720)]
 		var n := 0
-		while n < 250:
+		while n < 360:
 			if n == 58:
 				match st[1]:
 					"fogo", "dash", "raio":
@@ -3954,6 +3954,19 @@ func mechas_frames(dir: String) -> void:
 			if n == 200:
 				put(main.robots[1], r0.position + Vector2(120, 0))
 				await tap("v0", "heavy")    # golpe PESADO do mecha (A33)
+			if n == 240:   # movimento do mecha (A34): anda, pula, pulo duplo, dash
+				for i in range(1, 4):
+					put(main.robots[i], Vector2(1700.0 + i * 60.0, 832.0))
+				put(r0, Vector2(700.0, 832.0))
+				vset("v0", "right", true)
+			if n == 285:
+				await tap("v0", "jump")
+			if n == 300:
+				await tap("v0", "jump")
+			if n == 335:
+				await tap("v0", "dodge")
+			if n == 352:
+				vset("v0", "right", false)
 			for i in range(1, 4):
 				main.demo.lives[i] = 9
 			main.cam_lock = [1.6, Vector2(clampf(main.robots[0].position.x + 220.0, 700.0, 1300.0), 700.0)]
