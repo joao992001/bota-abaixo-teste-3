@@ -2200,6 +2200,18 @@ func resultados_test() -> void:
 	main._proxima_fase_fim()
 	check(main.res_fase == "resultados", "Projetos → RESULTADOS")
 	check(main.fim.duracao("projetos") > main.fim.duracao("gangorra") * 0.5, "telas de recompensa têm animação com duração")
+	# gangorra A (balança da grua) + presente em 5 tempos (pranchas g1–g3, 2026-11-27)
+	var F = main.fim
+	var fundo_cesto: float = (F.caixa_no_cesto(100.0, 1.0) - F.CESTO_CAIXA * F.GA_S).y + 218.0 * F.GA_S
+	check(absf(fundo_cesto - F.GA_CHAO) < 6.0, "no ±100 o cesto ganhador encosta no chão (%.0f px; chão %.0f)" % [fundo_cesto, F.GA_CHAO])
+	for cat in ["skin", "spell", "evento"]:
+		main.res_info = {"valida": true, "zona": 5, "antes": 60, "depois": 100, "delta": 40, "premio": cat, "novas": [], "pontos": 1, "total": 4, "por_mapa": 6}
+		check(is_equal_approx(F.duracao("gangorra"), F.G_BALANCA + F.G_SAI + F.G_VOA + F.G_ABRE + F.G_REVELA), "%s: a gangorra decide e o presente tem os tempos 2–5" % cat)
+		var it: Dictionary = F.premio_item()
+		check(String(it.get("nome", "")) != "" and (cat == "skin" or String(it.get("icone", "")) != ""), "%s: o prêmio revelado tem nome e figura (%s)" % [cat, it.get("nome", "")])
+		check(F.premio_item() == it, "%s: o item sorteado é o mesmo em todos os quadros" % cat)
+		for c in ["corpo", "tampa", "conteudo"]:
+			check(Data.tex("premio/caixa_%s_%s" % [cat, c]) != null, "%s: caixa própria (%s)" % [cat, c])
 	main.res_info = {}
 
 ## Derruba v2 (D3): telas de seleção de spells e eventos (mosaico). --so=selecao
@@ -5317,10 +5329,24 @@ func menus_frames(dir: String) -> void:
 	await frames(1)
 	await snap(dir, "m11_fim_nao_contou")
 	main.res_info = {"valida": true, "zona": 5, "antes": 40, "depois": 100, "delta": 75, "premio": "skin", "novas": [], "pontos": 1, "total": 6, "por_mapa": 6}
-	main.res_fase = "gangorra"
-	main.res_t = 4.4
-	await frames(1)
-	await snap(dir, "m11_fim_premio")
+	for pt in [["a", 3.5], ["b", 4.1], ["c", 4.8], ["d", 5.4], ["e", 6.0], ["f", 6.6], ["g", 9.0]]:   # gangorra decide → presente → prêmio
+		main.res_fase = "gangorra"
+		main.res_t = pt[1]
+		await frames(1)
+		await snap(dir, "m11_fim_premio_" + pt[0])
+	if "--fim-video" in OS.get_cmdline_user_args():   # quadros para o vídeo da gangorra + presente (30 por segundo)
+		main.res_info = {"valida": true, "zona": 5, "antes": 40, "depois": 100, "delta": 75, "premio": "skin", "novas": [], "pontos": 1, "total": 6, "por_mapa": 6}
+		main.fim._k_prev = -1.0
+		for f in 300:
+			main.res_t = f / 30.0
+			await frames(1)
+			await snap(dir, "v_%03d" % f)
+	for cat in ["spell", "evento"]:   # a revelação de cada categoria (caixa e prêmio próprios)
+		main.res_info = {"valida": true, "zona": 0, "antes": -40, "depois": -100, "delta": -60, "premio": cat, "novas": [], "pontos": 1, "total": 6, "por_mapa": 6}
+		for pt in [["a", 3.5], ["d", 5.4], ["g", 9.0]]:
+			main.res_t = pt[1]
+			await frames(1)
+			await snap(dir, "m11_fim_%s_%s" % [cat, pt[0]])
 
 func arena_round(id: String) -> void:
 	main.arena_choice = id

@@ -21,7 +21,11 @@ func setup(m: Node) -> void:
 const G_MOSTRA := 0.8     # mostrador da luta
 const G_PESO := 1.5       # peso cai na ponta
 const G_BALANCA := 3.6    # gangorra puxa para lá e para cá e assenta
-const G_PREMIO := 1.2     # caixa abre (só se chegar a ±100)
+const G_SAI := 0.7       # 2 · a gangorra sai de cena, o presente sobe
+const G_VOA := 0.8       # 3 · o presente voa ao centro
+const G_ABRE := 1.0      # 4 · treme e abre
+const G_REVELA := 1.6    # 5 · o prêmio
+const G_PREMIO := G_SAI + G_VOA + G_ABRE + G_REVELA   # só se chegar a ±100
 const P_INICIO := 0.6
 const P_LINHA := 0.7
 const P_ANDAR := 0.35
@@ -90,122 +94,194 @@ func valor_gangorra(k: float) -> float:
 	var u := clampf((k - G_PESO) / (G_BALANCA - G_PESO), 0.0, 1.0)
 	return clampf(d + (a - d) * exp(-4.0 * u) * cos(u * PI * 5.0), -100.0, 100.0)
 
-func _caixa(ci: CanvasItem, c: Vector2, cat: String, aberta: bool, t: float) -> void:
-	for k in 12:   # raios
-		var a := k * PI / 6.0 + t * 0.4
-		ci.draw_colored_polygon(PackedVector2Array([c, c + Vector2.from_angle(a) * 135.0, c + Vector2.from_angle(a + 0.22) * 135.0]), Color(1.0, 0.96, 0.78, 0.7))
-	var w := 126.0
-	if aberta:
-		ci.draw_style_box(Obra._sb(Obra.MADEIRA_D, 10, 6), Rect2(c + Vector2(-w / 2.0, -w / 2.0 + 18), Vector2(w, w - 18)))
-		ci.draw_set_transform(c + Vector2(-w / 2.0, -w / 2.0), -0.45)
-		ci.draw_style_box(Obra._sb(Obra.MADEIRA, 8, 6), Rect2(-10, -34, w + 20, 30))
-		ci.draw_set_transform(Vector2.ZERO)
-	else:
-		ci.draw_style_box(Obra._sb(Obra.YEL, 12, 7), Rect2(c - Vector2(w, w) / 2.0, Vector2(w, w)))
-		ci.draw_line(c + Vector2(-w / 2.0, -w / 2.0 + 28), c + Vector2(w / 2.0, -w / 2.0 + 28), INK, 5.0)
-		ci.draw_line(c + Vector2(-w / 2.0, w / 2.0 - 28), c + Vector2(w / 2.0, w / 2.0 - 28), INK, 5.0)
-		Kit.text(ci, c + Vector2(-60, 32), "?", 92, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 120, 14)
-	var ty := c.y - w / 2.0 - 64.0   # etiqueta da categoria em cima da caixa
-	ci.draw_style_box(Obra._sb(Obra.CREAM, 10, 4), Rect2(c.x - 74, ty, 148, 44))
-	Kit.text(ci, Vector2(c.x - 74, ty + 32), cat, 24 if cat.length() < 8 else 20, INK, HORIZONTAL_ALIGNMENT_CENTER, 148)
+# ---- arte da gangorra A e das caixas (art/src/ui/premio_export.py; pranchas g1–g3 aprovadas em 2026-11-27)
+const CX_VB := Rect2(-180, -350, 360, 470)      # moldura comum das 3 camadas da caixa (unidades; origem = centro)
+const VIGA_VB := Rect2(-430, -40, 860, 84)      # origem = pivô
+const CESTO_VB := Rect2(-90, -12, 180, 240)     # origem = onde pendura
+const GANCHO_VB := Rect2(-44, -110, 88, 136)    # origem = pivô da viga
+const GA_S := 1.35                              # unidades do desenho → px na tela
+const GA_PIVO := Vector2(960, 410)
+const GA_CHAO := 884.0
+const GA_PONTA := 370.0                         # onde os cestos penduram (unidades a partir do pivô)
+const CESTO_CAIXA := Vector2(0, 114)            # centro da caixa dentro do cesto (unidades)
+const CESTO_K := 0.62                           # tamanho da caixa no cesto
+const CAIXA_CENTRO := Vector2(960, 600)
+const CAIXA_GRANDE := 1.9
+const BANNER := {"skin": "SKIN NOVA!", "spell": "ENGENHOCA NOVA!", "evento": "EVENTO NOVO!"}
+var _k_prev := -1.0
+
+func _peca(ci: CanvasItem, nome: String, vb: Rect2, xf: Transform2D, mod := Color.WHITE) -> void:
+	var tx: Texture2D = Data.tex("premio/" + nome)
+	if tx == null:
+		return
+	ci.draw_set_transform_matrix(xf)
+	ci.draw_texture_rect(tx, vb, false, mod)
+	ci.draw_set_transform(Vector2.ZERO)
+
+## Caixa de prêmio que diz a categoria pela forma (figurino / maleta de aço / caixote com sirene).
+## xf = posição+giro+escala (unidades do desenho); tampa 0..1 (voa para o lado); sobe 0..1 = conteúdo saindo.
+func caixa(ci: CanvasItem, cat: String, xf: Transform2D, tampa := 0.0, sobe := 0.0, alpha := 1.0) -> void:
+	if not cat in BANNER:
+		cat = "skin"
+	var m := Color(1, 1, 1, alpha)
+	if tampa > 0.0:
+		_peca(ci, "caixa_%s_conteudo" % cat, CX_VB, xf * Transform2D(0.0, Vector2(0, 90.0 + (1.0 - sobe) * 150.0)), Color(1, 1, 1, alpha * clampf(sobe * 3.0, 0.0, 1.0)))
+	_peca(ci, "caixa_%s_corpo" % cat, CX_VB, xf, m)
+	var tl := xf * Transform2D(0.0, Vector2(190.0 * tampa, -200.0 * tampa)) * Transform2D(0.0, Vector2(0, -75)) \
+		* Transform2D(deg_to_rad(40.0 * tampa), Vector2.ZERO) * Transform2D(0.0, Vector2(0, 75))
+	_peca(ci, "caixa_%s_tampa" % cat, CX_VB, tl, Color(1, 1, 1, alpha * clampf(2.0 - tampa * 1.6, 0.0, 1.0)))
+
+static func _esc(s: float, pos: Vector2, rot := 0.0) -> Transform2D:
+	return Transform2D(rot, Vector2(s, s), 0.0, pos)
+
+## Ângulo máximo da viga: a ponta ganhadora leva o cesto até o chão.
+static func ga_amax() -> float:
+	return asin(clampf((GA_CHAO - 218.0 * GA_S - GA_PIVO.y - 32.0 * GA_S) / (GA_PONTA * GA_S), 0.0, 1.0))
+
+## Onde fica a caixa do cesto (lado sx = −1 verde / +1 vermelho) com a gangorra no valor v (−100..100).
+func caixa_no_cesto(v: float, sx: float, dy := 0.0, balanco := 0.0) -> Vector2:
+	var ang := v / 100.0 * ga_amax()
+	var pend: Vector2 = Transform2D(ang, GA_PIVO + Vector2(0, dy)) * (Vector2(sx * GA_PONTA, 32.0) * GA_S)
+	return pend + (CESTO_CAIXA * GA_S).rotated(balanco)
+
+## Item ganho (sorteado uma vez e guardado em res_info): skin do mapa (de preferência do robô do vencedor),
+## uma engenhoca ou um evento com ícone. Hoje tudo já está liberado (A9): é a revelação do que saiu.
+func premio_item() -> Dictionary:
+	var ri: Dictionary = main.res_info
+	if ri.has("premio_item"):
+		return ri["premio_item"]
+	var cat := String(ri.get("premio", ""))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s%d" % [cat, main.perfil.dados.get("premios", []).size()])
+	var it := {"cat": cat, "nome": String(CAT_NOME.get(cat, cat.to_upper())), "id": ""}
+	match cat:
+		"skin":
+			var w := clampi(main.winner, 0, maxi(main.players.size() - 1, 0))
+			var p: Dictionary = main.players[w] if w < main.players.size() else {"color": 0, "model": 0}
+			it["color"] = p.get("color", 0)
+			it["model"] = int(p.get("model", 0))
+			var nome_robo: String = Data.MODELS[posmod(int(it["model"]), Data.MODELS.size())]
+			var ks: Array = MapaReg.manifesto(main.game_mode, String(main.level.id) if main.level != null else "").get("skins_originadas", [])
+			var esc = null
+			for k in ks:
+				if k is Dictionary and String(k.get("robo", "")) == nome_robo:
+					esc = k
+			if esc == null and not ks.is_empty():
+				esc = ks[rng.randi() % ks.size()]
+				it["model"] = maxi(Data.MODELS.find(String(esc.get("robo", ""))), 0)
+			if esc != null:
+				it["id"] = String(esc["id"]).to_lower()
+				it["nome"] = String(esc.get("nome", esc["id"])).to_upper()
+		"spell":
+			var todas := []
+			for pool in main.demo.cfg["spells"]["pools"].values():
+				if pool is Array:
+					for k in pool:
+						if not k in todas:
+							todas.append(k)
+			if not todas.is_empty():
+				var id: String = todas[rng.randi() % todas.size()]
+				it["id"] = id
+				it["icone"] = String(main.demo.cfg["spells"].get(id, {}).get("icone", ""))
+				it["nome"] = String(preload("res://modes/spells.gd").NOMES.get(id, id)).to_upper()
+		"evento":
+			var com_icone := []
+			for e in main.events.cfg["lista"]:
+				if String(e.get("icone", "")) != "":
+					com_icone.append(e)
+			if not com_icone.is_empty():
+				var e: Dictionary = com_icone[rng.randi() % com_icone.size()]
+				it["id"] = String(e["id"])
+				it["icone"] = String(e["icone"])
+				it["nome"] = String(e.get("nome", e["id"])).to_upper()
+	ri["premio_item"] = it
+	return it
+
+func _som(k: float, t0: float, nome: String) -> void:
+	if _k_prev < t0 and k >= t0 and k - _k_prev < 0.5:
+		Audio.play(nome)
 
 func _gangorra(ci: CanvasItem, k: float) -> void:
 	var t: float = main.hud.t
 	var ri: Dictionary = main.res_info
-	_fundo(ci, t, 0.12)
 	var valida: bool = not ri.is_empty() and bool(ri["valida"])
+	var premio := String(ri.get("premio", "")) if valida else ""
+	var q := k - G_BALANCA   # tempos do presente (só com prêmio)
+	var sai := _smooth(q / G_SAI) if premio != "" and q > 0.0 else 0.0
+	_fundo(ci, t, 0.12 + 0.5 * sai)
 	var v := valor_gangorra(k)
-	var px := 960.0
-	var py := 690.0
-	var ang := deg_to_rad(v / 100.0 * 15.7)
-	# régua em arco atrás (verde à esquerda, vermelho à direita) e a agulha presa no pivô
-	for i in 6:
-		ci.draw_arc(Vector2(px, py), 330.0, PI + i * PI / 6.0, PI + (i + 1) * PI / 6.0, 12, Color(ZC[i]), 60.0, true)
-	ci.draw_arc(Vector2(px, py), 360.0, PI, TAU, 48, INK, 5.0, true)
-	ci.draw_arc(Vector2(px, py), 300.0, PI, TAU, 48, INK, 5.0, true)
-	for i in 7:
-		var a := PI + i * PI / 6.0
-		ci.draw_line(Vector2(px, py) + Vector2.from_angle(a) * 300.0, Vector2(px, py) + Vector2.from_angle(a) * 360.0, INK, 5.0)
-	Kit.text(ci, Vector2(px - 40, py - 372), "0", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 80, 6)
-	var na := -PI / 2.0 + deg_to_rad(v * 0.9)
-	var tip := Vector2(px, py) + Vector2.from_angle(na) * 340.0
-	var nb := Vector2.from_angle(na + PI / 2.0) * 14.0
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(px, py) + nb, tip, Vector2(px, py) - nb]), INK)
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(px, py) + nb * 0.5, Vector2(px, py) + Vector2.from_angle(na) * 318.0, Vector2(px, py) - nb * 0.5]), Color("#d42035"))
-	# cavalete de concreto
-	ci.draw_rect(Rect2(px - 120, 860, 240, 26), Color("#bdb3a0"))
-	var cav := PackedVector2Array([Vector2(px - 110, 868), Vector2(px, py + 10), Vector2(px + 110, 868)])
-	ci.draw_colored_polygon(cav, Color("#cfc6b4"))
-	cav.append(cav[0])
-	ci.draw_polyline(cav, INK, 7.0, true)
-	# alvos no chão (ponta encostou = prêmio)
-	for sx in [-1.0, 1.0]:
-		ci.draw_set_transform(Vector2(px + sx * 690.0, 886), 0.0, Vector2(1.0, 0.18))
-		ci.draw_circle(Vector2.ZERO, 90.0, Obra.YEL)
-		ci.draw_arc(Vector2.ZERO, 90.0, 0.0, TAU, 32, INK, 18.0)
-		ci.draw_set_transform(Vector2.ZERO)
-	# tábua nas 6 cores + prêmios nas pontas + peso
+	var amax := ga_amax()
+	var ang := v / 100.0 * amax
+	var dy := sai * sai * 900.0   # 2 · SAI DE CENA: a gangorra desce e some
+	var pivo := GA_PIVO + Vector2(0, dy)
 	var g: Dictionary = main.perfil.dados["gangorra"]
 	var cat_v := String(g["extremo_verde"])
 	var cat_r := String(g["extremo_vermelho"])
-	var premio_nome := ""
-	var premio := String(ri.get("premio", "")) if valida else ""
+	var lado_ganho := 0.0
 	if premio != "":   # o perfil já sorteou extremos novos: a ponta premiada mostra a categoria ganha
-		if float(ri["depois"]) < 0.0:
+		lado_ganho = -1.0 if float(ri["depois"]) < 0.0 else 1.0
+		if lado_ganho < 0.0:
 			cat_v = premio
 		else:
 			cat_r = premio
-	cat_v = String(CAT_NOME.get(cat_v, cat_v.to_upper()))
-	cat_r = String(CAT_NOME.get(cat_r, cat_r.to_upper()))
-	premio_nome = String(CAT_NOME.get(premio, premio.to_upper()))
-	_titulo(ci, "GANGORRA DE RECOMPENSAS", 820)
-	# cartões: mostrador da luta (esq.) e legenda (dir.)
-	ci.draw_style_box(Obra._sb(Obra.CREAM, 18, 5), Rect2(30, 170, 470, 200))
-	var et = main.demo.etapas
-	var prog: float = et.progresso if et != null and is_instance_valid(et) else 0.5
-	main.hud.draw_gauge(Vector2(130, 262), 76, prog * clampf(k / G_MOSTRA, 0.0, 1.0) if valida else prog)
-	var zona_nome: String = ["VERDE ESCURO", "VERDE", "AMARELO", "LARANJA", "VERMELHO", "VERMELHO ESCURO"][int(ri.get("zona", 0))] if not ri.is_empty() else ""
-	Kit.text(ci, Vector2(230, 238), "a luta terminou", 28, INK, HORIZONTAL_ALIGNMENT_CENTER, 260)
-	Kit.text(ci, Vector2(230, 274), "em %d%%:" % int(round(prog * 100.0)), 28, INK, HORIZONTAL_ALIGNMENT_CENTER, 260)
-	Kit.text(ci, Vector2(230, 314), zona_nome, 28 if zona_nome.length() < 10 else 22, INK, HORIZONTAL_ALIGNMENT_CENTER, 260)
-	ci.draw_style_box(Obra._sb(Obra.CREAM, 18, 5), Rect2(1420, 170, 470, 200))
-	Kit.text(ci, Vector2(1420, 228), "VERDE puxa para: %s" % cat_v, 26, Color("#2e9e4f"), HORIZONTAL_ALIGNMENT_CENTER, 470)
-	Kit.text(ci, Vector2(1420, 282), "VERMELHO puxa para: %s" % cat_r, 26, Color("#a8233a"), HORIZONTAL_ALIGNMENT_CENTER, 470)
-	Kit.text(ci, Vector2(1420, 338), "ponta no chão = prêmio", 24, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, 470)
-	var abre: bool = premio != "" and k >= G_BALANCA
-	var L := 720.0
-	var xf := Transform2D(ang, Vector2(px, py))
-	ci.draw_set_transform_matrix(xf)
-	for i in 6:
-		ci.draw_rect(Rect2(-L + i * 2.0 * L / 6.0, -46, 2.0 * L / 6.0, 40), Color(ZC[i]))
-	ci.draw_style_box(Obra._sb(Color(0, 0, 0, 0), 8, 7), Rect2(-L, -46, 2.0 * L, 40))
-	ci.draw_circle(Vector2(0, -26), 16.0, Color("#8d98a4"))
-	ci.draw_arc(Vector2(0, -26), 16.0, 0.0, TAU, 20, INK, 5.0)
-	ci.draw_set_transform(Vector2.ZERO)
+	if q < G_SAI * 0.8:   # no presente a tela é dele: o título sai
+		_titulo(ci, "GANGORRA DE RECOMPENSAS", 820)
+	# cabo da grua → gancho → viga nas 6 cores → cestos pendurados (sempre na vertical, balançando um pouco)
+	ci.draw_line(Vector2(960, 140), pivo + Vector2(0, -100.0 * GA_S), Color("#4a4f5c"), 6.0)
+	for sx in [-1.0, 1.0]:   # alvos no chão (cesto encostou = prêmio)
+		ci.draw_set_transform(Vector2(GA_PIVO.x + sx * GA_PONTA * GA_S, GA_CHAO + 4 + dy), 0.0, Vector2(1.0, 0.18))
+		ci.draw_circle(Vector2.ZERO, 110.0, Obra.YEL)
+		ci.draw_arc(Vector2.ZERO, 110.0, 0.0, TAU, 32, INK, 18.0)
+		ci.draw_set_transform(Vector2.ZERO)
+	_peca(ci, "gangorra_gancho", GANCHO_VB, _esc(GA_S, pivo))
+	var xf := Transform2D(ang, pivo)
+	_peca(ci, "gangorra_viga", VIGA_VB, xf * Transform2D(0.0, Vector2(GA_S, GA_S), 0.0, Vector2.ZERO))
+	var dv := valor_gangorra(k) - valor_gangorra(maxf(k - 0.06, 0.0))
+	var balanco := clampf(-dv * 0.012, -0.3, 0.3)
 	for sx in [-1.0, 1.0]:
-		var cc: Vector2 = xf * Vector2(sx * (L - 90.0), -120.0)
-		var ganhou: bool = abre and (sx < 0) == (float(ri["depois"]) < 0.0)
-		if ganhou:
-			Kit.burst(ci, cc, 110.0 * (0.6 + 0.4 * clampf((k - G_BALANCA) / 0.4, 0.0, 1.0)), t, 5.0)
-		_caixa(ci, cc, cat_v if sx < 0 else cat_r, ganhou, t)
-	if valida and k >= G_MOSTRA:
+		var pend: Vector2 = xf * (Vector2(sx * GA_PONTA, 32.0) * GA_S)
+		var ganhou: bool = premio != "" and sx == lado_ganho
+		if not (ganhou and q > 0.0):   # a caixa ganhadora sai do cesto (desenhada à parte)
+			var cc := pend + (CESTO_CAIXA * GA_S).rotated(balanco)
+			if ganhou and k > G_BALANCA - 0.5:
+				Kit.burst(ci, cc, 90.0, t, 5.0)
+			caixa(ci, cat_v if sx < 0 else cat_r, _esc(GA_S * CESTO_K, cc, balanco))
+		_peca(ci, "gangorra_cesto", CESTO_VB, _esc(GA_S, pend, balanco))
+	if valida and k >= G_MOSTRA:   # o peso da luta cai na viga
 		var delta := int(ri["delta"])
 		var side := 1.0 if delta > 0 else -1.0
 		var u := _smooth((k - G_MOSTRA) / (G_PESO - G_MOSTRA))
-		var alvo: Vector2 = xf * Vector2(side * 380.0, -100.0)
+		var alvo: Vector2 = xf * Vector2(side * 230.0 * GA_S, -2.0 * GA_S - 50.0)
 		var c := Vector2(alvo.x, lerpf(-120.0, alvo.y, u * u))
 		ci.draw_set_transform(c, ang if u >= 1.0 else 0.0)
 		ci.draw_style_box(Obra._sb(Color(ZC[int(ri["zona"])]), 10, 7), Rect2(-70, -50, 140, 100))
 		Kit.text(ci, Vector2(-70, 18), "%+d" % delta, 46, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 140, 10)
 		ci.draw_set_transform(Vector2.ZERO)
-	if abre:   # faixa no meio: o que foi ganho
-		var u2 := _ease_back(clampf((k - G_BALANCA) / 0.4, 0.0, 1.0))
-		ci.draw_set_transform(Vector2(960, 470), -0.04, Vector2.ONE * u2)
-		ci.draw_style_box(Obra._sb(Obra.YEL, 14, 7), Rect2(-330, -60, 660, 110))
-		Kit.text(ci, Vector2(-330, 22), "PRÊMIO: %s!" % premio_nome, 54, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 660, 12)
-		ci.draw_set_transform(Vector2.ZERO)
+	# cartões: mostrador da luta (esq.) e para onde cada cor puxa (dir.) — descem junto com a gangorra
+	var cy := 170.0 + dy
+	ci.draw_style_box(Obra._sb(Obra.CREAM, 18, 5), Rect2(30, cy, 430, 170))
+	var et = main.demo.etapas
+	var prog: float = et.progresso if et != null and is_instance_valid(et) else 0.5
+	main.hud.draw_gauge(Vector2(122, cy + 86), 68, prog * clampf(k / G_MOSTRA, 0.0, 1.0) if valida else prog)
+	var zona_nome: String = ["VERDE ESCURO", "VERDE", "AMARELO", "LARANJA", "VERMELHO", "VERMELHO ESCURO"][int(ri.get("zona", 0))] if not ri.is_empty() else ""
+	Kit.text(ci, Vector2(205, cy + 58), "a luta terminou", 28, INK, HORIZONTAL_ALIGNMENT_CENTER, 250)
+	Kit.text(ci, Vector2(205, cy + 94), "em %d%%:" % int(round(prog * 100.0)), 28, INK, HORIZONTAL_ALIGNMENT_CENTER, 250)
+	Kit.text(ci, Vector2(205, cy + 134), zona_nome, 28 if zona_nome.length() < 10 else 22, INK, HORIZONTAL_ALIGNMENT_CENTER, 250)
+	ci.draw_style_box(Obra._sb(Obra.CREAM, 18, 5), Rect2(1460, cy, 430, 170))
+	Kit.text(ci, Vector2(1460, cy + 52), "VERDE puxa para: %s" % CAT_NOME.get(cat_v, cat_v.to_upper()), 22, Color("#2e9e4f"), HORIZONTAL_ALIGNMENT_CENTER, 430)
+	Kit.text(ci, Vector2(1460, cy + 100), "VERMELHO puxa para: %s" % CAT_NOME.get(cat_r, cat_r.to_upper()), 22, Color("#a8233a"), HORIZONTAL_ALIGNMENT_CENTER, 430)
+	Kit.text(ci, Vector2(1460, cy + 146), "cesto no chão = prêmio", 24, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, 430)
+	if premio != "" and q > 0.0:
+		_presente(ci, q, premio, lado_ganho, t)
+	if premio != "":
+		_som(k, G_BALANCA - 0.4, "capacete")
+		_som(k, G_BALANCA + G_SAI + G_VOA, "bonk_1")
+		_som(k, G_BALANCA + G_SAI + G_VOA + G_ABRE * 0.55, "item")
+		_som(k, G_BALANCA + G_SAI + G_VOA + G_ABRE, "rodada_vence")
+	_k_prev = k
 	if valida:
-		Kit.text(ci, Vector2(760, 992), "%+d" % int(round(v)), 60, Obra.YEL if v >= 0.0 else Color("#8fd46a"), HORIZONTAL_ALIGNMENT_CENTER, 400, 12)
+		if sai <= 0.0:
+			Kit.text(ci, Vector2(760, 1000), "%+d" % int(round(v)), 60, Obra.YEL if v >= 0.0 else Color("#8fd46a"), HORIZONTAL_ALIGNMENT_CENTER, 400, 12)
 		Obra.dica(ci, ("PULAR  segue para os Projetos" if k >= duracao("gangorra") else "PULAR  pula a animação"))
 	else:
 		_carimbo(ci, Vector2(960, 560), "NÃO CONTOU")
@@ -213,6 +289,115 @@ func _gangorra(ci: CanvasItem, k: float) -> void:
 		ci.draw_style_box(Obra._sb(Color("#fbe3dc"), 12, 5), Rect2(460, 930, 1000, 64))
 		Kit.text(ci, Vector2(460, 972), mot + ": não vale para a gangorra nem para os Projetos", 26, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, 1000)
 		Obra.dica(ci, "PULAR  segue para os resultados")
+
+## Tempos 2–5 do presente (q = segundos depois que a gangorra decidiu): sobe do cesto → voa girando ao centro e
+## cresce → treme 3× e a tampa estoura (raios + confete) → o prêmio GRANDE no pedestal, com nome e selo NOVO.
+func _presente(ci: CanvasItem, q: float, cat: String, lado: float, t: float) -> void:
+	var p0 := caixa_no_cesto(lado * 100.0, lado)
+	var s0 := GA_S * CESTO_K
+	var p1 := p0 + Vector2(0, -230)
+	var pos := p0
+	var s := s0
+	var rot := 0.0
+	var tampa := 0.0
+	var sobe := 0.0
+	var alpha := 1.0
+	var brilho := 0.0
+	var q2 := q - G_SAI
+	var q3 := q2 - G_VOA
+	var q4 := q3 - G_ABRE
+	if q2 < 0.0:   # 2 · sobe do cesto enquanto a gangorra desce
+		var u := _ease_back(clampf(q / G_SAI, 0.0, 1.0))
+		pos = p0.lerp(p1, u)
+		s = s0 * (1.0 + 0.15 * u)
+	elif q3 < 0.0:   # 3 · voa ao centro girando e crescendo
+		var u := _smooth(q2 / G_VOA)
+		var ctrl := Vector2((p1.x + CAIXA_CENTRO.x) / 2.0, minf(p1.y, CAIXA_CENTRO.y) - 260.0)
+		pos = p1.lerp(ctrl, u).lerp(ctrl.lerp(CAIXA_CENTRO, u), u)
+		s = lerpf(s0 * 1.15, CAIXA_GRANDE, u)
+		rot = -lado * u * TAU
+	else:
+		pos = CAIXA_CENTRO
+		s = CAIXA_GRANDE
+		var u3 := clampf(q3 / G_ABRE, 0.0, 1.0)
+		if u3 < 0.55:   # 4 · treme 3×
+			var f := u3 / 0.55 * 3.0
+			var amp := absf(sin(f * PI)) * (0.5 + 0.5 * f / 3.0)
+			pos += Vector2(sin(q3 * 70.0) * 14.0 * amp, -absf(sin(f * PI)) * 18.0)
+			rot = sin(q3 * 55.0) * 0.08 * amp
+			s *= 1.0 + 0.05 * amp
+		else:
+			tampa = clampf((u3 - 0.55) / 0.22, 0.0, 1.0)
+			sobe = _ease_back(clampf((u3 - 0.55) / 0.4, 0.0, 1.0))
+			brilho = clampf((u3 - 0.55) / 0.3, 0.0, 1.0)
+	if q4 >= 0.0:   # 5 · o prêmio
+		tampa = 1.0
+		sobe = 1.0
+		brilho = 1.0
+		alpha = clampf(1.0 - q4 / 0.3, 0.0, 1.0)
+		pos = CAIXA_CENTRO + Vector2(0, 260.0 * _smooth(q4 / 0.3))
+	if brilho > 0.0:   # raios girando atrás
+		var rc := CAIXA_CENTRO + Vector2(0, -60)
+		for i in 16:
+			var a := i * TAU / 16.0 + t * 0.35
+			ci.draw_colored_polygon(PackedVector2Array([rc, rc + Vector2.from_angle(a) * 1300.0 * brilho, rc + Vector2.from_angle(a + 0.18) * 1300.0 * brilho]), Color(1.0, 0.95, 0.75, 0.32))
+	if alpha > 0.0:
+		caixa(ci, cat, _esc(s, pos, rot), tampa, sobe, alpha)
+	if brilho > 0.0:   # confete
+		var qc := maxf(q3 - G_ABRE * 0.55, 0.0)
+		var cols := [Color("#d42035"), Color("#5cc45c"), Color("#4f86d9"), Obra.YEL, Color("#d9539b")]
+		for i in 46:
+			var a := -PI / 2.0 + (fposmod(i * 0.618, 1.0) - 0.5) * 2.6
+			var vv := 700.0 + fposmod(i * 0.377, 1.0) * 700.0
+			var pc := CAIXA_CENTRO + Vector2(0, -120) + Vector2.from_angle(a) * vv * qc + Vector2(0, 900.0 * qc * qc)
+			if pc.y > 1100.0:
+				continue
+			ci.draw_set_transform(pc, qc * 9.0 + i)
+			ci.draw_rect(Rect2(-7, -11, 14, 22), cols[i % cols.size()])
+			ci.draw_set_transform(Vector2.ZERO)
+	if q4 >= 0.0:
+		_revela(ci, q4, cat, t)
+
+func _revela(ci: CanvasItem, q: float, cat: String, t: float) -> void:
+	var it := premio_item()
+	var u := _ease_back(clampf(q / 0.45, 0.0, 1.0))
+	var c := Vector2(960, 560)
+	# pedestal
+	ci.draw_set_transform(c + Vector2(0, 250), 0.0, Vector2(u, u * 0.22))
+	ci.draw_circle(Vector2.ZERO, 230.0, Color("#8d98a4"))
+	ci.draw_arc(Vector2.ZERO, 230.0, 0.0, TAU, 48, INK, 24.0)
+	ci.draw_set_transform(Vector2.ZERO)
+	ci.draw_rect(Rect2(c.x - 228 * u, c.y + 250, 456 * u, 60), Color("#6b7684"))
+	ci.draw_rect(Rect2(c.x - 228 * u, c.y + 304, 456 * u, 8), INK)
+	match cat:
+		"skin":   # o robô vestindo a skin, girando no pedestal (escala x = cosseno: mesa giratória)
+			var gira := cos(t * 1.6)
+			var sx := (absf(gira) * 0.8 + 0.2) * signf(gira if absf(gira) > 0.001 else 1.0)
+			RobotVis.draw_robot(ci, {"color": it.get("color", 0), "model": it.get("model", 0), "skin": String(it.get("id", ""))},
+				RobotVis.idle_pose(t), Transform2D(0.0, Vector2(5.0 * sx, 5.0) * u, 0.0, c + Vector2(0, 252)))
+		_:   # engenhoca / evento: o ícone grande flutuando com brilho
+			var tx: Texture2D = Data.tex("spells/" + String(it.get("icone", "")))   # ícones de engenhoca e de evento moram em spells/
+			var y := c.y - 20 + sin(t * 2.2) * 14.0
+			ci.draw_circle(Vector2(c.x, y), 190.0 * u, Color(1.0, 0.97, 0.8, 0.55))
+			if tx != null:
+				var k := 360.0 / maxf(tx.get_width(), tx.get_height()) * u
+				var sz := Vector2(tx.get_width(), tx.get_height()) * k
+				ci.draw_texture_rect(tx, Rect2(Vector2(c.x, y) - sz / 2.0, sz), false)
+	# faixa da categoria (cai de cima) e nome grande
+	var ub := _ease_back(clampf((q - 0.15) / 0.4, 0.0, 1.0))
+	var by := lerpf(-120.0, 110.0, ub)
+	ci.draw_set_transform(Vector2(960, by), -0.03)
+	Kit.chunk(ci, Rect2(-300, -58, 600, 116), Obra.YEL, 16, 7, 10.0)
+	Kit.text(ci, Vector2(-300, 22), BANNER.get(cat, "PRÊMIO!"), 60, INK, HORIZONTAL_ALIGNMENT_CENTER, 600)
+	ci.draw_set_transform(Vector2.ZERO)
+	if q > 0.35:
+		var un := _ease_back(clampf((q - 0.35) / 0.35, 0.0, 1.0))
+		ci.draw_set_transform(Vector2(960, 930), 0.0, Vector2(un, un))
+		Kit.text(ci, Vector2(-700, 30), String(it.get("nome", "")), 80, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1400, 16)
+		ci.draw_set_transform(Vector2(1160, 400), 0.25, Vector2(un, un))
+		ci.draw_style_box(Obra._sb(Color("#d42035"), 10, 6), Rect2(-80, -32, 160, 64))
+		Kit.text(ci, Vector2(-80, 16), "NOVO", 40, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 160)
+		ci.draw_set_transform(Vector2.ZERO)
 
 func _carimbo(ci: CanvasItem, c: Vector2, txt: String) -> void:
 	ci.draw_set_transform(c, -0.12)

@@ -50,7 +50,7 @@ def _cabide(y, roupa=False, col="#4f86d9"):
     return "".join(b)
 
 
-def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0):
+def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0, parte=""):
     """Caixa de presente que DIZ o prêmio pela forma (sem palavra):
     skin   = caixa de figurino (rosa de bolinhas, fita turquesa, cabide saindo pela tampa, selo com cara de robô);
     spell  = maleta de ferramentas de aço (faixa zebrada, rebites, alça; engrenagem laranja e mola no lugar do laço);
@@ -63,6 +63,7 @@ def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0):
             r = 320 * brilho
             b.append(f'<path d="M0,0 L{math.cos(a) * r:.0f},{math.sin(a) * r:.0f} L{math.cos(a + 0.2) * r:.0f},{math.sin(a + 0.2) * r:.0f}Z" fill="#fff4c8" opacity="0.8"/>')
     ty, tr, tx = -200 * tampa, 40 * tampa, 190 * tampa   # a tampa voa para o lado e libera a vista do conteúdo
+    n0 = len(b)
     # conteúdo que salta quando abre
     if tampa > 0.05:
         if cat == "skin":
@@ -74,6 +75,7 @@ def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0):
             for a in (-60, -20, 20, 60):
                 b.append(f'<path d="M0,-70 L{math.sin(math.radians(a)) * 300:.0f},{-70 - math.cos(math.radians(a)) * 300:.0f} '
                          f'L{math.sin(math.radians(a + 12)) * 300:.0f},{-70 - math.cos(math.radians(a + 12)) * 300:.0f}Z" fill="#ff5a3c" opacity="0.55"/>')
+    n1 = len(b)
     # corpo
     if cat == "skin":
         b.append(f'<clipPath id="cxs"><rect x="-75" y="-59" width="150" height="134" rx="12"/></clipPath>')
@@ -105,6 +107,7 @@ def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0):
             b.append(f'<circle cx="{x}" cy="{y}" r="4" fill="#4a4f5c"/>')
         b.append(f'<path d="M0,-34 L36,30 H-36 Z" fill="{YEL}" stroke="{INK}" stroke-width="6" stroke-linejoin="round"/>'
                  f'<path d="M0,-14 v22" stroke="{INK}" stroke-width="8" stroke-linecap="round"/><circle cx="0" cy="20" r="5" fill="{INK}"/>')
+    n2 = len(b)
     # tampa + enfeite de cima (no lugar do laço)
     b.append(f'<g transform="translate({tx:.0f},{ty:.0f}) rotate({tr:.0f} 0 -75)">')
     if cat == "skin":
@@ -132,6 +135,9 @@ def caixa(cat, cx, cy, s=1.0, tampa=0.0, brilho=0.0, rot=0.0):
         b.append(f'<rect x="-87" y="-93" width="174" height="36" rx="5" fill="{MAD_E}" stroke="{INK}" stroke-width="7"/>'
                  f'<path d="M-30,-93 v36 M30,-93 v36" stroke="{INK}" stroke-width="4"/>')
     b.append("</g></g>")
+    if parte:   # exportação para o jogo: só uma das camadas (mesma moldura)
+        faixa = {"conteudo": (n0, n1), "corpo": (n1, n2), "tampa": (n2, len(b) - 1)}[parte]
+        return b[0] + "".join(b[faixa[0]:faixa[1]]) + ("</g>" if parte == "tampa" else "") + "</g>"
     return "".join(b)
 
 
