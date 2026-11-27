@@ -756,6 +756,11 @@ def export_game():
             col = COLORS[ci]
             body = f'<g transform="{_xf(cid)}">{ch["torso"](col, "")}</g><g transform="{_head_xf(cid)}">{ch["head"](col, "", "base")}</g>'
             queue(_gwrap(body, seed), f"{src}/corpo_{cid}_p{ci + 1}.svg", f"{out_dir}/corpo_{cid}_p{ci + 1}.png", 128, 128, K4)
+            # A48: tronco e cabeça separados (o jogo atrasa a cabeça com mola, como nas animações aprovadas)
+            tor = f'<g transform="{_xf(cid)}">{ch["torso"](col, "")}</g>'
+            cab = f'<g transform="{_head_xf(cid)}">{ch["head"](col, "", "base")}</g>'
+            queue(_gwrap(tor, seed), f"{src}/tronco_{cid}_p{ci + 1}.svg", f"{out_dir}/tronco_{cid}_p{ci + 1}.png", 128, 128, K4)
+            queue(_gwrap(cab, seed), f"{src}/cabeca_{cid}_p{ci + 1}.svg", f"{out_dir}/cabeca_{cid}_p{ci + 1}.png", 128, 128, K4)
         for e in GAME_EXPR:
             face = f'<g transform="{_head_xf(cid)}">{ch["head"](COLORS[0], e, "face")}</g>'
             queue(_gwrap(face, seed + 1), f"{src}/rosto_{cid}_{e}.svg", f"{out_dir}/rosto_{cid}_{e}.png", 128, 128, K4)
@@ -781,7 +786,7 @@ def export_game():
             "nome": ch["nome"].capitalize(), "hat": [64, 40, 0.5],
             "hips": [cv(add(hip, hb)), cv(add(hip, hf))], "shoulders": [cv(add(hip, shb)), cv(add(hip, ch["sh_f"]))],
             "hand_back": cv(POSES[cid]["parado"]["tool"][:2]), "hand_front": cv(POSES[cid]["parado"]["tool"][:2]),
-            "antenna": cv(acc_p), "eyes": [cv(eyes_c), cv(eyes_c)], "top": round(O[1] + k * top[1], 1),
+            "antenna": cv(acc_p), "neck": cv(add(hip, (ha[0] * 0.5, ha[1] + 6))), "eyes": [cv(eyes_c), cv(eyes_c)], "top": round(O[1] + k * top[1], 1),
             "limb_w": round(ch["arm"][2] * k, 2), "leg_w": round(ch["leg"][2] * k, 2), "knee": ch["knee"],
             "hand_s": round(g["hand_r"] * k / 6.2, 3), "foot_s": round(g["foot"][0] * k / 17.0, 3),
             "voz": g["voz"], "danca": g["danca"],

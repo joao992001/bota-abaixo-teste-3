@@ -12,6 +12,16 @@ const ORIGIN := Vector2(64, 120)
 const GRIP := Vector2(32, 56)          # pega dentro da textura da marreta (64x64)
 const HAMMER_REST := 0.35
 const STRIDE := 46.0
+## A48: mola da cabeça de cada robô [rigidez, amortecimento, ganho]: Guindaste (picareta) molenga, Brita rápida, Escavadeira (pa) pesada.
+## A48: jeito de andar de cada robô (das animações aprovadas): passada (px por meio ciclo), balanço do corpo, passo
+## (amplitude e altura do pé), ginga (lean oscilando) e quique (pulinho na corrida).
+const GAIT := {"marretao": {"stride": 46.0, "bob": 5.0, "step": 11.0, "lift": 10.0, "ginga": 0.0, "quique": 0.0},
+	"picareta": {"stride": 66.0, "bob": 3.0, "step": 16.0, "lift": 12.0, "ginga": 0.04, "quique": 0.0},
+	"chave": {"stride": 40.0, "bob": 4.0, "step": 9.0, "lift": 8.0, "ginga": 0.12, "quique": 0.0},
+	"britadeira": {"stride": 28.0, "bob": 2.0, "step": 7.0, "lift": 7.0, "ginga": 0.0, "quique": 6.0},
+	"pa": {"stride": 54.0, "bob": 7.0, "step": 12.0, "lift": 6.0, "ginga": 0.05, "quique": 0.0}}
+const HEAD_MOLA := {"marretao": [110.0, 9.0, 0.0016], "picareta": [55.0, 5.0, 0.0028], "chave": [90.0, 8.0, 0.0018],
+	"britadeira": [170.0, 11.0, 0.0012], "pa": [140.0, 13.0, 0.001]}
 ## Spells (modes/spells.gd). Armas: [textura, tamanho na tela, pega e bico (px da arte de design)]. Com arma, a marreta
 ## vai para as costas e o robô carrega a arma com as duas mãos; ao dar golpe, a arma vai para as costas e a marreta volta.
 const SPELL_TOOLS := {"A01": ["s01_canhao", Vector2(52, 26), Vector2(30, 34), Vector2(100, 33)],
@@ -127,6 +137,10 @@ var flash_t := 0.0
 var tumble := 0.0                      # giro acumulado do arremesso (rad)
 var cena_pose := ""                    # transição de cena: "cai" (pânico, se debatendo) ou "desliza" (surfando a laje)
 var tumbling := false
+var head_a := 0.0                      # A48: cabeça com mola — ângulo (rad), velocidade e deslocamento vertical (atraso)
+var head_v := 0.0
+var head_dy := 0.0
+var head_dv := 0.0
 var walk_d := 0.0                      # distância andada no chão (px): a passada do MECHA segue o chão sem escorregar (A34)
 var flip_t := -1.0                     # pulo duplo (0..1): chute, cambalhota, abre
 var heavy_was_cd := false
@@ -308,7 +322,7 @@ func tick(r, dt: float) -> void:
 	# passada pela distância percorrida + poeirinha a cada passo
 	if on_floor and spd > 30.0 and r.dodge_t <= 0.0:
 		var before := int(phase / PI)
-		phase += spd * dt / STRIDE * TAU
+		phase += spd * dt / float(GAIT.get(Data.MODELS[posmod(model, Data.MODELS.size())], {"stride": STRIDE})["stride"]) * TAU
 		if int(phase / PI) != before:
 			pass   # passos SEM som (pedido do usuário em 2026-11-25: barulho demais)
 			if spd > 300.0:
@@ -346,6 +360,12 @@ func tick(r, dt: float) -> void:
 	var ax := clampf(a.x * float(r.facing), -9000.0, 9000.0)
 	ant_v += (-150.0 * ant - 6.0 * ant_v - ax * 0.0045 - clampf(a.y, -9000, 9000) * 0.0008) * dt
 	ant = clampf(ant + ant_v * dt, -0.9, 0.9)
+	# A48: cabeça com mola (rigidez, amortecimento, ganho) — o Guindaste é molenga, a Brita é rápida, a Escavadeira pesada
+	var hm: Array = HEAD_MOLA.get(Data.MODELS[posmod(model, Data.MODELS.size())], [110.0, 9.0, 0.0016])
+	head_v += (-float(hm[0]) * head_a - float(hm[1]) * head_v - ax * float(hm[2]) * 0.5) * dt
+	head_a = clampf(head_a + head_v * dt, -0.35, 0.35)
+	head_dv += (-float(hm[0]) * 1.4 * head_dy - float(hm[1]) * head_dv + clampf(a.y, -9000, 9000) * float(hm[2]) * 2.2) * dt
+	head_dy = clampf(head_dy + head_dv * dt, -6.0, 6.0)
 	# plaquinha solta (muito amassado): pêndulo que reage ao movimento
 	panel[1] += (-60.0 * sin(panel[0]) - 2.5 * panel[1] - ax * 0.004) * dt
 	panel[0] = clampf(panel[0] + panel[1] * dt, -1.4, 1.4)
@@ -587,7 +607,9 @@ func current_pose() -> Dictionary:
 	var r := run_k
 	var c: Dictionary = Data.ctrl
 	var ant_extra := 0.0
-	var bob := -absf(sin(phase)) * 5.0 * r + sin(t * 2.3) * 1.0 * (1.0 - r) + float(s_bob[0])
+	var gt: Dictionary = GAIT.get(Data.MODELS[posmod(model, Data.MODELS.size())], GAIT["marretao"])
+	var bob := -absf(sin(phase)) * float(gt["bob"]) * r + sin(t * 2.3) * 1.0 * (1.0 - r) + float(s_bob[0])
+	bob -= absf(sin(phase * 2.0)) * float(gt["quique"]) * r * (1.0 - air_k)   # Brita: pulinhos a cada passo
 	var feet := [Vector2.ZERO, Vector2.ZERO]
 	var kd := float(g.get("knee", 1))
 	var knee := [Vector2(1.5 * kd, 0), Vector2(1.5 * kd, 0)]
@@ -608,7 +630,7 @@ func current_pose() -> Dictionary:
 	for i in 2:
 		var ph := phase + (0.0 if i == 0 else PI)
 		var lift := maxf(sin(ph), 0.0)
-		feet[i] += Vector2(cos(ph) * 11.0 * r, -lift * 10.0 * r - maxf(-sin(ph), 0.0) * 1.2 * r)
+		feet[i] += Vector2(cos(ph) * float(gt["step"]) * r, -lift * float(gt["lift"]) * r - maxf(-sin(ph), 0.0) * 1.2 * r)
 		knee[i] = Vector2((1.5 + 7.0 * r * lift) * kd, 0)
 	hf += Vector2(cos(phase) * 2.0, -absf(sin(phase)) * 3.0) * r + Vector2(0, sin(t * 2.3 + 1.1) * 0.6 * (1.0 - r))
 	ang += sin(phase) * 0.14 * r
@@ -1076,7 +1098,7 @@ func current_pose() -> Dictionary:
 		tumble = round(float(p["rot"]) / TAU) * TAU if flip_t < 0.0 else tumble
 	p["spring_k"] = 1.0 + 0.5 * air_k - 0.4 * clampf(1.0 - sq.y, 0.0, 1.0)
 	p["body_off"] = Vector2(0, bob)
-	p["lean"] = lean
+	p["lean"] = lean + sin(phase) * float(gt["ginga"]) * run_k * (1.0 - air_k)   # A48: ginga da passada (Solda gingando)
 	p["feet"] = feet
 	p["knee"] = knee
 	p["hf_abs"] = hf
@@ -1088,6 +1110,8 @@ func current_pose() -> Dictionary:
 	p["smear"] = [smear_from, ang, smear_a]
 	p["panel"] = panel[0]
 	# estado de movimento para os MECHAS (A34): passada, ar, pulo duplo, dash, parede, pouso
+	p["head_a"] = head_a
+	p["head_d"] = Vector2(0.0, head_dy)
 	p["mv"] = {"dist": walk_d, "phase": phase, "run": run_k, "air": air_k, "vy": vy, "flip": flip_t, "land": land_t, "wall": on_wall,
 		"dodge": (robot.dodge_t / maxf(robot.dodge_len, 0.01)) if robot != null and robot.get("dodge_t") != null and robot.dodge_t > 0.0 else 0.0,
 		"hurt": hurt_t, "t": t}
@@ -1324,12 +1348,22 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	_limb(ci, base, bx * _v(sh[0]), hb, limb.darkened(0.12), Vector2(0, 3), lw)
 	# corpo + rosto + antena (mola)
 	ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, q, 0.0, -ORIGIN))
-	ci.draw_texture(body, Vector2.ZERO)
+	# A48: tronco e cabeça separados — a cabeça gira em volta do pescoço com ATRASO (mola), como nas animações aprovadas
+	var tor_t: Texture2D = Data.tex("robo/tronco_%s_p%d" % [mname, col_idx + 1]) if sk == "" else null
+	var cab_t: Texture2D = Data.tex("robo/cabeca_%s_p%d" % [mname, col_idx + 1]) if sk == "" else null
+	var split: bool = tor_t != null and cab_t != null and g.has("neck")
+	ci.draw_texture(tor_t if split else body, Vector2.ZERO)
 	var dl: int = lk.get("dmg", 0)
 	if dl > 0:
 		var dtex := Data.tex("robo/dano%d_%s" % [dl, mname])
 		if dtex != null:
 			ci.draw_texture(dtex, Vector2.ZERO)
+	if split:
+		var nk := _v(g["neck"])
+		var ha: float = float(pose.get("head_a", 0.0))
+		var hd: Vector2 = pose.get("head_d", Vector2.ZERO)
+		ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, hd) * Transform2D(ha, nk) * Transform2D(0.0, q, 0.0, -nk - ORIGIN))
+		ci.draw_texture(cab_t, Vector2.ZERO)
 	ci.draw_texture(Data.tex("robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
 	if dl >= 3:
 		# plaquinha solta pendurada por um parafuso, balançando
@@ -1358,7 +1392,11 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			ci.draw_set_transform_matrix(base * bx * Transform2D(sin(tnow_cap() * 70.0) * 0.12 * ctr, eye2 + Vector2(2, -24 + 4.0 * ctr)))
 			ci.draw_texture_rect(ctx, Rect2(-30, -20, 60, 30), false)
 	var ab := _v(g["antenna"])
-	ci.draw_set_transform_matrix(base * bx * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
+	var hxf := Transform2D.IDENTITY
+	if split:
+		var nk2 := _v(g["neck"])
+		hxf = Transform2D(0.0, pose.get("head_d", Vector2.ZERO)) * Transform2D(float(pose.get("head_a", 0.0)), nk2) * Transform2D(0.0, -nk2)
+	ci.draw_set_transform_matrix(base * bx * hxf * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
 	ci.draw_texture(Data.tex("robo/antena_" + mname), Vector2.ZERO)
 	var tnow := Time.get_ticks_msec() / 1000.0
 	if lk.get("hammer", true) and tool == "" and not armor:
