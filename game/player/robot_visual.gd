@@ -1134,6 +1134,10 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	var body := Data.tex("robo/corpo_%s%s_p%d" % [mname, sk, col_idx + 1])
 	if body == null or Data.robot_meta.is_empty():
 		return
+	var fxm: Dictionary = lk.get("fx", {})
+	if String(fxm.get("mecha", "")) != "" and Data.mecha_meta.get("mechas", {}).has(String(fxm["mecha"])):
+		_draw_mecha(ci, lk, pose, base, fxm, mname, col_idx)
+		return
 	if pose.has("rot"):   # mortal, giro do arremesso, esquiva no ar: gira em torno do meio do corpo
 		base = base * Transform2D(float(pose["rot"]), PIVOT) * Transform2D(0.0, -PIVOT)
 	var tk := float(pose.get("tuck", 0.0))
@@ -1142,10 +1146,6 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if pose.has("spin"):   # comemoração "pião": achata na horizontal passando pelo meio
 		var sp: float = pose["spin"]
 		base = base * Transform2D(0.0, Vector2(signf(sp) * maxf(absf(sp), 0.32), 1.0), 0.0, Vector2.ZERO)
-	var fxm: Dictionary = lk.get("fx", {})
-	if String(fxm.get("mecha", "")) != "" and Data.mecha_meta.get("mechas", {}).has(String(fxm["mecha"])):
-		_draw_mecha(ci, lk, pose, base, fxm, mname, col_idx)
-		return
 	var g: Dictionary = Data.robot_meta["modelos"][mname]
 	var limb := Color(Data.robot_meta["membros"][col_idx])
 	var lw := float(g["limb_w"])
