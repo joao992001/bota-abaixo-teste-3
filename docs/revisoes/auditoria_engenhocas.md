@@ -40,3 +40,5 @@ Magnéticas, Teleporte (sairia do Controle). Proibido: escudo segurado na mão (
 - **A08 Canhão de Molas:** mesmo efeito; projétil = mola grossa comprimida com tampão e faixa de perigo, estica no impacto (BOING).
 - **E02 Carga Remota:** dinamite com detonador de antena (sem fio azul), gruda, bip acelerando; explosão DESTRÓI peças no
   raio e lança longe; explode sozinha em 4 s.
+
+## Defesa — mais 2 (pedido 2026-11-27): o usuário escolheu D05 CAPACETE DE AÇO (absorve 3 golpes/tiros, sem dano nem empurrão; no 3º voa) e D06 BONECO DE TESTE (deixa um manequim no lugar e recua; bots miram nele; quem bate leva serragem). Ficaram de fora: Tapume de Obra, Casulo de Concreto. Prancha `art/out/robos_v2/eng_defesa_l3.png`.

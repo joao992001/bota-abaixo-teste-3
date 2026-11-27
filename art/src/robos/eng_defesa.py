@@ -260,6 +260,106 @@ def prancha2():
     print(render_all(), out)
 
 
+# ================================================================ LOTE D3: D05 CAPACETE DE AÇO · D06 BONECO DE TESTE
+def capacete_aco(x, y, s=1.0, amassos=0, solto=0.0):
+    """D05: capacete de aço grosso por cima do capacete de obra: cúpula cinza com rebites e friso; amassos = 0..2."""
+    o = f'<g transform="translate({x},{y}) rotate({solto * 60}) scale({s})">'
+    o += f'<path d="M-24,6 C-24,-22 24,-22 25,6 Z" fill="#7a828f"/><path d="M-24,6 C-24,-22 24,-22 25,6" fill="none" stroke="#2b2b33" stroke-width="3"/>'
+    o += f'<path d="M-18,-8 C-12,-17 8,-19 16,-10" stroke="#c9d1d8" stroke-width="4" fill="none" stroke-linecap="round"/>'
+    o += R(-28, 3, 56, 7, 3, "#5d6672", k=0.2) + "".join(f'<circle cx="{cx}" cy="6.5" r="1.8" fill="#c9d1d8"/>' for cx in (-20, -8, 4, 16))
+    o += f'<path d="M0,-18 V4" stroke="#2b2b33" stroke-width="2" opacity="0.5"/>'
+    for k in range(amassos):
+        cx = -10 + k * 16
+        o += f'<path d="M{cx - 5},{-10 + k * 3} q5,6 10,0" stroke="#2b2b33" stroke-width="2.5" fill="#5d6672"/>'
+    return o + "</g>"
+
+
+def boneco(x, y, s=1.0, rot=0, estoura=0.0):
+    """D06: boneco de teste de colisão (manequim amarelo com o símbolo de quadrantes e um cone na cabeça)."""
+    if estoura > 0:
+        o = f'<g transform="translate({x},{y})">'
+        for i in range(14):
+            a = i * 2 * math.pi / 14
+            r = 30 + 40 * estoura
+            o += f'<rect x="{math.cos(a) * r:.0f}" y="{-40 + math.sin(a) * r * 0.8:.0f}" width="5" height="3" fill="#d9a868" transform="rotate({i * 40} {math.cos(a) * r:.0f} {-40 + math.sin(a) * r * 0.8:.0f})"/>'
+        o += f'<circle cx="0" cy="-40" r="{24 * (1 - estoura) + 8}" fill="#e8d4a8" opacity="{0.8 - 0.6 * estoura:.2f}"/>'
+        return o + "</g>"
+    o = f'<g transform="translate({x},{y}) rotate({rot} 0 -30) scale({s})">'
+    for dx in (-6, 6):
+        o += R(dx - 3, -22, 6, 22, 2, "#e0b02a", k=0.2)
+    o += R(-12, -46, 24, 26, 6, "#f2c84b", k=0.4) + R(-12, -36, 24, 4, 1, "#2b2b33", k=0.1)
+    o += R(-17, -44, 6, 18, 3, "#e0b02a", k=0.2) + R(11, -44, 6, 18, 3, "#e0b02a", k=0.2)
+    o += E(0, -58, 11, 11, "#f2c84b", k=0.3)
+    o += f'<circle cx="0" cy="-58" r="6" fill="#ffffff" stroke="#2b2b33" stroke-width="1.5"/><path d="M0,-64 A6,6 0 0 1 6,-58 L0,-58 Z M0,-52 A6,6 0 0 1 -6,-58 L0,-58 Z" fill="#2b2b33"/>'
+    o += P_([(-7, -68), (7, -68), (2, -84), (-2, -84)], "#ff7a2a", k=0.2) + R(-5, -76, 10, 3, 1, "#ffffff", k=0.05)
+    return o + "</g>"
+
+
+def d05():
+    ps = []
+    c = laje(-110, 260) + rival(150, 0) + marretao(PARADO) + capacete_aco(6, -86, 1.0)
+    c += "".join(f'<path d="M{6 + math.cos(a) * 34:.0f},{-86 + math.sin(a) * 26:.0f} l{math.cos(a) * 8:.0f},{math.sin(a) * 8:.0f}" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>' for a in [i * math.pi / 4 for i in range(8)])
+    c += f'<text x="70" y="-120" font-family="Fredoka, Arial" font-weight="700" font-size="18" fill="{INK}">CLANC!</text>' + nota(-205, "aperta: capacete de aço desce na cabeça", "3 proteções (pontinhos)")
+    ps.append(("1 · VESTE — capacete de aço", c))
+    c = laje(-110, 260) + marretao(PARADO) + capacete_aco(6, -86, 1.0, 1) + rival(46, 0, flip=True) + faiscas(14, -94, 8, 16)
+    c += nota(-205, "golpe ou tiro: NEM dano NEM empurrão", "o aço amassa e solta faísca")
+    ps.append(("2 · AGUENTA — amassa e faísca", c))
+    c = laje(-110, 260) + marretao(PARADO) + capacete_aco(6, -86, 1.0, 2) + ea.rebite(40, -90, 200) + faiscas(26, -92, 6, 12)
+    c += "".join(f'<circle cx="{-14 + i * 14}" cy="-130" r="5" fill="{"#2b2b33" if i < 2 else "#c9d1d8"}"/>' for i in range(3))
+    c += nota(-205, "cada golpe gasta 1 proteção", "o capacete vai ficando amassado")
+    ps.append(("3 · GASTA — 2 amassos", c))
+    c = laje(-110, 260) + marretao(dict(PARADO, face="susto")) + capacete_aco(70, -150, 1.0, 2, solto=1.0) + linhas_vel(50, -140, 3, 30, -1)
+    c += f'<text x="0" y="-104" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="16" fill="{INK}">PLONC!</text>'
+    c += nota(-205, "3º golpe: o capacete voa longe", "e acabou (esse golpe também não passa)")
+    ps.append(("4 · VOA — 3º golpe", c))
+    return ps
+
+
+def nota_esq(y, *txt):
+    return "".join(label(2, y + i * 13, t, 11, INK) for i, t in enumerate(txt))
+
+
+def d06():
+    ps = []
+    pula = dict(PARADO, hip=(0, -30), lean=-14, feet=[(-14, -12), (4, -18)], face="raiva")
+    c = laje(-170, 210) + rival(120, 0) + boneco(0, 0) + marretao(pula, x=-70, y=-30)
+    c += poeira(0, 0, 6, 7, 30) + linhas_vel(-20, -40, 3, 30, -1) + nota_esq(-205, "aperta: deixa o boneco no lugar", "e recua num pulo para trás")
+    c = f'<g transform="translate(60,0)">{c}</g>'
+    ps.append(("1 · TROCA — boneco no lugar", c))
+    c = laje(-170, 210) + marretao(PARADO, x=-80) + boneco(0, 0) + rival(80, 0, flip=True)
+    c += f'<path d="M80,-110 Q40,-140 6,-96" stroke="{EYE}" stroke-width="2.5" stroke-dasharray="6 4" fill="none"/>' + f'<circle cx="0" cy="-58" r="20" fill="none" stroke="{EYE}" stroke-width="2.5"/>'
+    c += nota_esq(-205, "bots miram o BONECO", "(5 s de pé, balançando)")
+    c = f'<g transform="translate(60,0)">{c}</g>'
+    ps.append(("2 · ISCA — os bots vão nele", c))
+    c = laje(-170, 210) + marretao(PARADO, x=-80) + boneco(0, 0, estoura=0.5) + rival(70, -10, rot=30, flip=True) + linhas_vel(100, -40, 3, 30, 1)
+    c += f'<text x="0" y="-130" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="20" fill="{INK}">PUF!</text>'
+    c += nota_esq(-205, "quem bate nele: explosão de serragem", "empurra e tonteia um instante")
+    c = f'<g transform="translate(60,0)">{c}</g>'
+    ps.append(("3 · ESTOURA — serragem", c))
+    c = laje(-170, 210) + marretao(PARADO, x=-80) + boneco(0, 0, rot=-80) + nota_esq(-205, "ninguém bateu em 5 s: tomba e some", "(1 uso)")
+    c = f'<g transform="translate(60,0)">{c}</g>'
+    ps.append(("4 · FIM — tomba", c))
+    return ps
+
+
+def prancha3():
+    W, H = 1920, 1260
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "DEFESA · lote D3 — D05 CAPACETE DE AÇO e D06 BONECO DE TESTE (proposta)", 30)]
+    pw, ph = 452, 470
+    for r, (nome, sub, ps) in enumerate([
+            ("D05 CAPACETE DE AÇO", "aperta: capacete de aço por cima · absorve os próximos 3 golpes ou tiros (sem dano, sem empurrão) · no 3º voa longe", d05()),
+            ("D06 BONECO DE TESTE", "aperta: deixa um boneco de colisão no seu lugar e recua num pulo · bots miram nele · quem bate leva serragem", d06())]):
+        y0 = 80 + r * (ph + 110)
+        b.append(f'<text x="40" y="{y0 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">{nome}</text>')
+        b.append(f'<text x="40" y="{y0 + 58}" font-family="Arial" font-size="17" fill="{INK}">{sub}</text>')
+        for j, (tit, c) in enumerate(ps):
+            b.append(painel(20 + j * (pw + 14), y0 + 80, pw, ph, tit, c))
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/eng_defesa_l3.png")
+    queue(svg, os.path.join(HERE, "svg/eng_defesa_l3.svg"), out, W, H, 1)
+    print(render_all(), out)
+
+
 def exportar_jogo():
     """Texturas do jogo: spells/d01_contrapeso (64x80, base em 32,72) e spells/d02_airbag (48x64, centro 24,32)."""
     out = os.path.join(ab.ROOT, "art/out/game/spells")
@@ -282,5 +382,7 @@ if __name__ == "__main__":
         exportar_jogo()
     elif "--l2" in sys.argv:
         prancha2()
+    elif "--l3" in sys.argv:
+        prancha3()
     else:
         prancha()
