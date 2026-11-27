@@ -3913,6 +3913,8 @@ func mechas_frames(dir: String) -> void:
 	var sp = main.demo.spells
 	sp.spawn_t = 999.0
 	_frame_no = 0
+	var log := []
+	# cada mecha recém-montado: anda → leve → pesado → pulo → pulo duplo → dash → habilidade (A34)
 	var seq := [["T01", "fogo"], ["T05", "dash"], ["T03", "rola"], ["T02", "garfo"], ["T06", "raio"], ["T04", "voa"]]
 	for st in seq:
 		var r0 = main.robots[0]
@@ -3921,61 +3923,68 @@ func mechas_frames(dir: String) -> void:
 			sp.clear(r)
 			r.dmg = 0.0
 			main.demo.lives[i] = 9
-			put(r, Vector2(620.0 + (0.0 if i == 0 else 60.0 + i * 170.0), 832.0))
+			put(r, Vector2(700.0 if i == 0 else 1500.0 + i * 120.0, 832.0))
 			r.facing = 1 if i == 0 else -1
 		await frames(4)
 		sp.equip(r0, st[0])
 		await frames(2)
 		await tap("v0", "item")
-		main.cam_lock = [1.45, Vector2(900, 720)]
 		var n := 0
-		while n < 360:
-			if n == 58:
-				match st[1]:
-					"fogo", "dash", "raio":
-						vset("v0", "item", true)
-					"rola":
-						vset("v0", "right", true)
-					"garfo":
-						await tap("v0", "item")
-					"voa":
-						vset("v0", "item", true)
-						vset("v0", "right", true)
-			if st[1] == "fogo" and n == 110:
-				vset("v0", "up", true)
-			if n == 150:
-				for k in ["item", "right", "up"]:
-					vset("v0", k, false)
-			if st[1] == "garfo" and n == 95:
-				await tap("v0", "item")
-			if n == 165:
-				put(main.robots[1], r0.position + Vector2(110, 0))
-				await tap("v0", "hammer")   # golpe LEVE do mecha (A33)
-			if n == 200:
-				put(main.robots[1], r0.position + Vector2(120, 0))
-				await tap("v0", "heavy")    # golpe PESADO do mecha (A33)
-			if n == 240:   # movimento do mecha (A34): anda, pula, pulo duplo, dash
-				for i in range(1, 4):
-					put(main.robots[i], Vector2(1700.0 + i * 60.0, 832.0))
-				put(r0, Vector2(700.0, 832.0))
+		while n < 400:
+			match n:
+				60:
+					vset("v0", "right", true)
+				110:
+					vset("v0", "right", false)
+				125:
+					put(main.robots[1], r0.position + Vector2(130, 0))
+					main.robots[1].facing = -1
+					await tap("v0", "hammer")
+				165:
+					put(main.robots[1], r0.position + Vector2(140, 0))
+					await tap("v0", "heavy")
+				225:
+					put(main.robots[1], Vector2(1700, 832))
+					await tap("v0", "jump")
+				243:
+					await tap("v0", "jump")
+				290:
+					vset("v0", "right", true)
+				296:
+					await tap("v0", "dodge")
+				315:
+					vset("v0", "right", false)
+				330:
+					for i in range(1, 4):
+						put(main.robots[i], r0.position + Vector2(150.0 + i * 120.0, 0))
+					match st[1]:
+						"fogo", "dash", "raio", "rola":
+							vset("v0", "item", true)
+						"garfo":
+							await tap("v0", "item")
+						"voa":
+							vset("v0", "item", true)
+				385:
+					vset("v0", "item", false)
+			if st[1] == "rola" and n > 330 and n < 385:
 				vset("v0", "right", true)
-			if n == 285:
-				await tap("v0", "jump")
-			if n == 300:
-				await tap("v0", "jump")
-			if n == 335:
-				await tap("v0", "dodge")
-			if n == 352:
+			if n == 386:
 				vset("v0", "right", false)
 			for i in range(1, 4):
 				main.demo.lives[i] = 9
-			main.cam_lock = [1.6, Vector2(clampf(main.robots[0].position.x + 220.0, 700.0, 1300.0), 700.0)]
+			if sp.slot.has(0):
+				sp.slot[0]["t"] = maxf(float(sp.slot[0]["t"]), 3.0)   # a armadura não acaba no meio da vitrine
 			await frames(1)
 			if n % 2 == 0:
 				await grab(dir, "mecha")
+				var sc_p: Vector2 = (r0.position - main.cam_center) * main.cam_zoom + Vector2(960, 540)
+				log.append([st[0], n, int(sc_p.x), int(sc_p.y), main.cam_zoom])
 			n += 1
 		for k in ["item", "right", "up"]:
 			vset("v0", k, false)
+	var fa := FileAccess.open(dir.path_join("pos.json"), FileAccess.WRITE)
+	fa.store_string(JSON.stringify(log))
+	fa.close()
 	print("quadros: ", _frame_no)
 
 ## Som aprovado (pack VB): cada ação toca SÓ o seu som, uma vez; golpe no vazio não faz clang; KO fora da arena = UMA
