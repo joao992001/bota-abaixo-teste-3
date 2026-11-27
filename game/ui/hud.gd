@@ -318,18 +318,36 @@ func _draw_sub_badge(i: int, r: Rect2) -> void:
 				draw_texture_rect(Data.tex("itens/dinamite"), Rect2(b2.position.x + 8, b2.position.y + 3, 24, 24), false)
 				Kit.text(self, Vector2(b2.position.x + 38, b2.position.y + 22), "%ds" % ceili(d.bomb_fuse), 20, Color("#d42035"))
 
+## Coração de vida. Desempenho (sonda Perf, 2026-11-27): o formato (32 pontos, SEM repetir o 1º no fim — o ponto
+## duplicado fazia a triangulação falhar a cada quadro, ~7 ms com 4 jogadores) e os triângulos são calculados UMA vez.
+static var _heart_pts := PackedVector2Array()
+static var _heart_tri := PackedInt32Array()
+
 func _heart(c: Vector2, s: float, full: bool) -> void:   # s = meia largura
-	var pts := PackedVector2Array()
-	for k in 33:
-		var a := k * TAU / 32.0
-		var hx := 16.0 * pow(sin(a), 3)
-		var hy := -(13.0 * cos(a) - 5.0 * cos(2 * a) - 2.0 * cos(3 * a) - cos(4 * a))
-		pts.append(c + Vector2(hx, hy) * s / 16.0)
-	if full:
-		draw_colored_polygon(pts, Color("#e5484d"))
-	else:
-		draw_colored_polygon(pts, Color(0.75, 0.72, 0.68, 0.6))
-	draw_polyline(pts, Kit.INK, maxf(1.5, s * 0.22), true)
+	if _heart_pts.is_empty():
+		for k in 32:
+			var a := k * TAU / 32.0
+			_heart_pts.append(Vector2(16.0 * pow(sin(a), 3), -(13.0 * cos(a) - 5.0 * cos(2 * a) - 2.0 * cos(3 * a) - cos(4 * a))) / 16.0)
+		_heart_tri = Geometry2D.triangulate_polygon(_heart_pts)
+	if _heart_tri.is_empty():
+		return
+	var ci := get_canvas_item()
+	var col := Color("#e5484d") if full else Color(0.75, 0.72, 0.68, 0.6)
+	var borda := PackedVector2Array()
+	var dentro := PackedVector2Array()
+	borda.resize(32)
+	dentro.resize(32)
+	for k in 32:   # contorno = coração escuro um pouco maior atrás (sem linha suavizada, que era o mais caro)
+		borda[k] = c + _heart_pts[k] * (s + maxf(1.3, s * 0.2))
+		dentro[k] = c + _heart_pts[k] * s
+	var ink := PackedColorArray()
+	ink.resize(32)
+	ink.fill(Kit.INK)
+	var cols := PackedColorArray()
+	cols.resize(32)
+	cols.fill(col)
+	RenderingServer.canvas_item_add_triangle_array(ci, _heart_tri, borda, ink)
+	RenderingServer.canvas_item_add_triangle_array(ci, _heart_tri, dentro, cols)
 
 ## Evento ativo (nome + barra de tempo), no canto de cima à esquerda.
 func _draw_event_note() -> void:

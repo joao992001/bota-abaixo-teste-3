@@ -8,6 +8,12 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
+**▶ SESSÃO 7 (cont. 3): DESEMPENHO — 1ª passada FEITA** (protocolo `docs/manuais/desempenho.md`, sonda `Perf` +
+`--perf-derruba=DIR`). Corrigido: corações do placar (triangulação falhando a cada quadro, ~7 ms), chave do cache de estilos
+(`Kit._sb`) e rota dos bots (1 cache para 4 bots → picos de 16–30 ms; agora rota por alvo). Pior caso: CPU 41,8 → 28 ms em
+média, p99 88 → 56 ms (contêiner com GL por software; num PC é 3–5× menos). Próximos alvos listados no manual.
+Obs.: uma sessão paralela tinha refeito o combate (r2) sem ver o A47 — esse trabalho duplicado ficou só no `git stash`
+local ("combate r2 desta sessão"), NÃO entrou na branch.
 **▶ SESSÃO 7 (cont. 2): SKINS v2 FEITAS** — 15 skins (3 por robô) aprovadas e no jogo (`art/src/robos/skins_lote.py --jogo`,
 biblioteca `docs/fases/derruba/f1_canteiro/skins.md`, vídeo `art/out/skins_v2/skins_no_jogo.mp4`). Corrigido: Defesa sumia (config
 salva antes dela → agora engenhoca nova entra acesa) e a tela de engenhocas cabe inteira (grade se ajusta). .exe entregue.

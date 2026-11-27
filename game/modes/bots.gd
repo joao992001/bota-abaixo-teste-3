@@ -367,7 +367,16 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 
 ## Caminho até o objetivo: distância (em pulos) de cada degrau até o degrau do objetivo, calculada de trás
 ## para a frente e guardada enquanto o objetivo não muda de célula. Devolve o próximo degrau (ou -1).
-var _nav := {"lv": null, "goal": Vector2i(-99, -99), "dist": {}, "t": 0.0}
+## Rotas por ALVO (desempenho, sonda Perf 2026-11-27): antes era UM cache para os 4 bots — cada um com alvo diferente
+## refazia a busca no mapa todo a cada 0,5 s (pico de ~20–30 ms) e os outros usavam a rota do alvo errado.
+## Agora: uma rota por célula-alvo (vale nav_ttl s), no máximo UM recálculo por quadro; células "em pé" cacheadas.
+var _navs := {}                # célula-alvo -> {dist, t}
+var _nav_lv = null
+var _nav_ok := {}
+var _nav_ok_t := -99.0
+var _nav_frame := -1
+const NAV_TTL := 1.0
+const NAV_OK_TTL := 1.0
 
 func _standable(L, c: Vector2i) -> bool:
 	var ch: String = L.ch_at(c)
@@ -421,26 +430,45 @@ func _nav_step(from: Vector2i, goal: Vector2) -> Vector2i:
 	if g.x < 0 or not _standable(L, from):
 		return Vector2i(-1, -1)
 	var now := Time.get_ticks_msec() / 1000.0
-	if _nav["lv"] != L or (_nav["goal"] != g and now - float(_nav["t"]) > 0.5):
-		var ok := {}
-		for y in range(1, L.rows):
-			for x in range(1, L.cols - 1):
-				if _standable(L, Vector2i(x, y)):
-					ok[Vector2i(x, y)] = true
-		var dist := {g: 0}
-		var queue: Array = [g]
-		var qi := 0
-		while qi < queue.size():
-			var b: Vector2i = queue[qi]
-			qi += 1
-			for y in range(b.y - 8, b.y + 7):   # quem chega em b: até 6 abaixo (trampolim) ou caindo de até 8 acima
-				for x in range(b.x - 5, b.x + 6):
-					var a := Vector2i(x, y)
-					if ok.has(a) and not dist.has(a) and _reach(L, a, b):
-						dist[a] = int(dist[b]) + 1
-						queue.append(a)
-		_nav = {"lv": L, "goal": g, "dist": dist, "t": now}
-	var d: Dictionary = _nav["dist"]
+	if _nav_lv != L:
+		_nav_lv = L
+		_navs.clear()
+		_nav_ok_t = -99.0
+	var e = _navs.get(g)
+	if e == null or now - float(e["t"]) > NAV_TTL:
+		if Engine.get_physics_frames() == _nav_frame and e != null:
+			pass   # já houve um recálculo neste quadro: usa a rota antiga (um pouco velha) e refaz no próximo
+		elif Engine.get_physics_frames() == _nav_frame:
+			return Vector2i(-1, -1)   # sem rota ainda e o quadro já gastou o seu recálculo: decide pelo resto
+		else:
+			_nav_frame = Engine.get_physics_frames()
+			if now - _nav_ok_t > NAV_OK_TTL:   # células onde dá para ficar em pé (o mapa muda devagar: blocos quebram)
+				_nav_ok = {}
+				for y in range(1, L.rows):
+					for x in range(1, L.cols - 1):
+						if _standable(L, Vector2i(x, y)):
+							_nav_ok[Vector2i(x, y)] = true
+				_nav_ok_t = now
+			var ok: Dictionary = _nav_ok
+			var dist := {g: 0}
+			var queue: Array = [g]
+			var qi := 0
+			while qi < queue.size():
+				var b0: Vector2i = queue[qi]
+				qi += 1
+				for y in range(b0.y - 8, b0.y + 7):   # quem chega em b0: até 6 abaixo (trampolim) ou caindo de até 8 acima
+					for x in range(b0.x - 5, b0.x + 6):
+						var a0 := Vector2i(x, y)
+						if ok.has(a0) and not dist.has(a0) and _reach(L, a0, b0):
+							dist[a0] = int(dist[b0]) + 1
+							queue.append(a0)
+			e = {"dist": dist, "t": now}
+			_navs[g] = e
+			if _navs.size() > 12:   # limpa alvos antigos
+				for k in _navs.keys():
+					if now - float(_navs[k]["t"]) > NAV_TTL * 2.0:
+						_navs.erase(k)
+	var d: Dictionary = e["dist"]
 	if not d.has(from) or int(d[from]) == 0:
 		return Vector2i(-1, -1)
 	var best := Vector2i(-1, -1)

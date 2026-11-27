@@ -24,7 +24,7 @@ static func font() -> Font:
 	return _font
 
 static func _sb(fill: Color, radius: int, border: int, bcol: Color) -> StyleBoxFlat:
-	var key := "%s|%d|%d|%s" % [fill.to_html(), radius, border, bcol.to_html()]
+	var key := [fill, radius, border, bcol]   # desempenho: chave direta (antes montava texto com to_html a cada quadro)
 	if not _flat.has(key):
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = fill
