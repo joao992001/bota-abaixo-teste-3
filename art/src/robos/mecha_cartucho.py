@@ -77,11 +77,12 @@ def defs():
 
 
 def icone(tid, x, y, tam=150):
-    """Ícone da seleção: o mecha inteiro num distintivo arredondado na cor do tema + nome."""
+    """Ícone da seleção = o próprio CARTUCHO que o robô segura (pedido 2026-11-27), num distintivo na cor do tema."""
     nome, casco, nucleo, fn, _ = TEMAS[tid]
     o = R(x, y, tam, tam, 26, shade(casco, -0.35), k=0.4) + R(x + 6, y + 6, tam - 12, tam - 12, 22, shade(nucleo, -0.55), k=0.3)
-    o += f'<circle cx="{x + tam / 2}" cy="{y + tam * 0.55}" r="{tam * 0.38}" fill="{nucleo}" opacity="0.35"/>'
-    COLAR.append(("mecha", tid, x + tam * 0.45, y + tam * 0.88, tam / 330, 0))
+    o += f'<circle cx="{x + tam / 2}" cy="{y + tam * 0.45}" r="{tam * 0.36}" fill="{nucleo}" opacity="0.35"/>'
+    o += f'<circle cx="{x + tam / 2}" cy="{y + tam * 0.45}" r="{tam * 0.22}" fill="{nucleo}" opacity="0.35"/>'
+    o += f'<g transform="translate({x + tam / 2},{y + tam * 0.46}) rotate(-8)">{cartucho(tid, tam / 115.0, 1.0)}</g>'
     o += R(x + 10, y + tam - 30, tam - 20, 22, 9, "#ffffff", k=0.1) + label(x + tam / 2, y + tam - 13, nome, 13, INK)
     return o
 
