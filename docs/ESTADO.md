@@ -15,7 +15,7 @@ vídeos `out/videos/a06_coluna*.mp4`). **Controle FEITO** (A43: só o C03 Gancho
 **Defesa lote D1 FEITO** (A44: classe nova verde/cúpula/capacete; D01 Âncora de Contrapeso, D02 Airbag de Obra passivo;
 vídeos `out/videos/defesa_lote1*.mp4`) e **lote D2 FEITO** (A45: D03 Para-choque de Mola; D04 Cortina de Poeira — o
 Remendo Rápido foi reprovado; vídeos `out/videos/defesa_lote2*.mp4`). **A auditoria das engenhocas (Ataque, Controle,
-Defesa) está CONCLUÍDA.** Próximo: esperar o usuário jogar/aprovar; pendências antigas abaixo (skins K1–K5, prancha de
+Defesa) está CONCLUÍDA e APROVADA pelo usuário (2026-11-27).** Próximo: o usuário escolher entre as pendências; pendências antigas abaixo (skins K1–K5, prancha de
 combate r2, números provisórios, 7 pontos da avaliação de interface).
 **Lição da sessão 5:** arte copiada para `game/assets` só aparece depois de `godot --headless --path game --import`; conferir
 SEMPRE de perto (recorte) antes de entregar — o usuário reprovou o lote 3 na 1ª entrega por isso.
