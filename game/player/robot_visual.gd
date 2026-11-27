@@ -70,7 +70,7 @@ static func armor_fit(mname: String) -> Array:
 	_fit[mname] = res
 	return res
 ## Spells sem arma: objeto nas costas (andaime dobrado, marreta sísmica, fornalha desmontada) ou na mão de trás.
-const BACK_PROPS := {"A04": ["s04_marreta", Vector2(30, 60), -0.5], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
+const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
@@ -720,7 +720,7 @@ func current_pose() -> Dictionary:
 	var sid: String = sf.get("spell", "")
 	var prep: float = sf.get("prep", -1.0)
 	var fire: float = sf.get("fire", -1.0)
-	var aiming: bool = prep >= 0.0 or (fire >= 0.0 and fire < 0.32) or (sf.get("channel", false) and sid in ["C01", "C04", "C02", "A06"])
+	var aiming: bool = prep >= 0.0 or (fire >= 0.0 and fire < (0.55 if sid == "A04" else 0.32)) or (sf.get("channel", false) and sid in ["C01", "C04", "C02", "A06"])
 	var hf_set := false
 	if sid != "" and aiming and not sf.get("armor", false):
 		var kick := clampf(1.0 - fire / 0.22, 0.0, 1.0) if fire >= 0.0 and prep < 0.0 else 0.0
@@ -1296,7 +1296,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	ci.draw_texture(Data.tex("robo/antena_" + mname), Vector2.ZERO)
 	var tnow := Time.get_ticks_msec() / 1000.0
 	if lk.get("hammer", true) and tool == "" and not armor:
-		var seis: bool = sf.get("spell", "") == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or (float(sf.get("fire", -1.0)) >= 0.0 and float(sf.get("fire", -1.0)) < 0.32))
+		var seis: bool = sf.get("spell", "") == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or (float(sf.get("fire", -1.0)) >= 0.0 and float(sf.get("fire", -1.0)) < 0.55))
 		if not seis:   # ferramenta nas mãos, na frente do corpo (na marretada sísmica a marreta gigante é de modes/spells.gd)
 			ci.draw_set_transform_matrix(base * Transform2D(ham_ang, hf))
 			var hcol := Color(0.58, 0.62, 0.72) if lk.get("ham_cd", false) else Color.WHITE

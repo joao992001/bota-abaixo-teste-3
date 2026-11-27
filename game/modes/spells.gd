@@ -23,6 +23,9 @@ var demo: Node
 var cfg: Dictionary
 var boxes: Array = []        # {fam, id, charges, pos, vy, t, land_t, block: {pid: s}, special}
 var slot := {}               # pid -> {id, fam, charges, cd, prep, prep_len, fire, t, data}
+var craters := []            # A04: clarão da cratera {rect, t}
+var punch_fly := []          # A01: rivais voando do soco carregado {pid, owner, t, dir} (quicam na parede)
+var bonks := []              # A01: estrela de pancada na parede {pos, t}
 var holds := {}              # pid -> {box, t}
 var shots: Array = []        # A03 {pos, vel, owner, t}
 var frozen := {}             # A03: pid -> {len, age, shake, last_ax}
@@ -354,7 +357,7 @@ func _swap(r, b: Dictionary) -> void:
 func _spend(r, s: Dictionary) -> void:
 	s["charges"] -= 1
 	if s["charges"] <= 0:
-		s["empty_t"] = 0.35   # some do slot depois da animação de recolher
+		s["empty_t"] = 0.6 if s["id"] == "A04" else 0.35   # some do slot depois da animação de recolher (a marreta fica cravada)
 
 var _uso := [-1, -1]   # [pid, quadro] do último use(): _fail no mesmo quadro desconta a engenhoca
 func _fail(r, text: String) -> void:
@@ -481,7 +484,14 @@ func use(r) -> void:
 	main.add_stat(r.pid, "engenhocas")   # estatística dos resultados (desfeita em _fail se não deu para usar)
 	_uso = [r.pid, Engine.get_physics_frames()]
 	match s["id"]:
-		"A01", "A03", "A02", "A08":
+		"A01":   # auditoria 2026-11-27: SEGURAR carrega a pressão (até carga_max_s); soltar = soco (força pela carga)
+			s["prep"] = 0.0
+			s["prep_len"] = float(c["carga_max_s"])
+			s["carga_hold"] = true
+			if _is_bot(r.pid):
+				bot_hold[r.pid] = randf_range(0.25, float(c["carga_max_s"]))
+			Audio.play("pistao_aviso", 1.1, -4.0)
+		"A03", "A02", "A08":
 			s["prep"] = 0.0
 			s["prep_len"] = float(c["preparo"])
 			Audio.play({"A01": "pistao_aviso", "A03": "gelo", "A02": "laser_carga", "A08": "pulo_mola"}[s["id"]], 1.3 if s["id"] != "A08" else 0.6, -4.0)
@@ -615,13 +625,16 @@ func _fire(r, s: Dictionary) -> void:
 			if _hard_at(nx):
 				break
 			d += 12.0
-		fists.append({"owner": r.pid, "t": 0.0, "reach": maxf(d, 40.0), "dir": r.facing, "dirv": dv, "hit": [], "wall": d < maxd - 12.0, "impact": -1.0})
+		var kc := float(s.get("carga", 0.0))
+		fists.append({"owner": r.pid, "t": 0.0, "reach": maxf(d, 40.0), "dir": r.facing, "dirv": dv, "hit": [], "wall": d < maxd - 12.0, "impact": -1.0, "carga": kc})
 		Audio.play("arremesso", 0.7, 2.0)
-		Audio.play("pistao", 1.3, -2.0)
-		r.own_vx -= dv.x * 160.0   # coice
+		Audio.play("pistao", 1.3 - 0.4 * kc, -2.0 + 3.0 * kc)
+		r.own_vx -= dv.x * (160.0 + 360.0 * kc)   # coice (maior com a carga cheia)
+		main.dust(r.position + Vector2(-r.facing * 16.0, 0), 0.6 + 0.8 * kc)
 		if dv.y > 0.5 and not r.is_on_floor():
 			r.velocity.y = minf(r.velocity.y, -180.0)   # socão para baixo no ar dá um pulinho
-		main.shake(4.0)
+		main.shake(4.0 + 6.0 * kc)
+		s["carga"] = 0.0
 		_spend(r, s)
 	elif s["id"] == "A03":
 		var dv3 := aim_dir(r)
@@ -631,6 +644,13 @@ func _fire(r, s: Dictionary) -> void:
 		for k in 6:
 			main.spark(muzzle(r, "A03"), 1)
 		_spend(r, s)
+
+## A04: área da cratera (à frente de quem bate, na altura do piso; 2,5 tiles de largura, 1 de altura)
+func crater_rect(r) -> Rect2:
+	var c: Dictionary = sc("A04")
+	var x0: float = r.position.x + r.facing * float(c["cratera_frente_px"])
+	var w := float(c["cratera_tiles"]) * T
+	return Rect2(minf(x0, x0 + r.facing * w), r.position.y - 48.0, w, 72.0)   # rente ao piso: quem pulou no preparo escapa
 
 ## E01: onde o andaime vai aparecer. No chão: 2 tiles à frente, 2 tiles acima dos pés (degrau);
 ## no ar: logo embaixo dos pés (salvamento).
@@ -1018,6 +1038,16 @@ func update(dt: float, alive: Array) -> void:
 			_set_aim(r, s, aim_vec(r))
 			if r.stun_t > 0.0:
 				s["prep"] = -1.0   # levou golpe na preparação: cancela (sem gastar carga)
+				s.erase("carga_hold")
+			elif s.get("carga_hold", false):
+				var cmax: float = s["prep_len"]
+				if (not held(r) and s["prep"] >= float(sc("A01")["carga_min_s"])) or s["prep"] >= cmax + float(sc("A01")["segura_max_s"]):
+					s["carga"] = clampf(s["prep"] / cmax, 0.0, 1.0)
+					s["prep"] = -1.0
+					s.erase("carga_hold")
+					_fire(r, s)
+				elif s["prep"] >= cmax and fmod(s["prep"], 0.25) < dt:
+					main.spark(muzzle(r, "A01"), 1)   # cheio: chiando, esperando soltar
 			elif s["prep"] >= s["prep_len"]:
 				s["prep"] = -1.0
 				_fire(r, s)
@@ -1100,9 +1130,17 @@ func _update_fists(dt: float) -> void:
 				if _seg_rect(from, tip, o.rect(), 22.0):
 					f["hit"].append(o.pid)
 					if _hit_dir(o, f["owner"], f["dirv"], "spell_punho"):
-						o.hitstop = 0.08
-						r.hitstop = 0.06
+						var kc: float = f.get("carga", 0.0)
+						var c1: Dictionary = sc("A01")
+						o.own_vx *= lerpf(1.0, float(c1["mult_cheio"]), kc)
+						if absf(f["dirv"].y) < 0.5:
+							o.velocity.y = lerpf(o.velocity.y, -float(c1["sobe_cheio"]), kc)   # carga cheia: voo mais reto
+						o.hitstop = 0.08 + 0.06 * kc
+						r.hitstop = 0.06 + 0.05 * kc
 						f["impact"] = 0.0
+						main.shake(5.0 + 9.0 * kc)
+						if kc >= float(c1["quique_min_carga"]):
+							punch_fly.append({"pid": o.pid, "owner": f["owner"], "t": 0.0, "dir": int(signf(o.own_vx)) if absf(o.own_vx) > 1.0 else r.facing})
 		if f["impact"] >= 0.0:
 			f["impact"] += dt
 		if f["t"] >= FIST_OUT and not f.get("done", false):
@@ -1117,6 +1155,36 @@ func _update_fists(dt: float) -> void:
 						if not p["fallen"] and p["state"] >= 1 and p["rect"].grow(8).has_point(tip + f["dirv"] * 14.0):
 							ct.damage(p, 1, tip)   # rompe só peça já fragilizada
 	fists = fists.filter(func(f): return f["t"] < FIST_OUT + FIST_HOLD + FIST_BACK)
+	# voo do soco carregado: bateu em parede/bloco → quica de volta e racha a peça
+	var c1: Dictionary = sc("A01")
+	for pf in punch_fly:
+		pf["t"] += dt
+		var o = main.robots[pf["pid"]]
+		if not o.alive:
+			pf["t"] = 99.0
+			continue
+		var d: int = pf["dir"]
+		var fr: Vector2 = o.position + Vector2(d * 30.0, -36.0)
+		if absf(o.own_vx) > 260.0 and (o.is_on_wall() or _hard_at(fr)):
+			o.own_vx = -d * absf(o.own_vx) * float(c1["quique_perda"])
+			o.velocity.y = minf(o.velocity.y, -220.0)
+			pf["t"] = 99.0
+			main.spark(fr, 10)
+			main.dust(fr, 1.2)
+			main.shake(10.0)
+			Audio.play("caixote_pancada", 0.5, 2.0)
+			Audio.play("bonk", 0.7, 0.0)
+			bonks.append({"pos": fr, "t": 0.0})
+			var ct = demo.canteiro
+			if ct != null and is_instance_valid(ct):
+				for p in ct.parts:
+					if not p["fallen"] and ct.hit_rect(p).grow(14).has_point(fr):
+						ct.damage(p, int(c1["dano_bloco"]), fr)   # o bloco racha
+						break
+	punch_fly = punch_fly.filter(func(pf): return pf["t"] < float(c1["quique_s"]))
+	for b in bonks:
+		b["t"] += dt
+	bonks = bonks.filter(func(b): return b["t"] < 0.3)
 
 func _update_shots(dt: float) -> void:
 	var c: Dictionary = sc("A03")
@@ -1149,7 +1217,7 @@ func flags(r) -> Dictionary:
 	if not slot.has(r.pid):
 		return {}
 	var s: Dictionary = slot[r.pid]
-	var out := {"spell": s["id"], "fire": s["fire"], "prep": (s["prep"] / maxf(s["prep_len"], 0.01)) if s["prep"] >= 0.0 else -1.0,
+	var out := {"spell": s["id"], "fire": s["fire"], "prep": minf(s["prep"] / maxf(s["prep_len"], 0.01), 1.0) if s["prep"] >= 0.0 else -1.0,
 		"channel": s["channel"], "aim_a": aim_local(r)}
 	if s["id"] == "T01":
 		out["armor"] = s["t"] > 0.0
@@ -1365,15 +1433,27 @@ func _draw_fists() -> void:
 	for r in main.robots:
 		if not slot.has(r.pid) or slot[r.pid]["id"] != "A01" or slot[r.pid]["prep"] < 0.0:
 			continue
-		var k: float = slot[r.pid]["prep"] / maxf(slot[r.pid]["prep_len"], 0.01)
+		var k: float = minf(slot[r.pid]["prep"] / maxf(slot[r.pid]["prep_len"], 0.01), 1.0)
 		var dvp := aim_dir(r)
-		var h := muzzle(r, "A01") + dvp * (6.0 - 8.0 * k) + Vector2(randf_range(-1, 1), randf_range(-1, 1)) * 2.0 * k
+		var h := muzzle(r, "A01") + dvp * (6.0 - 8.0 * k) + Vector2(randf_range(-1, 1), randf_range(-1, 1)) * (2.0 + 2.5 * k) * k
+		# barra de pressão sobre a cabeça (padrão de "segurar"); cheia pisca branca
+		var bp: Vector2 = r.position + Vector2(-22, -150)
+		draw_rect(Rect2(bp - Vector2(2, 2), Vector2(48, 11)), INK)
+		var full := k >= 1.0 and fmod(t, 0.16) < 0.08
+		draw_rect(Rect2(bp, Vector2(44.0 * k, 7)), Color.WHITE if full else Color("#ff8a2a").lerp(Color("#ff3b2f"), k))
 		draw_set_transform(h, dvp.angle(), Vector2(0.75, -0.75 if dvp.x < -0.1 else 0.75))
 		draw_texture_rect(Data.tex("spells/s01_luva"), Rect2(-8, -26, 62, 50), false)
 		draw_set_transform(Vector2.ZERO)
 		for j in 3:
 			var u := fposmod(t * 3.0 + j * 0.33, 1.0)
 			draw_circle(h + Vector2(-r.facing * (10.0 + 6.0 * j), -12.0 - u * 26.0), 4.0 + u * 7.0, Color(1, 1, 1, 0.55 * (1.0 - u) * k))
+	for b in bonks:   # soco carregado: o rival bateu na parede
+		var u: float = b["t"] / 0.3
+		var star := PackedVector2Array()
+		for k in 16:
+			star.append(b["pos"] + Vector2.from_angle(k * TAU / 16.0) * ((40.0 if k % 2 == 0 else 16.0) * (0.6 + 0.7 * u)))
+		draw_colored_polygon(star, Color(1, 0.95, 0.6, 1.0 - u))
+		draw_arc(b["pos"], 20.0 + 60.0 * u, 0, TAU, 24, Color(1, 1, 1, 1.0 - u), 4.0, true)
 
 # ---------------------------------------------------------------- A03 tiro e bloco de gelo
 func _draw_shots() -> void:
@@ -1762,8 +1842,31 @@ func _fire2(r, s: Dictionary) -> void:
 						break
 					dd += 16.0
 				ends.append(r.position.x + dir * dd)
-			waves.append({"owner": r.pid, "x0": r.position.x, "y": y, "l_end": ends[0], "r_end": ends[1], "t": 0.0, "hit": []})
-			main.shake(10.0)
+			var wv := {"owner": r.pid, "x0": r.position.x, "y": y, "l_end": ends[0], "r_end": ends[1], "t": 0.0, "hit": []}
+			waves.append(wv)
+			# CRATERA (auditoria 2026-11-27): quem está na área voa longe; as peças da área despencam na hora
+			var zr := crater_rect(r)
+			for o in main.robots:
+				if o.pid != r.pid and o.alive and zr.intersects(o.rect()):
+					wv["hit"].append(o.pid)
+					_hit(o, r.pid, r.facing, "spell_cratera")
+					o.hitstop = 0.1
+			var ct = demo.canteiro
+			var pe: Vector2 = r.position + Vector2(0, 8)
+			if ct != null and is_instance_valid(ct):
+				for p in ct.parts:
+					if p["fallen"] or not ct.hit_rect(p).intersects(zr) or ct.hit_rect(p).grow(2).has_point(pe):
+						continue
+					ct.damage(p, 9999, ct.hit_rect(p).get_center())
+					if p["crit_t"] > 0.0:
+						p["crit_t"] = minf(p["crit_t"], 0.12)   # sem o aviso longo: a laje some no golpe
+			craters.append({"rect": zr, "t": 0.0})
+			for j in 26:
+				rocks.append({"pos": Vector2(randf_range(zr.position.x, zr.end.x), y - 4.0), "vel": Vector2(randf_range(-260, 260) + r.facing * 120.0, randf_range(-900, -380)),
+					"t": 0.0, "rot": randf() * TAU, "size": randf_range(6, 14)})
+			main.dust(zr.get_center() + Vector2(0, zr.size.y * 0.3), 2.2)
+			r.hitstop = 0.09
+			main.shake(18.0)
 			Audio.play("terremoto", 1.3, 0.0)
 			Audio.play("martelao", 0.8, 0.0)
 			main.dust(r.position + Vector2(r.facing * 40.0, 0), 1.4)
@@ -1850,6 +1953,9 @@ func _update_attack2(dt: float) -> void:
 	for e in lasers:
 		e["t"] += dt
 	lasers = lasers.filter(func(e): return e["t"] < 0.34)
+	for e in craters:
+		e["t"] += dt
+	craters = craters.filter(func(e): return e["t"] < 0.5)
 	for e in scorch:
 		e["t"] += dt
 	scorch = scorch.filter(func(e): return e["t"] < 2.5)
@@ -1865,6 +1971,8 @@ func _update_attack2(dt: float) -> void:
 				continue
 			var dx: float = o.position.x - w["x0"]
 			var lim: float = (w["r_end"] - w["x0"]) if dx >= 0.0 else (w["x0"] - w["l_end"])
+			if front > lim + 80.0:
+				continue   # a onda já parou (buraco/parede): não fica acertando quem pousa ali depois
 			if absf(dx) <= minf(front, lim) + 20.0 and absf(dx) >= minf(front, lim) - 60.0:
 				w["hit"].append(o.pid)
 				_hit(o, w["owner"], 1 if dx >= 0.0 else -1, "spell_sismo")
@@ -2036,28 +2144,73 @@ func _draw_attack2() -> void:
 				var a0 := -PI / 2.0 if r.facing > 0 else PI / 2.0
 				for j in 3:
 					draw_arc(m, 14.0 + j * 6.0 - 6.0 * k, a0, a0 + PI, 10, Color(1, 1, 1, 0.5 * k), 2.0, true)
-	# A04 marreta gigante dourada: ergue por cima da cabeça (para trás) e crava à frente
+	# A04 (auditoria 2026-11-27): marreta sísmica gigante (spells/a04_marreta): arqueia e ergue para trás tremendo,
+	# desce num arco com rastro, crava à frente com repique e fica cravada; faixa vermelha marca a cratera no preparo
+	var mtex: Texture2D = Data.tex("spells/a04_marreta")
 	for r in main.robots:
 		if not r.alive or not slot.has(r.pid) or slot[r.pid]["id"] != "A04":
 			continue
 		var s4: Dictionary = slot[r.pid]
 		var ang := 0.0
 		var glow := 0.0
+		var gp := Vector2(4, -62)
+		var smear := -1.0
 		if s4["prep"] >= 0.0:
-			var k: float = s4["prep"] / maxf(s4["prep_len"], 0.01)
-			ang = lerpf(0.3, -1.05, ease(k, 0.35))
+			var k: float = minf(s4["prep"] / maxf(s4["prep_len"], 0.01), 1.0)
+			ang = lerpf(0.3, -0.95, ease(k, 0.3)) + (sin(t * 70.0) * 0.05 * k if k > 0.6 else 0.0)
 			glow = k
-		elif s4["fire"] >= 0.0 and s4["fire"] < 0.34:
-			ang = lerpf(-1.05, 2.0, clampf(s4["fire"] / 0.05, 0.0, 1.0))
-			glow = 1.0 - s4["fire"] / 0.34
+			var zr := crater_rect(r)   # faixa de perigo pulsando onde a cratera vai abrir
+			var pa := 0.35 + 0.25 * sin(t * 18.0)
+			draw_rect(Rect2(zr.position.x, r.position.y - 4.0, zr.size.x, 10.0), Color(1, 0.23, 0.18, pa * k))
+			var nst := int(zr.size.x / 18.0)
+			for i in nst:
+				var xx: float = zr.position.x + i * 18.0
+				draw_line(Vector2(xx, r.position.y + 6.0), Vector2(xx + 10.0, r.position.y - 4.0), Color(1, 0.23, 0.18, 0.9 * k), 2.5, true)
+		elif s4["fire"] >= 0.0 and s4["fire"] < 0.55:
+			var f: float = s4["fire"]
+			if f < 0.06:
+				ang = lerpf(-0.95, 1.8, ease(f / 0.06, 0.4))
+				smear = f / 0.06
+			elif f < 0.14:
+				ang = 1.8 - 0.14 * sin((f - 0.06) / 0.08 * PI)
+			elif f < 0.42:
+				ang = 1.78
+			else:
+				ang = lerpf(1.78, 1.0, (f - 0.42) / 0.13)
+			gp = Vector2(4, -62).lerp(Vector2(24, -20), clampf(f / 0.06, 0.0, 1.0))
+			glow = maxf(0.0, 1.0 - f / 0.2)
 		else:
 			continue
-		var grip: Vector2 = r.position + Vector2(r.facing * 14.0, -54.0)
-		draw_set_transform(grip, ang * r.facing, Vector2(r.facing, 1.0))
-		draw_texture_rect(Data.tex("spells/s04_marreta"), Rect2(-28, -105, 56, 112), false)
+		var grip: Vector2 = r.position + Vector2(r.facing * gp.x, gp.y)
+		if smear >= 0.0:   # rastro do arco
+			var poly := PackedVector2Array()
+			var a0 := -0.95
+			var a1 := lerpf(-0.95, 1.8, smear)
+			for i in 11:
+				var aa: float = lerpf(a0, a1, i / 10.0) * r.facing
+				poly.append(grip + Vector2(sin(aa), -cos(aa)) * 100.0)
+			for i in range(10, -1, -1):
+				var aa: float = lerpf(a0, a1, i / 10.0) * r.facing
+				poly.append(grip + Vector2(sin(aa), -cos(aa)) * (100.0 - 46.0 * pow(i / 10.0, 0.6)))
+			draw_colored_polygon(poly, Color(1, 1, 1, 0.6))
+		var hd := grip + Vector2(sin(ang * r.facing), -cos(ang * r.facing)) * 95.0
+		if glow > 0.0:
+			draw_circle(hd, 22.0 + 18.0 * glow, Color(1, 0.7, 0.3, 0.35 * glow))
+		if mtex != null:
+			draw_set_transform(grip, ang * r.facing, Vector2(r.facing * 0.224, 0.224))
+			draw_texture(mtex, -Vector2(224, 480))
+			draw_set_transform(Vector2.ZERO)
+	for e in craters:   # clarão da cratera: estrela + anel + poeira subindo
+		var u: float = e["t"] / 0.5
+		var c0: Vector2 = Vector2(e["rect"].get_center().x, e["rect"].end.y - 24.0)
+		if u < 0.4:
+			var star := PackedVector2Array()
+			for k in 16:
+				star.append(c0 + Vector2.from_angle(k * TAU / 16.0) * ((70.0 if k % 2 == 0 else 26.0) * (0.6 + u)))
+			draw_colored_polygon(star, Color(1, 0.92, 0.55, 1.0 - u / 0.4))
+		draw_set_transform(c0, 0.0, Vector2(1.0, 0.3))
+		draw_arc(Vector2.ZERO, 40.0 + 220.0 * u, 0, TAU, 32, Color(1, 1, 1, 1.0 - u), 10.0 * (1.0 - u) + 2.0, true)
 		draw_set_transform(Vector2.ZERO)
-		var head := grip + Vector2(0, -90.0).rotated(ang * r.facing)
-		draw_circle(head, 18.0 + 14.0 * glow, Color(1, 0.85, 0.4, 0.35 * glow))
 	# A02 feixe: dispara da lente até a parede em 0,04 s; tubo de luz com borda tremendo, anéis correndo, clarão na
 	# boca e na parede; depois afina de cima para baixo e deixa calor
 	for e in lasers:

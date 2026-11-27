@@ -250,5 +250,40 @@ def prancha():
     print(render_all(), out)
 
 
+def canhao_jogo():
+    """A01 no jogo: canhão pneumático no espaço de design 128x64 (pega 30,34 · bico 100,33), sem a luva."""
+    o = f'<path d="M24,44 C10,54 4,44 2,36" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(18, 20, 80, 28, 10, "#d06a2a", k=0.5) + R(18, 20, 80, 8, 6, "#e8894a", k=0.2)
+    o += "".join(R(34 + i * 18, 20, 5, 28, 1.5, "#a5501f", k=0.1) for i in range(3))
+    o += R(94, 22, 12, 24, 3, STEEL, k=0.3) + R(100, 25, 6, 18, 2, STEEL_D, k=0.2)
+    o += R(46, 6, 6, 16, 2, STEEL_D, k=0.1) + E(49, 8, 9, 9, "#f3ead8", k=0.1)
+    o += f'<circle cx="49" cy="8" r="9" fill="none" stroke="{DARK}" stroke-width="2.4"/><path d="M49,8 l5,-5" stroke="{EYE}" stroke-width="2.4" stroke-linecap="round"/>'
+    o += f'<path d="M42,13 a9,9 0 0 1 14,0" stroke="{EYE}" stroke-width="2" fill="none" opacity="0.7"/>'
+    return o
+
+
+def luva_jogo():
+    """A01 luva no espaço 62x50 (desenhada em Rect2(-8,-26,62,50): punho na esquerda)."""
+    o = R(0, 13, 14, 24, 3, STEEL, k=0.3) + R(4, 15, 4, 20, 1.5, STEEL_D, k=0.1)
+    o += S("M12,6 C34,0 58,8 58,25 C58,42 34,50 12,44 Z", "#e54b3c", (12, 0, 58, 50), k=0.5)
+    o += S("M14,30 C24,28 30,34 28,42 C22,46 16,45 14,42 Z", "#c73a2d", (14, 28, 30, 46), k=0.3)
+    o += f'<path d="M24,10 C38,6 48,12 52,18" stroke="#ffffff" stroke-width="4" opacity="0.65" fill="none" stroke-linecap="round"/>'
+    return o
+
+
+def exportar_jogo():
+    out = os.path.join(ab.ROOT, "art/out/game/spells")
+    os.makedirs(out, exist_ok=True)
+    itens = [("a04_marreta", f'<g transform="translate(56,40)">{marreta_sismica()}</g>', 112, 140, 4),
+             ("s01_canhao", canhao_jogo(), 128, 64, 2), ("s01_luva", luva_jogo(), 62, 50, 2.0645)]
+    for nome, g, w, h, sc in itens:
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{g}</svg>'
+        queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, sc)
+    print("armas:", render_all())
+
+
 if __name__ == "__main__":
-    prancha()
+    if "--jogo" in sys.argv:
+        exportar_jogo()
+    else:
+        prancha()

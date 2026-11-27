@@ -365,6 +365,7 @@
         "ky": 160,
         "ky_por": 1.2
       },
+      "spell_cratera": {"dano": 14, "kx": 760, "kx_por": 5.0, "ky": 560, "ky_por": 3.0},
       "spell_sismo": {
         "dano": 10,
         "kx": 260,
@@ -760,6 +761,16 @@
         "preparo": 0.4,
         "intervalo_s": 0.45,
         "alcance_tiles": 4,
+        "nota": "auditoria 2026-11-27: segurar carrega (carga_max_s); soltar = soco com força pela carga; carga >= quique_min_carga quica na parede e racha o bloco",
+        "carga_min_s": 0.15,
+        "carga_max_s": 1.0,
+        "segura_max_s": 1.2,
+        "mult_cheio": 2.6,
+        "sobe_cheio": 180,
+        "quique_min_carga": 0.5,
+        "quique_s": 0.9,
+        "quique_perda": 0.35,
+        "dano_bloco": 3,
         "icone": "s01_luva"
       },
       "A02": {
@@ -788,10 +799,13 @@
         "familia": "ataque",
         "raridade": "comum",
         "cargas": 1,
-        "preparo": 0.45,
+        "preparo": 0.5,
         "alcance_tiles": 5,
         "vel": 950,
-        "icone": "s04_marreta"
+        "nota": "auditoria 2026-11-27: a mais destrutiva: cratera derruba as peças à frente (nunca a que está sob quem bate; núcleo não cai); quem está na cratera voa longe (spell_cratera), a onda levanta quem está no chão",
+        "cratera_frente_px": 40,
+        "cratera_tiles": 2.5,
+        "icone": "a04_marreta"
       },
       "A05": {
         "familia": "ataque",

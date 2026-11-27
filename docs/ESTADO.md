@@ -23,6 +23,8 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
   Velocidade ×1,7, pulo ×1,15; SEGURAR especial = ARRANCADA (3 s de combustível, sobe parede, atropela). Golpes:
   joelhada-relâmpago (leve) e voadora deslizante (pesado). Arte `art/src/robos/mecha_corredor.py` (prancha) → export `--so=T07`.
   `selecao_test` agora calcula as contagens pelos dados (estava desatualizado desde a A31). Vídeo `out/videos/mecha_corredor.mp4`.
+- **Auditoria das engenhocas** (`docs/revisoes/auditoria_engenhocas.md`): Ataque decidido; **lote 1 FEITO (A38: A04 cratera +
+  A01 carregado)**; próximos lotes A02+A05 → A08+E02 → A06+A07; depois notas do Controle e a classe nova DEFESA.
 - **A37:** o mecha vai como MOCHILA nas costas antes de ativar (sai o cartucho na mão + holograma). Vitrine:
   `MECHAS_SO=T07 MECHAS_SEGURA=120 MECHAS_MODELO=0..4 ... --mechas=DIR` (anda carregando, card da seleção, ativação).
 

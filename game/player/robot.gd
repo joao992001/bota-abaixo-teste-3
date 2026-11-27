@@ -522,7 +522,7 @@ func _climb_update(dt: float) -> void:
 ## Retorna false se não pegou (invulnerável ou capacete).
 const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "combo_final", "cima", "baixo", "corrida",
 	"spell_punho", "spell_gelo", "spell_fogo", "spell_explosao",
-	"spell_laser", "spell_sismo", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
+	"spell_laser", "spell_sismo", "spell_cratera", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
 	"spell_gancho", "spell_carga", "spell_viga",
 	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_arrancada", "spell_raio1", "spell_raio2", "spell_raio3", "mecha_leve", "mecha_pesado"]
 
@@ -535,7 +535,7 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 	last_hit = 0.0
 	last_cause = {"marretada": "marretada", "martelao": "marretada", "explosao": "explosão", "bola": "bola",
 		"spell_punho": "punho pneumático", "spell_gelo": "canhão criogênico", "spell_fogo": "armadura fornalha",
-		"spell_explosao": "fornalha explodiu", "spell_laser": "laser de corte", "spell_sismo": "marreta sísmica",
+		"spell_explosao": "fornalha explodiu", "spell_laser": "laser de corte", "spell_sismo": "marreta sísmica", "spell_cratera": "cratera da marreta sísmica",
 		"spell_rebite": "rebite", "spell_estaca": "bate-estaca", "spell_bumerangue": "marreta-bumerangue",
 		"spell_mola": "canhão de molas", "spell_gancho": "gancho", "spell_carga": "carga de demolição", "spell_viga": "viga do guindaste",
 		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios", "mecha_leve": "golpe de mecha", "mecha_pesado": "golpe pesado de mecha",

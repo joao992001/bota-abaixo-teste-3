@@ -2749,17 +2749,20 @@ func spells_test() -> void:
 	await frames(2)
 	await tap("v0", "item")
 	check(sp.flags(r0)["prep"] >= 0.0, "A01: começa a preparação (puxa o braço)")
-	await frames(int(float(sp.sc("A01")["preparo"]) * 60.0) + 12)
+	await frames(int(float(sp.sc("A01")["carga_min_s"]) * 60.0) + 8)
 	check(r1.dmg > 0.0 and r1.own_vx > 200.0 and sp.hud_info(0)["charges"] == 1, "A01: punho estica e arremessa o rival (dano %d%%, vx %.0f)" % [int(r1.dmg), r1.own_vx])
 	# golpe na preparação cancela sem gastar carga
 	place.call(3.0)
 	sp.slot[0]["cd"] = 0.0
 	await frames(2)
-	await tap("v0", "item")
-	await frames(6)
+	vset("v0", "item", true)   # segurando = carregando a pressão
+	await frames(20)
+	check(sp.flags(r0)["prep"] > 0.2 and sp.flags(r0)["prep"] < 1.0, "A01: segurar carrega a pressão (%.2f)" % sp.flags(r0)["prep"])
 	r0.take_hit(-1, "rapido", 1)
+	await frames(2)
+	vset("v0", "item", false)
 	await frames(30)
-	check(sp.hud_info(0).get("charges", 0) == 1 and r1.dmg == 0.0, "A01: levar golpe na preparação cancela (sem gastar carga)")
+	check(sp.hud_info(0).get("charges", 0) == 1 and r1.dmg == 0.0, "A01: levar golpe na preparação cancela (sem gastar carga) [%s cargas, rival %d%%]" % [str(sp.hud_info(0).get("charges", -1)), int(r1.dmg)])
 	# E01 andaime relâmpago: plataforma 2 tiles acima, à frente; robô fica de pé nela
 	place.call(10.0)
 	sp.clear(r0)
@@ -2848,10 +2851,53 @@ func spells_test() -> void:
 	sp.equip(r0, "A04")
 	await frames(2)
 	await tap("v0", "item")
-	await frames(int(float(sp.sc("A04")["preparo"]) * 60.0) + 1)
-	r1.velocity.y = -900.0   # pula na hora certa (a onda ainda está chegando)
-	await frames(20)
-	check(r1.dmg == 0.0, "A04: quem pulou escapa da onda (%s, %d%%)" % [r1.last_cause, int(r1.dmg)])
+	await frames(int(float(sp.sc("A04")["preparo"]) * 60.0 * 0.6))
+	r1.position.y -= 110.0   # no alto de um pulo na hora do golpe (o cenário do teste tem teto baixo em cima do rival)
+	r1.velocity.y = -300.0   # viu a faixa vermelha e pulou no preparo (auditoria 2026-11-27: a cratera é na hora do golpe)
+	await frames(30)
+	check(r1.last_cause != "cratera da marreta sísmica", "A04: quem pulou no preparo escapa da cratera (%s, %d%%)" % [r1.last_cause, int(r1.dmg)])
+	# A04 cratera (auditoria 2026-11-27): derruba a laje à frente, nunca a que está sob quem bate
+	var ct4 = main.demo.canteiro
+	var lajes4: Array = ct4.parts.filter(func(p): return p["kind"] == "laje" and not p["nucleo"] and not p["fallen"]) if ct4 != null else []
+	var alvo4 = null
+	var pe4 = null
+	for p in lajes4:
+		for q in ct4.parts:
+			if q["kind"] == "laje" and not q["fallen"] and absf(q["rect"].end.x - p["rect"].position.x) < 2.0:
+				alvo4 = p
+				pe4 = q
+		if alvo4 != null:
+			break
+	check(alvo4 != null, "A04: achou laje com vizinha à esquerda para testar a cratera")
+	if alvo4 != null:
+		place.call(3.0)
+		sp.clear(r0)
+		sp.equip(r0, "A04")
+		put(r0, Vector2(alvo4["rect"].position.x - 24.0, alvo4["rect"].position.y))
+		r0.facing = 1
+		put(r1, Vector2(alvo4["rect"].position.x + 300.0, alvo4["rect"].position.y - 400.0))
+		await frames(8)
+		await tap("v0", "item")
+		await frames(int(float(sp.sc("A04")["preparo"]) * 60.0) + 20)
+		check(alvo4["fallen"] or alvo4["crit_t"] > 0.0, "A04: a cratera derruba a laje à frente")
+		check(not pe4["fallen"] and pe4["crit_t"] <= 0.0, "A04: a laje sob quem bateu fica")
+	# A01 carregado (auditoria 2026-11-27): carga cheia arremessa bem mais longe que o toque
+	place.call(2.0)
+	sp.clear(r0)
+	sp.equip(r0, "A01")
+	await frames(2)
+	await tap("v0", "item")
+	await frames(int(float(sp.sc("A01")["carga_min_s"]) * 60.0) + 8)
+	var vx_toque: float = absf(r1.own_vx)
+	place.call(2.0)
+	sp.slot[0]["cd"] = 0.0
+	await frames(2)
+	vset("v0", "item", true)
+	await frames(int(float(sp.sc("A01")["carga_max_s"]) * 60.0) + 2)
+	vset("v0", "item", false)
+	await frames(10)
+	var vx_cheio: float = absf(r1.own_vx)
+	check(vx_cheio > vx_toque * 1.8, "A01: carga cheia arremessa mais longe (toque %.0f × cheio %.0f)" % [vx_toque, vx_cheio])
 	# A05 rebiteira: tiro rápido, acerta e some
 	place.call(5.0)
 	sp.clear(r0)
@@ -3432,6 +3478,8 @@ func controles_test() -> void:
 
 func bots_test() -> void:
 	print("== Bots")
+	seed(11)   # luta de bots depende do sorteio: semente fixa (não muda conforme os testes que rodaram antes)
+	main.rng.seed = 11
 	main.mode = "demolicao"
 	main.arena_choice = "demolicao"
 	main.state = S.JOIN
@@ -4205,7 +4253,7 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
@@ -4258,6 +4306,17 @@ func spells_frames(dir: String) -> void:
 		elif nm == "porte":
 			sp.equip(r0, "A05")
 			sp.equip(r1, "E01")
+		elif nm == "A01cheio":
+			sp.equip(r0, "A01")
+			put(r1, Vector2(x0 + 2.6 * 64.0, fy))
+		elif nm == "A04":   # cratera numa laje que cai (o núcleo do meio não cai)
+			var ct4 = main.demo.canteiro
+			for p in ct4.parts:
+				if p["kind"] == "laje" and not p["nucleo"] and not p["fallen"] and ct4.parts.any(func(q): return q["kind"] == "laje" and not q["fallen"] and absf(q["rect"].end.x - p["rect"].position.x) < 2.0):
+					put(r0, Vector2(p["rect"].position.x - 24.0, p["rect"].position.y))
+					put(r1, Vector2(p["rect"].position.x + 120.0, p["rect"].position.y))
+					break
+			sp.equip(r0, nm)
 		else:
 			sp.equip(r0, nm)
 		for f in int(sg[1]):
@@ -4267,6 +4326,8 @@ func spells_frames(dir: String) -> void:
 					a["v0"]["item"] = f >= 30 and f < 52
 				"A01", "E01", "A02", "A04", "A06", "A07", "A08":
 					a["v0"]["item"] = f == 14 or f == 15
+				"A01cheio":   # auditoria 2026-11-27: segura até encher e solta
+					a["v0"]["item"] = f >= 10 and f < 76
 				"C02":
 					a["v0"]["item"] = f >= 10 and f < 80
 				"C03", "C05", "E03":
