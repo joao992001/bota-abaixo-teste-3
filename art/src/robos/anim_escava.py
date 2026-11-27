@@ -116,6 +116,148 @@ def A_pesado():
     return "ESCAVADEIRA · GOLPE PESADO (ergue e esmaga)", 2.1, k, fx, "treme_pesado"
 
 
+def A_duplo():
+    air = dict(feet=[(-12, -8), (11, -6)], tool=(22, -30, -60))
+    tuck = dict(feet=[(-6, -12), (6, -10)], tool=(16, -30, -90), hip=(0, -22))
+    k = [(0.0, P(**{**BASE, "oy": -14, **air})), (0.1, P(**{**BASE, "oy": -18, "sq": (1, 1.08), "feet": [(-5, -1), (6, 1)], "tool": (22, -30, -60)})),
+         (0.45, P(**{**BASE, "oy": -30, "rot": 360, "face": "raiva", **tuck})), (0.6, P(**{**BASE, "oy": -30, "rot": 360, **air})),
+         (0.95, P(**{**BASE, "oy": 0, "rot": 360, "tool": (24, -30, 60)})), (1.01, P(**{**BASE, "rot": 360, "hip": (0, -12), "sq": (1.16, 0.72), "tool": (24, -28, 70)})), (1.35, P(**{**BASE, "rot": 360}))]
+
+    def fx(t, p):
+        if 0.06 < t < 0.22:   # a caçamba empurra o chão para o 2º pulo
+            return f'<circle cx="24" cy="-14" r="{6 + 30 * (t - 0.06):.0f}" fill="#fff6e4" opacity="{0.7 - (t - 0.06) * 4:.2f}"/>'
+        if 1.01 < t < 1.33:
+            kk = (t - 1.01) / 0.32
+            return ab.fx_onda(0, 0, kk, 1.8) + pedras(0, 0, kk)
+        return ""
+    return "ESCAVADEIRA · PULO DUPLO (cambalhota pesada)", 1.35, k, fx, None
+
+
+def A_parede():
+    wall = dict(lean=-2, head=8, feet=[(-14, -4), (-2, -1)], tool=(22, -24, -20), face="foco")
+    k = [(0.0, P(**{**BASE, "ox": -24, "oy": -34, **wall})), (0.9, P(**{**BASE, "ox": -24, "oy": -10, **wall})),
+         (1.0, P(**{**BASE, "ox": -22, "oy": -12, "hip": (0, -13), "sq": (1.12, 0.76), "lean": -8, "feet": [(-12, -2), (-6, 0)], "tool": (22, -24, -20)})),
+         (1.4, P(**{**BASE, "ox": 40, "oy": -36, "lean": 16, "feet": [(-12, -8), (11, -6)], "tool": (22, -30, -60), "face": "raiva"}))]
+
+    def fx(t, p):
+        o = '<rect x="-82" y="-200" width="34" height="210" fill="#d9a35f"/><rect x="-54" y="-200" width="6" height="210" fill="#b57a3e"/>'
+        if t < 0.9:   # crava as pontas da caçamba na parede: farelo
+            o += "".join(f'<rect x="{-48 + (i % 2) * 4}" y="{p["oy"] - 40 + ((t * 3 + i * 0.3) % 1) * 30:.0f}" width="4" height="4" fill="#b57a3e"/>' for i in range(3))
+        return o
+    return "ESCAVADEIRA · PAREDE (desce freando · salta)", 1.4, k, fx, None
+
+
+def A_borda():
+    hang = dict(hip=(0, -20), lean=0, head=-8, feet=[(-3, -4), (4, -1)], tool=(22, -46, -30), bk=(-14, -40), face="susto")
+    k = [(0.0, P(**{**BASE, "oy": 8, **hang})), (0.5, P(**{**BASE, "oy": 8, **{**hang, "feet": [(-8, -1), (8, -6)]}})), (0.9, P(**{**BASE, "oy": 8, **hang})),
+         (1.25, P(**{**BASE, "ox": 10, "oy": -34, "lean": 22, "feet": [(-4, -10), (10, -2)], "tool": (24, -30, 20), "face": "raiva", "sq": (1.06, 0.9)})),
+         (1.7, P(**{**BASE, "ox": 32, "oy": -40}))]
+
+    def fx(t, p):
+        return '<rect x="22" y="-40" width="210" height="44" fill="#cfc6b4"/><rect x="22" y="-40" width="210" height="8" fill="#e8e0d0"/>'
+    return "ESCAVADEIRA · BORDA (crava a caçamba · sobe)", 1.7, k, fx, None
+
+
+def A_esquiva():
+    low = P(**{**BASE, "hip": (0, -13), "lean": -12, "head": 10, "sq": (1.12, 0.8), "tool": (18, -26, -40), "face": "susto"})
+    k = [(0.0, BASE), (0.06, low), (0.24, P(**{**low, "ox": -44})), (0.48, P(**{**BASE, "ox": -44})), (0.9, P(**{**BASE, "ox": 0}))]
+    return "ESCAVADEIRA · ESQUIVA (rola pesada)", 0.9, k, None, "fantasma"
+
+
+def A_cima():
+    k = [(0.0, BASE), (0.1, P(**{**BASE, "hip": (0, -15), "sq": (1.08, 0.86), "tool": (24, -22, 40)})),
+         (0.2, P(**{**BASE, "lean": -6, "head": -10, "hip": (0, -22), "tool": (26, -50, -65), "face": "raiva", "sq": (1, 1.08)})),
+         (0.5, P(**{**BASE, "lean": -4, "head": -8, "tool": (26, -48, -70)})), (0.9, BASE)]
+
+    def fx(t, p):
+        if 0.14 < t < 0.26:
+            return ab.smear(p["tool"][:2], 40, -65, 12, 40)
+        return ab.fx_estrela(40, -92, (t - 0.2) / 0.3, 12) if 0.2 < t < 0.5 else ""
+    return "ESCAVADEIRA · LEVE PARA CIMA", 0.9, k, fx, None
+
+
+def A_baixo():
+    air = dict(oy=-34, feet=[(-11, -9), (10, -6)])
+    k = [(0.0, P(**{**BASE, **air, "tool": (16, -40, -90), "face": "raiva"})), (0.12, P(**{**BASE, **air, "tool": (26, -36, 85), "face": "raiva", "lean": 22})),
+         (0.42, P(**{**BASE, "oy": 0, "tool": (26, -36, 85), "lean": 22, "hip": (0, -13), "sq": (1.14, 0.76), "face": "raiva"})), (0.95, BASE)]
+
+    def fx(t, p):
+        if 0.42 < t < 0.85:
+            kk = (t - 0.42) / 0.43
+            return ab.fx_onda(30, 0, kk, 1.6) + pedras(30, 0, kk, 6)
+        return ""
+    return "ESCAVADEIRA · LEVE PARA BAIXO (esmaga)", 0.95, k, fx, "treme_baixo"
+
+
+def A_leva():
+    hit = P(**{**BASE, "lean": -10, "head": 16, "sq": (1.02, 1.04), "ox": -6, "feet": [(-14, -2), (10, 0)], "tool": (22, -26, -30), "face": "dor"})
+    k = [(0.0, BASE), (0.07, hit), (0.35, P(**{**hit, "ox": -10})), (0.9, P(**{**BASE, "ox": 0}))]
+
+    def fx(t, p):
+        return ab.fx_estrela(10, -44, (t - 0.05) / 0.25, 12) if 0.05 < t < 0.3 else ""
+    return "ESCAVADEIRA · LEVA GOLPE (quase não se mexe)", 0.9, k, fx, None
+
+
+def A_arremessado():
+    fly = dict(feet=[(-12, -8), (-2, -14)], tool=(16, -32, -120), face="susto")
+    k = [(0.0, BASE), (0.05, P(**{**BASE, "oy": -6, **fly})), (0.45, P(**{**BASE, "ox": -50, "oy": -34, "rot": -300, **fly})),
+         (0.8, P(**{**BASE, "ox": -76, "oy": -6, "rot": -640, **fly})), (0.88, P(**{**BASE, "ox": -80, "oy": 0, "rot": -720, "hip": (0, -12), "sq": (1.18, 0.7)})),
+         (1.0, P(**{**BASE, "ox": -84, "oy": 0, "rot": -720, "sq": (1.06, 0.92)})), (1.5, P(**{**BASE, "ox": -86, "rot": -720}))]
+
+    def fx(t, p):
+        if t < 0.78:
+            return f'<g transform="translate({p["ox"] + 28:.0f},{p["oy"] - 30:.0f})">{ab.fx_lines(0, 0, 4, 22, 1)}</g>'
+        if 0.88 < t < 1.2:
+            kk = (t - 0.88) / 0.32
+            return ab.fx_onda(p["ox"], 0, kk, 1.8) + pedras(p["ox"], 0, kk)
+        return ""
+    return "ESCAVADEIRA · ARREMESSADO (cai como pedra)", 1.5, k, fx, "treme_arr"
+
+
+def A_engenhoca():
+    k = [(0.0, BASE), (0.12, P(**{**BASE, "bk": (6, -36), "lean": 12, "face": "raiva"})), (0.6, P(**{**BASE, "bk": (7, -35), "lean": 12, "face": "raiva"})), (1.0, BASE)]
+
+    def fx(t, p):
+        if 0.12 < t < 0.6:
+            kk = (t - 0.12) / 0.48
+            return (f'<rect x="4" y="-46" width="10" height="13" rx="3" fill="#3a3f4a"/><circle cx="9" cy="-49" r="2.6" fill="#d42035"/>'
+                    + ab.fx_estrela(9, -54, kk, 12) + f'<circle cx="9" cy="-40" r="{8 + kk * 46:.0f}" fill="none" stroke="#ffe27a" stroke-width="3" opacity="{1 - kk:.2f}"/>')
+        return ""
+    return "ESCAVADEIRA · USAR ENGENHOCA", 1.0, k, fx, None
+
+
+def A_vitoria():
+    up = P(**{**BASE, "lean": -4, "head": -6, "tool": (28, -50, -60), "face": "vitoria"})
+    bate = P(**{**BASE, "lean": 10, "head": 4, "tool": (8, -30, -40), "face": "vitoria", "sq": (1.06, 0.94)})
+    k = [(0.0, up), (0.35, bate), (0.7, up), (1.05, bate), (1.4, up)]
+
+    def fx(t, p):
+        return ab.fx_estrela(4, -46, ((t - 0.3) % 0.7) / 0.2, 10) if ((t - 0.3) % 0.7) < 0.2 else ""
+    return "ESCAVADEIRA · VITÓRIA (bate a caçamba no peito)", 1.4, k, fx, None
+
+
+def A_eliminado():
+    k = [(0.0, P(**{**BASE, "face": "susto"})), (0.14, P(**{**BASE, "face": "eliminado", "sq": (1.12, 0.84)})),
+         (0.2, P(**{**BASE, "oculto": True})), (1.4, P(**{**BASE, "oculto": True}))]
+
+    def fx(t, p):
+        if t < 0.2:
+            return ""
+        u = (t - 0.2) / 1.2
+        o = ""
+        if u < 0.35:
+            r = 22 + 64 * u
+            o += f'<circle cx="0" cy="-26" r="{r:.0f}" fill="#ffd27a" opacity="{1 - u / 0.35:.2f}"/><circle cx="0" cy="-26" r="{r * 0.6:.0f}" fill="#ffffff" opacity="{1 - u / 0.35:.2f}"/>'
+        pecas = [(-60, -160, 400, eu.escava_head(COL, {"face": "eliminado"})), (40, -110, -400, eu.escava_torso(COL, {})),
+                 (70, -90, -700, eu.cacamba((0, 0), 0, {})[0])]
+        for vx, vy, spin, svg in pecas:
+            x = vx * u * 1.6
+            y = -26 + vy * u * 1.6 + 260 * u * u
+            o += f'<g transform="translate({x:.1f},{y:.1f}) rotate({spin * u:.0f}) scale(0.85)">{svg}</g>'
+        return o
+    return "ESCAVADEIRA · ELIMINADO (desmonta)", 1.4, k, fx, None
+
+
 def run(anims, saida, loops=()):
     ab.desenha = desenha
     ab.SC = 2.3
@@ -133,6 +275,10 @@ def run(anims, saida, loops=()):
             sh = 6.0 * (1 - (t - 0.76) / 0.24)
         elif modo == "treme_pesado" and 1.12 < t < 1.45:
             sh = 9.0 * (1 - (t - 1.12) / 0.33)
+        elif modo == "treme_baixo" and 0.42 < t < 0.66:
+            sh = 6.0 * (1 - (t - 0.42) / 0.24)
+        elif modo == "treme_arr" and 0.88 < t < 1.1:
+            sh = 6.0 * (1 - (t - 0.88) / 0.22)
         if sh > 0:   # tremor de câmera (tudo menos a etiqueta)
             dy = math.sin(t * 90) * sh
             svg = svg.replace('<rect x="8" y="8"', f'</g><rect x="8" y="8"', 1) if False else svg.replace(f'<g transform="translate(', f'<g transform="translate(0,{dy:.1f}) translate(', 1)
@@ -148,6 +294,9 @@ def run(anims, saida, loops=()):
 
 
 def main():
+    if "--resto" in sys.argv:
+        run([A_duplo, A_parede, A_borda, A_esquiva, A_cima, A_baixo, A_leva, A_arremessado, A_engenhoca, A_vitoria, A_eliminado], "escava_resto", loops=[A_vitoria])
+        return
     run([A_correr, A_pulo, A_leve, A_pesado], "escava_lote1", loops=[A_correr])
 
 
