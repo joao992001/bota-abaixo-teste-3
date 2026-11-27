@@ -8,7 +8,7 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
-**▶ SESSÃO 7: D (combate) FEITO — A47; A (animação dos robôs no jogo) FEITO — A48 (poses das animações aprovadas, cabeça com mola, jeito de andar)** (prancha `combate_r3.png`, vídeo `out/videos/combate_r3.mp4`). Pendências que sobram: B) 7 pontos da avaliação de interface, C) skins K1–K5. Perguntar ao usuário qual segue.
+**▶ SESSÃO 7: D (combate) FEITO — A47; A (animação dos robôs no jogo) FEITO — A48 (poses das animações aprovadas, cabeça com mola, jeito de andar)** (prancha `combate_r3.png`, vídeo `out/videos/combate_r3.mp4`). Pendências que sobram: C) skins K1–K5. (Os 7 pontos da avaliação de interface JÁ estavam feitos desde a sessão 2 — A22–A26; conferido em 2026-11-27, captura `out/videos/interface_atual.png`.) Perguntar ao usuário qual segue.
 **▶ PRÓXIMO PASSO:** Auditoria das engenhocas — ATAQUE CONCLUÍDO (lotes 1–4, A38–A41) e a subida da coluna do A06 REFEITA
 (sessão 6, A42: sai de um buraco em 0,35 s, passa do ponto e assenta com tranco, rachaduras escuras, poeira dos dois lados,
 o rival sobe COLADO no topo e é lançado aos 60% da subida; colisão cresce junto; faixa zebrada grossa; ícone = cravadeira;
