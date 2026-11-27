@@ -157,7 +157,85 @@ def A_pulo():
     return "PULAR", 1.3, k, fx, None
 
 
+GUARD = P(hip=(0, -23), lean=10, head=4, feet=[(-11, 0), (11, 0)], tool=(12, -34, -60), face="foco")
+
+
+def cabeca_marreta(p):
+    g, a = p["tool"][:2], p["tool"][2]
+    return (g[0] + math.cos(math.radians(a)) * 40, g[1] + math.sin(math.radians(a)) * 40)
+
+
+def A_combo():
+    k = [(0.00, GUARD),
+         (0.05, P(lean=0, hip=(0, -22), tool=(6, -40, -110), face="raiva", sq=(1, 0.94))),
+         (0.10, P(lean=24, hip=(2, -22), tool=(20, -30, 10), feet=[(-12, 0), (14, 0)], face="raiva", sq=(1, 1.06))),
+         (0.24, P(lean=20, hip=(2, -22), tool=(20, -28, 18), feet=[(-12, 0), (14, 0)])),
+         (0.30, P(lean=6, tool=(18, -24, 50), face="raiva")),
+         (0.36, P(lean=18, head=-8, tool=(16, -42, -70), feet=[(-12, 0), (14, 0)], face="raiva", sq=(1, 1.08))),
+         (0.52, P(lean=-12, hip=(0, -20), head=10, tool=(-2, -46, -150), face="raiva", sq=(1, 0.9))),
+         (0.62, P(lean=30, hip=(3, -18), head=-8, tool=(22, -24, 70), feet=[(-15, 0), (16, 0)], face="raiva", sq=(1, 0.86))),
+         (0.85, P(lean=28, hip=(3, -18), tool=(22, -22, 74), feet=[(-15, 0), (16, 0)])),
+         (1.1, GUARD)]
+
+    def fx(t, p):
+        o = ""
+        g = p["tool"][:2]
+        if 0.06 < t < 0.16:
+            o += ab.smear(g, -110, 10, 22, 48) + ab.fx_lines(46, -48, 3, 14, -1)
+        if 0.31 < t < 0.42:
+            o += ab.smear(g, 50, -70, 22, 48)
+        if 0.54 < t < 0.7:
+            o += ab.smear(g, -150, 70, 22, 48)
+        if 0.62 < t < 0.92:
+            kk = (t - 0.62) / 0.3
+            o += ab.fx_onda(38, 0, kk) + ab.fx_estrela(38, -6, kk, 14)
+        return o
+    return "GOLPE LEVE (combo 1 · 2 · 3)", 1.1, k, fx, None
+
+
+def A_pesado():
+    car = P(hip=(0, -17), lean=-20, head=12, feet=[(-13, 0), (10, 0)], tool=(-6, -44, -140), face="raiva", sq=(1.08, 0.88))
+    sol = P(hip=(3, -17), lean=34, head=-10, feet=[(-16, 0), (18, 0)], tool=(24, -22, 75), face="raiva", sq=(1, 0.84))
+    k = [(0.0, GUARD), (0.15, car), (0.95, P(**{**car, "lean": -24, "hip": (0, -16), "sq": (1.1, 0.86)})), (1.05, sol),
+         (1.4, P(**{**sol, "tool": (24, -16, 88), "sq": (1, 1)})), (2.0, GUARD)]
+
+    def fx(t, p):
+        o = ""
+        if 0.15 < t < 1.0:
+            kk = min((t - 0.15) / 0.8, 1)
+            hx, hy = cabeca_marreta(p)
+            r = 10 + 9 * kk
+            o += f'<circle cx="{hx:.1f}" cy="{hy:.1f}" r="{r:.1f}" fill="#ffd27a" opacity="{0.25 + 0.4 * kk:.2f}"/>'
+            for i in range(int(3 + 6 * kk)):
+                a = t * 9 + i * 1.3
+                o += f'<path d="M{hx + math.cos(a) * r:.1f},{hy + math.sin(a) * r:.1f} l{math.cos(a) * 5:.1f},{math.sin(a) * 5:.1f}" stroke="#ffe27a" stroke-width="2" stroke-linecap="round"/>'
+        if 0.96 < t < 1.12:
+            o += ab.smear(p["tool"][:2], -140, 75, 22, 50)
+        if 1.04 < t < 1.6:
+            kk = (t - 1.04) / 0.56
+            o += ab.fx_onda(44, 0, kk, 1.7) + ((ab.fx_estrela(44, -8, kk, 22) + ab.impacto(44, 0)) if kk < 0.35 else "")
+        return o
+    return "GOLPE PESADO (segura = carrega · solta)", 2.0, k, fx, "treme"
+
+
+def A_esquiva():
+    low = P(hip=(0, -17), lean=-18, head=10, feet=[(-16, 0), (8, 0)], tool=(8, -30, -160), bk=(-14, -22), face="susto", sq=(1.06, 0.9))
+    k = [(0.0, GUARD), (0.04, low), (0.2, P(**{**low, "ox": -55})), (0.45, P(**{**GUARD, "ox": -55})), (0.8, P(**{**GUARD, "ox": 0}))]
+    return "ESQUIVA", 0.8, k, None, "fantasma"
+
+
 def main():
+    import sys as _s
+    if "--golpes" in _s.argv:
+        ab.desenha = desenha
+        ab.SC = 2.0
+        ab.ANIMS = [A_combo, A_pesado, A_esquiva]
+        ab.LOOPS = set()
+        ab.main()
+        for a, b in (("anim_blindado.mp4", "uch_golpes.mp4"), ("anim_blindado_lento.mp4", "uch_golpes_lento.mp4"), ("anim_blindado_folha.png", "uch_golpes_folha.png")):
+            if os.path.exists(os.path.join(ab.OUT, a)):
+                os.replace(os.path.join(ab.OUT, a), os.path.join(ab.OUT, b))
+        return
     ab.desenha = desenha
     ab.SC = 2.0
     ab.ANIMS = [A_correr, A_pulo]
