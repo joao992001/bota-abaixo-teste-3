@@ -456,13 +456,44 @@ def canhao_molas_jogo():
     return o
 
 
+def helice(x0, x1, ry, voltas, w=3.4):
+    """Mola de verdade: UM fio em espiral (hélice vista de lado), desenhado por meias-voltas contínuas: as de trás
+    escuras e finas, as da frente com contorno escuro e brilho de aço."""
+    n = max(60, int(voltas * 36))
+    pts = [(x0 + (x1 - x0) * i / n, ry * math.sin(i / n * voltas * 2 * math.pi), math.cos(i / n * voltas * 2 * math.pi)) for i in range(n + 1)]
+    runs, cur, front = [], [pts[0]], pts[0][2] >= 0
+    for p_ in pts[1:]:
+        f = p_[2] >= 0
+        cur.append(p_)
+        if f != front:
+            runs.append((front, cur))
+            cur, front = [p_], f
+    runs.append((front, cur))
+    tras, frente = "", ""
+    for f, run in runs:
+        d = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y, _ in run)
+        if f:
+            frente += f'<path d="{d}" stroke="#2b2f38" stroke-width="{w + 2.2:.1f}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+            frente += f'<path d="{d}" stroke="#c9d1d8" stroke-width="{w * 0.6:.1f}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+        else:
+            tras += f'<path d="{d}" stroke="#5a616c" stroke-width="{w:.1f}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    return tras, frente
+
+
 def mola(x, y, ang=0.0, compr=1.0, s=1.0):
-    """Projétil do A08 (combina com a arma C · Pistão-mola): pilha de molas grossas presa entre a BASE vermelha de trás e o
-    TAMPÃO vermelho com faixa de perigo. compr: 1 = comprimida (no voo), >1 = esticada (BOING), <1 = amassada."""
-    L = 22.0 * compr
-    o = R(-L / 2 - 9, -11, 9, 22, 3, "#c0392b", k=0.3) + R(-L / 2 - 9, -11, 9, 5, 2, "#e0574a", k=0.1)   # base
-    o += _espiras(-L / 2, L / 2, 0, 9, max(4, int(5 * min(compr, 1.6))))
-    o += R(L / 2, -13, 11, 26, 4, "#e54b3c", k=0.3) + ab.cb.faixa(L / 2 + 2, -6, 7, 12, n=2)               # tampão
+    """Projétil do A08 (combina com a arma C): mola de aço em espiral; atrás uma ARRUELA redonda; na frente um BATENTE de
+    borracha vermelho em cúpula com anel de perigo. compr: 1 = comprimida (no voo), >1 = esticada (BOING), <1 = amassada."""
+    L = 26.0 * compr
+    voltas = 4.5
+    tras, frente = helice(-L / 2, L / 2, 10, voltas)
+    o = tras
+    o += E(-L / 2 - 2, 0, 3.5, 11.5, "#8e98a4", k=0.15) + E(-L / 2 - 2.5, 0, 1.6, 4, "#5a6372", k=0.05)    # arruela de trás
+    o += frente
+    # batente: arruela + cúpula de borracha vermelha grande, com uma faixa amarela fina e brilho
+    o += E(L / 2 + 1, 0, 3, 12, "#8e98a4", k=0.15)
+    o += S(f"M{L / 2 + 3},-14 C{L / 2 + 24},-14 {L / 2 + 24},14 {L / 2 + 3},14 Z", "#e54b3c", (L / 2 + 2, -15, L / 2 + 25, 15), k=0.4)
+    o += f'<path d="M{L / 2 + 9},-13 C{L / 2 + 11},-4 {L / 2 + 11},4 {L / 2 + 9},13" stroke="#f2c84b" stroke-width="3" fill="none"/>'
+    o += f'<path d="M{L / 2 + 13},-9 C{L / 2 + 19},-7 {L / 2 + 20},-2 {L / 2 + 19},2" stroke="#ff9a8a" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
     return f'<g transform="translate({x},{y}) rotate({ang}) scale({s})">{o}</g>'
 
 
@@ -659,9 +690,13 @@ def molas_c():
     o += R(18, 38, 14, 22, 4, "#2b2b33", k=0.3)
     o += R(10, 14, 54, 34, 8, "#c0392b", k=0.5) + R(10, 14, 54, 9, 6, "#e0574a", k=0.2) + ab.cb.faixa(14, 38, 46, 6, n=6)
     o += E(30, 26, 8, 8, "#f3ead8", k=0.1) + f'<circle cx="30" cy="26" r="8" fill="none" stroke="{DARK}" stroke-width="2.2"/><path d="M30,26 l5,-4" stroke="{EYE}" stroke-width="2" stroke-linecap="round"/>'
-    o += R(62, 18, 46, 26, 4, "#2b2b33", k=0.4)
-    o += _espiras(64, 106, 31, 10, 5)
-    o += R(106, 14, 18, 34, 5, "#e54b3c", k=0.4) + ab.cb.faixa(110, 24, 10, 14, n=3)
+    o += R(62, 22, 46, 18, 4, "#2b2b33", k=0.4)
+    tr_, fr_ = helice(64, 104, 11, 4.5, 3.0)
+    o += f'<g transform="translate(0,31)">{tr_}{fr_}</g>'
+    o += E(105, 31, 3, 13, "#8e98a4", k=0.15)   # o projétil pronto na boca: batente de borracha
+    o += S("M107,17 C127,17 127,45 107,45 Z", "#e54b3c", (106, 16, 127, 46), k=0.4)
+    o += f'<path d="M112,18 C114,26 114,36 112,44" stroke="#f2c84b" stroke-width="3" fill="none"/>'
+    o += f'<path d="M116,22 C121,24 122,29 121,33" stroke="#ff9a8a" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
     return o
 
 
