@@ -373,6 +373,10 @@ func _fail(r, text: String) -> void:
 ## Mão da frente no mundo (de onde saem punho, tiro e ímã).
 ## Bico da arma no mundo (mesma conta do desenho em robot_visual: mão mirando + bico − pega, na escala da arma).
 func muzzle(r, id: String) -> Vector2:
+	if r.vis != null and r.vis.has_meta("bico"):   # o bico como foi desenhado no último quadro (sincroniza com a arte)
+		var bm: Array = r.vis.get_meta("bico")
+		if bm[0] == id and Engine.get_process_frames() - int(bm[2]) <= 2:
+			return get_global_transform().affine_inverse() * bm[1]   # global (com câmera) → coordenadas do mundo deste nó
 	var spec: Array = RobotVis.SPELL_TOOLS[id]
 	var tx := Data.tex("spells/" + spec[0])
 	var dsz := Vector2(tx.get_width(), tx.get_height()) / 2.0
@@ -1236,7 +1240,7 @@ func flags(r) -> Dictionary:
 		return {}
 	var s: Dictionary = slot[r.pid]
 	var out := {"spell": s["id"], "fire": s["fire"], "prep": minf(s["prep"] / maxf(s["prep_len"], 0.01), 1.0) if s["prep"] >= 0.0 else -1.0,
-		"channel": s["channel"], "aim_a": aim_local(r)}
+		"channel": s["channel"], "aim_a": aim_local(r), "beam": s.has("beam")}
 	if s["id"] == "T01":
 		out["armor"] = s["t"] > 0.0
 		out["assemble"] = float(s["data"].get("assemble", 0.0))

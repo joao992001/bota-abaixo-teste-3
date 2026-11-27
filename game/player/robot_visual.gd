@@ -723,7 +723,7 @@ func current_pose() -> Dictionary:
 	var aiming: bool = prep >= 0.0 or (fire >= 0.0 and fire < (0.55 if sid == "A04" else 0.32)) or (sf.get("channel", false) and sid in ["C01", "C04", "C02", "A06"])
 	var hf_set := false
 	if sid != "" and aiming and not sf.get("armor", false):
-		var kick := clampf(1.0 - fire / 0.22, 0.0, 1.0) if fire >= 0.0 and prep < 0.0 else 0.0
+		var kick := clampf(1.0 - fire / 0.22, 0.0, 1.0) if fire >= 0.0 and prep < 0.0 and not sf.get("beam", false) else 0.0   # A02: arma firme durante o feixe
 		var buzz := Vector2(sin(t * 80.0), cos(t * 71.0)) * 1.4 * maxf(prep, 0.0)
 		var aa := float(sf.get("aim_a", 0.0))
 		two_hand = false
@@ -1367,8 +1367,11 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		var sz: Vector2 = spec[1]
 		var dsz := Vector2(tx.get_width(), tx.get_height()) / 2.0   # tamanho de design
 		var grip: Vector2 = spec[2] * sz / dsz
-		ci.draw_set_transform_matrix(base * Transform2D(float(pose.get("tool_ang", 0.0)), hf))
+		var txf := base * Transform2D(float(pose.get("tool_ang", 0.0)), hf)
+		ci.draw_set_transform_matrix(txf)
 		ci.draw_texture_rect(tx, Rect2(-grip, sz), false)
+		# bico desenhado neste quadro (mundo): tiros e feixes saem exatamente daqui (modes/spells.gd muzzle)
+		ci.set_meta("bico", [tool, ci.get_global_transform() * (txf * (spec[3] * sz / dsz - grip)), Engine.get_process_frames()])
 		if tool == "F31":   # broca girando: sulcos correndo do colar até a ponta
 			var tn := Time.get_ticks_msec() / 1000.0
 			var sc2 := sz.x / dsz.x

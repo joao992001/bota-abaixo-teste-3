@@ -2248,6 +2248,8 @@ func moderada_test() -> void:
 ## Renascimento seguro (avaliação 2026-11-26, item 3): em cada cena, com o cenário sendo destruído, quem volta pousa em chão
 ## firme DENTRO da cena, não morre nem perde vida nos primeiros segundos e fica invulnerável. --so=renascer
 func renascer_test() -> void:
+	seed(23)   # renascimento sorteado: semente fixa (não depende dos testes que rodaram antes)
+	main.rng.seed = 23
 	print("== Renascimento seguro")
 	main.go_join()
 	await frames(2)
