@@ -22,7 +22,7 @@ TEMAS = {   # id: (nome, cor do casco, cor do núcleo, função do mecha, detalh
     "T04": ("JATO", "#d8dde4", "#5fb8ff", ac.jato, "aletas"),
     "T05": ("BROCA", "#e07a2e", "#ffd36b", ac.broca, "ponta"),
     "T06": ("PARA-RAIOS", "#2f3f5a", "#7fe7ff", ah.para_raios, "bobina"),
-    "T07": ("CORREDOR", "#d9483b", "#ffe14a", None, "aerofolio"),   # A36 (função preenchida abaixo, evita import circular)
+    "T07": ("CORREDOR", "#d9483b", "#ffc23a", None, "aerofolio"),   # A36 (função preenchida abaixo, evita import circular)
 }
 
 
@@ -49,9 +49,9 @@ def cartucho(tid, s=1.0, brilho=1.0):
     if det == "aletas":
         o += P_([(-18, 10), (-28, 26), (-14, 22)], STEEL_D, k=0.2) + P_([(18, 10), (28, 26), (14, 22)], STEEL_D, k=0.2)
         o += R(-6, 24, 12, 8, 2, DARK, k=0.2) + P_([(-5, 32), (5, 32), (0, 32 + 14 * brilho)], "#ff9a1f", k=0.2)
-    if det == "aerofolio":   # A36: aerofólio em cima, escapamentos embaixo, linhas de velocidade
-        o += P_([(-24, -30), (24, -30), (20, -24), (-20, -24)], DARK, k=0.2) + R(-16, 24, 8, 8, 2, STEEL_D, k=0.1) + R(8, 24, 8, 8, 2, STEEL_D, k=0.1)
-        o += "".join(f'<path d="M{-30 - i * 6},{-6 + i * 8} h-12" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.8"/>' for i in range(3))
+    if det == "aerofolio":   # A36: aerofólio curto em cima + 2 riscas de velocidade coladas ao lado (como o garfo da Empilhadeira)
+        o += R(-3, -34, 6, 9, 1.5, DARK, k=0.1) + P_([(-16, -38), (16, -38), (13, -32), (-13, -32)], DARK, k=0.2)
+        o += R(-30, -18, 14, 4, 2, "#ffffff", k=0.1) + R(-26, -8, 10, 4, 2, "#ffffff", k=0.1)
     if det == "ponta":
         o += S("M-10,-24 L10,-24 L0,-44 Z", STEEL, (-11, -45, 11, -23), k=0.4, dark=STEEL_D, light=STEEL_L)
     if det == "bobina":
