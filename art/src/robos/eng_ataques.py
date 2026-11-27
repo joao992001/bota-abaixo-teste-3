@@ -439,10 +439,165 @@ def prancha2():
     print(render_all(), out)
 
 
+# ================================================================ LOTE 3: A08 CANHÃO DE MOLAS · E02 CARGA REMOTA
+def canhao_molas_jogo():
+    """A08 no espaço 128x64 (pega 24,54 · bico 124,32): canhão amarelo de boca larga, mola visível pelas fendas,
+    manivela de carga em cima e anel de perigo na boca."""
+    o = f'<path d="M18,52 C6,60 2,48 8,42" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(18, 38, 14, 22, 4, "#2b2b33", k=0.3)
+    o += R(14, 16, 84, 30, 10, "#f2c84b", k=0.5, dark="#c49a2a") + R(14, 16, 84, 8, 6, "#f8dc7a", k=0.2)
+    for i in range(4):   # fendas com a mola aparecendo
+        o += R(30 + i * 15, 24, 10, 16, 3, "#2b2b33", k=0.1)
+        o += f'<path d="M{31 + i * 15},{27} q4,4 8,0 M{31 + i * 15},{33} q4,4 8,0" stroke="{STEEL_L}" stroke-width="2.2" fill="none"/>'
+    o += P_([(96, 12), (122, 6), (122, 58), (96, 50)], STEEL, k=0.4) + P_([(116, 8), (122, 6), (122, 58), (116, 56)], STEEL_D, k=0.2)
+    o += ab.cb.faixa(98, 22, 10, 20, n=3)
+    o += R(40, 4, 6, 14, 2, STEEL_D, k=0.1) + R(36, 0, 24, 6, 3, "#e0702a", k=0.2)   # manivela
+    o += E(76, 12, 7, 7, "#f3ead8", k=0.1) + f'<path d="M76,12 l4,-4" stroke="{EYE}" stroke-width="2" stroke-linecap="round"/>'
+    return o
+
+
+def mola(x, y, ang=0.0, compr=1.0, s=1.0):
+    """Projétil do A08: mola GROSSA de aço com tampão vermelho (frente) e faixa de perigo. compr: 1 = comprimida,
+    >1 = esticada (BOING), <1 = amassada."""
+    L = 22.0 * compr
+    o = R(-L / 2 - 8, -10, 8, 20, 3, STEEL_D, k=0.2)   # base de trás
+    n = 6
+    for i in range(n):   # espiras
+        xx = -L / 2 + (i + 0.5) * L / n
+        o += f'<ellipse cx="{xx:.1f}" cy="0" rx="{max(1.2, L / n * 0.55):.1f}" ry="9" fill="none" stroke="#3f4654" stroke-width="5"/>'
+        o += f'<ellipse cx="{xx:.1f}" cy="0" rx="{max(1.2, L / n * 0.55):.1f}" ry="9" fill="none" stroke="{STEEL_L}" stroke-width="2.2"/>'
+    o += R(L / 2, -12, 10, 24, 4, "#e54b3c", k=0.3) + ab.cb.faixa(L / 2 + 2, -4, 6, 8, n=2)   # tampão com faixa
+    return f'<g transform="translate({x},{y}) rotate({ang}) scale({s})">{o}</g>'
+
+
+def dinamite(s=1.0, luz=1.0, num=""):
+    """E02: 3 bananas de dinamite amarradas com fita zebrada + caixinha detonadora com ANTENA e luz vermelha."""
+    o = ""
+    for i in range(3):
+        o += R(-15 + i * 10, -14, 9, 30, 4, "#d8402e", k=0.4) + R(-15 + i * 10, -14, 9, 5, 3, "#f06a52", k=0.1)
+    o += ab.cb.faixa(-16, -2, 32, 6, n=4)
+    o += R(-9, -24, 18, 11, 3, "#2b2b33", k=0.3) + R(-6, -21, 8, 5, 1.5, "#9ff7c8", k=0.1)
+    if num:
+        o += label(-2, -17, num, 6, "#1a3a2a")
+    o += f'<path d="M6,-24 L10,-42" stroke="#2b2b33" stroke-width="2"/>' + E(10, -43, 2.6, 2.6, "#2b2b33", k=0.1)
+    o += f'<circle cx="5" cy="-18" r="{3 + 5 * luz:.1f}" fill="#ff3b2f" opacity="{0.25 * luz:.2f}"/>' + E(5, -18, 2.4, 2.4, "#ff3b2f" if luz > 0.3 else "#7a2a2a", k=0.05)
+    return f'<g transform="scale({s})">{o}</g>'
+
+
+def detonador(s=1.0, apertou=False):
+    """Controle do detonador na mão: caixinha com antena e botão vermelho."""
+    o = R(-7, -10, 14, 20, 4, "#3f4654", k=0.3) + E(0, -3 + (2 if apertou else 0), 4.2, 3 if apertou else 4.2, "#e54b3c", k=0.1)
+    o += f'<path d="M4,-10 L8,-26" stroke="#2b2b33" stroke-width="1.8"/>' + E(8, -27, 2, 2, "#ff3b2f" if apertou else "#2b2b33", k=0.05)
+    if apertou:
+        o += "".join(f'<path d="M8,-27 l{math.cos(math.radians(a)) * 9:.1f},{math.sin(math.radians(a)) * 9:.1f}" stroke="#ffe27a" stroke-width="1.8" stroke-linecap="round"/>' for a in (-150, -90, -30))
+    return f'<g transform="scale({s})">{o}</g>'
+
+
+def arma_mao3(hand, ang=0.0, s=0.42):
+    return f'<g transform="translate({hand[0]},{hand[1]}) rotate({ang}) scale({s}) translate(-24,-54)">{canhao_molas_jogo()}</g>'
+
+
+def boing(x, y, sz=22, rot=-8):
+    return (f'<g transform="translate({x},{y}) rotate({rot})"><text x="0" y="0" text-anchor="middle" font-family="Fredoka, Arial Black, Arial" font-weight="900" '
+            f'font-size="{sz}" fill="#2a1a2e" stroke="#2a1a2e" stroke-width="6" stroke-linejoin="round">BOING!</text>'
+            f'<text x="0" y="0" text-anchor="middle" font-family="Fredoka, Arial Black, Arial" font-weight="900" font-size="{sz}" fill="#ffd23a">BOING!</text></g>')
+
+
+def a08():
+    mira = dict(hip=(0, -22), lean=-8, head=4, feet=[(-14, 0), (12, 0)], tool=(9, -34, -150), bk=(8, -30), fr=(14, -36), face="foco")
+    coice = dict(hip=(-4, -21), lean=-16, head=8, feet=[(-18, 0), (8, 0)], tool=(9, -34, -150), bk=(4, -30), fr=(8, -40), face="raiva")
+    ps = []
+    c = laje(-110, 260) + rival(190, 0)
+    c += marretao(mira, sem_ferramenta=True) + arma_mao3((14, -36), -14)
+    c += mola(30, -45, -14, 0.55, 0.6)
+    c += f'<path d="M60,-58 Q130,-140 200,-40" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-dasharray="7 5"/>'
+    c += nota(-205, "0,3 s: a mola COMPRIME dentro (clec-clec)", "▲▼ ajusta o arco · manivela gira")
+    ps.append(("1 · PREPARO — comprime a mola", c))
+    c = laje(-110, 260) + rival(190, 0)
+    c += marretao(coice, x=-8, sem_ferramenta=True) + arma_mao3((6, -40), -20)
+    c += anel(48, -60, 14, 14, 4, 0.8) + poeira(48, -60, 5, 4, 16, 0.6)
+    c += mola(96, -96, -30, 0.7) + linhas_vel(70, -80, 3, 30, 1, 0.8)
+    c += nota(-205, "dispara a mola GROSSA girando", "coice joga o robô para trás")
+    ps.append(("2 · DISPARO — mola girando, coice", c))
+    c = laje(-110, 260) + rival(200, 0)
+    c += marretao(mira, sem_ferramenta=True) + arma_mao3((14, -36), -14)
+    c += mola(120, -10, -90, 0.35) + poeira(120, 0, 6, 5, 22)
+    c += mola(150, -60, -60, 1.6) + boing(130, -100, 18)
+    c += f'<path d="M120,-8 Q150,-120 190,-40" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-dasharray="7 5"/>'
+    c += nota(-205, "bate no chão: AMASSA e estica (BOING)", "quica até sumir (1,8 s)")
+    ps.append(("3 · QUIQUE — amassa e estica", c))
+    c = laje(-110, 260)
+    c += marretao(dict(mira, face="raiva"), sem_ferramenta=True) + arma_mao3((14, -36), -14)
+    c += mola(118, -40, 0, 2.4) + estrela(146, -40, 22) + boing(110, -110, 24)
+    c += rival(185, -70, rot=-50, sq=(1, 0.9)) + linhas_vel(200, -60, 4, 30, 1)
+    c += nota(-205, "acerta: a mola ESTICA toda e", "ARREMESSA o rival (mesmo efeito de hoje)")
+    ps.append(("4 · IMPACTO — estica e arremessa", c))
+    return ps
+
+
+def e02():
+    joga = dict(hip=(0, -22), lean=12, head=-4, feet=[(-16, 0), (14, 0)], tool=(9, -34, -150), bk=(-12, -30), fr=(22, -52), face="raiva")
+    pose = dict(hip=(0, -22), lean=-2, head=2, feet=[(-12, 0), (10, 0)], tool=(9, -34, -150), bk=(-10, -28), fr=(16, -40), face="foco")
+    ps = []
+    c = laje(-110, 260) + rival(170, 0)
+    c += marretao(joga, sem_ferramenta=True)
+    c += f'<g transform="translate(70,-92) rotate(30)">{dinamite(0.9, 1.0)}</g>'
+    c += f'<path d="M24,-56 Q70,-130 160,-50" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-dasharray="7 5"/>'
+    c += f'<g transform="translate(-14,-30)">{detonador(0.8)}</g>'
+    c += nota(-205, "arremessa a dinamite em arco (▲▼ muda o arco)", "e fica com o DETONADOR de antena na mão")
+    ps.append(("1 · ARREMESSO — dinamite em arco", c))
+    c = laje(-110, 260) + rival(140, 0, sq=(1.03, 0.97))
+    c += f'<g transform="translate(130,-44) rotate(-10)">{dinamite(0.8, 1.0, "3")}</g>'
+    c += f'<circle cx="130" cy="-44" r="34" fill="none" stroke="#ff3b2f" stroke-width="3" stroke-dasharray="40 200"/>'
+    c += label(110, -112, "bip · bip · bip·bip·bip", 13, "#c0302a")
+    c += marretao(pose, sem_ferramenta=True) + f'<g transform="translate(16,-40)">{detonador(0.8)}</g>'
+    c += nota(-205, "GRUDA no rival (ou no chão/parede)", "bipe ACELERA · explode sozinha em 4 s")
+    ps.append(("2 · GRUDA — bipe acelerando", c))
+    c = laje(-110, 260, buraco=(80, 180))
+    c += marretao(dict(pose, face="raiva"), sem_ferramenta=True) + f'<g transform="translate(16,-40)">{detonador(0.8, True)}</g>'
+    c += f'<circle cx="130" cy="-40" r="70" fill="#ffd27a" opacity="0.55"/><circle cx="130" cy="-40" r="40" fill="#ffffff" opacity="0.8"/>'
+    c += estrela(130, -40, 46, "#fff3b0") + anel(130, 0, 100, 20, 6)
+    for i in range(14):
+        c += pedra(84 + (i * 29) % 100, -30 - (i * 31) % 120, 1.1 + (i % 3) * 0.4, i * 40)
+    c += nota(-205, "2º toque = BOOM (ou o tempo acaba)", "as peças no raio DESABAM")
+    ps.append(("3 · DETONA — explosão", c))
+    c = laje(-110, 260, buraco=(80, 180))
+    for i in range(6):
+        c += pedra(88 + i * 16, 50 + (i % 3) * 20, 1.3, i * 50, CONC_D)
+    c += rival(185, -140, rot=-120, sq=(1, 0.9)) + linhas_vel(185, -110, 3, 30, 1)
+    c += poeira(130, -10, 9, 9, 60, 0.5) + marretao(pose, sem_ferramenta=True)
+    c += nota(-205, "buraco no raio · rival LANÇADO longe", "fumaça assenta")
+    ps.append(("4 · RESULTADO — buraco e voo", c))
+    return ps
+
+
+def prancha3():
+    W, H = 1920, 1260
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "ATAQUES · LOTE 3 — A08 CANHÃO DE MOLAS e E02 CARGA REMOTA (proposta)", 32)]
+    pw, ph = 452, 470
+    arma_e02 = f'<g transform="translate(40,40) scale(1.6)">{dinamite(1.0, 1.0, "4")}</g><g transform="translate(110,46) scale(1.6)">{detonador()}</g>'
+    for r, (nome, sub, ps, arma) in enumerate([
+            ("A08 CANHÃO DE MOLAS", "mesmo efeito de hoje · projétil NOVO: mola grossa comprimida com tampão e faixa de perigo · estica no impacto (BOING)", a08(), canhao_molas_jogo()),
+            ("E02 CARGA REMOTA", "dinamite com detonador de antena (sem fio azul) · gruda · bipe acelerando · explosão DESTRÓI as peças no raio e lança longe · sozinha em 4 s", e02(), arma_e02)]):
+        y0 = 80 + r * (ph + 110)
+        b.append(f'<text x="40" y="{y0 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">{nome}</text>')
+        b.append(f'<text x="40" y="{y0 + 58}" font-family="Arial" font-size="17" fill="{INK}">{sub}</text>')
+        b.append(f'<g transform="translate({W - 300},{y0 - 4}) scale(1.6)">{arma}</g>' if r == 0 else f'<g transform="translate({W - 260},{y0 - 10})">{arma}</g>')
+        b.append(f'<text x="{W - 200}" y="{y0 + 106}" text-anchor="middle" font-family="Arial" font-size="13" fill="{INK}">arte nova</text>')
+        for j, (tit, c) in enumerate(ps):
+            b.append(painel(20 + j * (pw + 14), y0 + 80, pw, ph, tit, c))
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/eng_ataques_l3.png")
+    queue(svg, os.path.join(HERE, "svg/eng_ataques_l3.svg"), out, W, H, 1)
+    print(render_all(), out)
+
+
 if __name__ == "__main__":
     if "--jogo" in sys.argv:
         exportar_jogo()
     elif "--l2" in sys.argv:
         prancha2()
+    elif "--l3" in sys.argv:
+        prancha3()
     else:
         prancha()
