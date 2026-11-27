@@ -2214,10 +2214,20 @@ func _update_attack2(dt: float) -> void:
 		m["sq"] = maxf(m["sq"] - dt * 5.0, 0.0)
 		m["vel"].y += 1500.0 * dt
 		var np: Vector2 = m["pos"] + m["vel"] * dt
+		if float(m.get("hit_t", -1.0)) >= 0.0:   # acertou: a mola fica esticada no rival um instante e some
+			m["hit_t"] = float(m["hit_t"]) + dt
+			if m["hit_t"] > 0.3:
+				m["dead"] = true
+			continue
+		m["spin"] = float(m.get("spin", 0.0)) + dt * 9.0 * signf(m["vel"].x)
+		m["st"] = maxf(float(m.get("st", 0.0)) - dt, 0.0)
 		if (_hard_at(np + Vector2(0, 14)) or (_solid_at(np + Vector2(0, 14)) and not _solid_at(m["pos"] + Vector2(0, 14)))) and m["vel"].y > 0.0:
 			m["vel"].y = -absf(m["vel"].y) * float(c20["quique"])
 			m["sq"] = 1.0
+			m["st"] = 0.32   # amassa e depois ESTICA (BOING)
+			m["spin"] = 0.0
 			Audio.play("pulo_mola", 1.6, -8.0)
+			main.dust(m["pos"] + Vector2(0, 12), 0.5)
 			np = m["pos"]
 		if _hard_at(np + Vector2(signf(m["vel"].x) * 16.0, 0)):
 			m["dead"] = true   # obstáculo consome o tiro
@@ -2226,11 +2236,12 @@ func _update_attack2(dt: float) -> void:
 		for o in main.robots:
 			if o.pid != m["owner"] and o.alive and o.rect().grow(8).has_point(m["pos"]):
 				if _hit(o, m["owner"], int(signf(m["vel"].x)), "spell_mola"):
-					main.float_text(o.position + Vector2(0, -120), "BOING!", Color("#ff8a6a"))
+					main.float_text(o.position + Vector2(0, -120), "BOING!", Color("#ffd23a"))
 					o.vis.s_sqx[0] = 0.5
 					o.vis.s_sqy[0] = 1.5
 					Audio.play("pulo_mola", 0.7, 4.0)
-				m["dead"] = true
+				m["hit_t"] = 0.0   # estica TODA contra o rival (lote 3)
+				m["vel"] = Vector2(signf(m["vel"].x), 0.0)
 				break
 		if m["t"] > float(c20["vida_s"]):
 			m["dead"] = true
@@ -2536,20 +2547,69 @@ func _draw_attack2() -> void:
 		draw_arc(h["pos"], rr, h["rot"] + PI, h["rot"] + PI + 1.9 * h["dir"], 14, Color(1.0, 0.85, 0.35, 0.55), 3.0, true)
 		if fmod(t, 0.06) < 0.02:
 			main.spark(h["pos"] + Vector2.from_angle(h["rot"]) * rr, 1)
-	# A08 mola saltitante: espiral + para-choque vermelho, achata no quique
+	# A08 (lote 3): mola de aço em ESPIRAL (fio da frente claro, de trás escuro), arruela atrás e batente de borracha
+	# vermelho na frente. Voa comprimida girando; no quique amassa e estica (BOING); no acerto estica TODA.
 	for m in springs:
-		var d := signf(m["vel"].x)
-		var sq: float = m["sq"]
-		draw_set_transform(m["pos"], 0.0, Vector2(1.0 + 0.3 * sq, 1.0 - 0.35 * sq))
-		var pts := PackedVector2Array()
-		for i in 13:
-			pts.append(Vector2(-d * (18.0 - i * 2.4), (-9.0 if i % 2 == 0 else 9.0)))
-		draw_polyline(pts, INK, 5.0, true)
-		draw_polyline(pts, Color("#c9d1d8"), 2.5, true)
-		draw_circle(Vector2(d * 14.0, 0), 12.0, INK)
-		draw_circle(Vector2(d * 14.0, 0), 10.0, Color("#e8503a"))
-		draw_circle(Vector2(d * 11.0, -4.0), 3.0, Color(1, 1, 1, 0.8))
+		var d := signf(m["vel"].x) if m["vel"].x != 0.0 else 1.0
+		var compr := 1.0
+		var ang: float = float(m.get("spin", 0.0))
+		var st: float = float(m.get("st", 0.0))
+		if st > 0.0:   # quique: amassa (primeiros 0,08 s) e estica
+			var u := 1.0 - st / 0.32
+			compr = lerpf(0.45, 1.9, clampf((u - 0.25) / 0.35, 0.0, 1.0)) if u > 0.25 else lerpf(1.0, 0.45, u / 0.25)
+			compr = lerpf(compr, 1.0, clampf((u - 0.6) / 0.4, 0.0, 1.0))
+			ang = -PI / 2.0 if d > 0.0 else -PI / 2.0
+			if u > 0.25 and u < 0.8:
+				Kit.text(self, m["pos"] + Vector2(-50, -70), "BOING!", 20, Color("#ffd23a"), HORIZONTAL_ALIGNMENT_CENTER, 100, 5, INK)
+		if float(m.get("hit_t", -1.0)) >= 0.0:
+			var uh: float = float(m["hit_t"]) / 0.3
+			compr = lerpf(1.0, 2.8, minf(uh * 3.0, 1.0))
+			ang = 0.0 if d > 0.0 else PI
+			Kit.text(self, m["pos"] + Vector2(-60, -80), "BOING!", 26, Color("#ffd23a"), HORIZONTAL_ALIGNMENT_CENTER, 120, 6, INK)
+		_draw_mola(m["pos"], ang, compr, d)
 		draw_set_transform(Vector2.ZERO)
+
+## Mola em espiral (lote 3, arma C): eixo x local = sentido do voo; compr 1 = comprimida, >1 esticada, <1 amassada.
+func _draw_mola(p: Vector2, ang: float, compr: float, d: float) -> void:
+	draw_set_transform(p, ang, Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8)
+	var L := 26.0 * compr
+	var voltas := 4.5
+	var n := 54
+	var ry := 10.0
+	var pts: Array = []
+	for i in n + 1:
+		var tt := float(i) / n
+		var a := tt * voltas * TAU
+		pts.append([Vector2(-L / 2.0 + L * tt, ry * sin(a)), cos(a) >= 0.0])
+	for pass_i in 2:   # 0 = fio de trás (escuro), 1 = fio da frente (contorno + brilho)
+		var run := PackedVector2Array()
+		for i in pts.size():
+			var front: bool = pts[i][1]
+			if front == (pass_i == 1):
+				run.append(pts[i][0])
+			if (front != (pass_i == 1) or i == pts.size() - 1) and run.size() > 1:
+				if pass_i == 0:
+					draw_polyline(run, Color("#5a616c"), 3.4, true)
+				else:
+					draw_polyline(run, Color("#2b2f38"), 5.6, true)
+					draw_polyline(run, Color("#c9d1d8"), 2.0, true)
+				run = PackedVector2Array()
+			elif front != (pass_i == 1):
+				run = PackedVector2Array()
+	# arruela atrás e batente de borracha na frente
+	draw_set_transform(p + Vector2(-L / 2.0 - 2.0, 0).rotated(ang) * Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8, ang, Vector2(0.28, 1.0) * 0.8)
+	draw_circle(Vector2.ZERO, 11.5, Color("#8e98a4"))
+	var fx := Vector2(L / 2.0 + 1.0, 0).rotated(ang) * Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8
+	draw_set_transform(p + fx, ang, Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8)
+	var dome := PackedVector2Array()
+	for k in 13:
+		var a2 := -PI / 2.0 + PI * k / 12.0
+		dome.append(Vector2(cos(a2) * 18.0, sin(a2) * 13.0))
+	draw_colored_polygon(dome, Color("#e54b3c"))
+	draw_polyline(dome, Color("#9a2a22"), 1.6, true)
+	draw_line(Vector2(6, -12), Vector2(6, 12), Color("#f2c84b"), 3.0, true)
+	draw_arc(Vector2(4, 0), 9.0, -1.2, -0.2, 6, Color("#ff9a8a"), 2.4, true)
+	draw_set_transform(Vector2.ZERO)
 
 # ================================================================ ETAPA 3: controle e engenharia
 ## C02: cone de vento à frente; empurra (sem tirar o controle); o dono anda devagar e sente o recuo.
@@ -2698,11 +2758,26 @@ func _detonate(ch: Dictionary) -> void:
 	for o in main.robots:
 		if o.alive and o.pid != ch["owner"] and o.rect().get_center().distance_to(p) < rad:
 			_hit(o, ch["owner"], 1 if o.position.x >= p.x else -1, "spell_carga")
+	# lote 3 (auditoria): as peças no raio DESABAM na hora (como a cratera da A04); nunca a que está sob o dono
 	var ct = demo.canteiro
+	var dono = main.robots[int(ch["owner"])] if int(ch["owner"]) < main.robots.size() else null
 	if ct != null and is_instance_valid(ct):
 		for pt in ct.parts:
-			if not pt["fallen"] and pt["rect"].grow(rad * 0.5).has_point(p):
-				ct.damage(pt, int(c["dano_estrutura"]), p)
+			if pt["fallen"]:
+				continue
+			var hr: Rect2 = ct.hit_rect(pt)
+			var cp: Vector2 = Vector2(clampf(p.x, hr.position.x, hr.end.x), clampf(p.y, hr.position.y, hr.end.y))
+			if cp.distance_to(p) > rad * 0.75:
+				continue
+			if dono != null and dono.alive and hr.grow(2).has_point(dono.position + Vector2(0, 8)):
+				continue
+			ct.damage(pt, 9999, cp)
+			if pt["crit_t"] > 0.0:
+				pt["crit_t"] = 0.0
+				ct._collapse(pt)
+	for j in 18:
+		puffs.append({"pos": p + Vector2(randf_range(-40, 40), randf_range(-20, 20)), "vel": Vector2(randf_range(-260, 260), randf_range(-300, -40)),
+			"r": randf_range(14, 28), "t": 0.0, "life": randf_range(0.6, 1.1)})
 
 ## E03 CONTROLE REMOTO (ampliado 2026-11-25): alvos ao alcance = vigas penduradas (cabo estala e cai), andaimes e
 ## plataformas sobre estaca (derruba) e as MÁQUINAS da cena (aciona como se marretasse o painel: betoneira despeja,
@@ -2945,9 +3020,13 @@ func _update_etapa3(dt: float) -> void:
 		if not ch["armed"] and ch["t"] >= float(c12["arma_s"]):
 			ch["armed"] = true
 			Audio.play("alarme", 1.8, -8.0)
-		var beep := 0.6 if ch["t"] < float(c12["auto_s"]) - 3.0 else 0.15
-		if fmod(ch["t"], beep) < dt:
-			Audio.play("menu_mover", 2.0, -10.0)
+		var beep: float = lerpf(0.5, 0.07, clampf(ch["t"] / float(c12["auto_s"]), 0.0, 1.0))   # bipe ACELERA
+		ch["bt"] = float(ch.get("bt", 0.0)) + dt
+		if ch["bt"] >= beep:
+			ch["bt"] = 0.0
+			ch["blink"] = 0.06
+			Audio.play("menu_mover", 2.0 + ch["t"] * 0.15, -10.0)
+		ch["blink"] = maxf(float(ch.get("blink", 0.0)) - dt, 0.0)
 		if ch["t"] >= float(c12["auto_s"]):
 			var ow: int = ch["owner"]
 			_detonate(ch)
@@ -3119,22 +3198,24 @@ func _draw_etapa3() -> void:
 	# E02 cargas: cai e gruda, luz pisca na cor do dono (mais rápido perto de explodir), círculo de alcance quando armada
 	var c12: Dictionary = sc("E02")
 	var ctex := Data.tex("spells/s12_carga")
-	for ch in charges_placed:
+	for ch in charges_placed:   # lote 3: dinamite com detonador de antena; luz pisca a cada bipe; anel da contagem
 		var p: Vector2 = ch["pos"]
 		var drop: float = ch["drop"]
 		var sq := 1.0 + 0.25 * sin(drop * PI) if drop < 1.0 else 1.0
 		draw_set_transform(p + Vector2(0, -24.0 * (1.0 - drop)), float(ch.get("rot", 0.0)), Vector2(sq, 2.0 - sq))
-		draw_texture_rect(ctex, Rect2(-24, -36, 48, 36), false)
-		draw_set_transform(Vector2.ZERO)
-		var beep := 0.6 if ch["t"] < float(c12["auto_s"]) - 3.0 else 0.15
-		var on := fmod(ch["t"], beep) < beep * 0.4
-		var pc: Color = main.player_color(ch["owner"])
+		draw_texture_rect(ctex, Rect2(-17.6, -49.6, 35.2, 51.2), false)
+		var on: bool = float(ch.get("blink", 0.0)) > 0.0
+		draw_circle(Vector2(4.0, -27.2), 7.0 if on else 2.4, Color(1.0, 0.23, 0.18, 0.9 if on else 0.6))
 		if on:
-			draw_circle(p + Vector2(15, -21), 7.0, Color(pc, 0.9))
-			draw_circle(p + Vector2(15, -21), 3.0, Color.WHITE)
+			draw_circle(Vector2(4.0, -27.2), 14.0, Color(1.0, 0.3, 0.2, 0.3))
+		draw_set_transform(Vector2.ZERO)
+		var pc: Color = main.player_color(ch["owner"])
+		if not ch.get("flying", false):
+			var left: float = clampf(1.0 - ch["t"] / float(c12["auto_s"]), 0.0, 1.0)
+			draw_arc(p + Vector2(0, -24), 30.0, -PI / 2.0, -PI / 2.0 + TAU * left, 28, Color("#ff3b2f"), 3.0, true)
 		if ch["armed"]:
 			draw_set_transform(p, 0.0, Vector2(1.0, 0.3))
-			draw_arc(Vector2.ZERO, float(c12["raio_tiles"]) * T, 0, TAU, 40, Color(pc, 0.35 + (0.3 if on else 0.0)), 4.0, true)
+			draw_arc(Vector2.ZERO, float(c12["raio_tiles"]) * T * 0.75, 0, TAU, 40, Color(pc, 0.35 + (0.3 if on else 0.0)), 4.0, true)
 			draw_set_transform(Vector2.ZERO)
 	# E03 mira na viga mais perto (retícula) para quem tem o controle
 	for r in main.robots:

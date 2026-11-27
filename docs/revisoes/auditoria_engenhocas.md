@@ -26,7 +26,7 @@ Classes hoje (A31): **Ataque, Controle, Mechas**. A **Defesa** entra como 4ª cl
 Ideias levadas ao usuário: Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola (revide), Remendo Rápido, Botas
 Magnéticas, Teleporte (sairia do Controle). Proibido: escudo segurado na mão (S28 Escudo de Solda reprovado).
 
-## Propostas APROVADAS para o Ataque (2026-11-27) — ordem: A04+A01 (FEITO, A38) → A02+A05 (FEITO, A39) → A08+E02 → A06+A07
+## Propostas APROVADAS para o Ataque (2026-11-27) — ordem: A04+A01 (FEITO, A38) → A02+A05 (FEITO, A39) → A08+E02 (FEITO, A40) → A06+A07
 - **A01 Punho Pneumático:** segurar carrega a pressão (agacha, pistão chia, vapor); soltar = soco que arremessa em linha
   reta (mais longe quanto mais carregou); bateu em parede/bloco → quica e racha o bloco; coice no robô; toque = soco médio.
 - **A02 Laser de Corte:** mira vermelha antes; feixe grosso (núcleo branco/borda laranja) varrível enquanto segura; CORTA

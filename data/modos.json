@@ -408,13 +408,7 @@
         "ky": 220,
         "ky_por": 1.0
       },
-      "spell_carga": {
-        "dano": 14,
-        "kx": 600,
-        "kx_por": 5.0,
-        "ky": 700,
-        "ky_por": 3.0
-      },
+      "spell_carga": {"dano": 14, "kx": 950, "kx_por": 5.0, "ky": 950, "ky_por": 3.0},
       "spell_viga": {
         "dano": 12,
         "kx": 200,
@@ -931,7 +925,7 @@
         "raridade": "comum",
         "cargas": 1,
         "arma_s": 0.5,
-        "auto_s": 12.0,
+        "auto_s": 4.0,
         "raio_tiles": 2.4,
         "dano_estrutura": 2,
         "icone": "s12_carga"

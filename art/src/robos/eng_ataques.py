@@ -276,10 +276,15 @@ def exportar_jogo():
     os.makedirs(out, exist_ok=True)
     itens = [("a04_marreta", f'<g transform="translate(56,40)">{marreta_sismica()}</g>', 112, 140, 4),
              ("s01_canhao", canhao_jogo(), 128, 64, 2), ("s01_luva", luva_jogo(), 62, 50, 2.0645),
-             ("s02_laser", laser_jogo(), 128, 64, 2), ("s05_rebiteira", rebiteira_jogo(), 128, 64, 2)]
+             ("s02_laser", laser_jogo(), 128, 64, 2), ("s05_rebiteira", rebiteira_jogo(), 128, 64, 2),
+             ("s20_canhao", molas_c(), 128, 64, 2)]
     for nome, g, w, h, sc in itens:
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{g}</svg>'
         queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, sc)
+    # E02 (lote 3): dinamite com detonador de antena (viewBox -22 -46 44 64) e o detonador da mão (-10 -30 20 42)
+    for nome, g, vb, w, h in (("s12_carga", dinamite(1.0, 0.0), "-22 -46 44 64", 44, 64), ("s12_detonador", detonador(1.0), "-10 -30 20 42", 20, 42)):
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="{vb}">{g}</svg>'
+        queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, 4)
     print("armas:", render_all())
 
 

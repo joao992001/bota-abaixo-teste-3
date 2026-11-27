@@ -3000,8 +3000,14 @@ func spells_test() -> void:
 	await frames(2)
 	await tap("v0", "item")
 	var x_b: float = r1.position.x
-	await frames(int(float(sp.sc("A08")["preparo"]) * 60.0) + 60)
+	var esticou := false
+	for k in int(float(sp.sc("A08")["preparo"]) * 60.0) + 60:
+		await frames(1)
+		for m in sp.springs:
+			if float(m.get("hit_t", -1.0)) >= 0.0:
+				esticou = true
 	check(r1.dmg > 0.0 and r1.position.x - x_b > 3.0 * 64.0, "A08: BOING arremessa longe (%.1f tiles)" % ((r1.position.x - x_b) / 64.0))
+	check(esticou and sp.springs.is_empty(), "A08 (lote 3): a mola ESTICA no rival e depois some")
 	sp.clear(r0)
 	# ===== Etapa 3 (controle e engenharia)
 	sp.boxes.clear()
@@ -3064,6 +3070,24 @@ func spells_test() -> void:
 	await tap("v0", "item")
 	await frames(3)
 	check(sp.charges_placed.is_empty() and r1.dmg > 0.0 and sp.flags(r0).get("fading", false), "E02: detona e lança quem está perto (dano %d%%)" % int(r1.dmg))
+	# lote 3: a carga explode SOZINHA em auto_s (4 s) e as peças no raio DESABAM
+	var alvos: Array = ct.parts.filter(func(p): return p["kind"] == "laje" and not p["fallen"] and not p["nucleo"])
+	if alvos.size() > 0:
+		alvos.sort_custom(func(a, b): return a["rect"].get_center().x < b["rect"].get_center().x)
+		var pa: Dictionary = alvos[0]   # o trecho MAIS À ESQUERDA: o buraco fica longe do dash da Broca (que vai para a direita)
+		var topo: Vector2 = Vector2(pa["rect"].get_center().x, pa["rect"].position.y)
+		sp.clear(r0)
+		put(r0, Vector2(x0, floor_y))   # o dono fica num lugar seguro (se ele cair, a carga some com ele)
+		put(r1, Vector2(x0 + 200.0, floor_y))
+		sp.equip(r0, "E02")
+		sp.charges_placed.append({"owner": 0, "pos": topo, "t": 0.0, "armed": false, "drop": 1.0, "flying": false, "vel": Vector2.ZERO, "rot": 0.0})
+		await frames(int(float(sp.sc("E02")["auto_s"]) * 60.0) - 30)
+		var ainda: bool = not sp.charges_placed.is_empty()
+		await frames(45)
+		check(ainda and sp.charges_placed.is_empty(), "E02 (lote 3): explode sozinha em %.0f s" % float(sp.sc("E02")["auto_s"]))
+		check(pa["fallen"], "E02 (lote 3): a peça no raio DESABA na explosão")
+		sp.clear(r0)
+		r0.facing = 1   # o teste seguinte (dash da Broca) conta com o robô virado para a direita
 	# E03 controle remoto: derruba a viga pendurada mais perto
 	var vigas: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and not p["fallen"])
 	if vigas.size() > 0:
@@ -3231,17 +3255,20 @@ func spells_test() -> void:
 	# A30: SEGURAR = dash furando para a frente até acabar o combustível; atropela quem está no caminho
 	await frames(30)
 	place.call(3.5)
+	r0.facing = 1   # independe do teste anterior: o dash vai para a direita, em direção ao rival
 	await frames(4)
 	var x_antes: float = r0.position.x
 	var dmg_antes: float = r1.dmg
 	vset("v0", "item", true)
 	await frames(30)
 	var dash_on: bool = sp.slot[0]["data"].get("dash", false)
-	await frames(90)
+	await frames(30)
+	var en_fim: float = float(sp.slot[0]["energy"]) if sp.slot.has(0) else 99.0   # mede antes de uma queda (a carga do E02 abre buracos)
+	await frames(60)
 	vset("v0", "item", false)
 	check(dash_on and absf(r0.position.x - x_antes) > 150.0, "T05: segurar dispara o DASH furando (andou %d px)" % int(absf(r0.position.x - x_antes)))
 	check(r1.dmg >= dmg_antes + 7.0, "T05: o dash atropela quem está no caminho (%d%% → %d%%)" % [int(dmg_antes), int(r1.dmg)])
-	check(sp.slot.has(0) and float(sp.slot[0]["energy"]) <= 0.0, "T05: o combustível do dash acaba")
+	check(en_fim <= 0.0, "T05: o combustível do dash acaba")
 	sp.clear(r0)
 	# T06 soldador: arco curto e conserto de trecho rachado
 	place.call(1.2)

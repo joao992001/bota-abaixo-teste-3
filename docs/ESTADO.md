@@ -8,7 +8,7 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
-**▶ PRÓXIMO PASSO: Auditoria das engenhocas, ATAQUE lote 3 = A08 Canhão de Molas + E02 Carga Remota** (propostas já
+**▶ PRÓXIMO PASSO: Auditoria das engenhocas, ATAQUE lote 4 = A06 Bate-Estaca + A07 Arremesso da arma** (lote 3 A08+E02 FEITO, A40; vídeo `out/videos/ataques_lote3.mp4`) (propostas já
 APROVADAS em `docs/revisoes/auditoria_engenhocas.md`, seção "Propostas APROVADAS"). Depois lote 4 = A06 Bate-Estaca (vira
 lançador: coluna de concreto que lança para cima e fica de plataforma) + A07 (cada robô arremessa a SUA arma). Depois: pedir
 ao usuário as notas do CONTROLE (C01–C05; proposta: C04 Teleporte → Defesa) e criar a classe nova DEFESA (ideias levadas:

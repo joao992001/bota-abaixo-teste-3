@@ -19,7 +19,7 @@ const SPELL_TOOLS := {"A01": ["s01_canhao", Vector2(52, 26), Vector2(30, 34), Ve
 	"C01": ["s06_ima", Vector2(44, 31), Vector2(14, 40), Vector2(106, 40)],
 	"A02": ["s02_laser", Vector2(58, 29), Vector2(19, 50), Vector2(122, 31)],
 	"A05": ["s05_rebiteira", Vector2(56, 28), Vector2(40, 52), Vector2(127, 25)],
-	"A08": ["s20_canhao", Vector2(60, 30), Vector2(24, 54), Vector2(124, 32)],
+	"A08": ["s20_canhao", Vector2(60, 30), Vector2(25, 48), Vector2(126, 31)],   # lote 3: Pistão-mola (arma C)
 	"C02": ["s07_ventilador", Vector2(60, 30), Vector2(29, 52), Vector2(126, 32)],
 	"C03": ["s08_gancho", Vector2(58, 29), Vector2(33, 50), Vector2(126, 30)],
 	"C05": ["s21_laco", Vector2(56, 28), Vector2(29, 52), Vector2(124, 32)],
@@ -75,7 +75,7 @@ const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "E01": ["s10
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
 const KITS := {}   # A35/A36: os mechas vão no CARTUCHO (MECHA_CART); o T07 deixou de ser o kit do raio encolhedor
-const HAND_PROPS := {"E02": ["s12_carga", Vector2(30, 22)], "E03": ["s27_controle", Vector2(18, 24)]}
+const HAND_PROPS := {"E02": ["s12_carga", Vector2(20, 29)], "E03": ["s27_controle", Vector2(18, 24)]}
 # aparência
 var color_idx := 0
 var model := 0
@@ -1346,7 +1346,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		ci.draw_rect(Rect2(bk - Vector2(3.5, 3.5), Vector2(7, 7)), Color("#2a1a2e"))
 		ci.draw_rect(Rect2(bk - Vector2(2, 2), Vector2(4, 4)), Color("#f2c84b"))
 	if HAND_PROPS.has(sid0) and not armor and not sf.has("form") and not sf.get("flying_on", false) and not sf.get("fading", false) and float(sf.get("fire", -1.0)) < 0.0:
-		var hp: Array = HAND_PROPS[sid0] if not (sid0 == "E02" and sf.get("placed", false)) else ["s27_controle", Vector2(18, 24)]
+		var hp: Array = HAND_PROPS[sid0] if not (sid0 == "E02" and sf.get("placed", false)) else ["s12_detonador", Vector2(12, 25)]   # lote 3: dinamite na mão; depois de jogar, o detonador de antena
 		ci.draw_set_transform_matrix(base * Transform2D(-0.4, hb + Vector2(-2, -4)))
 		ci.draw_texture_rect(Data.tex("spells/" + hp[0]), Rect2(-hp[1] / 2.0, hp[1]), false)
 	if sid0 == "A06" and not sf.get("fading", false):   # controle remoto do bate-estaca, luz piscando
