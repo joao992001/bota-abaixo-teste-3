@@ -32,6 +32,8 @@ def olhos_tela(face, x0, y0, r=4.4, gap=10):
         return f'<path d="M{x0 - r},{y0 - r} L{x0 + r * 0.6},{y0} L{x0 - r},{y0 + r} M{x0 + gap + r},{y0 - r} L{x0 + gap - r * 0.6},{y0} L{x0 + gap + r},{y0 + r}" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>'
     if face == "eliminado":
         return f'<path d="M{x0 - r},{y0 - r} l{2 * r},{2 * r} m0,{-2 * r} l{-2 * r},{2 * r} M{x0 + gap - r},{y0 - r} l{2 * r},{2 * r} m0,{-2 * r} l{-2 * r},{2 * r}" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round"/>'
+    if face == "piscar":
+        return f'<path d="M{x0 - r},{y0} h{2 * r} M{x0 + gap - r},{y0} h{2 * r}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>'
     if face == "susto":
         r *= 1.15
     for i in range(2):
@@ -96,14 +98,49 @@ def marretao(col, pose):
 
 
 # ---------------------------------------------------------------- 2 BRITA: baixinho largo, cabeça de BETONEIRA, britadeira
+def _Lb(pose):
+    return pose.get("L", "all") in ("all", "base")
+
+
+def _Lf(pose):
+    return pose.get("L", "all") in ("all", "face")
+
+
+def _La(pose):
+    return pose.get("L", "all") in ("all", "acc")
+
+
+def olho_unico(cx, cy, r, face, pupil="#123"):
+    """Rosto de 1 lente (Guindaste/Escavadeira/Solda) com as expressões do jogo."""
+    if face == "eliminado":
+        return f'<path d="M{cx - r},{cy - r} l{2 * r},{2 * r} m0,{-2 * r} l{-2 * r},{2 * r}" stroke="#ff6b6b" stroke-width="2.2" stroke-linecap="round"/>'
+    if face == "vitoria":
+        return f'<path d="M{cx - r},{cy + 1} Q{cx},{cy - r * 1.4} {cx + r},{cy + 1}" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+    if face == "piscar":
+        return f'<path d="M{cx - r},{cy} h{2 * r}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>'
+    pr = r * (0.35 if face == "susto" else 0.5)
+    o = f'<circle cx="{cx + (1.5 if face == "raiva" else 0)}" cy="{cy}" r="{pr:.1f}" fill="{pupil}"/><circle cx="{cx - r * 0.3:.1f}" cy="{cy - r * 0.35:.1f}" r="{r * 0.22:.1f}" fill="#fff"/>'
+    if face == "raiva":
+        o += f'<path d="M{cx - r * 1.6},{cy - r * 1.7} L{cx + r * 1.4},{cy - r * 1.1}" stroke="#1a1a22" stroke-width="2.4" stroke-linecap="round"/>'
+    return o
+
+
 def brita_head(col, pose):
+    if not _Lb(pose):
+        h = ""
+        if _Lf(pose):
+            h += olhos_tela(pose.get("face", "foco"), 4, -9, 3.6, 9)
+        if _La(pose):
+            h += f'<path d="M14,-34 l3,-7" stroke="{cb.MEC_D}" stroke-width="2"/><circle cx="17.5" cy="-42" r="2.6" fill="#ffb22e"/>'
+        return h
     h = f'<g transform="rotate(-14)">' + E(0, -18, 25, 17, col, k=0.7)                      # tambor
     for i in range(4):
         x = -18 + i * 11
         h += f'<path d="M{x},-33 Q{x + 7},-18 {x},-3" stroke="{shade(col, -0.3)}" stroke-width="4.5" fill="none"/>'
     h += E(-24, -22, 5, 9, shade(col, -0.45), k=0.3) + E(-25, -22, 2.6, 5, "#2a2230", k=0.2) + "</g>"   # boca do tambor
-    h += R(-2, -16, 22, 15, 6, SCREEN, k=0.35) + olhos_tela(pose.get("face", "foco"), 4, -9, 3.6, 9)
-    h += f'<path d="M14,-34 l3,-7" stroke="{cb.MEC_D}" stroke-width="2"/><circle cx="17.5" cy="-42" r="2.6" fill="#ffb22e"/>'
+    h += R(-2, -16, 22, 15, 6, SCREEN, k=0.35)
+    if pose.get("L", "all") == "all":
+        h += brita_head(col, dict(pose, L="face")) + brita_head(col, dict(pose, L="acc"))
     return h
 
 
@@ -141,11 +178,14 @@ BRITA["fx"] = brita_fx
 
 # ---------------------------------------------------------------- 3 GUINDASTE: alto e magro, pescoço longo, olhão, gancho na corrente
 def guinda_head(col, pose):
-    h = E(0, 0, 13, 12, col, k=0.6) + E(3, 0, 8.5, 8.5, "#2a2f38", k=0.3) + E(3, 0, 6, 6, "#7fd3ff", k=0.2)   # olhão-lente
-    h += f'<circle cx="{3 + (2 if pose.get("face") == "raiva" else 0)}" cy="0" r="2.8" fill="#123"/><circle cx="1.5" cy="-2" r="1.4" fill="#fff"/>'
-    if pose.get("face") == "raiva":
-        h += f'<path d="M-6,-10 L11,-7" stroke="#1a1a22" stroke-width="2.4" stroke-linecap="round"/>'
-    h += f'<path d="M-6,-11 L-14,-24 L4,-24" stroke="{YEL_D}" stroke-width="2.4" fill="none"/><path d="M4,-24 v5" stroke="{cb.MEC_D}" stroke-width="1.2"/><circle cx="4" cy="-18" r="1.6" fill="#ffb22e"/>'
+    h = ""
+    if _Lb(pose):
+        h += E(0, 0, 13, 12, col, k=0.6) + E(3, 0, 8.5, 8.5, "#2a2f38", k=0.3) + E(3, 0, 6, 6, "#7fd3ff", k=0.2)   # olhão-lente
+        h += f'<path d="M-6,-11 L-14,-24 L4,-24" stroke="{YEL_D}" stroke-width="2.4" fill="none"/>'
+    if _Lf(pose):
+        h += olho_unico(3, 0, 5.6, pose.get("face", "foco"))
+    if _La(pose):
+        h += f'<path d="M4,-24 v5" stroke="{cb.MEC_D}" stroke-width="1.2"/><circle cx="4" cy="-18" r="1.6" fill="#ffb22e"/>'
     return h
 
 
@@ -194,14 +234,28 @@ GUINDA["fx_b"] = guinda_fxb
 
 # ---------------------------------------------------------------- 4 SOLDA: corcunda, máscara de solda, tanques nas costas, chave inglesa
 def solda_head(col, pose):
-    h = R(-15, -16, 30, 30, 7, "#4a505c", k=0.6) + R(-13, -14, 26, 26, 6, shade("#4a505c", 0.12), k=0.3)   # máscara
+    h = ""
     glow = "#ff8a2a"
-    if pose.get("face") == "raiva":
-        h += P_([(-2, -4), (12, -1), (12, 3), (-2, 0)], glow, k=0.2)
-    else:
-        h += R(-2, -4, 15, 5, 2.5, glow, k=0.2)
-    h += f'<rect x="-2" y="-5" width="15" height="7" rx="3" fill="{glow}" opacity="0.25"/>'
-    h += R(-15, -20, 30, 6, 3, col, k=0.4) + E(-15, -1, 3.5, 3.5, cb.MEC_L, k=0.2)   # faixa na cor + dobradiça
+    f = pose.get("face", "foco")
+    if _Lb(pose):
+        h += R(-15, -16, 30, 30, 7, "#4a505c", k=0.6) + R(-13, -14, 26, 26, 6, shade("#4a505c", 0.12), k=0.3)   # máscara
+        h += R(-3, -6, 17, 9, 3, "#1f1a1a", k=0.2)                                                              # visor
+        h += R(-15, -20, 30, 6, 3, col, k=0.4) + E(-15, -1, 3.5, 3.5, cb.MEC_L, k=0.2)   # faixa na cor + dobradiça
+    if _Lf(pose):
+        if f == "eliminado":
+            h += '<path d="M0,-4 l5,5 m0,-5 l-5,5 M7,-4 l5,5 m0,-5 l-5,5" stroke="#ff6b6b" stroke-width="1.8" stroke-linecap="round"/>'
+        elif f == "vitoria":
+            h += f'<path d="M-1,0 Q6,-7 13,0" stroke="{glow}" stroke-width="3" fill="none" stroke-linecap="round"/>'
+        elif f == "piscar":
+            h += f'<path d="M-1,-1.5 h14" stroke="{glow}" stroke-width="1.6" stroke-linecap="round"/>'
+        elif f == "raiva":
+            h += P_([(-2, -4), (12, -1), (12, 3), (-2, 0)], glow, k=0.2)
+        elif f == "susto":
+            h += R(-1, -5, 15, 7, 3, glow, k=0.2)
+        else:
+            h += R(-2, -4, 15, 5, 2.5, glow, k=0.2)
+        if f not in ("eliminado", "piscar"):
+            h += f'<rect x="-2" y="-5" width="15" height="7" rx="3" fill="{glow}" opacity="0.25"/>'
     return h
 
 
@@ -244,10 +298,19 @@ SOLDA_P = {"parado": dict(hip=(0, -22), lean=16, head=6, feet=[(-11, 0), (11, 0)
 
 # ---------------------------------------------------------------- 5 ESCAVADEIRA: pesadão assimétrico, braço-CAÇAMBA, cabecinha de óculos
 def escava_head(col, pose):
-    h = E(0, -6, 11, 9, YEL, k=0.5, dark=YEL_D) + R(-11, -4, 22, 3, 1.5, YEL_D, k=0.2)
-    h += R(-6, -11, 17, 8, 4, "#2a2f38", k=0.3) + E(-1, -7, 3, 3, "#9ff7c8", k=0.2) + E(6, -7, 3, 3, "#9ff7c8", k=0.2)
-    if pose.get("face") == "raiva":
-        h += f'<path d="M-5,-13 L10,-10" stroke="#1a1a22" stroke-width="2" stroke-linecap="round"/>'
+    h = ""
+    f = pose.get("face", "foco")
+    if _Lb(pose):
+        h += E(0, -6, 11, 9, YEL, k=0.5, dark=YEL_D) + R(-11, -4, 22, 3, 1.5, YEL_D, k=0.2)
+        h += R(-6, -11, 17, 8, 4, "#2a2f38", k=0.3)
+    if _Lf(pose):
+        if f in ("eliminado", "vitoria", "piscar"):
+            h += olhos_tela(f, -1, -7, 2.6, 7).replace("#ffffff", "#9ff7c8")
+        else:
+            rr = 3.6 if f == "susto" else 3
+            h += E(-1, -7, rr, rr, "#9ff7c8", k=0.2) + E(6, -7, rr, rr, "#9ff7c8", k=0.2)
+            if f == "raiva":
+                h += f'<path d="M-5,-13 L10,-10" stroke="#1a1a22" stroke-width="2" stroke-linecap="round"/>'
     return h
 
 

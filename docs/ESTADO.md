@@ -19,7 +19,10 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
   molas) em `art/src/robos/anim_blindado.py`. Vídeos em `art/out/robos_v2/*.mp4` (`uch_*`, `brita_*`, `guinda_*`, `solda_*`, `escava_*`).
   Marreta detalhada: `conceito3_blindado.py` (`marreta_cabo/marreta_cabeca`).
 
-**EM ANDAMENTO (parado no meio): passo 1 de "colocar os robôs no jogo" = o MARRETÃO no jogo.**
+**FEITO (2026-11-27): os 5 robôs A27 estão no jogo** (ids mantidos: picareta=Guindaste, chave=Solda, britadeira=Brita,
+pa=Escavadeira; cabeças em camadas em `elenco_uch.py`, ligação em `elenco.py` `_uch_*`). Skins K1–K5 apagadas (refazer).
+Vídeo: `--modelos=1,2,3,4` no `--video`. PRÓXIMO: ajustar poses/ferramentas que o usuário apontar → telas (passo 3) → `.exe`.
+(Histórico do passo 1, já concluído:)
 Plano (aprovado: "1"): trocar o Marretão do gerador antigo `art/src/robos/elenco.py` pelo design A27 — JÁ FEITO no código
 (`t_marretao/h_marretao/tool_marreta` usam `robo_uch.tronco`, `robo_uch.cabeca_L` e a marreta detalhada; CHARS/POSES/EXTRA/
 GAME/TOOL_BOX do marretao com as poses tiradas das animações; `eyes_at`/`top_at` novos em GAME). A exportação

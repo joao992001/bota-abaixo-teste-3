@@ -4614,6 +4614,11 @@ func video_frames(dir: String) -> void:
 		main.add_bot()
 	main.players[1]["level"] = 1
 	main.players[3]["level"] = 1
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--modelos="):   # vídeo do elenco: modelo de cada jogador (índices de Data.MODELS)
+			var ms: PackedStringArray = a.substr(10).split(",")
+			for k in mini(ms.size(), main.players.size()):
+				main.players[k]["model"] = int(ms[k])
 	main.demo.cfg["spells"]["caixa"]["intervalo_s"] = [2.0, 3.0]
 	main.demo.cfg["spells"]["caixa"]["max_mapa"] = 3
 	main.arena_choice = "sorteio"

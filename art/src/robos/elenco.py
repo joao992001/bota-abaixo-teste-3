@@ -318,22 +318,57 @@ def tool_pa():
     return out
 
 
+# ---------------------------------------------------------------- A27: os outros 4 no estilo UCH (desenho em elenco_uch.py)
+# Ids do jogo mantidos (skins, testes, perfis): picareta=GUINDASTE, chave=SOLDA, britadeira=BRITA, pa=ESCAVADEIRA.
+_UCH_FACE = {"normal": "foco", "": "foco", "esforco": "raiva", "ataque": "raiva", "forca": "raiva", "grito": "raiva", "esquiva": "susto"}
+
+
+def _uch(nome):
+    import elenco_uch as eu
+    return getattr(eu, nome)
+
+
+def _uch_t(spec):
+    def t(c, e):
+        sp = _uch(spec)
+        out = sp["torso"](c, {})
+        if sp.get("pre") is not None and spec == "SOLDA":
+            out = sp["pre"](c, {"hip": (0, 0), "lean": 0}) + out
+        if spec == "GUINDA":
+            out = sp["neck_draw"](c, (0, -22), (2, -40)) + out
+        return out
+    return t
+
+
+def _uch_h(spec):
+    def h(c, e, L="all"):
+        sp = _uch(spec)
+        return sp["head"](c, {"L": L, "face": _UCH_FACE.get(e, e or "foco")})
+    return h
+
+
+def _uch_tool(fn, ang, **pz):
+    def t():
+        return _uch(fn)((0, 0), ang, dict(pz))[0]
+    return t
+
+
 CHARS = {
     "marretao": dict(nome="MARRETÃO", desc="o equilibrado: capacete-tela, quica e verga", hip_h=24, torso=t_marretao, head=h_marretao,
                      head_at=(2, -34), sh_b=(-5, -13), sh_f=(5, -13), hip_b=(-4, -1), hip_f=(4, -1), arm=(10, 11, 5.5),
                      leg=(13, 13, 6.5), knee=1, boot=(14, 7), hand=5.5, tool=tool_marreta, grips=[(0, 0), (-16, 0)]),
-    "picareta": dict(nome="PICARETA", desc="o ágil: pernas de pássaro, alcance longo", hip_h=40, torso=t_picareta, head=h_picareta,
-                     head_at=(3, -30), sh_b=(-4, -24), sh_f=(4, -24), hip_b=(-3, -1), hip_f=(3, -1), arm=(16, 16, 4.2),
-                     leg=(20, 22, 5), knee=-1, boot=(12, 5), hand=3.8, tool=tool_picareta, grips=[(0, 0), (-12, 0)]),
-    "chave": dict(nome="CHAVE", desc="o mecânico: caixa de ferramentas, chave inglesa gigante", hip_h=26, torso=t_chave, head=h_chave,
-                  head_at=(1, -29), sh_b=(-11, -24), sh_f=(11, -24), hip_b=(-6, -2), hip_f=(6, -2), arm=(14, 14, 6),
-                  leg=(13, 13, 7), knee=1, boot=(14, 7), hand=4.6, tool=tool_chave, grips=[(0, 0), (-10, 0)]),
-    "britadeira": dict(nome="BRITADEIRA", desc="o baixinho: pula na britadeira", hip_h=14, torso=t_brit, head=h_brit,
-                       head_at=(2, -24), sh_b=(-10, -18), sh_f=(10, -18), hip_b=(-6, -3), hip_f=(6, -3), arm=(11, 11, 5.6),
-                       leg=(8, 8, 7), knee=1, boot=(13, 7), hand=4.4, tool=tool_brit, grips=[(0, 8), (0, -8)]),
-    "pa": dict(nome="PÁ", desc="o operário: cabeça de cabine, pá que vira apoio", hip_h=28, torso=t_pa, head=h_pa,
-               head_at=(1, -36), sh_b=(-9, -31), sh_f=(9, -31), hip_b=(-6, -2), hip_f=(6, -2), arm=(14, 14, 6.4),
-               leg=(14, 13, 7.6), knee=1, boot=(15, 8), hand=4.8, tool=tool_pa, grips=[(0, 0), (-13, 0)]),
+    "picareta": dict(nome="GUINDASTE", desc="o alto: pescoço que ginga, gancho na corrente", hip_h=36, torso=_uch_t("GUINDA"), head=_uch_h("GUINDA"),
+                     head_at=(2, -44), sh_b=(-4, -21), sh_f=(4, -21), hip_b=(-4, -1), hip_f=(4, -1), arm=(13, 13, 4),
+                     leg=(18, 19, 4.6), knee=1, boot=(12, 5), hand=5, tool=_uch_tool("gancho", 0, chain_L=30, chain_sag=4), grips=[(0, 0), (-6, 4)]),
+    "chave": dict(nome="SOLDA", desc="o ranzinza: corcunda, faísca, chave inglesa gigante", hip_h=22, torso=_uch_t("SOLDA"), head=_uch_h("SOLDA"),
+                  head_at=(8, -26), sh_b=(-6, -17), sh_f=(7, -17), hip_b=(-6, -1), hip_f=(6, -1), arm=(11, 12, 5.5),
+                  leg=(11, 12, 6), knee=1, boot=(14, 7), hand=5.5, tool=_uch_tool("chave", 0), grips=[(0, 0), (-10, 0)]),
+    "britadeira": dict(nome="BRITA", desc="o baixinho elétrico: cabeça de betoneira, britadeira", hip_h=15, torso=_uch_t("BRITA"), head=_uch_h("BRITA"),
+                       head_at=(2, -13), sh_b=(-11, -10), sh_f=(11, -10), hip_b=(-8, -1), hip_f=(8, -1), arm=(9, 9, 6),
+                       leg=(7, 8, 7.5), knee=1, boot=(13, 7), hand=5, tool=_uch_tool("britadeira", 0), grips=[(0, 8), (0, -8)]),
+    "pa": dict(nome="ESCAVADEIRA", desc="o pesadão: braço-caçamba que pega e arremessa", hip_h=20, torso=_uch_t("ESCAVA"), head=_uch_h("ESCAVA"),
+               head_at=(4, -34), sh_b=(-12, -26), sh_f=(13, -26), hip_b=(-9, -1), hip_f=(9, -1), arm=(13, 13, 8),
+               leg=(10, 10, 9), knee=1, boot=(15, 8), hand=5.5, tool=_uch_tool("cacamba", 0), grips=[(0, 0), (-6, 0)]),
 }
 
 
@@ -540,18 +575,18 @@ GAME = {
                      torso_d="M-10,0 C-13,-6 -11,-17 0,-18 C11,-17 13,-6 10,0 Z",
                      especial={"pesado": "", "esquiva": ""}),
     "picareta": dict(k=0.84, tk=0.9, voz=0.9, danca=3, hand_r=3.8, foot=(12, 5), acc=(-2, -29),
-                     torso_d="M-9,-2 C-12,-12 -10,-30 0,-32 C10,-32 12,-14 8,-2 C4,2 -6,2 -9,-2 Z",
+                     torso_d=rect_d(-7, -24, 14, 24, 6),
                      especial={"pesado": "", "esquiva": "mortal"}),
     "chave": dict(k=1.0, tk=0.88, voz=1.08, danca=2, hand_r=4.6, foot=(14, 7), acc=(-2, -24),
-                  torso_d=rect_d(-15, -30, 30, 30, 5), especial={"pesado": "giro", "esquiva": "carrinho"}),
+                  torso_d="M-12,0 C-15,-10 -10,-22 2,-22 C13,-21 14,-9 11,0 Z", especial={"pesado": "giro", "esquiva": "carrinho"}),
     "britadeira": dict(k=1.0, tk=0.9, voz=1.4, danca=2, hand_r=4.4, foot=(13, 7), acc=(2.5, -28),
-                       torso_d=ellipse_d(0, -14, 17, 15), especial={"pesado": "monta", "esquiva": "pulinho"}),
+                       torso_d=rect_d(-15, -15, 30, 16, 7), especial={"pesado": "monta", "esquiva": "pulinho"}),
     "pa": dict(k=0.92, tk=0.88, voz=1.0, danca=0, hand_r=4.8, foot=(15, 8), acc=(1.5, -22),
-               torso_d="M-12,-2 C-15,-14 -15,-30 -11,-36 L11,-36 C15,-30 15,-14 12,-2 C6,1 -6,1 -12,-2 Z",
+               torso_d="M-20,0 C-24,-14 -18,-34 0,-34 C18,-34 24,-14 20,0 Z",
                especial={"pesado": "", "esquiva": "salto"}),
 }
-TOOL_BOX = {"marretao": (-30, -20, 75, 20), "picareta": (-17, -23, 53, 27), "chave": (-15, -15, 50, 15),
-            "britadeira": (-3, -12, 46, 12), "pa": (-23, -13, 60, 13)}
+TOOL_BOX = {"marretao": (-30, -20, 75, 20), "picareta": (-8, -8, 44, 26), "chave": (-15, -13, 48, 13),
+            "britadeira": (-3, -12, 47, 12), "pa": (-7, -18, 37, 16)}
 # Quadros que só o jogo usa (a prancha mostra os principais). tool = (x, y, ângulo) da pegada da frente.
 EXTRA = {
     "marretao": {"corre": dict(lean=22, tool=(6, -32, -160)), "ar": dict(tool=(6, -34, -150)),
@@ -701,7 +736,7 @@ def export_game():
         acc_p = add(add(hip, ha), g["acc"])
         top = add(add(hip, ha), g.get("top_at", (0, -26 if cid in ("chave", "pa") else (-38 if cid == "picareta" else -32))))
         meta["modelos"][cid] = {
-            "nome": ch["nome"].capitalize() if cid != "pa" else "Pá", "hat": [64, 40, 0.5],
+            "nome": ch["nome"].capitalize(), "hat": [64, 40, 0.5],
             "hips": [cv(add(hip, hb)), cv(add(hip, hf))], "shoulders": [cv(add(hip, shb)), cv(add(hip, ch["sh_f"]))],
             "hand_back": cv(POSES[cid]["parado"]["tool"][:2]), "hand_front": cv(POSES[cid]["parado"]["tool"][:2]),
             "antenna": cv(acc_p), "eyes": [cv(eyes_c), cv(eyes_c)], "top": round(O[1] + k * top[1], 1),
