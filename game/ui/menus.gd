@@ -26,6 +26,10 @@ var intro_hit := false
 var intro_hi := false
 const INTRO_END := 5.4
 var shake_card := 0.0
+var pag_x := 0.0          # página mostrada na grade de mapas (desliza até a da seleção)
+var paginas_min := 1      # só testes/capturas: força páginas para ver o deslize
+const POR_PAG := 9        # mapas em grade 3 × 3 (prancha m1, 2026-11-27)
+const GRADE_COLS := 3
 var arena_sel := 0
 var adj_sel := 0
 const EVENT_LEVELS := ["DESLIGADOS", "BAIXA", "NORMAL", "ALTA"]
@@ -81,6 +85,7 @@ func update(dt: float) -> void:
 					main.game_mode = m["id"]
 					main.demo.items_on = bool(m.get("itens", true))
 					arena_sel = 0
+					pag_x = 0.0
 					adj_sel = 0
 					main.state = S.ARENAS
 				else:
@@ -145,11 +150,8 @@ func update(dt: float) -> void:
 		S.CONFIGPAD:
 			_update_config(dt)
 		S.ARENAS:
-			var n := arena_list().size() + mapas_bloqueados()
-			arena_sel = posmod(arena_sel + move_h(), n)
-			var v := move_v()
-			if v != 0:
-				arena_sel = clampi(arena_sel + v * 4, 0, n - 1)
+			_mover_grade(move_h(), move_v())
+			pag_x = lerpf(pag_x, float(arena_sel / POR_PAG), minf(1.0, dt * 10.0))   # a página desliza
 			if confirm() and arena_sel >= arena_list().size():
 				shake_card = 0.35   # cartaz bloqueado (lona e cadeado)
 				Audio.play("menu_negado")
@@ -205,6 +207,7 @@ func abrir_mapas() -> void:
 	main.game_mode = "derruba"
 	main.demo.items_on = bool(m.get("itens", true))
 	arena_sel = 0
+	pag_x = 0.0
 	adj_sel = 0
 	main.state = main.S.ARENAS
 
@@ -439,121 +442,151 @@ func arena_list() -> Array:
 	out.append_array(main.demo.mode_arenas(main.game_mode))
 	return out
 
-## Cartazes bloqueados de exemplo (lona + cadeado) até existirem outros mapas: o tapume sempre mostra 4 cartazes (A23).
+## Cartazes "EM BREVE" (lona + cadeado) completam a última página da grade 3 × 3 (prancha m1).
 func mapas_bloqueados() -> int:
-	return maxi(0, 4 - arena_list().size())
+	var n := arena_list().size()
+	return maxi(int(ceil(n / float(POR_PAG))), paginas_min) * POR_PAG - n
 
-## Retângulos dos cartazes no tapume. 4 cartazes = posições da prancha aprovada (6_referencia_mapas_preferida.png).
-func _cartazes_rects(n: int) -> Array:
-	if n == 4:
-		return [Rect2(70, 300, 380, 500), Rect2(520, 260, 560, 560), Rect2(1150, 300, 330, 500), Rect2(1540, 300, 330, 500)]
-	var out := []
-	var w := minf(400.0, 1780.0 / n - 30.0)
-	for i in n:
-		out.append(Rect2(70 + i * (1780.0 / n) + (1780.0 / n - w) / 2.0, 300, w, 500))
-	return out
+func n_paginas() -> int:
+	return maxi(1, (arena_list().size() + mapas_bloqueados()) / POR_PAG)
 
-## Mapas (A21/A23) = IGUAL à prancha aprovada: tapume de obra com cartazes presos por fita crepe, título pendurado no cabo
-## da grua, Sorteio "?", o mapa com foto e capacetes das cenas, cartazes bloqueados com lona/corrente/cadeado, régua dos
-## Projetos de Demolição e dois robôs na laje.
+## ◄► anda na linha; na borda da grade desliza para a página ao lado (mesma linha). ▲▼ troca de linha.
+func _mover_grade(h: int, v: int) -> void:
+	var pg := arena_sel / POR_PAG
+	var k := arena_sel % POR_PAG
+	var col := k % GRADE_COLS
+	var row := k / GRADE_COLS
+	var np := n_paginas()
+	if h != 0:
+		col += h
+		if col < 0 or col >= GRADE_COLS:
+			if np > 1:
+				pg = posmod(pg + h, np)
+			col = posmod(col, GRADE_COLS)
+	if v != 0:
+		row = clampi(row + v, 0, POR_PAG / GRADE_COLS - 1)
+	arena_sel = pg * POR_PAG + row * GRADE_COLS + col
+
+## Retângulo do cartaz i dentro da página (grade 3 × 3).
+func _cartaz_rect(k: int) -> Rect2:
+	var cw := 470.0
+	var ch := 218.0
+	var x0 := (1920.0 - (GRADE_COLS * cw + (GRADE_COLS - 1) * 30.0)) / 2.0
+	return Rect2(x0 + (k % GRADE_COLS) * (cw + 30.0), 200.0 + (k / GRADE_COLS) * (ch + 20.0), cw, ch)
+
+## Mapas (A21/A23 → grade m1, 2026-11-27): tapume de obra com cartazes presos por fita crepe, título pendurado no cabo
+## da grua, 9 cartazes por página (Sorteio "?", o mapa com foto + capacetes das cenas, EM BREVE com lona e cadeado),
+## setas grandes e bolinhas de página, régua dos Projetos de Demolição.
 func _draw_arenas(ci: CanvasItem) -> void:
 	Obra.fundo(ci, t)
-	ci.draw_rect(Rect2(0, 930, 1920, 150), Color("#b9ab8f"))   # laje
-	ci.draw_rect(Rect2(0, 930, 1920, 60), Color("#d8ccb6"))
-	ci.draw_rect(Rect2(0, 930, 1920, 10), Color("#eee5d2"))
-	for k in 24:
-		ci.draw_circle(Vector2(30 + k * 82, 1040 + (k % 3) * 12), 4.0, Color("#958a72"))
+	ci.draw_rect(Rect2(0, 990, 1920, 90), Color("#b9ab8f"))   # laje
+	ci.draw_rect(Rect2(0, 990, 1920, 40), Color("#d8ccb6"))
+	ci.draw_rect(Rect2(0, 990, 1920, 8), Color("#eee5d2"))
 	for k in 9:   # tapume: painéis de compensado pintados
 		var x := -40.0 + k * 230.0
-		ci.draw_rect(Rect2(x, 170, 236, 760), Color("#7fae86") if k % 2 == 0 else Color("#86b48c"))
-		ci.draw_rect(Rect2(x, 170, 236, 760), Color("#4d7a56"), false, 3.0)
-	Obra.zebra(ci, Rect2(0, 150, 1920, 26))
-	Obra.zebra(ci, Rect2(0, 920, 1920, 18))
-	ci.draw_line(Vector2(960, -4), Vector2(960, 58), Color("#4a4f5c"), 5.0)   # título no cabo da grua
-	Obra.corrente(ci, 820, 50, 74)
-	Obra.corrente(ci, 1100, 50, 74)
-	Obra.placa(ci, Vector2(960, 70), 560, 96, "ESCOLHA O MAPA" if main.game_mode == "derruba" else "ESCOLHA A ARENA", true, 0.0, 50)
+		ci.draw_rect(Rect2(x, 150, 236, 840), Color("#7fae86") if k % 2 == 0 else Color("#86b48c"))
+		ci.draw_rect(Rect2(x, 150, 236, 840), Color("#4d7a56"), false, 3.0)
+	Obra.zebra(ci, Rect2(0, 132, 1920, 26))
+	ci.draw_line(Vector2(960, -4), Vector2(960, 40), Color("#4a4f5c"), 5.0)   # título no cabo da grua
+	Obra.corrente(ci, 820, 30, 60)
+	Obra.corrente(ci, 1100, 30, 60)
+	Obra.placa(ci, Vector2(960, 54), 560, 92, "ESCOLHA O MAPA" if main.game_mode == "derruba" else "ESCOLHA A ARENA", true, 0.0, 50)
 	var list := arena_list()
-	var nb := mapas_bloqueados()
-	var rects := _cartazes_rects(list.size() + nb)
-	for i in list.size() + nb:
-		var r: Rect2 = rects[i]
-		var on := i == arena_sel
-		var c := r.get_center()
-		var rot := 0.0
-		if on and shake_card > 0.0:
-			rot = sin(shake_card * 60.0) * 0.04
-		var xf := Transform2D(rot, Vector2.ONE * (1.03 if on else 1.0), 0.0, c)
-		ci.draw_set_transform_matrix(xf)
-		var rr := Rect2(-r.size / 2.0, r.size)
-		if on:
-			ci.draw_style_box(Obra._sb(Obra.YEL, 14, 6), rr.grow(16))
-		if i < list.size():
-			_cartaz_mapa(ci, rr, list[i], xf)
-		else:
-			_cartaz_bloqueado(ci, rr)
-		if on:
-			Obra.chip(ci, rr.position + Vector2(-20, -40), 1)
-		ci.draw_set_transform(Vector2.ZERO)
+	var total := list.size() + mapas_bloqueados()
+	var np := n_paginas()
+	for pg in np:
+		var dx := (pg - pag_x) * 1920.0
+		if absf(dx) >= 1900.0:
+			continue
+		for k in POR_PAG:
+			var i := pg * POR_PAG + k
+			if i >= total:
+				break
+			var r := _cartaz_rect(k)
+			r.position.x += dx
+			var on := i == arena_sel
+			var rot := 0.0
+			if on and shake_card > 0.0:
+				rot = sin(shake_card * 60.0) * 0.03
+			var xf := Transform2D(rot, Vector2.ONE * (1.03 if on else 1.0), 0.0, r.get_center())
+			ci.draw_set_transform_matrix(xf)
+			var rr := Rect2(-r.size / 2.0, r.size)
+			if on:
+				ci.draw_style_box(Obra._sb(Obra.YEL, 14, 6), rr.grow(12))
+			if i < list.size():
+				_cartaz_mapa(ci, rr, list[i], xf)
+			else:
+				_cartaz_bloqueado(ci, rr, xf)
+			if on:   # moldura por cima (a lona do EM BREVE cobriria a de baixo)
+				var sb := Obra._sb(Color(0, 0, 0, 0), 16, 0)
+				sb.border_color = Obra.YEL
+				sb.set_border_width_all(10)
+				ci.draw_style_box(sb, rr.grow(12))
+				Obra.chip(ci, rr.position + Vector2(rr.size.x - 84, -30), 1)
+			ci.draw_set_transform(Vector2.ZERO)
+	var pg_at := arena_sel / POR_PAG
+	for sx in [-1.0, 1.0]:   # setas grandes: há página para lá?
+		var tem: bool = np > 1
+		var c := Vector2(960 + sx * 890.0, 548)
+		ci.draw_circle(c + Vector2(0, 5), 50.0, Color(Kit.INK, 0.3))
+		ci.draw_circle(c, 50.0, Kit.INK)
+		ci.draw_circle(c, 43.0, Obra.YEL if tem else Color("#c9c2b2"))
+		ci.draw_colored_polygon(PackedVector2Array([c + Vector2(sx * 20, 0), c + Vector2(-sx * 14, -20), c + Vector2(-sx * 14, 20)]), Kit.INK)
+	var y_pe := 200.0 + 3 * 218.0 + 2 * 20.0 + 40.0
+	var x_pe := _cartaz_rect(0).position.x
+	for pg in np:   # bolinhas de página
+		ci.draw_circle(Vector2(x_pe + 20 + pg * 40, y_pe), 13.0, Kit.INK)
+		ci.draw_circle(Vector2(x_pe + 20 + pg * 40, y_pe), 9.0, Kit.INK if pg == pg_at else Color.WHITE)
+	Kit.text(ci, Vector2(x_pe + 20 + np * 40 + 10, y_pe + 9), "página %d/%d" % [pg_at + 1, np], 22, Color("#2a4a58"))
 	if main.game_mode == "derruba":
-		_draw_projetos(ci, Rect2(1150, 830, 620, 74))
-	# elenco na laje (prancha): Picareta verde à esquerda, Marretão azul à direita
-	var now := Time.get_ticks_msec() / 1000.0
-	var po: Dictionary = RobotVis.idle_pose(now)
-	var ph := now * 14.0
-	po["feet"] = [Vector2(cos(ph) * 8.0, -maxf(sin(ph), 0.0) * 7.0), Vector2(cos(ph + PI) * 8.0, -maxf(sin(ph + PI), 0.0) * 7.0)]
-	po["lean"] = 0.12
-	RobotVis.draw_robot(ci, {"color": 1, "model": 1, "hammer": true, "fx": {}}, po, Transform2D(0.0, Vector2(1.5, 1.5), 0.0, Vector2(66, 930)))
-	RobotVis.draw_robot(ci, {"color": 0, "model": 0, "hammer": true, "fx": {}}, RobotVis.idle_pose(now + 1.0), Transform2D(0.0, Vector2(-1.5, 1.5), 0.0, Vector2(1858, 930)))
-	ci.draw_set_transform(Vector2.ZERO)
-	Obra.dica(ci, "◄► escolher  ·  PULAR confirmar  ·  ESC voltar")
+		var xr := _cartaz_rect(GRADE_COLS - 1).end.x
+		_draw_projetos(ci, Rect2(xr - 620, y_pe - 34, 620, 74))
+	Obra.dica(ci, "◄►▲▼ escolher  ·  na borda: desliza a página  ·  PULAR confirmar  ·  ESC voltar")
 
 ## Cartaz de papel com fita crepe nos cantos (comum a todos os cartazes do tapume).
 func _papel_cartaz(ci: CanvasItem, rr: Rect2, xf: Transform2D) -> void:
 	ci.draw_style_box(Obra._sb(Color(Kit.INK, 0.3), 6), Rect2(rr.position + Vector2(6, 10), rr.size))
 	ci.draw_style_box(Obra._sb(Color("#f6eedb"), 6, 5), rr)
-	for fx in [-1.0, 1.0]:   # fita crepe nos cantos
-		ci.draw_set_transform_matrix(xf * Transform2D(0.52 * fx, Vector2(rr.get_center().x + fx * (rr.size.x / 2.0 - 25.0), rr.position.y + 5.0)))
-		ci.draw_rect(Rect2(-45, -15, 90, 30), Color(0.91, 0.85, 0.66, 0.9))
-		ci.draw_set_transform_matrix(xf)
+	ci.draw_set_transform_matrix(xf * Transform2D(-0.52, Vector2(rr.position.x + 25.0, rr.position.y + 5.0)))   # fita crepe no canto
+	ci.draw_rect(Rect2(-45, -15, 90, 30), Color(0.91, 0.85, 0.66, 0.9))
+	ci.draw_set_transform_matrix(xf)
 
 func _cartaz_mapa(ci: CanvasItem, rr: Rect2, a: Dictionary, xf: Transform2D) -> void:
 	_papel_cartaz(ci, rr, xf)
-	var x := rr.position.x
-	var w := rr.size.x
+	var tr := Rect2(rr.position + Vector2(16, 16), Vector2(236, rr.size.y - 32))   # foto à esquerda
+	var tx0 := tr.end.x + 10.0
+	var tw := rr.end.x - tx0 - 10.0
 	if a["id"] == "sorteio":
-		var tr := Rect2(x + 22, rr.position.y + 22, w - 44, 290)
 		ci.draw_style_box(Obra._sb(Color("#9fe3ee"), 6, 4), tr)
-		Kit.sticker(ci, Vector2(tr.position.x, tr.get_center().y + 72), "?", 200, Obra.YEL, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
-		Kit.text(ci, Vector2(x, rr.position.y + 372), "SORTEIO", 36, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, w)
-		Kit.text(ci, Vector2(x, rr.end.y - 40), String(a.get("dica", "")), 22, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, w)
+		Kit.sticker(ci, Vector2(tr.position.x, tr.get_center().y + 60), "?", 160, Obra.YEL, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
+		Kit.text(ci, Vector2(tx0, rr.position.y + 100), "SORTEIO", 32, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, tw)
+		Kit.text_box(ci, Vector2(tx0, rr.position.y + 140), tw, String(a.get("dica", "")), 19, Kit.SOFT, 2)
 		return
-	var th := rr.size.y * 0.58
-	var tr2 := Rect2(x + 22, rr.position.y + 22, w - 44, th)
 	var thumb := Data.tex("ui/arena_" + String(a["id"]))
 	if thumb != null:   # foto cortada no meio (slice), sem esticar
 		var ts := thumb.get_size()
-		var esc := maxf(tr2.size.x / ts.x, tr2.size.y / ts.y)
-		var src := Rect2((ts - tr2.size / esc) / 2.0, tr2.size / esc)
-		ci.draw_texture_rect_region(thumb, tr2, src)
+		var esc := maxf(tr.size.x / ts.x, tr.size.y / ts.y)
+		var src := Rect2((ts - tr.size / esc) / 2.0, tr.size / esc)
+		ci.draw_texture_rect_region(thumb, tr, src)
 	else:
-		ci.draw_rect(tr2, Color("#9fe3ee"))
-	ci.draw_rect(tr2, Kit.INK, false, 4.0)
+		ci.draw_rect(tr, Color("#9fe3ee"))
+	ci.draw_rect(tr, Kit.INK, false, 4.0)
 	var nome := String(a["nome"]).to_upper()
-	Kit.text(ci, Vector2(x, rr.position.y + th + 80), nome, 36 if nome.length() < 20 else 30, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, w)
 	var mf: Dictionary = MapaReg.manifesto(main.game_mode, String(a["id"])) if main.game_mode == "derruba" else {}
+	Kit.text_box(ci, Vector2(tx0, rr.position.y + 66), tw, nome, 28 if nome.length() < 16 else 24, Kit.INK, 2)
 	if mf.is_empty():
-		Kit.text_box(ci, Vector2(x + 14, rr.position.y + th + 110), w - 28, String(a.get("dica", "")), 21, Kit.SOFT, 2)
+		Kit.text_box(ci, Vector2(tx0, rr.position.y + 150), tw, String(a.get("dica", "")), 17, Kit.SOFT, 2)
 		return
-	# capacetes = cenas descobertas (amarelo + nome) / não descobertas (cinza + "?")
+	# capacetes = cenas descobertas (amarelo) / não descobertas (cinza)
 	var vis: Array = main.perfil.dados.get("cenas_visitadas", {}).get(a["id"], [])
 	var cenas: Array = MapaReg.cenas(main.game_mode, String(a["id"]))
+	var passo := minf(64.0, (tw - 10.0) / maxf(cenas.size(), 1))
 	for k in cenas.size():
-		var cn: Dictionary = cenas[k]
-		var ok: bool = String(cn.get("id", "")) in vis
-		var cx := x + w / 2.0 - 110.0 * (cenas.size() - 1) / 2.0 + k * 110.0
-		_capacete(ci, Vector2(cx, rr.end.y - 60), ok)
-		Kit.text(ci, Vector2(cx - 60, rr.end.y - 26), String(cn.get("nome", "")).to_upper() if ok else "?", 17, Kit.INK if ok else Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, 120)
+		var ok: bool = String(cenas[k].get("id", "")) in vis
+		var cx := tx0 + tw / 2.0 - passo * (cenas.size() - 1) / 2.0 + k * passo
+		ci.draw_set_transform_matrix(xf * Transform2D(0.0, Vector2(0.72, 0.72), 0.0, Vector2(cx, rr.end.y - 44)))
+		_capacete(ci, Vector2.ZERO, ok)
+		ci.draw_set_transform_matrix(xf)
 
 func _capacete(ci: CanvasItem, c: Vector2, aceso: bool) -> void:
 	var col := Obra.YEL if aceso else Color("#c9c2b2")
@@ -566,29 +599,32 @@ func _capacete(ci: CanvasItem, c: Vector2, aceso: bool) -> void:
 	ci.draw_polyline(pts, Kit.INK, 4.0, true)
 	ci.draw_style_box(Obra._sb(col, 4, 4), Rect2(c + Vector2(-40, -4), Vector2(80, 12)))
 
-## Mapa ainda bloqueado: lona azul por cima, corrente atravessada e cadeado; "???" e BLOQUEADO.
-func _cartaz_bloqueado(ci: CanvasItem, rr: Rect2) -> void:
-	ci.draw_style_box(Obra._sb(Color("#f6eedb"), 6, 5), rr)
+## Mapa que ainda vem: lona azul presa por fita, corrente tracejada atravessada, cadeado e EM BREVE.
+func _cartaz_bloqueado(ci: CanvasItem, rr: Rect2, xf := Transform2D.IDENTITY) -> void:
 	var x := rr.position.x
 	var y := rr.position.y
 	var w := rr.size.x
 	var h := rr.size.y
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(x - 10, y + 20), Vector2(x + w + 10, y - 6), Vector2(x + w + 6, y + h + 10), Vector2(x - 6, y + h - 6)]), Color("#3f7fb5", 0.95))
-	for k in 5:   # dobras da lona
-		var x0 := x + 20 + k * w / 5.0
-		ci.draw_polyline(PackedVector2Array([Vector2(x0, y + 10), Vector2(x0 + 12, y + h * 0.5), Vector2(x0 - 6, y + h - 4)]), Color("#2f6595"), 5.0, true)
-	var c0 := Vector2(x - 10, y + h * 0.45)
-	var c1 := Vector2(x + w + 10, y + h * 0.55)
-	for k in 18:   # corrente tracejada
-		var u0 := k / 18.0
-		ci.draw_line(c0.lerp(c1, u0), c0.lerp(c1, u0 + 0.7 / 18.0), Color("#8d98a4"), 10.0)
+	ci.draw_style_box(Obra._sb(Color(Kit.INK, 0.3), 6), Rect2(rr.position + Vector2(6, 10), rr.size))
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(x, y + 4), Vector2(x + w, y - 4), Vector2(x + w + 2, y + h + 4), Vector2(x - 2, y + h - 2)]), Color("#3f7fb5"))
+	ci.draw_polyline(PackedVector2Array([Vector2(x, y + 4), Vector2(x + w, y - 4), Vector2(x + w + 2, y + h + 4), Vector2(x - 2, y + h - 2), Vector2(x, y + 4)]), Color("#2f6595"), 4.0, true)
+	for k in 4:   # dobras da lona
+		var x0 := x + 40 + k * w / 4.0
+		ci.draw_polyline(PackedVector2Array([Vector2(x0, y + 6), Vector2(x0 + 10, y + h * 0.5), Vector2(x0 - 6, y + h - 4)]), Color("#3873a6"), 4.0, true)
+	var c0 := Vector2(x, y + h * 0.46)
+	var c1 := Vector2(x + w, y + h * 0.52)
+	for k in 22:   # corrente tracejada
+		var u0 := k / 22.0
+		ci.draw_line(c0.lerp(c1, u0), c0.lerp(c1, u0 + 0.6 / 22.0), Color("#8d98a4"), 7.0)
 	var lc := Vector2(x + w / 2.0, y + h * 0.5)
-	ci.draw_arc(lc + Vector2(0, -30), 24.0, PI, TAU, 16, Kit.INK, 10.0, true)
-	ci.draw_line(lc + Vector2(-24, -30), lc + Vector2(-24, -8), Kit.INK, 10.0)
-	ci.draw_line(lc + Vector2(24, -30), lc + Vector2(24, -8), Kit.INK, 10.0)
-	ci.draw_style_box(Obra._sb(Obra.YEL, 10, 0), Rect2(lc + Vector2(-40, -30), Vector2(80, 66)))
-	Kit.text(ci, Vector2(x, y + h - 100), "? ? ?", 34, Color("#2f6595"), HORIZONTAL_ALIGNMENT_CENTER, w)
-	Kit.text(ci, Vector2(x, y + h - 40), "BLOQUEADO", 28, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, w, 6)
+	ci.draw_arc(lc + Vector2(0, -22), 19.0, PI, TAU, 16, Kit.INK, 8.0, true)
+	ci.draw_line(lc + Vector2(-19, -22), lc + Vector2(-19, -6), Kit.INK, 8.0)
+	ci.draw_line(lc + Vector2(19, -22), lc + Vector2(19, -6), Kit.INK, 8.0)
+	ci.draw_style_box(Obra._sb(Obra.YEL, 8, 4), Rect2(lc + Vector2(-30, -22), Vector2(60, 50)))
+	Kit.text(ci, Vector2(x, y + h - 26), "EM BREVE", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, w, 6)
+	ci.draw_set_transform_matrix(xf * Transform2D(-0.52, Vector2(x + 25.0, y + 5.0)))   # fita crepe no canto
+	ci.draw_rect(Rect2(-45, -15, 90, 30), Color(0.91, 0.85, 0.66, 0.9))
+	ci.draw_set_transform_matrix(xf)
 
 ## Projetos de Demolição (perfil, D4): pontos para liberar o próximo mapa. Só na seleção de mapas e nos resultados.
 func _draw_projetos(ci: CanvasItem, rr: Rect2) -> void:

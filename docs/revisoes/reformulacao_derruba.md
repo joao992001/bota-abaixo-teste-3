@@ -87,3 +87,12 @@ Projetos de Demolição) — esta última documentada para o futuro.
 | D4 | Perfil salvo local (cenas descobertas, pontos, gangorra) — sem contas/online | **feita 2026-11-26** |
 | D5 | Cena Rota Moderada do Canteiro (método de fase `mapa.md`) | **feita 2026-11-26** (Fachada; transição por deslize) |
 Cada parte termina com o jogo jogável, testes da parte e commit; bateria completa no fim.
+
+### A49 · Gangorra A + presente em 5 tempos + mapas em grade (aprovado 2026-11-27)
+- Gangorra: **A · Balança da grua** (viga nas 6 cores pendurada no gancho; cestos de carga nas pontas; cesto no chão = prêmio).
+- Caixas dizem o prêmio pela FORMA, sem texto: skin = caixa de figurino (bolinhas, cabide, selo com cara de robô); engenhoca =
+  maleta de aço (zebrada, alça, engrenagem + mola); evento = caixote de madeira (placa de alerta, sirene).
+- Presente: 1 decide · 2 a gangorra sai de cena e o presente sobe · 3 voa ao centro girando e cresce · 4 treme 3× e a tampa
+  estoura (raios + confete) · 5 o prêmio grande no pedestal (skin no robô do vencedor girando / ícone da engenhoca ou do evento),
+  nome + selo NOVO. ~4 s; PULAR adianta.
+- Mapas: grade 3 × 3 por página (EM BREVE completa a página); ◄► na borda desliza para a página ao lado; bolinhas de página.

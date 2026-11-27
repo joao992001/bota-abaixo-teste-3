@@ -2223,6 +2223,16 @@ func selecao_test() -> void:
 	await frames(2)
 	await tap("v0", "jump")   # JOGAR → mapas (A22)
 	check(main.state == S.ARENAS, "chega às arenas do Derruba")
+	var mn = main.menus   # grade 3 × 3 com páginas (prancha m1, 2026-11-27)
+	check((mn.arena_list().size() + mn.mapas_bloqueados()) % 9 == 0, "a grade completa a página com EM BREVE (%d mapas + %d)" % [mn.arena_list().size(), mn.mapas_bloqueados()])
+	mn.arena_sel = 0
+	await tap("v0", "down")
+	check(mn.arena_sel == 3, "▼ desce uma linha da grade (3 por linha)")
+	await tap("v0", "right")
+	await tap("v0", "right")
+	check(mn.arena_sel == 5, "► anda na linha")
+	await tap("v0", "right")
+	check(mn.arena_sel == (3 if mn.n_paginas() == 1 else 12), "► na borda: próxima página na mesma linha (ou volta ao começo se há uma página só)")
 	main.menus.arena_sel = 1
 	var spells_partida = main.demo.spells
 	main.demo.spells = null   # como no jogo de verdade vindo do menu: ainda não existe partida (derrubava o .exe)
@@ -5262,8 +5272,20 @@ func menus_frames(dir: String) -> void:
 	await frames(10)
 	await snap(dir, "m4c_controles")
 	main.state = S.ARENAS
+	main.menus.arena_sel = 1
 	await frames(10)
 	await snap(dir, "m4b_arenas")
+	main.menus.paginas_min = 2   # deslize de página (prancha m1): força a 2ª página e anda para ela pela borda
+	main.menus.arena_sel = 5
+	await frames(2)
+	await tap("v0", "right")
+	await frames(3)
+	await snap(dir, "m4b_arenas_desliza")
+	await frames(30)
+	await snap(dir, "m4b_arenas_pag2")
+	main.menus.paginas_min = 1
+	main.menus.arena_sel = 0
+	main.menus.pag_x = 0.0
 	main.state = S.JOIN
 	main.mode = "demolicao"
 	main.demo.cfg["rounds_to_win"] = 5

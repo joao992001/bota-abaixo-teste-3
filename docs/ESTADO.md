@@ -8,6 +8,12 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
+**▶ SESSÃO 7 (cont.): RECOMPENSAS + MAPAS FEITO — A49** (pranchas `art/out/recompensas/g1–g3, m1`, aprovadas 2026-11-27):
+gangorra = A · Balança da grua (`game/ui/fim.gd`, arte `art/src/ui/premio_export.py` → `game/assets/premio/`); caixas sem texto
+que dizem o prêmio (skin = figurino com cabide; engenhoca = maleta de aço; evento = caixote com sirene); presente em 5 tempos
+(decide → sai de cena → voa ao centro → treme e abre → prêmio grande no pedestal com nome e NOVO; vídeo
+`art/out/recompensas/v_gangorra_presente.mp4`). Mapas em grade 3 × 3 com páginas (◄► na borda desliza; `game/ui/menus.gd`).
+Skin revelada aparece com o visual padrão até as skins K1–K5 serem refeitas.
 **▶ SESSÃO 7: D (combate) FEITO — A47; A (animação dos robôs no jogo) FEITO — A48 (poses das animações aprovadas, cabeça com mola, jeito de andar)** (prancha `combate_r3.png`, vídeo `out/videos/combate_r3.mp4`). Pendências que sobram: C) skins K1–K5. (Os 7 pontos da avaliação de interface JÁ estavam feitos desde a sessão 2 — A22–A26; conferido em 2026-11-27, captura `out/videos/interface_atual.png`.) Perguntar ao usuário qual segue.
 **▶ PRÓXIMO PASSO:** Auditoria das engenhocas — ATAQUE CONCLUÍDO (lotes 1–4, A38–A41) e a subida da coluna do A06 REFEITA
 (sessão 6, A42: sai de um buraco em 0,35 s, passa do ponto e assenta com tranco, rachaduras escuras, poeira dos dois lados,
