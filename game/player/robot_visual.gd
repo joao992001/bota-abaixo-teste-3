@@ -718,11 +718,43 @@ func current_pose() -> Dictionary:
 		feet[1] = feet[1].lerp(Vector2(4, 0), wall_k)
 	# spells (igual para todos): a mão da frente segura a arma / aponta; a ferramenta vai para as costas
 	var sf: Dictionary = robot.fx_flags() if robot != null and robot.has_method("fx_flags") else {}
+	# DEFESA D01 (Âncora): ergue o contrapeso das costas por cima da cabeça e crava atrás; depois segura a corrente
+	# com as duas mãos, inclina fazendo força ao arrastar e balança no tranco de um golpe (sem sair do lugar)
+	var def_set := false
+	var an_t := float(sf.get("ancora_t", -1.0))
+	if an_t >= 0.0 and not sf.get("armor", false):
+		two_hand = false
+		var u := clampf(an_t / ANCORA_CRAVA_S, 0.0, 1.0)
+		if u < 1.0:
+			hf = ancora_mao(u)
+			p["hb_abs"] = hf + Vector2(-8, 3)
+			lean = lerpf(lean, -0.3 * sin(u * PI * 0.9) + 0.35 * maxf(u - 0.6, 0.0) / 0.4, 0.7)
+			if u > 0.6:
+				bob += 6.0 * (u - 0.6) / 0.4
+		else:
+			var tr := float(sf.get("ancora_tranco", 0.0))
+			var arr: bool = sf.get("arrasta", false)
+			hf = Vector2(4, -36) + Vector2(sin(t * 60.0), cos(t * 55.0)) * 2.0 * tr
+			p["hb_abs"] = Vector2(-6, -34)
+			lean = lerpf(lean, (0.28 if arr else 0.08) - 0.3 * tr + sin(t * 40.0) * 0.08 * tr, 0.6)
+			if arr:
+				bob += 2.0 + sin(t * 14.0) * 1.5
+		def_set = true
+	# DEFESA D02 (Airbag): encolhido dentro do balão (joelhos no peito, braços abraçando)
+	var abk := float(sf.get("airbag_k", 0.0))
+	if abk > 0.0:
+		two_hand = false
+		for i in 2:
+			feet[i] = feet[i].lerp(Vector2(-6.0 + i * 12.0, -24.0), abk)
+		hf = hf.lerp(Vector2(10, -42), abk)
+		p["hb_abs"] = Vector2(-4, -44)
+		lean = lerpf(lean, 0.25 * sin(t * 3.0), abk)
+		def_set = true
 	var sid: String = sf.get("spell", "")
 	var prep: float = sf.get("prep", -1.0)
 	var fire: float = sf.get("fire", -1.0)
 	var aiming: bool = prep >= 0.0 or (fire >= 0.0 and fire < (0.55 if sid == "A04" else 0.32)) or (sf.get("channel", false) and sid in ["C01", "C04", "C02", "A06"])
-	var hf_set := false
+	var hf_set := def_set
 	if sid != "" and aiming and not sf.get("armor", false):
 		var kick := clampf(1.0 - fire / 0.22, 0.0, 1.0) if fire >= 0.0 and prep < 0.0 and not sf.get("beam", false) else 0.0   # A02: arma firme durante o feixe
 		var buzz := Vector2(sin(t * 80.0), cos(t * 71.0)) * 1.4 * maxf(prep, 0.0)
@@ -1408,6 +1440,15 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		ci.draw_set_transform_matrix(base * Transform2D(0.0, hand_q, 0.0, p))
 		ci.draw_texture(hand, -Vector2(8, 8) * 4.0)
 	ci.draw_set_transform_matrix(base)
+
+## DEFESA D01: caminho da mão ao cravar o contrapeso (u 0..1): das costas → por cima da cabeça → crava atrás, baixo
+const ANCORA_CRAVA_S := 0.42
+static func ancora_mao(u: float) -> Vector2:
+	if u < 0.55:
+		var k := _smooth(u / 0.55)
+		return Vector2(-12, -38).lerp(Vector2(-2, -96), k)
+	var k2 := _smooth((u - 0.55) / 0.45)
+	return Vector2(-2, -96).lerp(Vector2(-30, -10), k2)
 
 ## MOCHILA DO MECHA (proposta A aprovada 2026-11-27, substitui o cartucho na mão + holograma): a cápsula do mecha vai
 ## presa nas COSTAS com uma alça no peito; o núcleo pulsa. Arte: art/src/robos/mecha_porte.py --jogo (spells/mochila_T0x).

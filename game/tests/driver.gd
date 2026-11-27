@@ -1743,9 +1743,9 @@ func mapa_test() -> void:
 	var m := MapaReg.manifesto("derruba", "canteiro_obras")
 	check(not m.is_empty() and MapaReg.validar(m).is_empty(), "manifesto do Canteiro carrega e valida (%s)" % str(MapaReg.validar(m)))
 	var classes: Dictionary = MapaReg.modo_cfg("derruba")["classes_spells"]
-	check(classes.keys() == ["ataque", "controle", "transformacao"], "classes de spell pertencem ao MODO Derruba (%s)" % str(classes.keys()))
+	check(classes.keys() == ["ataque", "controle", "transformacao", "defesa"], "classes de spell pertencem ao MODO Derruba (%s)" % str(classes.keys()))
 	var sp: Array = MapaReg.spells("derruba", "canteiro_obras", [])
-	check(sp.size() == 21, "Canteiro autoriza as 21 spells aprovadas (sem E01/E03) (%d)" % sp.size())
+	check(sp.size() == 23 and "D01" in sp and "D02" in sp, "Canteiro autoriza as 23 spells aprovadas (sem E01/E03, com a Defesa D01/D02) (%d)" % sp.size())
 	check(MapaReg.spells("batata", "obra_concreto", ["A01"]).is_empty() and MapaReg.spells("derruba", "mapa_sem_manifesto", ["A01"]).is_empty(), "sem manifesto: nenhuma spell (outro modo não herda as do Derruba)")
 	check(MapaReg.spells("derruba", "demolicao", ["A01", "A02"]).size() == 2, "mapa-ferramenta (laboratório/testes) recebe o pool do modo, explícito")
 	var e1: Array = MapaReg.eventos("derruba", "canteiro_obras", 1)
@@ -2987,7 +2987,7 @@ func spells_test() -> void:
 	vset("v0", "right", false)
 	var andou_d1: float = absf(r0.position.x - x_d1)
 	check(andou_d1 > 20.0 and andou_d1 < 0.7 * float(main.demo.robots_cfg["max_run"]) * 20.0 / 60.0 if main.demo.get("robots_cfg") != null else andou_d1 > 20.0, "D01: anda, devagar (%.0f px em 20 quadros)" % andou_d1)
-	await frames(int(float(sp.sc("D01")["duracao_s"]) * 60.0))
+	await frames(int((float(sp.sc("D01")["duracao_s"]) + sp.RobotVis.ANCORA_CRAVA_S + 0.4) * 60.0))
 	check(not sp.anchors.has(0) and r0.ancora_t == 0.0 and sp.hud_info(0).is_empty(), "D01: acaba em %.0f s e some" % float(sp.sc("D01")["duracao_s"]))
 	# D02: passivo — arremesso forte infla o airbag e corta o voo
 	place.call(1.6)
@@ -2997,7 +2997,10 @@ func spells_test() -> void:
 	r0.dmg = 120.0
 	r0.take_hit(-1, "spell_mola", 1)
 	await frames(3)
-	check(sp.airbags.has(0), "D02: arremesso forte infla o airbag sozinho")
+	check(not sp.airbags.has(0), "D02: não infla no instante do golpe (o voo aparece primeiro)")
+	await frames(int(float(sp.sc("D02")["apos_voo_s"]) * 60.0) + 3)
+	check(sp.airbags.has(0), "D02: voando arremessado, o airbag infla sozinho")
+	await frames(10)
 	check(absf(r0.own_vx) < 300.0, "D02: o airbag corta o voo (vx %.0f)" % r0.own_vx)
 	var pousou_d2 := false
 	for q in 200:
@@ -4572,9 +4575,9 @@ func spells_frames(dir: String) -> void:
 					if f == 40 or f == 80:
 						r0.take_hit(-1, "spell_mola", 1)
 					a["v0"]["right"] = f >= 110 and f < 170
-				"D02":   # Defesa: arremesso forte → airbag infla, desce e pousa
+				"D02":   # Defesa: arremesso forte → voa → airbag infla no ar, desce balançando e pousa
 					if f == 20:
-						r0.dmg = 130.0
+						r0.dmg = 110.0
 						r0.take_hit(-1, "spell_mola", 1)
 				"C03coluna":   # sessão 6: coluna sobe; o gancho agarra a base e o robô vai para cima dela
 					if f == 64:

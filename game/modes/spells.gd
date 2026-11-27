@@ -557,13 +557,11 @@ func use(r) -> void:
 				_fail(r, "SÓ NO CHÃO")
 				return
 			s["t"] = float(c["duracao_s"])
-			anchors[r.pid] = {"t": 0.0, "len": float(c["duracao_s"]), "pos": r.position + Vector2(-r.facing * 34.0, 0)}
+			anchors[r.pid] = {"t": 0.0, "len": float(c["duracao_s"]) + RobotVis.ANCORA_CRAVA_S, "pos": r.position + Vector2(-r.facing * 34.0, 0),
+				"cravou": false, "tranco": 0.0, "arrasta": false, "sulcos": [], "fc": r.facing}
 			r.spell_speed = float(c["vel_mult"])
 			r.ancora_t = 1.0
-			main.shake(6.0)
-			main.dust(anchors[r.pid]["pos"], 1.2)
-			Audio.play("caixote_pancada", 0.5, 2.0)
-			Audio.play("chave", 0.7, -4.0)
+			Audio.play("marreta_vento", 0.6, -4.0)
 		"D02":   # passivo: dispara sozinho (ver _update_airbag)
 			_fail(r, "DISPARA SOZINHO")
 		"T02", "T03", "T05", "T06", "T07":
@@ -1288,7 +1286,9 @@ func flags(r) -> Dictionary:
 		return {}
 	var s: Dictionary = slot[r.pid]
 	var out := {"spell": s["id"], "fire": s["fire"], "prep": minf(s["prep"] / maxf(s["prep_len"], 0.01), 1.0) if s["prep"] >= 0.0 else -1.0,
-		"channel": s["channel"], "aim_a": aim_local(r), "beam": s.has("beam"), "defesa_ativa": anchors.has(r.pid) or airbags.has(r.pid)}
+		"channel": s["channel"], "aim_a": aim_local(r), "beam": s.has("beam"), "defesa_ativa": anchors.has(r.pid) or airbags.has(r.pid),
+		"ancora_t": float(anchors[r.pid]["t"]) if anchors.has(r.pid) else -1.0, "ancora_tranco": float(anchors[r.pid]["tranco"]) if anchors.has(r.pid) else 0.0,
+		"arrasta": anchors.has(r.pid) and anchors[r.pid]["arrasta"], "airbag_k": clampf(float(airbags[r.pid]["t"]) / 0.15, 0.0, 1.0) if airbags.has(r.pid) else 0.0}
 	if s["id"] == "T01":
 		out["armor"] = s["t"] > 0.0
 		out["assemble"] = float(s["data"].get("assemble", 0.0))
@@ -1873,17 +1873,45 @@ func _floor_below(x: float, y: float, n := 8) -> float:
 			return (cy + k) * T
 	return -1.0
 
+static func _smoothf(u: float) -> float:
+	return u * u * (3.0 - 2.0 * u)
+
 ## D01 Âncora de Contrapeso: conta o tempo; caiu do chão (laje sumiu) ou acabou → solta
 func _update_anchor(r, s: Dictionary, dt: float) -> void:
 	var an: Dictionary = anchors[r.pid]
 	an["t"] += dt
 	s["t"] = maxf(an["len"] - an["t"], 0.0)
 	r.ancora_t = 1.0
-	r.spell_speed = float(sc("D01")["vel_mult"])
+	r.spell_speed = float(sc("D01")["vel_mult"]) if an["cravou"] else 0.0
+	if not an["cravou"]:
+		an["pos"] = r.position + Vector2(-an["fc"] * 34.0, 0)
+		if an["t"] >= RobotVis.ANCORA_CRAVA_S:   # BATE no chão: tranco, poeira, rachaduras, lascas
+			an["cravou"] = true
+			main.shake(9.0)
+			main.dust(an["pos"], 1.6)
+			Audio.play("caixote_pancada", 0.45, 3.0)
+			Audio.play("chave", 0.6, -4.0)
+			for j in 8:
+				rocks.append({"pos": an["pos"] + Vector2(randf_range(-20, 20), -4), "vel": Vector2(randf_range(-220, 220), randf_range(-420, -160)),
+					"t": 0.0, "rot": randf() * TAU, "size": randf_range(3, 7)})
+			for j in 6:
+				puffs.append({"pos": an["pos"] + Vector2(randf_range(-24, 24), -6), "vel": Vector2(randf_range(-160, 160), randf_range(-90, -20)),
+					"r": randf_range(9, 15), "t": 0.0, "life": randf_range(0.4, 0.7)})
+		return
+	an["tranco"] = maxf(float(an["tranco"]) - dt * 3.0, 0.0)
+	if r.last_hit < dt * 1.5:   # levou golpe: a corrente estica e solta faísca, mas ele não sai do lugar
+		an["tranco"] = 1.0
+		main.spark(r.position.lerp(an["pos"], 0.5) + Vector2(0, -24), 6)
+		Audio.play("chave", 0.8, -2.0)
+	an["arrasta"] = absf(r.own_vx) > 30.0 and r.is_on_floor()
 	if absf(r.position.x - an["pos"].x) > 40.0:   # o contrapeso é ARRASTADO atrás (deixa sulco)
 		an["pos"].x = r.position.x - signf(r.position.x - an["pos"].x) * 40.0
-		if fmod(an["t"], 0.12) < dt:
-			main.dust(an["pos"], 0.4)
+		if fmod(an["t"], 0.1) < dt:
+			main.dust(an["pos"], 0.35)
+			an["sulcos"].append({"x": an["pos"].x, "y": r.position.y, "t": 0.0})
+	for sl in an["sulcos"]:
+		sl["t"] += dt
+	an["sulcos"] = an["sulcos"].filter(func(sl): return sl["t"] < 1.5)
 	an["pos"].y = r.position.y
 	if an["t"] >= an["len"] or not r.alive or (not r.is_on_floor() and r.velocity.y > 200.0):
 		_end_anchor(r)
@@ -1896,7 +1924,7 @@ func _end_anchor(r) -> void:
 	r.ancora_t = 0.0
 	r.spell_speed = 1.0
 	if not an.is_empty():
-		sinks.append({"pos": an["pos"], "t": 0.0})
+		sinks.append({"pos": an["pos"], "t": 0.0, "waist": r.position + Vector2(-r.facing * 8.0, -34.0)})
 		main.dust(an["pos"], 1.0)
 		Audio.play("chave", 1.2, -6.0)
 
@@ -1910,10 +1938,13 @@ func _update_airbag(r, s: Dictionary, dt: float) -> void:
 	if not airbags.has(r.pid):
 		var spd: float = Vector2(r.own_vx, r.velocity.y).length()
 		var vazio: bool = not r.is_on_floor() and r.velocity.y > 300.0 and _floor_below(r.position.x, r.position.y, 7) < 0.0
-		if (r.stun_t > 0.0 and spd >= float(c["dispara_vel"])) or vazio:
-			airbags[r.pid] = {"t": 0.0, "alvo_x": _airbag_target_x(r)}
+		var fly: float = float(s.get("voo_t", 0.0))
+		fly = fly + dt if (r.last_hit < 1.2 and spd >= float(c["dispara_vel"])) else 0.0   # lançado rápido (no ar OU deslizando) logo após um golpe
+		s["voo_t"] = fly
+		if fly >= float(c["apos_voo_s"]) or vazio:
+			airbags[r.pid] = {"t": 0.0, "alvo_x": _airbag_target_x(r), "pouso": -1.0, "fc": r.facing}
 			r.own_vx = 0.0
-			r.velocity = Vector2.ZERO
+			r.velocity = Vector2(0, -260.0 if r.is_on_floor() else 0.0)   # no chão: o balão quica para cima e assenta
 			main.shake(5.0)
 			main.float_text(r.position + Vector2(0, -150), "FUMP!", FAM_COR["defesa"])
 			Audio.play("pulo_mola", 0.6, 0.0)
@@ -1921,15 +1952,25 @@ func _update_airbag(r, s: Dictionary, dt: float) -> void:
 	var ab: Dictionary = airbags[r.pid]
 	ab["t"] += dt
 	r.stun_t = maxf(r.stun_t, 0.05)
+	if ab["pouso"] >= 0.0:   # achatou no chão: segura um instante e murcha
+		ab["pouso"] += dt
+		r.velocity = Vector2.ZERO
+		r.own_vx = 0.0
+		if ab["pouso"] >= 0.2:
+			airbags.erase(r.pid)
+			r.stun_t = 0.0
+			pops.append({"pos": r.position + Vector2(0, -38), "t": 0.0})
+			Audio.play("vento", 1.6, -6.0)
+			_spend(r, s)
+		return
 	r.velocity.y = minf(r.velocity.y + 400.0 * dt, float(c["desce_vel"]))
-	var tx: float = ab["alvo_x"]
-	r.own_vx = clampf((tx - r.position.x) * 4.0, -float(c["deriva_vel"]), float(c["deriva_vel"])) if absf(tx - r.position.x) > 6.0 else 0.0
+	var tx: float = ab["alvo_x"] + sin(ab["t"] * 3.2) * 18.0   # balança ao descer
+	r.own_vx = clampf((tx - r.position.x) * 4.0, -float(c["deriva_vel"]), float(c["deriva_vel"])) if absf(tx - r.position.x) > 3.0 else 0.0
 	if (r.is_on_floor() and ab["t"] > 0.15) or ab["t"] >= float(c["max_s"]):
-		airbags.erase(r.pid)
-		r.stun_t = 0.0
-		pops.append({"pos": r.position + Vector2(0, -40), "t": 0.0})
-		Audio.play("vento", 1.6, -6.0)
-		_spend(r, s)
+		ab["pouso"] = 0.0
+		main.dust(r.position, 0.8)
+		Audio.play("pulo_mola", 0.9, -4.0)
+		return
 
 ## Chão mais perto para o airbag pousar: a própria coluna se tem chão embaixo, senão procura dos lados (até 6 tiles).
 func _airbag_target_x(r) -> float:
@@ -2727,58 +2768,92 @@ func _draw_attack2() -> void:
 		draw_colored_polygon(pts, Color(rc, a) if int(z * 10.0) % 3 != 0 else Color(rc.darkened(0.18), a))
 		draw_colored_polygon(PackedVector2Array([pts[0], pts[1], pts[2], Vector2.ZERO]), Color(rc.lightened(0.15), a))
 		draw_set_transform(Vector2.ZERO)
-	# DEFESA D01: contrapeso cravado/arrastado + corrente até a cintura; no fim afunda em poeira
+	# DEFESA D01: ergue o contrapeso e crava atrás (rachaduras), corrente até as mãos na cintura (estica e brilha no
+	# tranco), arrasta deixando sulcos; no fim a corrente solta e ele afunda
 	var ctex: Texture2D = Data.tex("spells/d01_contrapeso")
 	for pid in anchors:
 		var ro = main.robots[pid]
 		var an: Dictionary = anchors[pid]
+		var waist: Vector2 = ro.position + Vector2(ro.facing * 4.0, -36.0)
+		if not an["cravou"]:   # na mão, fazendo o arco
+			var hp: Vector2 = RobotVis.ancora_mao(clampf(an["t"] / RobotVis.ANCORA_CRAVA_S, 0.0, 1.0))
+			var hw: Vector2 = ro.position + Vector2(ro.facing * hp.x, hp.y)
+			if ctex != null:
+				draw_set_transform(hw + Vector2(0, 20), -0.4 * ro.facing * sin(an["t"] / RobotVis.ANCORA_CRAVA_S * PI))
+				draw_texture_rect(ctex, Rect2(-26, -46, 52, 52), false)
+				draw_set_transform(Vector2.ZERO)
+			continue
 		var cp: Vector2 = an["pos"]
-		var crava: float = clampf(an["t"] / 0.12, 0.0, 1.0)
-		var base: Vector2 = cp + Vector2(0, -60.0 * (1.0 - crava) * (1.0 - crava))
-		var waist: Vector2 = ro.position + Vector2(-ro.facing * 8.0, -34.0)
-		var top: Vector2 = base + Vector2(0, -44.0)
+		var dt0: float = an["t"] - RobotVis.ANCORA_CRAVA_S
+		for sl in an["sulcos"]:   # sulcos do arrasto
+			draw_line(Vector2(sl["x"] - 10, sl["y"] + 2), Vector2(sl["x"] + 10, sl["y"] + 2), Color(0.42, 0.36, 0.3, 0.7 * (1.0 - sl["t"] / 1.5)), 3.0, true)
+		if dt0 < 1.6:   # rachaduras do impacto (cor do concreto escuro)
+			var ca := 0.8 * (1.0 - dt0 / 1.6)
+			for k in 5:
+				var dv := Vector2.from_angle(PI + (k - 2) * 0.32 * (1.0 if k % 2 == 0 else -1.0)) * Vector2(1.0, 0.25)
+				draw_polyline(PackedVector2Array([cp + Vector2(0, 2), cp + Vector2(0, 2) + dv * 18.0 + Vector2(0, 2), cp + Vector2(0, 2) + dv * 34.0]), Color(0.32, 0.26, 0.22, ca), 2.5, true)
+				draw_polyline(PackedVector2Array([cp + Vector2(0, 2), cp + Vector2(0, 2) + Vector2(-dv.x, dv.y) * 18.0, cp + Vector2(0, 2) + Vector2(-dv.x, dv.y) * 30.0]), Color(0.32, 0.26, 0.22, ca), 2.5, true)
+		var tilt: float = (0.14 * signf(ro.position.x - cp.x)) if an["arrasta"] else 0.0
+		var top: Vector2 = cp + Vector2(sin(tilt) * 44.0, -44.0)
+		var tr: float = an["tranco"]
 		var n := int(top.distance_to(waist) / 7.0)
+		var sag := 0.0 if an["arrasta"] or tr > 0.0 else 6.0
 		for i in n + 1:
-			var q := top.lerp(waist, float(i) / maxf(n, 1))
+			var u := float(i) / maxf(n, 1)
+			var q := top.lerp(waist, u) + Vector2(0, sin(u * PI) * sag)
 			draw_set_transform(q, (waist - top).angle() + (PI / 2.0 if i % 2 else 0.0), Vector2(1.0, 0.7))
 			draw_arc(Vector2.ZERO, 3.6, 0, TAU, 10, INK, 3.0, true)
-			draw_arc(Vector2.ZERO, 3.6, 0, TAU, 10, Color("#9aa4ae"), 1.4, true)
+			draw_arc(Vector2.ZERO, 3.6, 0, TAU, 10, Color("#9aa4ae").lerp(Color.WHITE, tr), 1.4, true)
 		draw_set_transform(Vector2.ZERO)
 		if ctex != null:
-			draw_texture_rect(ctex, Rect2(base - Vector2(26, 46), Vector2(52, 52)), false)
-		if crava < 1.0:
-			draw_set_transform(cp, 0.0, Vector2(1.0, 0.25))
-			draw_arc(Vector2.ZERO, 30.0 + 40.0 * crava, 0, TAU, 24, Color(0.93, 0.89, 0.81, 1.0 - crava), 8.0, true)
+			draw_set_transform(cp + Vector2(0, -2), tilt)
+			draw_texture_rect(ctex, Rect2(-26, -44, 52, 52), false)
 			draw_set_transform(Vector2.ZERO)
 		var left: float = an["len"] - an["t"]
 		if left < 1.0 and fmod(t, 0.2) < 0.1:   # piscando: vai soltar
 			draw_circle(top, 8.0, Color(1, 1, 1, 0.6))
-	for e in sinks:
+	for e in sinks:   # fim: elos voando + contrapeso afundando em poeira
 		var u: float = e["t"] / 0.8
 		if ctex != null:
-			draw_texture_rect(ctex, Rect2(e["pos"] - Vector2(26, 46 - 40.0 * u), Vector2(52, 52 * (1.0 - u * 0.8))), false, Color(1, 1, 1, 1.0 - u))
-	# DEFESA D02: balão do airbag em volta do robô (infla com FUMP, desce, murcha no pouso)
+			draw_texture_rect(ctex, Rect2(e["pos"] - Vector2(26, 44 - 40.0 * u), Vector2(52, 52 * (1.0 - u * 0.8))), false, Color(1, 1, 1, 1.0 - u))
+		if e.has("waist"):
+			for k in 6:
+				var q: Vector2 = e["pos"].lerp(e["waist"], k / 5.0) + Vector2((k - 2.5) * 30.0 * u, -60.0 * u + 160.0 * u * u)
+				draw_arc(q, 3.6, 0, TAU, 8, Color(0.6, 0.64, 0.68, 1.0 - u), 2.0, true)
+	# DEFESA D02: balão sai da MOCHILA e cresce em volta do robô encolhido, balança descendo, ACHATA no pouso e murcha
 	for pid in airbags:
 		var ro = main.robots[pid]
 		var ab: Dictionary = airbags[pid]
-		var k: float = clampf(ab["t"] / 0.12, 0.0, 1.0)
-		var rr := 70.0 * (0.4 + 0.6 * k) * (1.0 + 0.08 * sin(ab["t"] * 9.0) * (1.0 - k * 0.5))
-		var cc: Vector2 = ro.position + Vector2(0, -38)
-		draw_arc(cc, rr + 1.5, 0, TAU, 40, Color(0.54, 0.42, 0.1, 0.9), 4.0, true)   # contorno firme
-		draw_circle(cc, rr, Color(0.98, 0.82, 0.3, 0.38))   # translúcido: o robô aparece dentro
-		for j in 3:
-			var ox := (j - 1) * rr * 0.5
-			draw_arc(cc + Vector2(ox, 0), rr * 0.95, -0.9 + PI / 2.0 * 0.0 - PI / 2.0, PI / 2.0 - 0.9, 16, Color(0.79, 0.6, 0.16, 0.6), 2.0, true)
-		draw_arc(cc + Vector2(-rr * 0.2, -rr * 0.25), rr * 0.55, PI * 1.05, PI * 1.45, 10, Color(1, 1, 1, 0.75), 5.0, true)
-		if k < 1.0:
+		var k: float = clampf(ab["t"] / 0.15, 0.0, 1.0)
+		var back: Vector2 = ro.position + Vector2(-ab["fc"] * 18.0, -36.0)
+		var cc: Vector2 = back.lerp(ro.position + Vector2(0, -38), _smoothf(k))
+		var rr := 72.0 * (0.25 + 0.75 * _smoothf(k)) * (1.0 + 0.1 * sin(ab["t"] * 22.0) * (1.0 - k))
+		var sx := 1.0 + 0.05 * sin(ab["t"] * 5.0)
+		var sy := 1.0 - 0.05 * sin(ab["t"] * 5.0)
+		if ab["pouso"] >= 0.0:
+			var pz: float = sin(clampf(ab["pouso"] / 0.2, 0.0, 1.0) * PI)
+			sx = 1.0 + 0.3 * pz
+			sy = 1.0 - 0.3 * pz
+			cc.y += 72.0 * 0.3 * pz
+		draw_set_transform(cc, sin(ab["t"] * 3.2) * 0.08, Vector2(sx, sy))
+		draw_circle(Vector2.ZERO, rr, Color(0.98, 0.82, 0.3, 0.38))
+		draw_arc(Vector2.ZERO, rr + 1.5, 0, TAU, 40, Color(0.54, 0.42, 0.1, 0.9), 4.0, true)
+		draw_line(Vector2(-rr * 0.97, 0), Vector2(rr * 0.97, 0), Color(0.79, 0.6, 0.16, 0.55), 2.0, true)
+		draw_arc(Vector2(-rr * 0.2, -rr * 0.25), rr * 0.55, PI * 1.05, PI * 1.45, 10, Color(1, 1, 1, 0.75), 5.0, true)
+		draw_set_transform(Vector2.ZERO)
+		if k < 1.0:   # FUMP: linhas de estouro
 			for j in 8:
 				var a := j * TAU / 8.0
-				draw_line(cc + Vector2.from_angle(a) * (rr + 6.0), cc + Vector2.from_angle(a) * (rr + 22.0), Color(1, 1, 1, 1.0 - k), 3.0, true)
-	for e in pops:
+				draw_line(cc + Vector2.from_angle(a) * (rr + 6.0), cc + Vector2.from_angle(a) * (rr + 26.0), Color(1, 1, 1, 1.0 - k), 3.0, true)
+	for e in pops:   # murchando: o pano encolhe tremendo + sopros de ar
 		var u: float = e["t"] / 0.5
-		draw_circle(e["pos"], 40.0 * (1.0 - u), Color(0.95, 0.78, 0.29, 0.7 * (1.0 - u)))
+		var pts := PackedVector2Array()
+		for j in 14:
+			var a := j * TAU / 14.0
+			pts.append(e["pos"] + Vector2.from_angle(a) * (44.0 * (1.0 - u) * (1.0 + 0.25 * sin(j * 2.3 + e["t"] * 40.0))) + Vector2(0, 30.0 * u))
+		draw_colored_polygon(pts, Color(0.95, 0.78, 0.29, 0.75 * (1.0 - u)))
 		for j in 3:
-			draw_arc(e["pos"] + Vector2(30.0 + 10.0 * j, -20.0 - 10.0 * j - 30.0 * u), 6.0, PI, TAU, 8, Color(1, 1, 1, 0.7 * (1.0 - u)), 2.0, true)
+			draw_arc(e["pos"] + Vector2(34.0 + 12.0 * j, -18.0 - 10.0 * j - 30.0 * u), 6.0, PI, TAU, 8, Color(1, 1, 1, 0.7 * (1.0 - u)), 2.0, true)
 	# A05 rebites: rastro claro, rebite grande (cabeça abaulada dourada + haste de aço) apontando para onde vai
 	for rv in rivets:
 		var tr: Array = rv["trail"]
