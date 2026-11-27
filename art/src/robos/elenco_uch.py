@@ -159,18 +159,20 @@ def guinda_neck(col, a, b):
 
 def gancho(g, ang, pose):
     """Alça na pegada; corrente pendurada (ou esticada no golpe) até um gancho amarelo."""
-    L = 30 if pose.get("face") != "raiva" else 66
+    L = pose.get("chain_L", 30 if pose.get("face") != "raiva" else 66)
+    sag = pose.get("chain_sag", 10 if pose.get("face") != "raiva" else 0)
     end = (g[0] + math.cos(math.radians(ang)) * L, g[1] + math.sin(math.radians(ang)) * L)
     o = R(g[0] - 7, g[1] - 3, 14, 6, 3, "#3a3f4a", k=0.4)
     n = 9
     for i in range(n):
         u = (i + 0.5) / n
         x = g[0] + (end[0] - g[0]) * u
-        y = g[1] + (end[1] - g[1]) * u + (math.sin(u * math.pi) * 10 if pose.get("face") != "raiva" else 0)
+        y = g[1] + (end[1] - g[1]) * u + math.sin(u * math.pi) * sag
         o += f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="2.8" ry="2" fill="none" stroke="{STEEL_D}" stroke-width="1.6"/>'
     hx, hy = end
     o += R(hx - 6, hy - 4, 12, 8, 2, YEL, k=0.4, dark=YEL_D)
-    o += f'<path d="M{hx},{hy + 4} v6 a7,7 0 1 1 -10,6" stroke="{STEEL}" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
+    hk = f'<path d="M0,4 v6 a7,7 0 1 1 -10,6" stroke="{STEEL}" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
+    o += f'<g transform="translate({hx:.1f},{hy:.1f}) rotate({ang - 90 if pose.get("chain_L", 0) > 40 else 0:.1f})">{hk}</g>'
     return o, g, (g[0] - 6, g[1] + 4)
 
 
@@ -182,7 +184,7 @@ GUINDA_P = {"parado": dict(hip=(0, -36), lean=2, feet=[(-9, 0), (9, 0)], grip=(1
 
 
 def guinda_fxb(pose):
-    if pose.get("face") == "raiva":
+    if pose.get("face") == "raiva" and pose.get("rastro", True):
         return '<path d="M12,-64 A60,60 0 0 1 72,-60" stroke="#ffffff" stroke-width="10" fill="none" opacity="0.5" stroke-linecap="round"/>'
     return ""
 
