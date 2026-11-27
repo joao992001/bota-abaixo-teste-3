@@ -726,6 +726,152 @@ def opcoes_mola():
     print(render_all(), out)
 
 
+# ================================================================ LOTE 4: A06 BATE-ESTACA (coluna) · A07 ARREMESSO DA ARMA (cada robô a sua)
+def cravadeira_jogo():
+    """A06 no espaço 128x64 (pega 30,50 · bico 118,40): cravadeira pneumática amarela com pistão e a ESTACA de aço
+    pronta na boca (ponta para a frente)."""
+    o = f'<path d="M22,50 C10,58 6,46 12,40" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(24, 38, 14, 22, 4, "#2b2b33", k=0.3)
+    o += R(14, 18, 64, 30, 8, "#f2c84b", k=0.5, dark="#c49a2a") + R(14, 18, 64, 8, 5, "#f8dc7a", k=0.2) + ab.cb.faixa(18, 38, 56, 6, n=7)
+    o += R(30, 4, 30, 16, 4, "#3f4654", k=0.4) + "".join(R(34 + i * 7, 2, 4, 6, 1, STEEL_D, k=0.1) for i in range(4))   # pistão
+    o += R(76, 22, 12, 22, 3, STEEL_D, k=0.3)
+    o += R(88, 27, 26, 12, 2, STEEL, k=0.3, dark=STEEL_D, light=STEEL_L) + P_([(114, 27), (126, 33), (114, 39)], STEEL_L, k=0.1)   # estaca
+    o += E(44, 30, 6, 6, "#f3ead8", k=0.1) + f'<path d="M44,30 l4,-3" stroke="{EYE}" stroke-width="2" stroke-linecap="round"/>'
+    return o
+
+
+def coluna(x, topo, w=46, rach=0.0):
+    """Coluna de concreto subindo do chão até 'topo' (y<0), com faixa zebrada no alto e ferragem aparecendo."""
+    h = -topo
+    o = R(x - w / 2, topo, w, h + 2, 4, CONC, k=0.6) + R(x - w / 2, topo, w, 8, 3, CONC_L, k=0.2)
+    o += ab.cb.faixa(x - w / 2, topo + 8, w, 6, n=5)
+    o += "".join(f'<path d="M{x - w / 2 + 6},{topo + 24 + i * 22} h{w - 12}" stroke="{CONC_D}" stroke-width="2"/>' for i in range(int(h / 22) - 1))
+    o += f'<path d="M{x - 8},{topo - 6} v8 M{x + 8},{topo - 8} v10" stroke="#8a5a3a" stroke-width="2.4"/>'
+    if rach > 0:
+        o += f'<path d="M{x - 6},{topo + 14} l8,14 l-6,12 l10,16" stroke="#5a4a3a" stroke-width="2.4" fill="none" opacity="{rach}"/>'
+    return o
+
+
+def a06():
+    mira = dict(hip=(0, -22), lean=8, head=-4, feet=[(-14, 0), (12, 0)], tool=(9, -34, -150), bk=(10, -26), fr=(16, -28), face="foco")
+    crava = dict(hip=(2, -18), lean=26, head=-8, feet=[(-16, 0), (14, 0)], tool=(9, -34, -150), bk=(16, -14), fr=(22, -16), face="raiva", sq=(1.05, 0.9))
+    arma = lambda hand, ang: f'<g transform="translate({hand[0]},{hand[1]}) rotate({ang}) scale(0.42) translate(-30,-50)">{cravadeira_jogo()}</g>'  # noqa: E731
+    ps = []
+    c = laje(-110, 260) + area_perigo(90, 140, -1) + rival(116, 0)
+    c += marretao(mira, sem_ferramenta=True) + arma((16, -28), 30)
+    c += f'<path d="M60,-16 Q90,-4 115,-1" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-dasharray="6 4"/>'
+    c += nota(-205, "segura: a marca anda no chão (◄►)", "faixa vermelha = onde a coluna sobe")
+    ps.append(("1 · MIRA — marca no chão", c))
+    c = laje(-110, 260) + rival(116, 0, sq=(1.04, 0.96))
+    c += marretao(crava, sem_ferramenta=True) + arma((22, -16), 50)
+    c += R(110, -10, 12, 18, 2, STEEL, k=0.2) + estrela(116, -6, 16) + anel(116, 0, 40, 8, 4)
+    c += "".join(f'<path d="M{116 + dx},2 l{dx * 0.4},10" stroke="#5a4a3a" stroke-width="2.4"/>' for dx in (-20, -8, 8, 22))
+    c += nota(-205, "solta: CRAVA a estaca (tranco, rachaduras)", "0,3 s de aviso: o chão treme")
+    ps.append(("2 · CRAVA — estaca entra no chão", c))
+    c = laje(-110, 260) + coluna(116, -92)
+    for i in range(10):
+        c += pedra(100 + (i * 13) % 34, -40 - (i * 29) % 90, 1.0 + (i % 3) * 0.4, i * 40)
+    c += rival(150, -112, rot=-25, sq=(0.92, 1.1)) + linhas_vel(176, -96, 3, 22, 0, 0.8)
+    c += poeira(116, 0, 8, 7, 60) + marretao(mira, sem_ferramenta=True) + arma((16, -28), 30)
+    c += nota(-205, "COLUNA de concreto dispara para cima", "quem está em cima é LANÇADO alto")
+    ps.append(("3 · COLUNA — lança para cima", c))
+    c = laje(-110, 260) + coluna(116, -110, rach=0.8) + rival(116, -110, flip=True)
+    c += marretao(dict(mira, face="raiva"), x=40, y=0, sem_ferramenta=True)
+    c += f'<path d="M30,-30 Q70,-120 104,-116" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-dasharray="6 4"/>'
+    c += nota(-205, "a coluna FICA como plataforma (6 s)", "depois racha e desaba · serve para subir")
+    ps.append(("4 · PLATAFORMA — fica, racha e cai", c))
+    return ps
+
+
+def _sem_arma(spec):
+    sp = dict(spec)
+    sp["weapon"] = lambda g, ang, pose: ("", g, (g[0] - 8, g[1] + 4))
+    return sp
+
+
+def robo_arremesso(i, x=0, col=AZUL):
+    """Robô i do elenco em pose de arremesso (braço esticado, sem a arma na mão)."""
+    if i == 0:
+        return marretao(dict(hip=(0, -22), lean=18, head=-6, feet=[(-16, 0), (14, 0)], tool=(9, -34, -150), bk=(-12, -30), fr=(24, -44), face="raiva"), x=x, sem_ferramenta=True)
+    _, _, _, spec, poses = eu.ELENCO[i]
+    pz = dict(poses["golpe"])
+    pz["grip"] = (pz["grip"][0] + 6, pz["grip"][1] - 8)
+    return f'<g transform="translate({x},0)">{eu.corpo_generico(_sem_arma(spec), col, pz)}</g>'
+
+
+def trajeto(pts, cor="#ffffff"):
+    d = "M" + " Q".join([f"{pts[0][0]},{pts[0][1]}"] + [f"{a[0]},{a[1]} {b[0]},{b[1]}" for a, b in zip(pts[1::2], pts[2::2])])
+    return f'<path d="{d}" stroke="{cor}" stroke-width="2.6" fill="none" stroke-dasharray="7 5"/>'
+
+
+def nota7(y, *txt):
+    return "".join(label(84, y + i * 11, t, 9, INK) for i, t in enumerate(txt))
+
+
+def a07():
+    ps = []
+    # Marretão: marreta girando vai e volta
+    c = laje(-110, 260) + rival(150, 0, sq=(1.05, 0.95)) + robo_arremesso(0)
+    c += trajeto([(30, -50), (110, -120), (170, -60)]) + trajeto([(170, -60), (110, -20), (20, -40)], "#ffd27a")
+    m_svg = ru.marreta((0, 0), 0, 0.72)[0]
+    c += f'<g transform="translate(100,-96) rotate(130)">{m_svg}</g>' + "".join(f'<path d="M130,-80 m{math.cos(a) * 30:.0f},{math.sin(a) * 30:.0f} a30,30 0 0 1 {math.cos(a + 0.8) * 30 - math.cos(a) * 30:.0f},{math.sin(a + 0.8) * 30 - math.sin(a) * 30:.0f}" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.6"/>' for a in (0.3, 3.4))
+    c += estrela(152, -40, 18) + nota7(-200, "MARRETÃO: a marreta gira e VOLTA", "acerta na ida e na volta")
+    ps.append(("MARRETÃO · marreta-bumerangue", c))
+    # Guindaste: gancho na corrente agarra e PUXA o rival
+    c = laje(-110, 260) + robo_arremesso(2, col=VERDE)
+    c += f'<path d="M24,-34 C80,-60 120,-50 150,-36" stroke="{STEEL_D}" stroke-width="3" fill="none" stroke-dasharray="4 2"/>'
+    c += eu.gancho_ponta(146, -48, 8, 0) + rival(156, 0, rot=-15)
+    c += f'<path d="M170,-30 h-30 m8,-8 l-8,8 l8,8" stroke="{EYE}" stroke-width="3" fill="none"/>'
+    c += nota7(-200, "GUINDASTE: lança o gancho na corrente", "AGARRA e PUXA o rival até ele")
+    ps.append(("GUINDASTE · gancho que puxa", c))
+    # Brita: britadeira crava no chão vibrando
+    c = laje(-110, 260) + robo_arremesso(1, col="#f2c84b") + rival(160, 0, rot=-20, sq=(0.95, 1.05))
+    c += trajeto([(26, -30), (80, -100), (120, -20)])
+    c += f'<g transform="translate(120,-6) rotate(180)">{eu.britadeira((0, 0), -90, {})[0]}</g>'
+    c += anel(120, 0, 70, 12, 4) + anel(120, 0, 40, 8, 3, 0.8) + "".join(f'<path d="M{120 + dx},-40 l3,-6 l-3,-6" stroke="#ffffff" stroke-width="2" fill="none"/>' for dx in (-14, 0, 14))
+    c += nota7(-200, "BRITA: a britadeira crava no chão", "VIBRA e empurra quem está perto (tremor)")
+    ps.append(("BRITA · britadeira que treme", c))
+    # Solda: chave inglesa bumerangue em brasa
+    c = laje(-110, 260) + robo_arremesso(3, col="#f06aa8") + rival(150, -4, sq=(1.05, 0.95))
+    c += trajeto([(30, -46), (110, -110), (170, -50)]) + trajeto([(170, -50), (110, 0), (24, -40)], "#ffd27a")
+    c += f'<g transform="translate(120,-80) rotate(-40)">{eu.chave((0, 0), 0, {"quente": 1.0})[0]}</g>'
+    c += estrela(150, -40, 16) + nota7(-200, "SOLDA: a chave inglesa EM BRASA gira", "vai e volta (acerta 2×)")
+    ps.append(("SOLDA · chave em brasa", c))
+    # Escavadeira: caçamba lança terra em leque
+    c = laje(-110, 260) + robo_arremesso(4, col="#f08a3d")
+    c += f'<g transform="translate(62,-56) rotate(-30)">{eu.cacamba((0, 0), 0, {})[0]}</g>'
+    for i in range(16):
+        a = math.radians(-40 + i * 5)
+        c += pedra(100 + math.cos(a) * (20 + i * 3.5), -60 + math.sin(a) * (20 + i * 3.5) + i * 3, 1.0 + (i % 3) * 0.4, i * 30, "#8a6a4a")
+    c += rival(165, 0, rot=-10) + poeira(160, -10, 6, 6, 26, 0.6)
+    c += nota7(-200, "ESCAVADEIRA: lança a caçamba cheia", "TERRA em leque empurra e cobre a área")
+    ps.append(("ESCAVADEIRA · caçamba de terra", c))
+    return ps
+
+
+def prancha4():
+    W, H = 1920, 1300
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "ATAQUES · LOTE 4 — A06 BATE-ESTACA (coluna) e A07 ARREMESSO DA ARMA (cada robô a sua)", 30)]
+    pw, ph = 452, 470
+    y0 = 80
+    b.append(f'<text x="40" y="{y0 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">A06 BATE-ESTACA → COLUNA</text>')
+    b.append(f'<text x="40" y="{y0 + 58}" font-family="Arial" font-size="17" fill="{INK}">mira a marca no chão · crava a estaca · sobe uma COLUNA de concreto que LANÇA quem está em cima · fica de plataforma 6 s e desaba</text>')
+    b.append(f'<g transform="translate({W - 300},{y0 - 6}) scale(1.6)">{cravadeira_jogo()}</g>')
+    b.append(f'<text x="{W - 200}" y="{y0 + 106}" text-anchor="middle" font-family="Arial" font-size="13" fill="{INK}">arte nova</text>')
+    for j, (tit, c) in enumerate(a06()):
+        b.append(painel(20 + j * (pw + 14), y0 + 80, pw, ph, tit, c))
+    y1 = y0 + ph + 110
+    b.append(f'<text x="40" y="{y1 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">A07 ARREMESSO DA ARMA</text>')
+    b.append(f'<text x="40" y="{y1 + 58}" font-family="Arial" font-size="17" fill="{INK}">aumenta o ALCANCE da arma do próprio robô: cada um arremessa a SUA, com efeito próprio (mesma força para todos)</text>')
+    pw2 = 362
+    for j, (tit, c) in enumerate(a07()):
+        b.append(painel(20 + j * (pw2 + 14), y1 + 80, pw2, ph, tit, f'<g transform="translate(-22,0)">{c}</g>', s=1.6))
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/eng_ataques_l4.png")
+    queue(svg, os.path.join(HERE, "svg/eng_ataques_l4.svg"), out, W, H, 1)
+    print(render_all(), out)
+
+
 if __name__ == "__main__":
     if "--jogo" in sys.argv:
         exportar_jogo()
@@ -737,5 +883,7 @@ if __name__ == "__main__":
         opcoes_mola()
     elif "--a08p" in sys.argv:
         projetil_a08()
+    elif "--l4" in sys.argv:
+        prancha4()
     else:
         prancha()
