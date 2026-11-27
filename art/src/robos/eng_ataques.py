@@ -282,8 +282,166 @@ def exportar_jogo():
     print("armas:", render_all())
 
 
+# ================================================================ LOTE 2: A02 LASER DE CORTE · A05 REBITEIRA RICOCHETE
+def laser_jogo():
+    """A02 no espaço de design 128x64 (pega 19,50 · bico 122,31): cortadora industrial com cilindro de gás e lente."""
+    o = f'<path d="M14,52 C4,58 2,46 6,40" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(12, 40, 14, 20, 4, "#2b2b33", k=0.3)
+    o += R(10, 20, 92, 24, 8, "#3f4654", k=0.5) + R(10, 20, 92, 7, 5, "#5a6372", k=0.2)
+    o += ab.cb.faixa(30, 34, 40, 6, n=5)
+    o += "".join(R(76 + i * 7, 16, 4, 32, 1.5, STEEL, k=0.1) for i in range(3))
+    o += R(26, 4, 44, 14, 7, "#e0702a", k=0.4) + R(26, 4, 44, 4, 3, "#f0904a", k=0.1) + R(68, 8, 6, 6, 1.5, STEEL_D, k=0.1)
+    o += R(100, 22, 14, 20, 3, STEEL, k=0.3)
+    o += E(118, 31, 9, 9, "#2b2b33", k=0.1) + E(118, 31, 6.5, 6.5, "#ff7a2a", k=0.1) + E(117, 30, 3, 3, "#fff3d0", k=0.1)
+    return o
+
+
+def rebiteira_jogo():
+    """A05 no espaço 128x64 (pega 40,52 · bico 127,25): rebiteira com tambor de rebites em brasa e cano de boca larga."""
+    o = f'<path d="M30,50 C14,60 10,44 16,38" stroke="#2b2b33" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    o += R(34, 36, 14, 24, 4, "#2b2b33", k=0.3)
+    o += R(24, 14, 76, 24, 8, "#8e98a4", k=0.5) + R(24, 14, 76, 7, 5, "#b9c3cc", k=0.2) + R(30, 28, 50, 5, 2, "#e0702a", k=0.1)
+    o += E(52, 12, 15, 15, "#3f4654", k=0.3) + E(52, 12, 10, 10, "#2b2b33", k=0.1)
+    for i in range(6):
+        a = math.radians(i * 60)
+        o += E(52 + math.cos(a) * 6.5, 12 + math.sin(a) * 6.5, 2.6, 2.6, "#ffb24a", k=0.05)
+    o += R(98, 18, 20, 14, 3, STEEL, k=0.3) + P_([(116, 15), (128, 12), (128, 38), (116, 35)], STEEL_D, k=0.2)
+    return o
+
+
+def andaime(x0, x1, y, partido=None, cai=0.0):
+    """Tábua de andaime sobre tubos; partido=x do corte (as duas metades caem girando com 'cai')."""
+    o = ""
+    pecas = [(x0, x1)] if partido is None else [(x0, partido - 2), (partido + 2, x1)]
+    for j, (a, b) in enumerate(pecas):
+        rot = 0 if partido is None else (cai * (18 if j else -14))
+        dy = 0 if partido is None else cai * (30 + 20 * j)
+        piv = b if j == 0 else a
+        o += f'<g transform="translate(0,{dy}) rotate({rot} {piv} {y})">' + R(a, y, b - a, 9, 2, "#c08a4a", k=0.5) + R(a, y, b - a, 3, 1, "#d9a868", k=0.1)
+        o += "".join(f'<path d="M{a + 8 + i * 22},{y + 2} v5" stroke="#8a5a2a" stroke-width="1.4"/>' for i in range(int((b - a - 10) / 22)))
+        o += "</g>"
+    if partido is None or cai < 0.5:
+        for xx in (x0 + 6, x1 - 6):
+            o += R(xx - 2, y + 9, 4, -y - 9, 1, "#7a828f", k=0.2)
+    if partido is not None:
+        hot = max(0.0, 1.0 - cai)
+        o += f'<circle cx="{partido}" cy="{y + 4}" r="{6 + 6 * hot}" fill="#ff8a2a" opacity="{0.4 + 0.5 * hot:.2f}"/>'
+    return o
+
+
+def feixe(x0, y0, x1, y1, w=8.0):
+    return (f'<path d="M{x0},{y0} L{x1},{y1}" stroke="#2b1a2e" stroke-width="{w + 5}" stroke-linecap="round" opacity="0.85"/>'
+            f'<path d="M{x0},{y0} L{x1},{y1}" stroke="#e8302a" stroke-width="{w + 2}" stroke-linecap="round"/>'
+            f'<path d="M{x0},{y0} L{x1},{y1}" stroke="#ff8a3a" stroke-width="{w * 0.7}" stroke-linecap="round"/>'
+            f'<path d="M{x0},{y0} L{x1},{y1}" stroke="#fff6dc" stroke-width="{w * 0.3}" stroke-linecap="round"/>')
+
+
+def arma_mao(fn, hand, ang=0.0, s=0.42):
+    """Arma de design 128x64 com a pega na mão (pega em gx,gy do design)."""
+    g = {"laser": (19, 50), "rebite": (40, 52)}[fn]
+    art = laser_jogo() if fn == "laser" else rebiteira_jogo()
+    return f'<g transform="translate({hand[0]},{hand[1]}) rotate({ang}) scale({s}) translate({-g[0]},{-g[1]})">{art}</g>'
+
+
+def rebite(x, y, ang, s=1.0):
+    return (f'<g transform="translate({x},{y}) rotate({ang}) scale({s})">' + R(-9, -2, 10, 4, 1, STEEL, k=0.1)
+            + E(2, 0, 4.5, 5.5, "#ffb24a", k=0.1) + E(2.5, -1, 2, 2.2, "#fff0c0", k=0.05) + "</g>")
+
+
+def rastro(pts, cor="#ffd27a"):
+    d = "M" + " L".join(f"{x},{y}" for x, y in pts)
+    return f'<path d="{d}" stroke="{cor}" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8"/>'
+
+
+def faisca(x, y, r=8):
+    return "".join(f'<path d="M{x},{y} l{math.cos(math.radians(a)) * r:.1f},{math.sin(math.radians(a)) * r:.1f}" stroke="#ffd27a" stroke-width="2.4" stroke-linecap="round"/>' for a in range(0, 360, 45))
+
+
+def a02():
+    mira = dict(hip=(0, -22), lean=-4, head=2, feet=[(-14, 0), (12, 0)], tool=(9, -34, -150), bk=(10, -32), fr=(16, -36), face="foco")
+    ps = []
+    c = laje(-110, 260) + andaime(60, 190, -96) + rival(130, -105) + rival(170, 0)
+    c += marretao(mira, sem_ferramenta=True) + arma_mao("laser", (16, -36))
+    c += f'<path d="M50,-38 L200,-38" stroke="{EYE}" stroke-width="1.6" stroke-dasharray="7 5"/>' + f'<circle cx="38" cy="-38" r="7" fill="#ff7a2a" opacity="0.6"/>'
+    c += nota(-205, "segura: mira vermelha + lente acendendo", "▲▼ inclina a mira antes de soltar")
+    ps.append(("1 · MIRA — segura (0,5 s)", c))
+    c = laje(-110, 260) + andaime(60, 190, -96) + rival(130, -105) + rival(178, 0, sq=(1.05, 0.95))
+    c += marretao(mira, sem_ferramenta=True) + arma_mao("laser", (16, -36), -10) + feixe(40, -42, 210, -72)
+    c += f'<path d="M210,-40 A50,50 0 0 0 214,-110" stroke="#ffffff" stroke-width="3" fill="none" stroke-dasharray="5 4"/><path d="M214,-110 l-6,6 M214,-110 l7,5" stroke="#fff" stroke-width="3"/>'
+    c += linhas_vel(200, -10, 3, 26, 1) + nota(-205, "feixe grosso (branco/laranja)", "segurando: VARRE para cima/baixo; arrasta quem toca")
+    ps.append(("2 · FEIXE — varre enquanto segura", c))
+    c = laje(-110, 260) + andaime(60, 190, -96, partido=124, cai=0.35) + rival(132, -78, rot=-25)
+    c += marretao(mira, sem_ferramenta=True) + arma_mao("laser", (16, -36), -28) + feixe(40, -50, 124, -92) + faisca(124, -92, 12)
+    c += nota(-205, "CORTA andaime, viga e plataforma:", "a peça parte e cai com quem está em cima")
+    ps.append(("3 · CORTA — o andaime parte", c))
+    c = laje(-110, 260) + andaime(60, 190, -96, partido=124, cai=1.0) + rival(150, 0, rot=80)
+    c += marretao(dict(mira, face="foco"), sem_ferramenta=True) + arma_mao("laser", (16, -36))
+    c += f'<path d="M118,-58 L130,-50" stroke="#ff8a2a" stroke-width="4"/><path d="M114,-40 L138,-36" stroke="#5a3a2a" stroke-width="4"/>'
+    c += "".join(f'<path d="M{120 + i * 6},{-60 - i * 4} q4,-8 0,-16" stroke="#ffffff" stroke-width="2" fill="none" opacity="0.6"/>' for i in range(3))
+    c += nota(-205, "borda cortada em brasa que esfria", "(laranja → escuro), fumaça")
+    ps.append(("4 · RESULTADO — caiu tudo", c))
+    return ps
+
+
+def a05():
+    tiro = dict(hip=(0, -22), lean=-6, head=2, feet=[(-14, 0), (12, 0)], tool=(9, -34, -150), bk=(10, -30), fr=(16, -36), face="raiva")
+    ps = []
+    c = laje(-110, 260) + rival(170, 0)
+    c += marretao(tiro, x=-4, sem_ferramenta=True) + arma_mao("rebite", (12, -36))
+    for i, (x, y) in enumerate(((70, -40), (100, -46), (130, -36))):
+        c += rastro([(x - 30, y + 2), (x - 8, y)]) + rebite(x, y, -4 + i * 4)
+    c += "".join(pedra(-6 - i * 8, -60 - i * 9, 0.6, i * 50, "#d9a868") for i in range(3))
+    c += nota(-205, "rajada de 3 rebites em brasa", "coice a cada tiro, tambor girando")
+    ps.append(("1 · RAJADA — 3 rebites em brasa", c))
+    c = laje(-110, 260)
+    for j in range(4):
+        c += R(196, -TILE * 0.55 * (j + 1), TILE, TILE * 0.55, 3, CONC, k=0.5)
+    c += marretao(tiro, x=-4, sem_ferramenta=True) + arma_mao("rebite", (12, -36), 22)
+    c += rastro([(40, -24), (110, 0), (196, -60), (150, -110)]) + faisca(110, 0) + faisca(196, -60) + rebite(150, -110, -130)
+    c += rival(120, -120, rot=10) + nota(-205, "quica até 3× em chão e parede", "faísca a cada ricochete: acerta atrás da cobertura")
+    ps.append(("2 · RICOCHETE — chão e parede", c))
+    c = laje(-110, 260) + rival(150, 0, sq=(1.08, 0.92))
+    c += marretao(tiro, x=-4, sem_ferramenta=True) + arma_mao("rebite", (12, -36))
+    c += rebite(140, -50, 0) + rebite(146, -30, 6) + estrela(150, -40, 18)
+    c += label(124, -84, "1", 18, INK) + label(150, -92, "2", 18, INK) + label(176, -84, "3", 18, EYE)
+    c += nota(-205, "cada acerto empurra um pouco", "contador 1 · 2 · 3 sobre o rival")
+    ps.append(("3 · ACERTOS — cada um empurra", c))
+    c = laje(-110, 260)
+    for j in range(3):
+        c += R(196, -TILE * 0.55 * (j + 1), TILE, TILE * 0.55, 3, CONC, k=0.5)
+    c += rival(176, 0, rot=0)
+    c += rebite(160, -60, 0, 1.3) + rebite(160, -30, 0, 1.3) + rebite(156, -4, 0, 1.3)
+    c += f'<circle cx="176" cy="-90" r="16" fill="none" stroke="#ffe27a" stroke-width="2"/>' + "".join(estrela(176 + math.cos(a) * 16, -90 + math.sin(a) * 6, 5) for a in (0, 2.1, 4.2))
+    c += marretao(dict(tiro, face="foco"), x=-4, sem_ferramenta=True) + arma_mao("rebite", (12, -36))
+    c += nota(-205, "3 acertos = PREGADO ~1 s", "preso onde estiver, indefeso (rebites cravados)")
+    ps.append(("4 · PREGADO — 3 acertos", c))
+    return ps
+
+
+def prancha2():
+    W, H = 1920, 1260
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "ATAQUES · LOTE 2 — A02 LASER DE CORTE e A05 REBITEIRA RICOCHETE (proposta)", 32)]
+    pw, ph = 452, 470
+    for r, (nome, sub, ps, arma) in enumerate([
+            ("A02 LASER DE CORTE", "segura = mira · solta = feixe que varre enquanto segura · CORTA andaime/viga/plataforma · arrasta o rival", a02(), laser_jogo()),
+            ("A05 REBITEIRA RICOCHETE", "rajada de 3 rebites em brasa · quicam até 3× · cada acerto empurra · 3 acertos = PREGADO ~1 s", a05(), rebiteira_jogo())]):
+        y0 = 80 + r * (ph + 110)
+        b.append(f'<text x="40" y="{y0 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">{nome}</text>')
+        b.append(f'<text x="40" y="{y0 + 58}" font-family="Arial" font-size="17" fill="{INK}">{sub}</text>')
+        b.append(f'<g transform="translate({W - 300},{y0 - 4}) scale(1.6)">{arma}</g>')
+        b.append(f'<text x="{W - 200}" y="{y0 + 106}" text-anchor="middle" font-family="Arial" font-size="13" fill="{INK}">arte nova</text>')
+        for j, (tit, c) in enumerate(ps):
+            b.append(painel(20 + j * (pw + 14), y0 + 80, pw, ph, tit, c))
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/eng_ataques_l2.png")
+    queue(svg, os.path.join(HERE, "svg/eng_ataques_l2.svg"), out, W, H, 1)
+    print(render_all(), out)
+
+
 if __name__ == "__main__":
     if "--jogo" in sys.argv:
         exportar_jogo()
+    elif "--l2" in sys.argv:
+        prancha2()
     else:
         prancha()
