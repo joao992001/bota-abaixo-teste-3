@@ -140,6 +140,106 @@ def prancha():
     print(render_all(), out)
 
 
+# ================================================================ LOTE D2: D03 PARA-CHOQUE DE MOLA · D04 REMENDO RÁPIDO
+def molas_em_volta(cx, cy, k=1.0, comp=0.0, n=7):
+    """D03: molas que brotam do corpo em leque com batente de borracha na ponta (k = quanto saíram; comp = comprimidas)."""
+    o = ""
+    for i in range(n):
+        a = math.radians(-200 + i * (220 / (n - 1)))
+        L = (18 + 34 * k) * (1 - 0.55 * comp)
+        x0, y0 = cx + math.cos(a) * 18, cy + math.sin(a) * 22
+        x1, y1 = cx + math.cos(a) * (18 + L), cy + math.sin(a) * (22 + L)
+        voltas = 5
+        pts = []
+        for j in range(voltas * 2 + 1):
+            u = j / (voltas * 2)
+            px, py = x0 + (x1 - x0) * u, y0 + (y1 - y0) * u
+            off = (3.2 if j % 2 else -3.2)
+            pts.append(f"{px - math.sin(a) * off:.1f},{py + math.cos(a) * off:.1f}")
+        o += f'<polyline points="{" ".join(pts)}" fill="none" stroke="{STEEL_D}" stroke-width="2.4"/>'
+        o += f'<g transform="translate({x1:.1f},{y1:.1f}) rotate({math.degrees(a) + 90:.0f})">' + R(-7, -4, 14, 7, 3, "#2b2b33", k=0.2) + R(-7, -4, 14, 3, 2, "#f2c84b", k=0.1) + "</g>"
+    return o
+
+
+def macarico(x, y, ang=0.0, chama=True):
+    """D04: maçarico de solda (cabo azul, bico de cobre) com chama azul-branca."""
+    o = f'<g transform="translate({x},{y}) rotate({ang})">' + R(-4, -3, 14, 6, 2, "#3f6fb0", k=0.2) + R(10, -2, 8, 4, 1, "#c98a3a", k=0.1)
+    if chama:
+        o += f'<path d="M18,0 Q26,-5 32,0 Q26,5 18,0 Z" fill="#7fd7ff"/><path d="M18,0 Q23,-2 27,0 Q23,2 18,0 Z" fill="#ffffff"/>'
+    return o + "</g>"
+
+
+def chapa(x, y, s=1.0, rot=0, brilho=0.0):
+    o = f'<g transform="translate({x},{y}) rotate({rot}) scale({s})">' + R(-9, -7, 18, 14, 2, "#9aa4ae", k=0.3) + R(-9, -7, 18, 4, 1.5, "#c9d1d8", k=0.1)
+    o += "".join(f'<circle cx="{cx}" cy="{cy}" r="1.4" fill="#5d6672"/>' for cx, cy in ((-6, -4), (6, -4), (-6, 4), (6, 4)))
+    if brilho:
+        o += f'<rect x="-9" y="-7" width="18" height="14" rx="2" fill="#ffffff" opacity="{brilho}"/>'
+    return o + "</g>"
+
+
+def faiscas(x, y, n=8, r=14):
+    return "".join(f'<path d="M{x},{y} l{math.cos(a) * r:.1f},{math.sin(a) * r:.1f}" stroke="#ffd27a" stroke-width="2" stroke-linecap="round"/>'
+                   for a in [i * 2 * math.pi / n + 0.3 for i in range(n)])
+
+
+def d03():
+    ps = []
+    c = laje(-110, 260) + rival(150, 0) + molas_em_volta(0, -40, 0.6) + marretao(PARADO)
+    c += f'<circle cx="0" cy="-40" r="46" fill="#f2c84b" opacity="0.18"/>' + nota(-205, "aperta: molas com batente brotam do corpo", "1,5 s armado (pisca amarelo)")
+    ps.append(("1 · ARMA — molas brotam", c))
+    golpe = dict(hip=(3, -16), lean=30, head=-10, feet=[(-16, 0), (18, 0)], face="raiva")
+    c = laje(-110, 260) + molas_em_volta(0, -40, 1.0, comp=0.7) + marretao(PARADO) + rival(46, 0, flip=True)
+    c += estrela(22, -44, 18) + nota(-205, "o rival bate: as molas COMPRIMEM", "(o golpe não passa)")
+    ps.append(("2 · GOLPEADO — comprime", c))
+    c = laje(-110, 260) + molas_em_volta(0, -40, 1.2) + marretao(PARADO) + rival(160, -60, rot=50) + linhas_vel(120, -80, 4, 40, -1)
+    c += f'<text x="70" y="-110" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="20" fill="{INK}">BOING!</text>'
+    c += ea.rebite(90, -60, 180) + ea.rastro([(60, -60), (90, -60)]) + nota(-205, "REBATE: quem bateu voa de volta", "tiros (rebite, gelo, mola) voltam")
+    ps.append(("3 · REBATE — BOING!", c))
+    c = laje(-110, 260) + molas_em_volta(0, -40, 0.2) + marretao(PARADO) + nota(-205, "fim dos 1,5 s: as molas recolhem", "(1 uso)")
+    ps.append(("4 · FIM — recolhe", c))
+    return ps
+
+
+def d04():
+    ps = []
+    solda = dict(PARADO, hip=(0, -20), lean=10, head=12, feet=[(-12, 0), (10, 0)], bk=(4, -34), fr=(12, -30), face="foco")
+    c = laje(-110, 260) + marretao(dict(PARADO, bk=(-16, -44), fr=(10, -40))) + chapa(-18, -50, 1.3, -20)
+    c += ea.barra_energia(0, -96, 0.1).replace("#9b6bff", VERDE_D) + nota(-205, "aperta: pega uma chapa das costas", "fica parado soldando (0,8 s)")
+    ps.append(("1 · PEGA A CHAPA", c))
+    c = laje(-110, 260) + marretao(solda, sem_ferramenta=True) + chapa(6, -36, 1.2) + macarico(12, -30, -150) + faiscas(4, -36, 10, 16)
+    c += "".join(f'<circle cx="{-4 + i * 5}" cy="{-60 - i * 9}" r="{4 + i}" fill="#ffffff" opacity="{0.6 - i * 0.12:.2f}"/>' for i in range(4))
+    c += ea.barra_energia(0, -96, 0.65).replace("#9b6bff", VERDE_D) + nota(-205, "maçarico + faíscas + fumaça", "barra de solda enchendo")
+    ps.append(("2 · SOLDA — maçarico", c))
+    c = laje(-110, 260) + marretao(dict(PARADO, face="foco")) + chapa(4, -34, 1.25, 0, 0.5)
+    c += f'<text x="0" y="-104" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="24" fill="{VERDE_D}">−30%</text>'
+    c += "".join(estrela(-26 + i * 26, -84 + (i % 2) * 10, 6, "#bff5c8") for i in range(3)) + nota(-205, "pronto: −30 de dano % (os amassados somem)", "a chapa fica rebitada no peito")
+    ps.append(("3 · PRONTO — −30%", c))
+    c = laje(-110, 260) + marretao(dict(solda, face="susto"), sem_ferramenta=True) + rival(46, 0, flip=True) + estrela(20, -40, 18)
+    c += macarico(30, -10, 40, False) + chapa(40, 6, 1.0, 60)
+    c += f'<text x="0" y="-104" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="16" fill="{EYE}">INTERROMPIDO!</text>'
+    c += nota(-205, "levou golpe soldando: cancela", "(não gasta — o risco é ficar parado)")
+    ps.append(("4 · RISCO — interrompido", c))
+    return ps
+
+
+def prancha2():
+    W, H = 1920, 1260
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "DEFESA · lote D2 — D03 PARA-CHOQUE DE MOLA e D04 REMENDO RÁPIDO (proposta)", 30)]
+    pw, ph = 452, 470
+    for r, (nome, sub, ps) in enumerate([
+            ("D03 PARA-CHOQUE DE MOLA", "aperta: 1,5 s de molas em volta · quem bate (golpe ou tiro) é REBATIDO de volta · sem escudo na mão", d03()),
+            ("D04 REMENDO RÁPIDO", "aperta: fica 0,8 s parado soldando uma chapa · −30 de dano % · golpe no meio cancela (não gasta)", d04())]):
+        y0 = 80 + r * (ph + 110)
+        b.append(f'<text x="40" y="{y0 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">{nome}</text>')
+        b.append(f'<text x="40" y="{y0 + 58}" font-family="Arial" font-size="17" fill="{INK}">{sub}</text>')
+        for j, (tit, c) in enumerate(ps):
+            b.append(painel(20 + j * (pw + 14), y0 + 80, pw, ph, tit, c))
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>'
+    out = os.path.join(ab.ROOT, "art/out/robos_v2/eng_defesa_l2.png")
+    queue(svg, os.path.join(HERE, "svg/eng_defesa_l2.svg"), out, W, H, 1)
+    print(render_all(), out)
+
+
 def exportar_jogo():
     """Texturas do jogo: spells/d01_contrapeso (64x80, base em 32,72) e spells/d02_airbag (48x64, centro 24,32)."""
     out = os.path.join(ab.ROOT, "art/out/game/spells")
@@ -156,5 +256,7 @@ def exportar_jogo():
 if __name__ == "__main__":
     if "--jogo" in sys.argv:
         exportar_jogo()
+    elif "--l2" in sys.argv:
+        prancha2()
     else:
         prancha()
