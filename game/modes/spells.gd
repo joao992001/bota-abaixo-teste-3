@@ -272,6 +272,14 @@ func equip(r, id: String, charges := -1, energy := -1.0) -> void:
 	r.vis.s_sqy[0] = 1.18   # pulinho de alegria
 	r.vis.s_sqx[0] = 0.86
 
+## Remove as colunas do A06 que estão de pé (testes/vitrines).
+func clear_columns() -> void:
+	for p in piles:
+		var b = p.get("body")
+		if b != null and is_instance_valid(b):
+			b.queue_free()
+	piles.clear()
+
 ## Elimina/limpa: fim de transformação, sem guardar nada para o respawn.
 func clear(r) -> void:
 	for h in hammers.duplicate():   # a marreta-bumerangue volta na hora
@@ -2053,15 +2061,40 @@ func _drop_pile(r, s: Dictionary, x: float) -> void:
 	Audio.play("alarme", 1.4, -6.0)
 	_spend(r, s)
 
+## Escavadeira (A41): a caçamba despeja TERRA em leque: empurra quem está no raio e voa terra; depois a caçamba volta.
+func _terra(h: Dictionary, owner, c19: Dictionary) -> void:
+	var rad := float(c19["raio_terra_tiles"]) * T
+	for o in main.robots:
+		if o.pid != h["owner"] and o.alive and o.rect().get_center().distance_to(h["pos"]) < rad:
+			_hit_dir(o, h["owner"], Vector2(signf(o.position.x - h["pos"].x) if o.position.x != h["pos"].x else float(h["dir"]), -0.5), "spell_bumerangue")
+	for k in 22:
+		var a := randf_range(-PI * 0.95, -PI * 0.05)
+		rocks.append({"pos": h["pos"], "vel": Vector2.from_angle(a) * randf_range(220, 560), "t": 0.0, "rot": randf() * TAU, "size": randf_range(4, 9), "cor": Color("#8a6a4a")})
+	for k in 10:
+		puffs.append({"pos": h["pos"] + Vector2(randf_range(-30, 30), randf_range(-10, 10)), "vel": Vector2(randf_range(-200, 200), randf_range(-160, -20)),
+			"r": randf_range(14, 24), "t": 0.0, "life": randf_range(0.5, 0.9)})
+	main.shake(6.0)
+	Audio.play("caixote_quebra", 1.1, -2.0)
+	h["phase"] = "volta"
+	h["t"] = 0.6
+	h["hit"].clear()
+
+## A07 (A41): cada robô arremessa a SUA arma (Data.MODELS): marretao/chave = bumerangue; picareta (Guindaste) = gancho
+## na corrente que agarra e PUXA; britadeira (Brita) = crava no chão e VIBRA; pa (Escavadeira) = caçamba espalha TERRA.
 func _throw_hammer(r, s: Dictionary) -> void:
 	var c: Dictionary = sc("A07")
 	var dh := aim_vec(r)
+	var kind: String = Data.MODELS[posmod(int(r.vis.model), Data.MODELS.size())]
 	var vh: Vector2 = dh * float(c["vel"]) + (Vector2(0, -180.0) if absf(dh.y) < 0.1 else Vector2.ZERO)
-	hammers.append({"owner": r.pid, "pos": hand(r) + Vector2(0, -10), "vel": vh, "phase": "ida",
+	if kind == "picareta":   # gancho: reto e rápido
+		vh = dh * float(c["vel"]) * 1.15
+	elif kind in ["britadeira", "pa"]:   # pesados: em arco
+		vh = dh * float(c["vel"]) * 0.38 + Vector2(0, -330.0 if absf(dh.y) < 0.1 else -200.0)   # cai a ~4 blocos
+	hammers.append({"owner": r.pid, "pos": hand(r) + Vector2(0, -10), "vel": vh, "phase": "ida", "kind": kind, "start": hand(r),
 		"t": 0.0, "hit": [], "rot": 0.0, "dir": r.facing})
 	r.hammer_out = true
 	s["fire"] = 0.0
-	Audio.play("marreta_vento", 1.0, 0.0)
+	Audio.play("marreta_vento", 1.0 if kind != "picareta" else 1.5, 0.0)
 	_spend(r, s)
 
 func _update_attack2(dt: float) -> void:
@@ -2153,48 +2186,141 @@ func _update_attack2(dt: float) -> void:
 	for e in tings:
 		e["t"] += dt
 	tings = tings.filter(func(e): return e["t"] < 0.18)
-	# A06 estaca: aviso → desce rápido → lança para cima → sobe
+	# A06 (A41): aviso (chão treme) → CRAVA a estaca → COLUNA de concreto dispara (lança quem está em cima) → fica de
+	# plataforma sólida coluna_s → racha no último segundo e DESABA
 	var c17: Dictionary = sc("A06")
 	var mark: float = float(c17["marca_s"])
+	var colH: float = float(c17["coluna_tiles"]) * T
+	var hw17: float = float(c17["largura_tiles"]) * T / 2.0
+	var stay17: float = float(c17["coluna_s"])
 	for p in piles:
 		p["t"] += dt
-		if p["t"] >= mark + 0.08 and not p["done"]:
+		var tt: float = p["t"]
+		if tt < mark:
+			if fmod(tt, 0.1) < dt:
+				main.shake(1.5)
+			continue
+		if not p["done"]:
 			p["done"] = true
-			var hw := float(c17["largura_tiles"]) * T / 2.0
-			var col := Rect2(p["x"] - hw, p["floor_y"] - 6.0 * T, hw * 2.0, 6.0 * T)
+			var fy: float = p["floor_y"]
+			var zona := Rect2(p["x"] - hw17, fy - colH - T, hw17 * 2.0, colH + T)
 			for o in main.robots:
-				if o.alive and col.intersects(o.rect()):
-					_hit(o, p["owner"], 1 if o.position.x >= p["x"] else -1, "spell_estaca")
+				if o.alive and zona.intersects(o.rect()):
+					o.position.y = minf(o.position.y, fy - colH - 1.0)
+					if o.pid != p["owner"]:
+						_hit(o, p["owner"], 1 if o.position.x >= p["x"] else -1, "spell_estaca")
+					o.velocity.y = minf(o.velocity.y, -float(c17["lanca_vel"]) * (1.0 if o.pid != p["owner"] else 0.8))
+			var body := StaticBody2D.new()
+			body.collision_layer = 1
+			body.collision_mask = 0
+			var cs := CollisionShape2D.new()
+			var shp := RectangleShape2D.new()
+			shp.size = Vector2(hw17 * 2.0, colH)
+			cs.shape = shp
+			cs.position = Vector2(p["x"], fy - colH / 2.0)
+			body.add_child(cs)
+			add_child(body)
+			p["body"] = body
 			main.shake(12.0)
 			Audio.play("pistao", 0.7, 2.0)
 			Audio.play("caixote_pancada", 0.6, 0.0)
-			main.dust(Vector2(p["x"], p["floor_y"]), 1.5)
-			var ct = demo.canteiro
-			if ct != null and is_instance_valid(ct):
-				for pt in ct.parts:
-					if not pt["fallen"] and pt["rect"].has_point(Vector2(p["x"], p["floor_y"] + 8.0)):
-						ct.damage(pt, 1, Vector2(p["x"], p["floor_y"]))   # deforma peça vulnerável
-	piles = piles.filter(func(p): return p["t"] < mark + 0.9)
-	# A07 marreta-bumerangue: freia na ida, volta acelerando para o dono (atravessa tudo: retorno garantido)
+			main.dust(Vector2(p["x"], fy), 1.8)
+			for k in 12:
+				rocks.append({"pos": Vector2(p["x"] + randf_range(-hw17, hw17), fy - randf_range(0, colH)), "vel": Vector2(randf_range(-260, 260), randf_range(-700, -250)),
+					"t": 0.0, "rot": randf() * TAU, "size": randf_range(4, 9)})
+		if tt > mark + 0.15 + stay17 and not p.get("gone", false):   # desaba
+			p["gone"] = true
+			var b17 = p.get("body")
+			if b17 != null and is_instance_valid(b17):
+				b17.queue_free()
+			p["body"] = null
+			var fy2: float = p["floor_y"]
+			for k in 16:
+				rocks.append({"pos": Vector2(p["x"] + randf_range(-hw17, hw17), fy2 - randf_range(0, colH)), "vel": Vector2(randf_range(-220, 220), randf_range(-320, -40)),
+					"t": 0.0, "rot": randf() * TAU, "size": randf_range(6, 12)})
+			main.dust(Vector2(p["x"], fy2), 1.6)
+			main.shake(6.0)
+			Audio.play("caixote_quebra", 0.8, 0.0)
+	piles = piles.filter(func(p): return p["t"] < mark + 0.15 + stay17 + 0.6)
+	# A07 (A41): arremesso da arma de cada robô; todos VOLTAM para a mão no fim (fase "volta", atravessa tudo)
 	var c19: Dictionary = sc("A07")
 	for h in hammers:
 		h["t"] += dt
 		var owner = main.robots[h["owner"]]
-		h["rot"] += dt * 22.0 * h["dir"]
-		if h["phase"] == "ida":
-			var dec := float(c19["vel"]) * float(c19["vel"]) / (2.0 * float(c19["alcance_tiles"]) * T)
-			h["vel"] = h["vel"].move_toward(Vector2.ZERO, dec * dt)
-			h["vel"].y += 260.0 * dt
-			h["pos"] += h["vel"] * dt
-			if h["vel"].length() < 60.0:
+		var kind: String = h.get("kind", "marretao")
+		var ph: String = h["phase"]
+		if ph == "ida":
+			match kind:
+				"picareta":   # gancho: vai reto até o alcance; agarrou → PUXA
+					h["pos"] += h["vel"] * dt
+					h["rot"] = h["vel"].angle()
+					if h["pos"].distance_to(h["start"]) > float(c19["alcance_tiles"]) * T or _hard_at(h["pos"]):
+						h["phase"] = "volta"
+						h["t"] = 0.6
+				"britadeira", "pa":   # arco com gravidade até tocar o chão (ou um rival)
+					h["vel"].y += 1400.0 * dt
+					h["rot"] += dt * 12.0 * h["dir"]
+					var np: Vector2 = h["pos"] + h["vel"] * dt
+					if (_solid_at(np + Vector2(0, 16)) and h["vel"].y > 0.0) or _hard_at(np):
+						if kind == "britadeira":
+							h["phase"] = "crava"
+							h["pt"] = 0.0
+							h["rot"] = 0.0
+							h["pos"].y = floor((np.y + 16.0) / T) * T - 18.0
+							main.shake(5.0)
+							main.dust(h["pos"] + Vector2(0, 18), 1.0)
+							Audio.play("furadeira", 0.8, 0.0)
+						else:
+							_terra(h, owner, c19)
+					else:
+						h["pos"] = np
+				_:   # marreta e chave: bumerangue (freia na ida e volta)
+					var dec := float(c19["vel"]) * float(c19["vel"]) / (2.0 * float(c19["alcance_tiles"]) * T)
+					h["vel"] = h["vel"].move_toward(Vector2.ZERO, dec * dt)
+					h["vel"].y += 260.0 * dt
+					h["pos"] += h["vel"] * dt
+					h["rot"] += dt * 22.0 * h["dir"]
+					if h["vel"].length() < 60.0:
+						h["phase"] = "volta"
+						h["hit"].clear()
+						Audio.play("marreta_vento", 1.3, -2.0)
+		elif ph == "puxa":   # Guindaste: traz o rival preso no gancho até perto do dono
+			var vic = main.robots[int(h["vic"])]
+			var alvo: Vector2 = owner.position + Vector2(owner.facing * 80.0, 0)
+			var dv: Vector2 = alvo - vic.position
+			if not vic.alive or dv.length() < 30.0 or h["t"] > 1.6:
+				if vic.alive:
+					_hit(vic, h["owner"], owner.facing, "spell_bumerangue")
 				h["phase"] = "volta"
-				h["hit"].clear()
-				Audio.play("marreta_vento", 1.3, -2.0)
-		else:
+				h["t"] = 0.6
+			else:
+				vic.position += dv.normalized() * minf(float(c19["puxa_vel"]) * dt, dv.length())
+				vic.velocity = Vector2.ZERO
+				vic.stun_t = maxf(vic.stun_t, 0.15)
+				h["pos"] = vic.rect().get_center()
+				if fmod(h["t"], 0.08) < dt:
+					main.spark(h["pos"], 1)
+		elif ph == "crava":   # Brita: a britadeira crava e VIBRA, empurrando quem está perto a cada pulso
+			h["pt"] = float(h["pt"]) + dt
+			if fmod(h["pt"], float(c19["pulso_s"])) < dt:
+				var rad := float(c19["raio_vibra_tiles"]) * T
+				h["ring"] = 0.0
+				main.shake(2.5)
+				for o in main.robots:
+					if o.pid != h["owner"] and o.alive and o.rect().get_center().distance_to(h["pos"]) < rad and o.is_on_floor():
+						_hit_dir(o, h["owner"], Vector2(signf(o.position.x - h["pos"].x) if o.position.x != h["pos"].x else 1.0, -0.6), "spell_bumerangue")
+				for k in 3:
+					rocks.append({"pos": h["pos"] + Vector2(randf_range(-20, 20), 16), "vel": Vector2(randf_range(-200, 200), randf_range(-380, -160)), "t": 0.0, "rot": randf() * TAU, "size": randf_range(3, 6)})
+			h["ring"] = float(h.get("ring", 1.0)) + dt * 4.0
+			if h["pt"] > float(c19["vibra_s"]):
+				h["phase"] = "volta"
+				h["t"] = 0.6
+		else:   # volta para a mão
 			var to: Vector2 = hand(owner) - h["pos"]
 			var sp := minf(float(c19["vel"]) * minf(h["t"], 1.6), 1400.0)
 			h["pos"] += to.normalized() * minf(sp * dt, to.length())
-			if to.length() < 28.0 or h["t"] > float(c19["max_s"]) or not owner.alive:
+			h["rot"] += dt * 18.0 * h["dir"]
+			if to.length() < 28.0 or h["t"] > float(c19["max_s"]) + 1.6 or not owner.alive:
 				h["dead"] = true
 				owner.hammer_out = false
 				owner.vis.s_sqx[0] = 1.25   # PEGOU: tranco na mão, faíscas e anel
@@ -2202,10 +2328,25 @@ func _update_attack2(dt: float) -> void:
 				main.spark(hand(owner), 6)
 				main.ring_fx(hand(owner), 0.6)
 				Audio.play("chave", 0.8, 0.0)
-		for o in main.robots:
-			if o.pid != h["owner"] and o.alive and not (o.pid in h["hit"]) and o.rect().grow(10).has_point(h["pos"]):
-				h["hit"].append(o.pid)
-				_hit(o, h["owner"], int(signf(o.position.x - owner.position.x)) if o.position.x != owner.position.x else 1, "spell_bumerangue")
+		if h["phase"] in ["ida", "volta"]:
+			for o in main.robots:
+				if o.pid != h["owner"] and o.alive and not (o.pid in h["hit"]) and o.rect().grow(22.0 if kind in ["britadeira", "pa"] else 10.0).has_point(h["pos"]):
+					h["hit"].append(o.pid)
+					if kind == "picareta" and h["phase"] == "ida":   # AGARROU
+						h["phase"] = "puxa"
+						h["vic"] = o.pid
+						h["t"] = 0.0
+						main.float_text(o.position + Vector2(0, -120), "PEGOU!", Color("#ffd23a"))
+						Audio.play("cola", 1.0, 0.0)
+						break
+					if kind == "pa" and h["phase"] == "ida":
+						_terra(h, owner, c19)
+						break
+					if kind == "britadeira" and h["phase"] == "ida":   # acertou em cheio: bate e cai cravando ao lado
+						_hit(o, h["owner"], int(h["dir"]), "spell_bumerangue")
+						h["vel"] = Vector2(-float(h["dir"]) * 120.0, 0.0)
+						break
+					_hit(o, h["owner"], int(signf(o.position.x - owner.position.x)) if o.position.x != owner.position.x else 1, "spell_bumerangue")
 	hammers = hammers.filter(func(h): return not h.get("dead", false))
 	# A08 mola saltitante
 	var c20: Dictionary = sc("A08")
@@ -2429,8 +2570,9 @@ func _draw_attack2() -> void:
 		for q in pts:
 			big.append(q * 1.25)
 		draw_colored_polygon(big, Color(0.36, 0.3, 0.26, a))
-		draw_colored_polygon(pts, Color(0.80, 0.75, 0.65, a) if int(z * 10.0) % 3 != 0 else Color(0.66, 0.6, 0.5, a))
-		draw_colored_polygon(PackedVector2Array([pts[0], pts[1], pts[2], Vector2.ZERO]), Color(0.9, 0.86, 0.78, a))
+		var rc: Color = rk.get("cor", Color(0.80, 0.75, 0.65))   # terra da caçamba (A07 Escavadeira) é marrom
+		draw_colored_polygon(pts, Color(rc, a) if int(z * 10.0) % 3 != 0 else Color(rc.darkened(0.18), a))
+		draw_colored_polygon(PackedVector2Array([pts[0], pts[1], pts[2], Vector2.ZERO]), Color(rc.lightened(0.15), a))
 		draw_set_transform(Vector2.ZERO)
 	# A05 rebites: rastro claro, rebite grande (cabeça abaulada dourada + haste de aço) apontando para onde vai
 	for rv in rivets:
@@ -2500,50 +2642,80 @@ func _draw_attack2() -> void:
 		var ay := fy17 - 5.5 * T + 20.0 + absf(sin(t * 6.0)) * 12.0
 		draw_colored_polygon(PackedVector2Array([Vector2(a17["x"] - 18, ay), Vector2(a17["x"] + 18, ay), Vector2(a17["x"], ay + 22)]), Color("#f2c84b"))
 		draw_polyline(PackedVector2Array([Vector2(a17["x"] - 18, ay), Vector2(a17["x"] + 18, ay), Vector2(a17["x"], ay + 22), Vector2(a17["x"] - 18, ay)]), INK, 3.0, true)
-	# A06 bate-estaca: sombra listrada no chão, pistão no alto, queda com achatamento, sobe
+	# A06 (A41): aviso zebrado no chão + fantasma da coluna; depois a COLUNA de concreto (sobe rápido, fica, racha, some)
 	var c17: Dictionary = sc("A06")
 	var mark := float(c17["marca_s"])
-	var tex17 := Data.tex("spells/s17_estaca")
+	var colH := float(c17["coluna_tiles"]) * T
+	var stay := float(c17["coluna_s"])
 	for p in piles:
 		var hw := float(c17["largura_tiles"]) * T / 2.0
 		var fy: float = p["floor_y"]
 		var x: float = p["x"]
 		var tt: float = p["t"]
-		var top_y := fy - 5.5 * T
-		if tt < mark + 0.08:
+		if tt < mark:
 			var k := clampf(tt / mark, 0.0, 1.0)
-			# faixa de aviso (zebrada) piscando mais rápido no fim
 			var blink := fmod(t, 0.2 - 0.12 * k) < (0.1 - 0.06 * k)
-			draw_set_transform(Vector2(x, fy), 0.0, Vector2(1.0, 0.25))
-			draw_circle(Vector2.ZERO, hw * (0.6 + 0.4 * k), Color(0.16, 0.1, 0.18, 0.25 + 0.3 * k))
-			draw_set_transform(Vector2.ZERO)
 			for i in 4:
 				var xx := x - hw + i * hw * 0.5
 				draw_colored_polygon(PackedVector2Array([Vector2(xx, fy - 4), Vector2(xx + hw * 0.25, fy - 4), Vector2(xx + hw * 0.5, fy + 4), Vector2(xx + hw * 0.25, fy + 4)]), Color(0.95, 0.78, 0.29, 0.9 if blink else 0.5))
-			draw_rect(Rect2(x - hw, fy - 5.5 * T, hw * 2.0, 5.5 * T), Color(1, 0.9, 0.3, 0.07 + 0.08 * k))
-		# estaca: desce de cima; na queda estica, no impacto achata, depois sobe
-		var drop := 0.0
-		if tt < mark:
-			drop = 0.0
-		elif tt < mark + 0.08:
-			drop = (tt - mark) / 0.08
-		elif tt < mark + 0.45:
-			drop = 1.0
-		else:
-			drop = 1.0 - (tt - mark - 0.45) / 0.45
-		var pile_len := 40.0 + (fy - top_y - 40.0) * drop
-		var sq := 1.0
-		if tt >= mark + 0.08 and tt < mark + 0.2:
-			sq = 1.0 + 0.3 * (1.0 - (tt - mark - 0.08) / 0.12)
-		var a := clampf((mark + 0.9 - tt) / 0.2, 0.0, 1.0)
-		var mod := Color(1, 1, 1, a)
-		# caixa do pistão (região de cima da textura) e a estaca esticada (região do meio) + ponta
-		draw_texture_rect_region(tex17, Rect2(x - 32, top_y - 50, 64, 50), Rect2(0, 0, 128, 96), mod)
-		draw_texture_rect_region(tex17, Rect2(x - 16 * sq, top_y, 32 * sq, pile_len - 26), Rect2(32, 92, 64, 236), mod)
-		draw_texture_rect_region(tex17, Rect2(x - 22 * sq, top_y + pile_len - 26, 44 * sq, 26), Rect2(20, 324, 88, 60), mod)
+			draw_rect(Rect2(x - hw, fy - colH, hw * 2.0, colH), Color(1, 0.9, 0.3, 0.06 + 0.1 * k))
+			draw_rect(Rect2(x - 5, fy - 12 + 6.0 * k, 10, 12), Color("#8e98a4"))   # a estaca entrando
+			continue
+		if p.get("gone", false):
+			continue
+		var rise := clampf((tt - mark) / 0.15, 0.0, 1.0)
+		var hgt := colH * (1.0 - pow(1.0 - rise, 3.0))
+		var crack := clampf((tt - (mark + 0.15 + stay - 1.0)) / 1.0, 0.0, 1.0)
+		var jx := sin(t * 70.0) * 2.5 * crack
+		var top := fy - hgt
+		var rr := Rect2(x - hw + jx, top, hw * 2.0, hgt)
+		draw_rect(rr.grow(2.0), Color("#8a7a5e"))
+		draw_rect(rr, Color("#cdbfa3"))
+		draw_rect(Rect2(rr.position, Vector2(rr.size.x, minf(8.0, hgt))), Color("#e3d7bf"))
+		if hgt > 16.0:   # faixa zebrada no alto
+			for i in 5:
+				var xx := rr.position.x + i * rr.size.x / 5.0
+				draw_colored_polygon(PackedVector2Array([Vector2(xx, top + 8), Vector2(xx + rr.size.x / 10.0, top + 8), Vector2(xx + rr.size.x / 5.0, top + 15), Vector2(xx + rr.size.x / 10.0, top + 15)]), INK)
+			draw_rect(Rect2(rr.position.x, top + 8, rr.size.x, 7), Color(0.95, 0.78, 0.29, 0.6))
+		var yy := top + 34.0
+		while yy < fy - 6.0:   # juntas da forma
+			draw_line(Vector2(rr.position.x + 5, yy), Vector2(rr.end.x - 5, yy), Color("#a8987a"), 2.0)
+			yy += 30.0
+		draw_line(Vector2(x - 8 + jx, top), Vector2(x - 8 + jx, top - 8), Color("#8a5a3a"), 2.4)   # ferragem
+		draw_line(Vector2(x + 8 + jx, top), Vector2(x + 8 + jx, top - 10), Color("#8a5a3a"), 2.4)
+		if crack > 0.0:
+			draw_polyline(PackedVector2Array([Vector2(x - 6 + jx, top + 18), Vector2(x + 4 + jx, top + 40), Vector2(x - 4 + jx, top + 66), Vector2(x + 8 + jx, top + 100), Vector2(x + jx, fy - 10)]), Color(0.3, 0.24, 0.2, crack), 3.0, true)
+		if rise < 1.0:   # anel de poeira na base enquanto sobe
+			draw_set_transform(Vector2(x, fy), 0.0, Vector2(1.0, 0.25))
+			draw_arc(Vector2.ZERO, hw + 60.0 * rise, 0, TAU, 32, Color(1, 1, 1, 1.0 - rise), 10.0, true)
+			draw_set_transform(Vector2.ZERO)
 	# A07: voa a FERRAMENTA DO PRÓPRIO ROBÔ (com a skin), girando, com rastro de cópias, arco de energia e faíscas
 	for h in hammers:
 		var ow = main.robots[h["owner"]]
+		var kd: String = h.get("kind", "marretao")
+		if kd == "picareta":
+			# Guindaste: CORRENTE da mão até o gancho (elos), gancho amarelo na ponta
+			var a0: Vector2 = hand(ow)
+			var b0: Vector2 = h["pos"]
+			var n := int(a0.distance_to(b0) / 10.0)
+			for i in n:
+				var q: Vector2 = a0.lerp(b0, (i + 0.5) / maxf(n, 1)) + Vector2(0, sin(PI * (i + 0.5) / maxf(n, 1)) * (12.0 if h["phase"] == "volta" else 4.0))
+				draw_set_transform(q, (b0 - a0).angle() + (PI / 2.0 if i % 2 else 0.0), Vector2(1.0, 0.7))
+				draw_arc(Vector2.ZERO, 4.2, 0, TAU, 10, INK, 3.0, true)
+				draw_arc(Vector2.ZERO, 4.2, 0, TAU, 10, Color("#9aa4ae"), 1.4, true)
+			draw_set_transform(b0, (b0 - a0).angle())
+			draw_rect(Rect2(-8, -7, 14, 14), INK)
+			draw_rect(Rect2(-6, -5, 10, 10), Color("#f2c84b"))
+			draw_arc(Vector2(10, 6), 9.0, -PI * 0.6, PI * 0.9, 12, INK, 6.0, true)
+			draw_arc(Vector2(10, 6), 9.0, -PI * 0.6, PI * 0.9, 12, Color("#c9d1d8"), 3.0, true)
+			draw_set_transform(Vector2.ZERO)
+			continue
+		if kd == "britadeira" and h["phase"] == "crava":   # vibra: treme e solta ondas no chão
+			var rg: float = clampf(float(h.get("ring", 1.0)), 0.0, 1.0)
+			draw_set_transform(h["pos"] + Vector2(0, 18), 0.0, Vector2(1.0, 0.25))
+			draw_arc(Vector2.ZERO, 20.0 + float(sc("A07")["raio_vibra_tiles"]) * T * rg, 0, TAU, 32, Color(1, 1, 1, 1.0 - rg), 8.0, true)
+			draw_set_transform(Vector2.ZERO)
+			h["rot"] = sin(t * 90.0) * 0.12
 		var mname: String = Data.MODELS[posmod(ow.vis.model, Data.MODELS.size())]
 		var g: Dictionary = Data.model_meta(ow.vis.model)
 		var htx := Data.tex("robo/ferramenta_" + mname + RobotVis._sk(ow.vis.look(), mname))

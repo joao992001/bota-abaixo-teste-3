@@ -2978,6 +2978,16 @@ func spells_test() -> void:
 	vset("v0", "item", false)
 	await frames(3)
 	check(mx1 - mx0 > 100.0 and sp.piles.size() >= 1 and absf(sp.piles[-1]["x"] - mx1) < 20.0, "A06: segurando, a mira anda (%.0f → %.0f) e a estaca cai lá" % [mx0, mx1])
+	# A41: a COLUNA fica de pé (sólida, dá para subir) e desaba depois de coluna_s
+	await frames(int(float(sp.sc("A06")["marca_s"]) * 60.0) + 20)
+	var col_p: Dictionary = sp.piles[-1]
+	var bcol = col_p.get("body")
+	var de_pe: bool = bcol != null and is_instance_valid(bcol)
+	var solido: bool = sp._solid_at(Vector2(col_p["x"], col_p["floor_y"] - 64.0)) or main.world.get_world_2d().direct_space_state.intersect_point(_pq(Vector2(col_p["x"], col_p["floor_y"] - 64.0))).size() > 0
+	check(de_pe and solido, "A06 (A41): a coluna de concreto fica de pé e é sólida (plataforma)")
+	await frames(int(float(sp.sc("A06")["coluna_s"]) * 60.0) + 20)
+	check(col_p.get("gone", false), "A06 (A41): a coluna desaba depois de %.0f s" % float(sp.sc("A06")["coluna_s"]))
+	sp.clear_columns()
 	# A07 marreta-bumerangue: sem pesada enquanto voa, volta garantido
 	place.call(3.5)
 	sp.clear(r0)
@@ -2993,6 +3003,40 @@ func spells_test() -> void:
 		await frames(1)
 		ret += 1
 	check(not r0.hammer_out and r1.dmg > 0.0, "A07: acerta na ida/volta e volta para a mão (%d quadros, dano %d%%)" % [ret, int(r1.dmg)])
+	# A41: cada robô arremessa a SUA arma
+	var mod0: int = r0.vis.model
+	for kk in [["picareta", 1], ["britadeira", 3], ["pa", 4], ["chave", 2]]:
+		place.call(3.5)
+		sp.clear(r0)
+		r0.vis.model = int(kk[1])
+		r1.dmg = 0.0
+		sp.equip(r0, "A07")
+		await frames(2)
+		var x_r1: float = r1.position.x
+		await tap("v0", "item")
+		var puxou := false
+		var cravou := false
+		var w := 0
+		while (r0.hammer_out or w < 5) and w < 360:
+			await frames(1)
+			w += 1
+			for h in sp.hammers:
+				if h["phase"] == "puxa":
+					puxou = true
+				if h["phase"] == "crava":
+					cravou = true
+		match kk[0]:
+			"picareta":
+				check(puxou and r1.dmg > 0.0 and absf(r1.position.x - r0.position.x) < absf(x_r1 - r0.position.x), "A07 Guindaste: o gancho AGARRA e PUXA o rival (dano %d%%)" % int(r1.dmg))
+			"britadeira":
+				check(cravou and r1.dmg > 0.0, "A07 Brita: a britadeira crava e VIBRA empurrando (dano %d%%)" % int(r1.dmg))
+			"pa":
+				check(r1.dmg > 0.0, "A07 Escavadeira: a caçamba espalha TERRA e empurra (dano %d%%)" % int(r1.dmg))
+			"chave":
+				check(r1.dmg > 0.0, "A07 Solda: a chave vai e volta e acerta (dano %d%%)" % int(r1.dmg))
+		check(not r0.hammer_out, "A07 %s: a arma volta para a mão" % kk[0])
+	r0.vis.model = mod0
+	sp.clear(r0)
 	# A08 canhão de molas: BOING forte no primeiro alvo
 	place.call(4.0)
 	sp.clear(r0)
@@ -3784,6 +3828,12 @@ func robos_sheet(dir: String) -> void:
 # ---------------------------------------------------------------- animação (quadros para GIF)
 var _frame_no := 0
 
+func _pq(p: Vector2) -> PhysicsPointQueryParameters2D:
+	var q := PhysicsPointQueryParameters2D.new()
+	q.position = p
+	q.collision_mask = 1
+	return q
+
 func grab(dir: String, prefix: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(dir.path_join("%s_%04d.png" % [prefix, _frame_no]))
@@ -4320,7 +4370,7 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["A08quique", 110],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
@@ -4338,6 +4388,7 @@ func spells_frames(dir: String) -> void:
 			r.frozen_t = 0.0
 			sp.clear(r)
 		sp.boxes.clear()
+		sp.clear_columns()
 		put(r0, Vector2(x0, fy))
 		put(r1, Vector2(x0 + ({"A01": 3.0, "T01": 3.0, "A04": 3.0, "A06": 2.6, "A07": 3.5, "A08": 4.0, "C02": 3.0, "C05": 4.0, "E02": 1.5,
 			"T02": 2.2, "T03": 6.0, "T05": 2.5, "T06": 1.6, "T07": 3.0}.get(nm, 5.5)) * 64.0, fy))
@@ -4382,6 +4433,14 @@ func spells_frames(dir: String) -> void:
 				var xa: float = hr.position.x - 120.0
 				put(r0, Vector2(xa, sp._floor_below(xa, hr.end.y + 8.0)))
 				put(r1, Vector2(hr.position.x + 70.0, hr.position.y))
+		elif nm == "A06col":
+			sp.clear_columns()
+			sp.equip(r0, "A06")
+			put(r1, Vector2(x0 + 2.6 * 64.0, fy))
+		elif nm.begins_with("A07") and nm.length() > 3:   # A41: cada robô arremessa a SUA arma
+			r0.vis.model = {"A07guinda": 1, "A07solda": 2, "A07brita": 3, "A07escava": 4}[nm]
+			sp.equip(r0, "A07")
+			put(r1, Vector2(x0 + 3.2 * 64.0, fy))
 		elif nm == "A08quique":   # lote 3: mola em arco alto, alvo longe → quica no chão (amassa e estica)
 			sp.equip(r0, "A08")
 			put(r1, Vector2(x0 + 11.0 * 64.0, fy))
@@ -4404,6 +4463,10 @@ func spells_frames(dir: String) -> void:
 				"troca":
 					a["v0"]["item"] = f >= 30 and f < 52
 				"A01", "E01", "A02", "A04", "A06", "A07", "A08":
+					a["v0"]["item"] = f == 14 or f == 15
+				"A06col":
+					a["v0"]["item"] = f == 14 or f == 15
+				"A07guinda", "A07brita", "A07escava", "A07solda":
 					a["v0"]["item"] = f == 14 or f == 15
 				"A08quique":
 					a["v0"]["item"] = f == 14 or f == 15

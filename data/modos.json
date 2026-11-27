@@ -836,7 +836,7 @@
         "mira_vel": 700,
         "mira_alcance_tiles": 7,
         "mira_max_s": 2.0,
-        "icone": "s17_estaca"
+        "coluna_tiles": 3.0, "coluna_s": 6.0, "lanca_vel": 1250, "nota_coluna": "A41: crava a estaca e sobe uma COLUNA de concreto (sólida) que lança quem está em cima e fica de plataforma coluna_s, depois desaba.", "icone": "s17_estaca"
       },
       "A07": {
         "familia": "ataque",
@@ -845,7 +845,7 @@
         "vel": 1250,
         "alcance_tiles": 8,
         "max_s": 3.4,
-        "icone": "s04_marreta"
+        "pulso_s": 0.25, "vibra_s": 1.1, "raio_vibra_tiles": 1.7, "raio_terra_tiles": 1.9, "puxa_vel": 900, "nota_por_robo": "A41: cada robô arremessa a SUA arma: marreta e chave voltam (bumerangue); gancho do Guindaste agarra e PUXA; britadeira da Brita crava e VIBRA; caçamba da Escavadeira espalha TERRA.", "icone": "s04_marreta"
       },
       "A08": {
         "familia": "ataque",

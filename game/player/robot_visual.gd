@@ -19,13 +19,14 @@ const SPELL_TOOLS := {"A01": ["s01_canhao", Vector2(52, 26), Vector2(30, 34), Ve
 	"C01": ["s06_ima", Vector2(44, 31), Vector2(14, 40), Vector2(106, 40)],
 	"A02": ["s02_laser", Vector2(58, 29), Vector2(19, 50), Vector2(122, 31)],
 	"A05": ["s05_rebiteira", Vector2(56, 28), Vector2(40, 52), Vector2(127, 25)],
+	"A06": ["s17_cravadeira", Vector2(58, 29), Vector2(30, 50), Vector2(126, 33)],   # A41: cravadeira pneumática
 	"A08": ["s20_canhao", Vector2(60, 30), Vector2(25, 48), Vector2(126, 31)],   # lote 3: Pistão-mola (arma C)
 	"C02": ["s07_ventilador", Vector2(60, 30), Vector2(29, 52), Vector2(126, 32)],
 	"C03": ["s08_gancho", Vector2(58, 29), Vector2(33, 50), Vector2(126, 30)],
 	"C05": ["s21_laco", Vector2(56, 28), Vector2(29, 52), Vector2(124, 32)],
 	"F31": ["a31_braco", Vector2(70, 35), Vector2(16, 28), Vector2(110, 28)],
 	"F33": ["a33_tocha", Vector2(58, 24), Vector2(14, 20), Vector2(94, 20)]}
-const WEAPONS := ["A01", "A02", "A03", "A05", "C01", "A08", "C02", "C03", "C05"]
+const WEAPONS := ["A01", "A02", "A03", "A05", "C01", "A08", "C02", "C03", "C05", "A06"]
 ## Armaduras de transformação (o robô VESTE a máquina): frente/costas no molde da Fornalha (150x130, janela em 75,50),
 ## cor dos membros, tipo de janela do rosto (circle = vigia, rect = cabine, visor = solda) e cor do aro.
 const ARMOR_SETS := {
@@ -760,13 +761,10 @@ func current_pose() -> Dictionary:
 				hf = Vector2(-16, -52).lerp(Vector2(28, -38), ease(u, 0.3))
 				lean = lerpf(lean, -0.1 + 0.25 * u, 0.5)
 				hf_set = true
-			"A06":
-				hf = Vector2(26, -30)
-				hf_set = true
 			"E02", "E03":
 				hf = Vector2(24, -34 + 4.0 * kick)
 				hf_set = true
-			"A03", "C01", "A02", "A05", "A08", "C03", "C05", "C02":
+			"A03", "C01", "A02", "A05", "A08", "C03", "C05", "C02", "A06":
 				var ad := Vector2.from_angle(aa)
 				var hold := Vector2(sin(t * 70.0), cos(t * 61.0)) * 1.4 if sf.get("channel", false) else Vector2.ZERO
 				hf = SHOULDER + ad * (ARM - 9.0 * kick) + buzz + hold
@@ -1357,12 +1355,6 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			ci.draw_circle(tip_a, 3.6 if on_l else 2.2, Color(1.0, 0.25, 0.2) if on_l else Color("#5a2a20"))
 			if on_l:
 				ci.draw_circle(tip_a, 8.0, Color(1.0, 0.3, 0.2, 0.3))
-	if sid0 == "A06" and not sf.get("fading", false):   # controle remoto do bate-estaca, luz piscando
-		ci.draw_set_transform_matrix(base * Transform2D(-0.2, hb + Vector2(-1, -6)))
-		ci.draw_rect(Rect2(-6, -9, 12, 18), Color("#2a1a2e"))
-		ci.draw_rect(Rect2(-4.5, -7.5, 9, 15), Color("#f2c84b"))
-		ci.draw_circle(Vector2(0, -2), 3.0, Color("#d94a3a") if fmod(tnow, 0.5) < 0.25 else Color("#7a2a20"))
-		ci.draw_line(Vector2(3, -9), Vector2(5, -16), Color("#2a1a2e"), 1.6, true)
 	if sid0 == "C04" and not sf.get("fading", false):   # faísquinhas roxas orbitando a mão
 		ci.draw_set_transform_matrix(base)
 		for k in 3:
