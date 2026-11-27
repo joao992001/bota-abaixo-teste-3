@@ -16,6 +16,11 @@ func setup(parts: Array, origin: Vector2, facing: int, kick: Vector2) -> void:
 			"rot": 0.0, "spin": randf_range(-14, 14), "flip": facing})
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("destrocos", _pf)
+
+func _process_perf(dt: float) -> void:
 	t += dt
 	for p in pieces:
 		p["vel"].y += 2600.0 * dt
@@ -26,6 +31,11 @@ func _process(dt: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_destrocos", _pf)
+
+func _draw_perf() -> void:
 	var a := clampf((LIFE - t) / 0.5, 0.0, 1.0)
 	for p in pieces:
 		var r: Rect2 = p["rect"]

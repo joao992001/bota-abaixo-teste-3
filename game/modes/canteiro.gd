@@ -321,6 +321,11 @@ func _crumb(p: Dictionary) -> void:
 
 # ---------------------------------------------------------------- quadro a quadro
 func _physics_process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_physics_process_perf(dt)
+	Perf.add("canteiro", _pf)
+
+func _physics_process_perf(dt: float) -> void:
 	if main == null or main.paused:
 		return
 	t += dt
@@ -416,6 +421,11 @@ func _shake_off(p: Dictionary) -> Vector2:
 	return Vector2(sin(t * 71.0 + p["idx"]), cos(t * 53.0 + p["idx"] * 2.0)) * 3.0 * k
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_canteiro", _pf)
+
+func _draw_perf() -> void:
 	var ly := LAJE_Y * T
 	# escoras (atrás) e pilares do núcleo
 	for p in parts:

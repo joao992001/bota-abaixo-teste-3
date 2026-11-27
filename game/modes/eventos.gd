@@ -1245,6 +1245,11 @@ func _spark_bit(p: Vector2) -> void:
 
 # ================================================================ desenho (atrás dos robôs)
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_eventos", _pf)
+
+func _draw_perf() -> void:
 	for c in crates:
 		_draw_crate(c)
 	for a in active:
@@ -1641,6 +1646,11 @@ func _draw_bands(a: Dictionary) -> void:
 
 # ================================================================ desenho (frente dos robôs)
 func _draw_front() -> void:
+	var _pf := Perf.t0()
+	_draw_front_perf()
+	Perf.add("draw_eventos_frente", _pf)
+
+func _draw_front_perf() -> void:
 	var fr := front
 	for b in bits:
 		var k: float = 1.0 - b["t"] / b["life"]

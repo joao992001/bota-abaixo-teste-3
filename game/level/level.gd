@@ -319,6 +319,11 @@ func _build_colliders() -> void:
 
 # ---------- formas simples (substituídas pela arte quando existir) ----------
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_nivel", _pf)
+
+func _draw_perf() -> void:
 	if Data.tex("cenario/tabua") != null:
 		_draw_art()
 		return
@@ -467,6 +472,11 @@ func _draw_anim() -> void:
 			x += 32.0
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("nivel", _pf)
+
+func _process_perf(dt: float) -> void:
 	anim_t += dt
 	if anim != null and (belts.size() > 0 or water_rects.size() > 0):
 		anim.queue_redraw()

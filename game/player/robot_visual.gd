@@ -547,6 +547,11 @@ func _draw_ghost(g: Node2D) -> void:
 	draw_robot(g, sn["look"], sn["pose"], sn["xf"])
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("visual_robos", _pf)
+
+func _process_perf(dt: float) -> void:
 	var col: Color = Data.COLORS[color_idx % Data.COLORS.size()]
 	for g in ghosts:
 		if not g.visible:
@@ -1118,6 +1123,11 @@ func current_pose() -> Dictionary:
 	return p
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_robos", _pf)
+
+func _draw_perf() -> void:
 	draw_robot(self, look(), current_pose())
 	_draw_tag()
 	# suor

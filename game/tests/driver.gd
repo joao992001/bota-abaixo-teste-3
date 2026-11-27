@@ -98,6 +98,10 @@ func _run() -> void:
 			await robos_sheet(a.trim_prefix("--robos="))
 			get_tree().quit()
 			return
+		if a.begins_with("--perf-derruba="):
+			await perf_derruba(a.substr(15))
+			get_tree().quit(0)
+			return
 		if a == "--perf-canteiro":
 			await perf_canteiro()
 			get_tree().quit()
@@ -5718,3 +5722,185 @@ func stats_run(rounds_per_arena: int) -> void:
 	fa.store_string(JSON.stringify({"rounds": out, "deaths": main.demo.death_log, "quedas": main.fall_log}))
 	fa.close()
 	print("STATS_FILE ", ProjectSettings.globalize_path("user://stats.json"))
+
+
+# ---------------------------------------------------------------- PROTOCOLO DE DESEMPENHO (docs/manuais/desempenho.md)
+## --perf-derruba=DIR [--perf-dur=S] [--perf-rota=total|moderada] [--perf-normal]: partida de 4 bots no Canteiro com
+## eventos em ALTA, todas as engenhocas e caixas frequentes (pior caso; --perf-normal = configuração padrão), virada de
+## cena no meio. Mede CADA quadro: tempo real, ms por sistema (lógica e desenho, autoload Perf), render (CPU), chamadas
+## de desenho, nós e objetos; anota o contexto (eventos ativos, engenhoca em uso, mecha, fase da virada).
+## Grava DIR/quadros.json e DIR/relatorio.md (picos com o que estava acontecendo + ranking por sistema e por contexto).
+const PERF_FILHOS := ["eventos", "etapas_mecanismos", "arena_fx", "engenhocas"]   # já dentro de demo_total
+
+func _perf_tags() -> Array:
+	var tags := []
+	for a in main.events.active:
+		tags.append("ev:" + String(a.get("id", "?")))
+	var sp = main.demo.spells
+	if sp != null:
+		for pid in sp.slot:
+			var s: Dictionary = sp.slot[pid]
+			if float(s.get("prep", -1.0)) >= 0.0 or float(s.get("fire", -1.0)) >= 0.0:
+				tags.append("eng:" + String(s.get("id", "?")))
+	for r in main.robots:
+		var m := String(r.vis.look().get("fx", {}).get("mecha", "")) if r.vis != null else ""
+		if m != "":
+			tags.append("mecha:" + m)
+	var et = main.demo.etapas
+	if et != null and is_instance_valid(et) and String(et.state) != "etapa":
+		tags.append("virada:" + String(et.state))
+	return tags
+
+func _perf_coisas(obj) -> int:
+	var n := 0
+	if obj == null or not is_instance_valid(obj):
+		return 0
+	for pr in obj.get_property_list():
+		if pr["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			var v = obj.get(pr["name"])
+			if v is Array or v is Dictionary:
+				n += v.size()
+	return n
+
+func perf_derruba(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	var args := OS.get_cmdline_user_args()
+	var dur := 70.0
+	var rota := "total"
+	for a in args:
+		if a.begins_with("--perf-dur="):
+			dur = float(a.substr(11))
+		if a.begins_with("--perf-rota="):
+			rota = a.substr(12)
+	var pior: bool = not "--perf-normal" in args
+	get_window().size = Vector2i(1920, 1080)
+	seed(11)
+	main.rng.seed = 11
+	main.go_menu()
+	PlayerInput.virtual = {}
+	main.mode = "demolicao"
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.go_join()
+	await frames(2)
+	main.bot_level = 2
+	for k in 4:
+		main.add_bot()
+	main.selecao.abrir_spells()
+	for id in main.spells_on:
+		main.spells_on[id] = true
+	main.demo.items_on = true
+	main.demo.lives_setting = 9
+	main.event_level = 3 if pior else 2
+	if pior:
+		main.demo.cfg["spells"]["caixa"]["intervalo_s"] = [1.5, 2.5]
+		main.demo.cfg["spells"]["caixa"]["max_mapa"] = 4
+	main.start_match()
+	await frames(5)
+	main.countdown = 0.0
+	for r in main.robots:
+		r.active = true
+	var et = main.demo.etapas
+	if et != null:
+		et.ativo = true
+	var vp := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
+	Perf.on = true
+	Perf.take()
+	var quadros := []
+	var n := int(dur * 60.0)
+	var last := Time.get_ticks_usec()
+	for f in n:
+		if f == n / 2 and et != null and is_instance_valid(et):
+			et.forcar(rota)
+		for i in main.players.size():
+			main.demo.lives[i] = 9
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		var sis: Dictionary = Perf.take()
+		var cpu := 0.0
+		for k in sis:
+			if not k in PERF_FILHOS:
+				cpu += float(sis[k])
+		var rcpu := RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
+		quadros.append({"f": f, "real": (now - last) / 1000.0, "cpu": cpu, "render": rcpu, "sis": sis,
+			"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+			"nos": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)), "objetos": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+			"coisas": _perf_coisas(main.demo.spells) + _perf_coisas(main.events) + _perf_coisas(main.demo.mecs) + _perf_coisas(main.demo.fx),
+			"tags": _perf_tags(), "estado": int(main.state)})
+		last = now
+	Perf.on = false
+	RenderingServer.viewport_set_measure_render_time(vp, false)
+	var fj := FileAccess.open(dir.path_join("quadros.json"), FileAccess.WRITE)
+	fj.store_string(JSON.stringify(quadros))
+	fj.close()
+	var rel := _perf_relatorio(quadros, "pior caso" if pior else "normal", rota)
+	var fr := FileAccess.open(dir.path_join("relatorio.md"), FileAccess.WRITE)
+	fr.store_string(rel)
+	fr.close()
+	print(rel)
+
+func _pct(v: Array, p: float) -> float:
+	if v.is_empty():
+		return 0.0
+	var s := v.duplicate()
+	s.sort()
+	return float(s[clampi(int(s.size() * p), 0, s.size() - 1)])
+
+func _perf_relatorio(q: Array, modo: String, rota: String) -> String:
+	var orc: Dictionary = Data.read_json("data/desempenho.json")
+	var budget := float(orc.get("orcamento_cpu_ms", 8.0))
+	var limite := float(orc.get("pico_cpu_ms", 12.0))
+	var cpus := q.map(func(x): return float(x["cpu"]))
+	var reais := q.map(func(x): return float(x["real"]))
+	var rend := q.map(func(x): return float(x["render"]))
+	var media := func(v: Array) -> float: return v.reduce(func(a, b): return a + b, 0.0) / maxf(v.size(), 1)
+	var o := "# Relatório de desempenho — Canteiro, 4 bots, %s, virada %s\n\n" % [modo, rota]
+	o += "Quadros: %d · orçamento de CPU do jogo %.1f ms · pico tolerado %.1f ms\n\n" % [q.size(), budget, limite]
+	o += "| medida | média | p95 | p99 | máx |\n|---|---|---|---|---|\n"
+	o += "| CPU do jogo (lógica + desenho) ms | %.2f | %.2f | %.2f | %.2f |\n" % [media.call(cpus), _pct(cpus, 0.95), _pct(cpus, 0.99), _pct(cpus, 1.0)]
+	o += "| render (CPU) ms | %.2f | %.2f | %.2f | %.2f |\n" % [media.call(rend), _pct(rend, 0.95), _pct(rend, 0.99), _pct(rend, 1.0)]
+	o += "| quadro real ms (xvfb, GL por software) | %.2f | %.2f | %.2f | %.2f |\n" % [media.call(reais), _pct(reais, 0.95), _pct(reais, 0.99), _pct(reais, 1.0)]
+	var dc := q.map(func(x): return float(x["draw_calls"]))
+	var nos := q.map(func(x): return float(x["nos"]))
+	var co := q.map(func(x): return float(x["coisas"]))
+	o += "| chamadas de desenho | %.0f | %.0f | %.0f | %.0f |\n" % [media.call(dc), _pct(dc, 0.95), _pct(dc, 0.99), _pct(dc, 1.0)]
+	o += "| nós | %.0f | | | %.0f |\n| coisas vivas (listas de engenhocas/eventos/mecanismos) | %.0f | | | %.0f |\n\n" % [media.call(nos), _pct(nos, 1.0), media.call(co), _pct(co, 1.0)]
+	var acima := q.filter(func(x): return float(x["cpu"]) > limite).size()
+	o += "**Quadros acima do pico tolerado: %d (%.1f%%)**\n\n" % [acima, 100.0 * acima / maxf(q.size(), 1)]
+	# por sistema
+	var sist := {}
+	for x in q:
+		for k in x["sis"]:
+			if not sist.has(k):
+				sist[k] = []
+			sist[k].append(float(x["sis"][k]))
+	var nomes := sist.keys()
+	nomes.sort_custom(func(a, b): return media.call(sist[a]) > media.call(sist[b]))
+	o += "## Por sistema (ms por quadro)\n| sistema | média | p99 | máx |\n|---|---|---|---|\n"
+	for k in nomes:
+		o += "| %s%s | %.3f | %.3f | %.3f |\n" % [k, " (dentro de demo_total)" if k in PERF_FILHOS else "", media.call(sist[k]), _pct(sist[k], 0.99), _pct(sist[k], 1.0)]
+	# por contexto
+	var base := q.filter(func(x): return x["tags"].is_empty()).map(func(x): return float(x["cpu"]))
+	var mb: float = media.call(base)
+	var por := {}
+	for x in q:
+		for tg in x["tags"]:
+			if not por.has(tg):
+				por[tg] = []
+			por[tg].append(float(x["cpu"]))
+	var tgs := por.keys()
+	tgs.sort_custom(func(a, b): return media.call(por[a]) > media.call(por[b]))
+	o += "\n## Por contexto (CPU média quando ativo; base sem nada ativo = %.2f ms)\n| contexto | quadros | média | máx | a mais que a base |\n|---|---|---|---|---|\n" % mb
+	for tg in tgs:
+		o += "| %s | %d | %.2f | %.2f | %+.2f |\n" % [tg, por[tg].size(), media.call(por[tg]), _pct(por[tg], 1.0), media.call(por[tg]) - mb]
+	# picos
+	var picos := q.duplicate()
+	picos.sort_custom(func(a, b): return float(a["cpu"]) > float(b["cpu"]))
+	o += "\n## 15 piores quadros\n| quadro | s | CPU | 3 sistemas mais caros | contexto |\n|---|---|---|---|---|\n"
+	for x in picos.slice(0, 15):
+		var ks: Array = x["sis"].keys().filter(func(k): return not k in PERF_FILHOS or true)
+		ks.sort_custom(func(a, b): return float(x["sis"][a]) > float(x["sis"][b]))
+		var top := ", ".join(ks.slice(0, 3).map(func(k): return "%s %.1f" % [k, float(x["sis"][k])]))
+		o += "| %d | %.1f | %.2f | %s | %s |\n" % [int(x["f"]), int(x["f"]) / 60.0, float(x["cpu"]), top, " ".join(x["tags"])]
+	return o

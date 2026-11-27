@@ -324,7 +324,12 @@ func _physics_process(dt: float) -> void:
 			demo.update(dt)
 			perf_acc["bots"] = perf_acc.get("bots", 0.0) + (t1 - t0) / 1000.0
 			perf_acc["demo"] = perf_acc.get("demo", 0.0) + (Time.get_ticks_usec() - t1) / 1000.0
+			if Perf.on:
+				Perf.acc["bots"] = float(Perf.acc.get("bots", 0.0)) + (t1 - t0) / 1000.0
+				Perf.add("demo_total", t1)
+			var t2 := Time.get_ticks_usec()
 			_run_update(dt)
+			Perf.add("partida", t2)
 		S.SCORE:
 			timer -= dt
 			if timer <= 0.0:
@@ -1014,6 +1019,11 @@ func _aquece_texturas() -> void:
 			n += 1
 
 func _draw_overlay() -> void:
+	var _pf := Perf.t0()
+	_draw_overlay_perf()
+	Perf.add("draw_overlay", _pf)
+
+func _draw_overlay_perf() -> void:
 	if aquecer > 0:
 		aquecer -= 1
 		_aquece_texturas()

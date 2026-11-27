@@ -498,6 +498,11 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_mecanismos", _pf)
+
+func _draw_perf() -> void:
 	var v: Rect2 = main.view_rect().grow(300)
 	for inst in list:
 		if not _on(inst):

@@ -27,6 +27,11 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, radius, bg)
 
 func _draw_robo() -> void:
+	var _pf := Perf.t0()
+	_draw_robo_perf()
+	Perf.add("draw_retratos", _pf)
+
+func _draw_robo_perf() -> void:
 	if look.is_empty() or Data.robot_meta.is_empty():
 		return
 	var g: Dictionary = Data.model_meta(look["model"])

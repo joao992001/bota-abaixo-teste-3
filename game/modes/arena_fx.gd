@@ -603,6 +603,11 @@ func _ball_step(_dt: float) -> void:
 	ball["vel"] = Vector2(cos(ang), -sin(ang)) * w * float(ball["len"])
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_arena_fx", _pf)
+
+func _draw_perf() -> void:
 	if level == null or not is_instance_valid(level):
 		return
 	_draw_machines()

@@ -33,6 +33,11 @@ func _ready() -> void:
 			c.call(_over))
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("hud", _pf)
+
+func _process_perf(dt: float) -> void:
 	t += dt
 	_banner_age += dt
 	var et = _etapas()
@@ -127,6 +132,11 @@ func fit_text(pos: Vector2, s: String, size: int, col: Color, w: float, outline 
 	Kit.text(self, pos, s, sz, col, align, w, outline)
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_hud", _pf)
+
+func _draw_perf() -> void:
 	_heads_used = 0
 	_over_cmds.clear()
 	_draw_all()
@@ -151,12 +161,14 @@ func _draw_all() -> void:
 		S.WIN: _draw_win()
 	if not main.paused and main.state == S.RUN:
 		_draw_tags()
+	var _pt := Perf.t0()
 	for fl in main.floaters:
 		var k: float = fl["t"] / 1.2
 		var c: Color = fl["color"]
 		c.a = 1.0 - k * k
 		var p: Vector2 = main.to_screen(fl["pos"]) + Vector2(-260, -k * 60)
 		Kit.text(self, p, fl["text"], 40, c, HORIZONTAL_ALIGNMENT_CENTER, 520, 10, Color(Kit.INK, c.a))
+	Perf.add("hud_textos", _pt)
 	if main.sandbox and not main.paused:
 		main.tester().draw(self)
 	if main.paused:
@@ -170,15 +182,21 @@ func _draw_tags() -> void:
 	var S = main.S
 	var n: int = main.players.size()
 	var xs: Array = card_slots(n)
+	var _pc := Perf.t0()
 	for i in n:
 		_card(i, Rect2(xs[i], CARD_Y, CARD_W, CARD_H))
+	Perf.add("hud_cartoes", _pc)
+	_pc = Perf.t0()
 	# topo, no meio: manômetro da cena no Derruba com cenas (substitui o "RODADA", A6); nos outros, o título da rodada
 	if _etapas() != null:
 		draw_gauge(Vector2(960, 62), 52, gauge_v, gauge_kick)
 	else:
 		Kit.title(self, Vector2(0, 42), "RODADA %d" % main.round_no, 34)
+	Perf.add("hud_manometro", _pc)
+	_pc = Perf.t0()
 	if main.mode == "demolicao" and main.state == S.RUN:
 		_draw_event_note()
+	Perf.add("hud_aviso_evento", _pc)
 	# avisos de derrubada (embaixo dos cartões da direita)
 	if main.mode == "demolicao":
 		var fy := CARD_Y + CARD_H + 44.0

@@ -138,6 +138,11 @@ func f(key: String) -> float:
 	return float(c[key])
 
 func _physics_process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_physics_process_perf(dt)
+	Perf.add("fisica_robos", _pf)
+
+func _physics_process_perf(dt: float) -> void:
 	if main.paused:
 		return
 	if not alive:

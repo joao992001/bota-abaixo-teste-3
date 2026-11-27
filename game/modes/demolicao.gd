@@ -222,13 +222,19 @@ func update(dt: float) -> void:
 	if main.countdown <= 0.0:
 		luta_t += dt
 	_update_fx(dt)
+	var _pf := Perf.t0()
 	main.events.update(dt)
+	Perf.add("eventos", _pf)
+	_pf = Perf.t0()
 	if etapas != null and is_instance_valid(etapas):
 		etapas.update(dt)   # depois dos eventos: a queda mexe na gravidade do quadro
 	if mecs != null and is_instance_valid(mecs):
 		mecs.update(dt)
+	Perf.add("etapas_mecanismos", _pf)
+	_pf = Perf.t0()
 	if fx != null and is_instance_valid(fx):
 		fx.update(dt, main.countdown <= 0.0)
+	Perf.add("arena_fx", _pf)
 	if not go_played and main.countdown <= 0.6:
 		go_played = true
 		Audio.play("vai")
@@ -244,7 +250,9 @@ func update(dt: float) -> void:
 	t += dt
 	var lv = main.level
 	var alive: Array = main.robots.filter(func(r): return r.alive)
+	_pf = Perf.t0()
 	spells.update(dt, alive)
+	Perf.add("engenhocas", _pf)
 	# pisão na cabeça (o capacete bloqueia)
 	for r in alive:
 		r.stomp_immune = maxf(r.stomp_immune - dt, 0.0)
@@ -397,6 +405,11 @@ func _update_fx(dt: float) -> void:
 		canvas.queue_redraw()
 
 func _draw_canvas() -> void:
+	var _pf := Perf.t0()
+	_draw_canvas_perf()
+	Perf.add("draw_demo", _pf)
+
+func _draw_canvas_perf() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if rule() == "rei":
 		var cp := crown_pos

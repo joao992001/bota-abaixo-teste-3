@@ -52,6 +52,11 @@ func setup(m: Node) -> void:
 	add_child(front)
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("cena", _pf)
+
+func _process_perf(dt: float) -> void:
 	if main == null or main.paused:
 		return
 	t += dt
@@ -105,6 +110,11 @@ func _view() -> Rect2:
 	return main.view_rect().grow(200)
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_cena", _pf)
+
+func _draw_perf() -> void:
 	var v := _view()
 	if v.intersects(a1):
 		_draw_e1()
@@ -266,6 +276,11 @@ func _draw_e2() -> void:
 		draw_set_transform(Vector2.ZERO)
 
 func _draw_front() -> void:
+	var _pf := Perf.t0()
+	_draw_front_perf()
+	Perf.add("draw_cena_frente", _pf)
+
+func _draw_front_perf() -> void:
 	var v := _view()
 	if v.intersects(a1):
 		var tx: Texture2D = tex.get("e1_frente")

@@ -1427,6 +1427,11 @@ const ICE := Color(0.74, 0.92, 1.0)
 const ICE_D := Color("#5aa9d6")
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_engenhocas", _pf)
+
+func _draw_perf() -> void:
 	for p in platforms:
 		_draw_scaffold(p)
 	_draw_boxes()
