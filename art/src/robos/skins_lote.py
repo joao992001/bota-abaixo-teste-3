@@ -269,7 +269,7 @@ def k8_torso(col, pose):
 
 
 def k8_lanca(g, ang, pose):
-    L = eu.LANCA_L + 4
+    L = eu.LANCA_L
     body = R(-6, -5, L + 6, 10, 1.5, "#f4f1ea", k=0.5)
     body += "".join(f'<path d="M{x},-4 L{x + 5},4 L{x + 10},-4" stroke="#d42035" stroke-width="2" fill="none"/>' for x in range(-4, L - 4, 10))
     body += R(-6, -6, L + 6, 2, 0.5, "#d42035", k=0.1) + R(-6, 4, L + 6, 2, 0.5, "#d42035", k=0.1)
@@ -828,5 +828,109 @@ def main():
         print(j["png"])
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and "--jogo" not in sys.argv:
     main()
+
+
+# ---------------------------------------------------------------- exportação para o jogo (mesmo esqueleto do elenco.py)
+# Cada skin troca, no CHARS do elenco.py, o desenho do tronco, da cabeça (base/rosto/acessório) e da ferramenta; o jogo
+# carrega tronco_/cabeca_/corpo_<robô>_<k#>_p<cor>, rosto_<robô>_<k#>_<expressão>, antena_<robô>_<k#>,
+# ferramenta_<robô>_<k#>, mao_<robô>_<k#> (luva) e pe_<robô>_<k#> (botina, sem tingir).
+def _marr_ferr(fn):
+    return lambda: fn((0, 0), 0, 1.0)[0]
+
+
+def _gen_parts(spec, weapon_kw):
+    def torso(c, e):
+        out = spec["torso"](c, {})
+        if spec.get("pre") is not None and spec is not None and spec.get("nome") == "SOLDA":
+            out = spec["pre"](c, {"hip": (0, 0), "lean": 0}) + out
+        return out
+
+    def head(c, e, L="all"):
+        import elenco as EL
+        return spec["head"](c, {"L": L, "face": EL._UCH_FACE.get(e, e or "foco")})
+
+    def tool():
+        return spec["weapon"]((0, 0), 0, dict(weapon_kw))[0]
+    return torso, head, tool
+
+
+def _glove_svg(cor):
+    return E(34, 32, 22, 21, cor, k=1.4, dark=shade(cor, -0.3))
+
+
+def _boot_svg(cor, sola, faixa=None):
+    o = S("M10,44 C8,18 30,10 52,12 C70,13 86,24 88,44 Z", cor, (6, 9, 90, 46), k=1.6, dark=shade(cor, -0.3))
+    if faixa:
+        o += R(22, 26, 52, 7, 3, faixa, k=0.8)
+    return o + R(6, 40, 84, 10, 4, sola, k=1.0)
+
+
+# (id, robô no jogo, fonte da skin, cor da luva, (botina, sola, faixa))
+EXPORT = [
+    ("k1", "marretao", ("marr", k1m.k1_tronco, k1m.k1_cabeca_L, k1m.k1_marreta), k1m.COURO, (k1m.BOTA, k1m.BOTA_D, None)),
+    ("k6", "marretao", ("marr", k6_tronco, k6_cabeca_L, k6_marreta), "#2f2f36", ("#2b2b31", YEL, "#f2e04b")),
+    ("k7", "marretao", ("marr", k7_tronco, k7_cabeca_L, k7_marreta), "#f2c84b", ("#5a4a3a", "#2a2a30", None)),
+    ("k2", "picareta", ("gen", dict(eu.GUINDA, head=k2_head, torso=k2_torso, weapon=k2_lanca), {"chain_L": 14}), "#f4f1ea", ("#7a4a28", "#3a2a20", None)),
+    ("k8", "picareta", ("gen", dict(eu.GUINDA, head=k8_head, torso=k8_torso, weapon=k8_lanca), {"chain_L": 14}), "#8f98a4", ("#3d434e", "#d42035", None)),
+    ("k9", "picareta", ("gen", dict(eu.GUINDA, head=k9_head, torso=k9_torso, weapon=k9_lanca), {"chain_L": 14}), "#f4f1ea", ("#f4f1ea", "#4f86d9", None)),
+    ("k3", "chave", ("gen", dict(eu.SOLDA, head=k3_head, torso=k3_torso, pre=k3_tanques, weapon=k3_chave), {}), "#8a5a2b", ("#4a2d18", "#2a2a30", None)),
+    ("k10", "chave", ("gen", dict(eu.SOLDA, head=k10_head, torso=k10_torso, pre=k10_bobina, weapon=k10_alicate), {}), "#f08a2b", ("#2b2b31", "#f2c84b", None)),
+    ("k11", "chave", ("gen", dict(eu.SOLDA, head=k11_head, torso=k11_torso, pre=k11_tanque, weapon=k11_chave), {}), "#6e5f48", ("#4a4f5c", "#2a2a30", None)),
+    ("k4", "britadeira", ("gen", dict(eu.BRITA, head=k4_head, torso=k4_torso, weapon=k4_britadeira), {}), "#8f887c", ("#f4f1ea", "#b9b2a6", None)),
+    ("k12", "britadeira", ("gen", dict(eu.BRITA, head=k12_head, torso=k12_torso, weapon=k12_sapo), {}), "#2a2a30", ("#2a2a30", "#f27a1f", None)),
+    ("k13", "britadeira", ("gen", dict(eu.BRITA, head=k13_head, torso=k13_torso, weapon=k13_perfuratriz), {}), "#8a5a2b", ("#2b2b31", "#5a3d2b", None)),
+    ("k5", "pa", ("gen", dict(eu.ESCAVA, head=k5_head, torso=k5_torso, weapon=k5_cacamba), {}), "#f2c84b", ("#3d434e", "#f2c84b", None)),
+    ("k14", "pa", ("gen", dict(eu.ESCAVA, head=k14_head, torso=k14_torso, weapon=k14_cacamba), {}), "#8a5a2b", ("#5a4a3a", FERRUGEM, None)),
+    ("k15", "pa", ("gen", dict(eu.ESCAVA, head=k15_head, torso=k15_torso, weapon=k15_pinca), {}), "#3a3f4a", ("#2a2a30", "#d42035", None)),
+]
+EXPORT_NOMES = {"k1": "Mestre de Obras", "k6": "Brigadista", "k7": "Sucateiro", "k2": "Topógrafo", "k8": "Grua Clássica", "k9": "Pintor",
+                "k3": "Soldador Caprichado", "k10": "Eletricista", "k11": "Mergulhador de Poço", "k4": "Concreteiro", "k12": "Asfaltador",
+                "k13": "Mineiro", "k5": "Operador nº 01", "k14": "Velho de Guerra", "k15": "Demolidora"}
+
+
+def exportar_jogo(so=None):
+    import elenco as EL
+    from svg import queue, render_all
+    out_dir = os.path.join(ROOT, "art/out/game/robo")
+    src = os.path.join(ROOT, "art/src/robos/svg/skins")
+    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(src, exist_ok=True)
+    for kid, cid, fonte, luva, (bota_c, sola, faixa) in EXPORT:
+        if so and kid not in so:
+            continue
+        ch = EL.CHARS[cid]
+        velho = {k: ch[k] for k in ("torso", "head", "tool")}
+        if fonte[0] == "marr":
+            _, tro, cab, mar = fonte
+            ch["torso"] = lambda c, e, tro=tro: tro(c, {})
+            ch["head"] = lambda c, e, L="all", cab=cab: cab(c, e, L)
+            ch["tool"] = _marr_ferr(mar)
+        else:
+            spec = dict(fonte[1])
+            ch["torso"], ch["head"], ch["tool"] = _gen_parts(spec, fonte[2])
+        seed = 40 + list(EL.CHARS).index(cid) * 3
+        nm = f"{cid}_{kid}"
+        for ci in range(4):
+            col = EL.COLORS[ci]
+            tor = f'<g transform="{EL._xf(cid)}">{ch["torso"](col, "")}</g>'
+            cab = f'<g transform="{EL._head_xf(cid)}">{ch["head"](col, "", "base")}</g>'
+            queue(EL._gwrap(tor + cab, seed), f"{src}/corpo_{nm}_p{ci + 1}.svg", f"{out_dir}/corpo_{nm}_p{ci + 1}.png", 128, 128, EL.K4)
+            queue(EL._gwrap(tor, seed), f"{src}/tronco_{nm}_p{ci + 1}.svg", f"{out_dir}/tronco_{nm}_p{ci + 1}.png", 128, 128, EL.K4)
+            queue(EL._gwrap(cab, seed), f"{src}/cabeca_{nm}_p{ci + 1}.svg", f"{out_dir}/cabeca_{nm}_p{ci + 1}.png", 128, 128, EL.K4)
+        for e in EL.GAME_EXPR:
+            face = f'<g transform="{EL._head_xf(cid)}">{ch["head"](EL.COLORS[0], e, "face")}</g>'
+            queue(EL._gwrap(face, seed + 1), f"{src}/rosto_{nm}_{e}.svg", f"{out_dir}/rosto_{nm}_{e}.png", 128, 128, EL.K4)
+        acc = f'<g transform="{EL._head_xf(cid)}">{ch["head"](EL.COLORS[0], "", "acc")}</g>'
+        queue(EL._gwrap(acc, seed + 2), f"{src}/antena_{nm}.svg", f"{out_dir}/antena_{nm}.png", 128, 128, EL.K4)
+        tbody, tsize, _, _, _ = EL._tool_export(cid)
+        queue(EL._gwrap(tbody, seed + 7, tsize[0], tsize[1]), f"{src}/ferramenta_{nm}.svg", f"{out_dir}/ferramenta_{nm}.png", tsize[0], tsize[1], EL.K4)
+        queue(EL._gwrap(_glove_svg(luva), seed + 9, 64, 64), f"{src}/mao_{nm}.svg", f"{out_dir}/mao_{nm}.png", 64, 64, 1)
+        queue(EL._gwrap(_boot_svg(bota_c, sola, faixa), seed + 10, 96, 56), f"{src}/pe_{nm}.svg", f"{out_dir}/pe_{nm}.png", 96, 56, 1)
+        ch.update(velho)
+    print("skins:", render_all())
+
+
+if __name__ == "__main__" and "--jogo" in sys.argv:
+    exportar_jogo([a.split("=", 1)[1] for a in sys.argv if a.startswith("--skins=")][0].split(",") if any(a.startswith("--skins=") for a in sys.argv) else None)

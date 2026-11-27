@@ -60,15 +60,51 @@
    "estado": "APROVADO_ARTE"
   },
   {
+   "id": "K6",
+   "robo": "marretao",
+   "nome": "Brigadista",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K7",
+   "robo": "marretao",
+   "nome": "Sucateiro",
+   "estado": "APROVADO_ARTE"
+  },
+  {
    "id": "K2",
    "robo": "picareta",
    "nome": "Topógrafo",
    "estado": "APROVADO_ARTE"
   },
   {
+   "id": "K8",
+   "robo": "picareta",
+   "nome": "Grua Clássica",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K9",
+   "robo": "picareta",
+   "nome": "Pintor",
+   "estado": "APROVADO_ARTE"
+  },
+  {
    "id": "K3",
    "robo": "chave",
-   "nome": "Soldador",
+   "nome": "Soldador Caprichado",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K10",
+   "robo": "chave",
+   "nome": "Eletricista",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K11",
+   "robo": "chave",
+   "nome": "Mergulhador de Poço",
    "estado": "APROVADO_ARTE"
   },
   {
@@ -78,9 +114,33 @@
    "estado": "APROVADO_ARTE"
   },
   {
+   "id": "K12",
+   "robo": "britadeira",
+   "nome": "Asfaltador",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K13",
+   "robo": "britadeira",
+   "nome": "Mineiro",
+   "estado": "APROVADO_ARTE"
+  },
+  {
    "id": "K5",
    "robo": "pa",
-   "nome": "Operador de Escavadeira",
+   "nome": "Operador nº 01",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K14",
+   "robo": "pa",
+   "nome": "Velho de Guerra",
+   "estado": "APROVADO_ARTE"
+  },
+  {
+   "id": "K15",
+   "robo": "pa",
+   "nome": "Demolidora",
    "estado": "APROVADO_ARTE"
   }
  ],

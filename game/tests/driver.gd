@@ -1974,9 +1974,20 @@ func skins_test() -> void:
 	await tap("v0", "jump")
 	await tap("v1", "jump")
 	main.players[0]["model"] = 0
-	check(main.skins_do_robo(0) == ["", "k1"] and main.skins_do_robo(4) == ["", "k5"], "Canteiro oferece 1 skin por robô (%s)" % str(main.skins_do_robo(0)))
+	check(main.skins_do_robo(0) == ["", "k1", "k6", "k7"] and main.skins_do_robo(4) == ["", "k5", "k14", "k15"], "Canteiro oferece 3 skins por robô (%s)" % str(main.skins_do_robo(0)))
+	var faltam := []
+	for m in 5:
+		for k in main.skins_do_robo(m).slice(1):
+			var mn: String = Data.MODELS[m]
+			for t in ["corpo_%s_%s_p1", "tronco_%s_%s_p4", "cabeca_%s_%s_p2", "rosto_%s_%s_normal", "antena_%s_%s", "ferramenta_%s_%s", "mao_%s_%s", "pe_%s_%s"]:
+				if Data.tex("robo/" + t % [mn, k]) == null:
+					faltam.append(t % [mn, k])
+	check(faltam.is_empty(), "as 15 skins têm todas as camadas (corpo, tronco, cabeça, rosto, acessório, ferramenta, luva, botina) %s" % str(faltam.slice(0, 4)))
 	await tap("v0", "hammer")
 	check(main.players[0]["skin"] == "k1" and main.skin_nome(0, "k1") == "MESTRE DE OBRAS", "X/□ veste a skin do mapa (Mestre de Obras)")
+	await tap("v0", "hammer")
+	await tap("v0", "hammer")
+	check(main.players[0]["skin"] == "k7" and main.skin_nome(0, "k7") == "SUCATEIRO", "X/□ de novo passa pelas outras (Brigadista → Sucateiro)")
 	await tap("v0", "hammer")
 	check(main.players[0]["skin"] == "", "...e volta ao padrão")
 	await tap("v0", "hammer")
@@ -4295,11 +4306,21 @@ func combate_frames(dir: String) -> void:
 ## pesada num boneco, esquiva no chão, pulo + esquiva no ar. 1 quadro a cada 2 (30/s).
 ## Vitrines com --skins: cada robô veste a skin do mapa (manifesto → skins_originadas). Só para capturas (sem menu).
 func _vestir_skins() -> void:
-	if not "--skins" in OS.get_cmdline_user_args():
+	var qual := -1   # --skins = 1ª skin de cada robô; --skins=N = a N-ésima (0, 1, 2)
+	for a0 in OS.get_cmdline_user_args():
+		if a0 == "--skins":
+			qual = 0
+		elif a0.begins_with("--skins="):
+			qual = int(a0.substr(8))
+	if qual < 0:
 		return
 	var por := {}
+	var n := {}
 	for k in MapaReg.manifesto("derruba", "canteiro_obras").get("skins_originadas", []):
-		por[String(k["robo"])] = String(k["id"]).to_lower()
+		var rb := String(k["robo"])
+		if int(n.get(rb, 0)) == qual:
+			por[rb] = String(k["id"]).to_lower()
+		n[rb] = int(n.get(rb, 0)) + 1
 	for r in main.robots:
 		r.vis.skin = por.get(Data.MODELS[posmod(r.vis.model, Data.MODELS.size())], "")
 

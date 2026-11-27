@@ -26,17 +26,22 @@ Regra: fantasia completa (forma e material), cor do jogador no capacete/cabine e
 | Id | Robô | Skin | Estado |
 |---|---|---|---|
 | K1 | Marretão | Mestre de Obras (capacete de aba total com lanterna, bigodão, colete refletivo, marreta vermelha com nível) | APROVADO — arte (2026-11-27) |
-| K6 | Marretão | Brigadista (capacete de bombeiro, japona areia, machado-marreta) | PROPOSTA |
-| K7 | Marretão | Sucateiro (balde de capacete, tambor de óleo, pneu de cinto, marreta de entulho) | PROPOSTA |
-| K2 | Guindaste | Topógrafo (chapéu com nuca, olho de teodolito, colete limão, baliza) | PROPOSTA |
-| K8 | Guindaste | Grua Clássica (cabeça = cabine com contrapeso, treliça vermelha/branca) | PROPOSTA |
-| K9 | Guindaste | Pintor (chapéu de jornal, jardineira respingada, rolo + lata) | PROPOSTA |
-| K3 | Solda | Soldador Caprichado (máscara na cor com chamas, avental tachado, chave de cobre) | PROPOSTA |
-| K10 | Solda | Eletricista (capacete com raio, protetor facial, bobina, alicate) | PROPOSTA |
-| K11 | Solda | Mergulhador de Poço (escafandro com latão, tanque amarelo, chave de bronze) | PROPOSTA |
-| K4 | Brita | Concreteiro (cimento escorrendo, máscara de pó, britadeira suja) | PROPOSTA |
-| K12 | Brita | Asfaltador (asfalto, chaminé, colete, compactador "sapo") | PROPOSTA |
-| K13 | Brita | Mineiro (barril de madeira, capacete com farol, xadrez, perfuratriz) | PROPOSTA |
-| K5 | Escavadeira | Operador nº 01 (santo-antônio com giroflex, zebrado, placa 01) | PROPOSTA |
-| K14 | Escavadeira | Velho de Guerra (ferrugem, remendos, fumaça preta) | PROPOSTA |
-| K15 | Escavadeira | Demolidora (grade na tela, placas, pinça hidráulica) | PROPOSTA |
+| K6 | Marretão | Brigadista (capacete de bombeiro, japona areia, machado-marreta) | APROVADO — arte (2026-11-27) |
+| K7 | Marretão | Sucateiro (balde de capacete, tambor de óleo, pneu de cinto, marreta de entulho) | APROVADO — arte (2026-11-27) |
+| K2 | Guindaste | Topógrafo (chapéu com nuca, olho de teodolito, colete limão, baliza) | APROVADO — arte (2026-11-27) |
+| K8 | Guindaste | Grua Clássica (cabeça = cabine com contrapeso, treliça vermelha/branca) | APROVADO — arte (2026-11-27) |
+| K9 | Guindaste | Pintor (chapéu de jornal, jardineira respingada, rolo + lata) | APROVADO — arte (2026-11-27) |
+| K3 | Solda | Soldador Caprichado (máscara na cor com chamas, avental tachado, chave de cobre) | APROVADO — arte (2026-11-27) |
+| K10 | Solda | Eletricista (capacete com raio, protetor facial, bobina, alicate) | APROVADO — arte (2026-11-27) |
+| K11 | Solda | Mergulhador de Poço (escafandro com latão, tanque amarelo, chave de bronze) | APROVADO — arte (2026-11-27) |
+| K4 | Brita | Concreteiro (cimento escorrendo, máscara de pó, britadeira suja) | APROVADO — arte (2026-11-27) |
+| K12 | Brita | Asfaltador (asfalto, chaminé, colete, compactador "sapo") | APROVADO — arte (2026-11-27) |
+| K13 | Brita | Mineiro (barril de madeira, capacete com farol, xadrez, perfuratriz) | APROVADO — arte (2026-11-27) |
+| K5 | Escavadeira | Operador nº 01 (santo-antônio com giroflex, zebrado, placa 01) | APROVADO — arte (2026-11-27) |
+| K14 | Escavadeira | Velho de Guerra (ferrugem, remendos, fumaça preta) | APROVADO — arte (2026-11-27) |
+| K15 | Escavadeira | Demolidora (grade na tela, placas, pinça hidráulica) | APROVADO — arte (2026-11-27) |
+
+**Todas as 15 APROVADAS (2026-11-27) e no jogo:** `python3 art/src/robos/skins_lote.py --jogo` gera, por skin,
+`corpo_/tronco_/cabeca_<robô>_<k#>_p1..4`, `rosto_<robô>_<k#>_<expr>`, `antena_<robô>_<k#>`, `ferramenta_<robô>_<k#>`,
+`mao_<robô>_<k#>` e `pe_<robô>_<k#>` → copiar para `game/assets/robo/` → `--import`. A cabeça da skin também balança com mola.
+Na entrada, X/□ passa pelas 3 skins do robô e volta ao padrão. Vitrine: `--elenco=DIR --skins=0|1|2`.

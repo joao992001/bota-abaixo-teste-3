@@ -1315,7 +1315,8 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if armor:   # costas da armadura (tanque + chaminé) atrás do corpo
 		_armor_piece(ci, base * bx, aspec["back"], asm, aw + Vector2(-5, 0), sf, asx)
 	# pernas + botas (grossura, dobra do joelho e bota de cada robô)
-	var foot := Data.tex("robo/pe")
+	var foot_sk: Texture2D = Data.tex("robo/pe_" + mname + sk) if sk != "" else null   # botina da skin (já pintada)
+	var foot: Texture2D = foot_sk if foot_sk != null else Data.tex("robo/pe")
 	var legw := float(g.get("leg_w", lw)) * (1.0 + 0.9 * asm)
 	var foot_s := float(g.get("foot_s", 1.0))
 	for i in 2:
@@ -1334,7 +1335,8 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			ci.draw_circle(wc, 2.4, Color("#f2c84b"))
 		else:
 			ci.draw_set_transform_matrix(base * Transform2D(0.0, q * (0.72 + 0.2 * asm) * foot_s, 0.0, fp + Vector2(s * 1.5, 0.5)))
-			ci.draw_texture(foot, -Vector2(12, 7) * 4.0, limb.darkened(0.12) if i == 0 else limb)
+			var fmod: Color = (limb.darkened(0.12) if i == 0 else limb) if foot_sk == null else (Color(0.82, 0.82, 0.86) if i == 0 else Color.WHITE)
+			ci.draw_texture(foot, -Vector2(12, 7) * 4.0, fmod)
 	# jato do propulsor saindo dos pés (pulo duplo)
 	var jet := float(pose.get("jet", 0.0))
 	if jet > 0.01:
@@ -1349,8 +1351,8 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	# corpo + rosto + antena (mola)
 	ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, q, 0.0, -ORIGIN))
 	# A48: tronco e cabeça separados — a cabeça gira em volta do pescoço com ATRASO (mola), como nas animações aprovadas
-	var tor_t: Texture2D = Data.tex("robo/tronco_%s_p%d" % [mname, col_idx + 1]) if sk == "" else null
-	var cab_t: Texture2D = Data.tex("robo/cabeca_%s_p%d" % [mname, col_idx + 1]) if sk == "" else null
+	var tor_t: Texture2D = Data.tex("robo/tronco_%s%s_p%d" % [mname, sk, col_idx + 1])   # skin: as mesmas camadas (cabeça com mola)
+	var cab_t: Texture2D = Data.tex("robo/cabeca_%s%s_p%d" % [mname, sk, col_idx + 1])
 	var split: bool = tor_t != null and cab_t != null and g.has("neck")
 	ci.draw_texture(tor_t if split else body, Vector2.ZERO)
 	var dl: int = lk.get("dmg", 0)
@@ -1364,7 +1366,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		var hd: Vector2 = pose.get("head_d", Vector2.ZERO)
 		ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, hd) * Transform2D(ha, nk) * Transform2D(0.0, q, 0.0, -nk - ORIGIN))
 		ci.draw_texture(cab_t, Vector2.ZERO)
-	ci.draw_texture(Data.tex("robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
+	ci.draw_texture(_tex_sk("robo/rosto_%s%s_%s" % [mname, sk, pose["expr"]], "robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
 	if dl >= 3:
 		# plaquinha solta pendurada por um parafuso, balançando
 		var hinge := (_v(sh[1]) + _v(hips[1])) / 2.0 + Vector2(-2, -4)
@@ -1397,7 +1399,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		var nk2 := _v(g["neck"])
 		hxf = Transform2D(0.0, pose.get("head_d", Vector2.ZERO)) * Transform2D(float(pose.get("head_a", 0.0)), nk2) * Transform2D(0.0, -nk2)
 	ci.draw_set_transform_matrix(base * bx * hxf * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
-	ci.draw_texture(Data.tex("robo/antena_" + mname), Vector2.ZERO)
+	ci.draw_texture(_tex_sk("robo/antena_" + mname + sk, "robo/antena_" + mname), Vector2.ZERO)
 	var tnow := Time.get_ticks_msec() / 1000.0
 	if lk.get("hammer", true) and tool == "" and not armor:
 		var seis: bool = sf.get("spell", "") == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or (float(sf.get("fire", -1.0)) >= 0.0 and float(sf.get("fire", -1.0)) < 0.55))
@@ -1425,7 +1427,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		else:
 			ci.draw_rect(Rect2(eye + drop - Vector2(13, 8), Vector2(26, 16)), Color("#2b3d4f") if win == "rect" else Color("#1d3a22"))
 		ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, q, 0.0, -ORIGIN + (aw - eye_real) * asm + drop))   # rosto na vigia
-		ci.draw_texture(Data.tex("robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
+		ci.draw_texture(_tex_sk("robo/rosto_%s%s_%s" % [mname, sk, pose["expr"]], "robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
 		ci.draw_set_transform_matrix(base * bx)
 		var ring := Color(aspec["ring"])
 		match win:
@@ -1514,7 +1516,8 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if gd > 0.0:
 		ci.draw_set_transform_matrix(base)
 		ci.draw_arc(PIVOT, 46.0, 0, TAU, 32, Color(1, 1, 1, 0.45 * gd), 3.0, true)
-	var hand := Data.tex("robo/mao")
+	var hand_sk: Texture2D = Data.tex("robo/mao_" + mname + sk) if sk != "" else null   # luva da skin
+	var hand: Texture2D = hand_sk if hand_sk != null else Data.tex("robo/mao")
 	for p in [hb, hf]:
 		ci.draw_set_transform_matrix(base * Transform2D(0.0, hand_q, 0.0, p))
 		ci.draw_texture(hand, -Vector2(8, 8) * 4.0)
@@ -2021,6 +2024,10 @@ static func _sk(lk: Dictionary, mname: String) -> String:
 	if k == "" or Data.tex("robo/corpo_%s_%s_p1" % [mname, k]) == null:
 		return ""
 	return "_" + k
+
+static func _tex_sk(com_skin: String, padrao: String) -> Texture2D:
+	var t: Texture2D = Data.tex(com_skin)
+	return t if t != null else Data.tex(padrao)
 
 static func _v(a: Array) -> Vector2:
 	return Vector2(float(a[0]), float(a[1])) - ORIGIN
