@@ -128,6 +128,143 @@ def A_pesado():
     return "SOLDA · GOLPE PESADO (esquenta a chave e desce)", 2.1, k, fx, None
 
 
+def A_duplo():
+    air = dict(feet=[(-11, -8), (10, -6)], tool=(16, -24, -70))
+    tuck = dict(feet=[(-4, -14), (4, -12)], tool=(10, -22, -100), hip=(0, -24))
+    k = [(0.0, P(**{**BASE, "oy": -14, **air})), (0.08, P(**{**BASE, "oy": -18, "sq": (1, 1.08), "feet": [(-3, -1), (4, 1)], "tool": (16, -24, -70)})),
+         (0.38, P(**{**BASE, "oy": -30, "rot": 360, "face": "raiva", **tuck})), (0.52, P(**{**BASE, "oy": -30, "rot": 360, **air})),
+         (0.9, P(**{**BASE, "oy": 0, "rot": 360})), (0.96, P(**{**BASE, "rot": 360, "hip": (0, -15), "sq": (1.1, 0.78)})), (1.25, P(**{**BASE, "rot": 360}))]
+
+    def fx(t, p):
+        x, y = bico(p)
+        if 0.06 < t < 0.3:   # o maçarico dispara para o 2º pulo
+            u = (t - 0.06) / 0.24
+            return f'<path d="M{x},{y} l-7,{16 + 12 * u:.0f} l7,-5 l7,5 Z" fill="#ff8a2a" opacity="{1 - u:.2f}"/>' + fumaca(x, y + 12, t, 4)
+        return ab.fx_dust(0, 0, (t - 0.96) / 0.25, 1.2) if 0.96 < t < 1.21 else ""
+    return "SOLDA · PULO DUPLO (jato do maçarico)", 1.25, k, fx, None
+
+
+def A_parede():
+    wall = dict(lean=-2, head=10, feet=[(-12, -6), (-2, -1)], tool=(16, -22, -60), face="foco")
+    k = [(0.0, P(**{**BASE, "ox": -26, "oy": -40, **wall})), (0.9, P(**{**BASE, "ox": -26, "oy": -12, **wall})),
+         (1.0, P(**{**BASE, "ox": -24, "oy": -14, "hip": (0, -16), "sq": (1.1, 0.78), "lean": -8, "feet": [(-11, -2), (-6, 0)], "tool": (16, -22, -60)})),
+         (1.4, P(**{**BASE, "ox": 46, "oy": -46, "lean": 18, "feet": [(-11, -8), (10, -6)], "tool": (16, -24, -70), "face": "raiva"}))]
+
+    def fx(t, p):
+        o = '<rect x="-78" y="-200" width="34" height="210" fill="#d9a35f"/><rect x="-50" y="-200" width="6" height="210" fill="#b57a3e"/>'
+        if t < 0.9:   # as botas raspam a parede soltando faísca
+            o += faiscas(-44, p["oy"] - 2, t, 3, 0.9)
+        return o
+    return "SOLDA · PAREDE (raspa faiscando · salta)", 1.4, k, fx, None
+
+
+def A_borda():
+    hang = dict(hip=(0, -22), lean=0, head=-8, feet=[(-3, -4), (4, -1)], tool=(18, -44, -20), bk=(-2, -46), face="susto")
+    k = [(0.0, P(**{**BASE, "oy": 4, **hang})), (0.5, P(**{**BASE, "oy": 4, **{**hang, "feet": [(-8, -1), (8, -6)]}})), (0.9, P(**{**BASE, "oy": 4, **hang})),
+         (1.2, P(**{**BASE, "ox": 10, "oy": -36, "lean": 24, "feet": [(-4, -10), (10, -2)], "tool": (16, -22, -50), "face": "raiva", "sq": (1.04, 0.9)})),
+         (1.6, P(**{**BASE, "ox": 34, "oy": -40}))]
+
+    def fx(t, p):
+        return '<rect x="22" y="-40" width="210" height="44" fill="#cfc6b4"/><rect x="22" y="-40" width="210" height="8" fill="#e8e0d0"/>'
+    return "SOLDA · BORDA (engancha a chave · sobe)", 1.6, k, fx, None
+
+
+def A_esquiva():
+    low = P(**{**BASE, "hip": (0, -15), "lean": -12, "head": 12, "sq": (1.1, 0.82), "tool": (12, -20, -80), "face": "susto"})
+    k = [(0.0, BASE), (0.05, low), (0.2, P(**{**low, "ox": -48})), (0.42, P(**{**BASE, "ox": -48})), (0.8, P(**{**BASE, "ox": 0}))]
+    return "SOLDA · ESQUIVA", 0.8, k, None, "fantasma"
+
+
+def A_cima():
+    k = [(0.0, BASE), (0.08, P(**{**BASE, "hip": (0, -17), "sq": (1.06, 0.86), "tool": (14, -14, 40)})),
+         (0.16, P(**{**BASE, "lean": -6, "head": -12, "hip": (0, -24), "tool": (12, -40, -95), "face": "raiva", "sq": (1, 1.08)})),
+         (0.45, P(**{**BASE, "lean": -4, "head": -10, "tool": (12, -38, -100)})), (0.8, BASE)]
+
+    def fx(t, p):
+        if 0.12 < t < 0.24:
+            return ab.smear(p["tool"][:2], 40, -95, 18, 44)
+        return faiscas(14, -84, t, 5, 1.2) + ab.fx_estrela(14, -84, (t - 0.16) / 0.28, 10) if 0.16 < t < 0.44 else ""
+    return "SOLDA · GOLPE LEVE PARA CIMA", 0.8, k, fx, None
+
+
+def A_baixo():
+    air = dict(oy=-44, feet=[(-10, -9), (9, -6)])
+    k = [(0.0, P(**{**BASE, **air, "tool": (10, -34, -110), "face": "raiva"})), (0.1, P(**{**BASE, **air, "tool": (14, -14, 88), "face": "raiva", "lean": 26})),
+         (0.42, P(**{**BASE, "oy": 0, "tool": (14, -14, 88), "lean": 26, "hip": (0, -16), "sq": (1.1, 0.8), "face": "raiva"})), (0.9, BASE)]
+
+    def fx(t, p):
+        return (ab.fx_onda(18, 0, (t - 0.42) / 0.35) + faiscas(18, -4, t, 6, 1.4)) if 0.42 < t < 0.77 else ""
+    return "SOLDA · GOLPE LEVE PARA BAIXO (no ar)", 0.9, k, fx, None
+
+
+def A_leva():
+    hit = P(**{**BASE, "lean": -10, "head": 22, "sq": (1, 1.08), "ox": -12, "feet": [(-14, -2), (8, 0)], "tool": (6, -18, -160), "face": "dor"})
+    k = [(0.0, BASE), (0.06, hit), (0.35, P(**{**hit, "ox": -20})), (0.9, P(**{**BASE, "ox": 0}))]
+
+    def fx(t, p):
+        x, y = bico(p)
+        return (ab.fx_estrela(10, -46, (t - 0.04) / 0.25, 11) + fumaca(x, y, t, 4)) if 0.04 < t < 0.5 else ""
+    return "SOLDA · LEVA GOLPE (o tanque solta fumaça)", 0.9, k, fx, None
+
+
+def A_arremessado():
+    fly = dict(feet=[(-12, -8), (-2, -14)], tool=(4, -30, -150), face="susto")
+    k = [(0.0, BASE), (0.05, P(**{**BASE, "oy": -6, **fly})), (0.5, P(**{**BASE, "ox": -54, "oy": -40, "rot": -340, **fly})),
+         (0.92, P(**{**BASE, "ox": -84, "oy": -12, "rot": -660, **fly})), (1.02, P(**{**BASE, "ox": -87, "oy": -8, "rot": -720, "feet": [(-11, -4), (10, -2)]})),
+         (1.12, P(**{**BASE, "ox": -90, "oy": 0, "rot": -720, "hip": (0, -15), "sq": (1.12, 0.76)})), (1.6, P(**{**BASE, "ox": -92, "rot": -720}))]
+
+    def fx(t, p):
+        if t < 0.9:   # rastro de fumaça dos tanques enquanto voa
+            return f'<g transform="translate({p["ox"] + 26:.0f},{p["oy"] - 34:.0f})">{ab.fx_lines(0, 0, 3, 24, 1)}</g>' + fumaca(p["ox"] + 10, p["oy"] - 30, t, 5)
+        return ab.fx_dust(p["ox"], 0, (t - 1.12) / 0.25, 1.2) if 1.12 < t < 1.37 else ""
+    return "SOLDA · ARREMESSADO (rastro de fumaça)", 1.6, k, fx, "desloca"
+
+
+def A_engenhoca():
+    k = [(0.0, BASE), (0.12, P(**{**BASE, "bk": (16, -36), "lean": 12, "face": "raiva"})), (0.6, P(**{**BASE, "bk": (17, -35), "lean": 12, "face": "raiva"})), (1.0, BASE)]
+
+    def fx(t, p):
+        if 0.12 < t < 0.6:
+            kk = (t - 0.12) / 0.48
+            return (f'<rect x="14" y="-46" width="10" height="13" rx="3" fill="#3a3f4a"/><circle cx="19" cy="-49" r="2.6" fill="#d42035"/>'
+                    + ab.fx_estrela(19, -54, kk, 12) + f'<circle cx="19" cy="-40" r="{8 + kk * 46:.0f}" fill="none" stroke="#ffe27a" stroke-width="3" opacity="{1 - kk:.2f}"/>')
+        return ""
+    return "SOLDA · USAR ENGENHOCA", 1.0, k, fx, None
+
+
+def A_vitoria():
+    up = P(**{**BASE, "lean": 0, "head": -6, "tool": (18, -40, -70), "face": "vitoria"})
+    k = [(0.0, up), (0.45, P(**{**up, "lean": 6, "sirene": 1.0})), (0.9, P(**{**up, "lean": -2, "sirene": 0.3})), (1.35, P(**{**up, "lean": 6, "sirene": 1.0})), (1.8, up)]
+
+    def fx(t, p):
+        g, a = p["tool"][:2], math.radians(p["tool"][2])
+        hx, hy = g[0] + math.cos(a) * 34, g[1] + math.sin(a) * 34
+        return faiscas(hx, hy, t, 6, 1.3) + fumaca(hx, hy - 4, t, 2)
+    return "SOLDA · VITÓRIA (chave em brasa, faiscando)", 1.8, k, fx, None
+
+
+def A_eliminado():
+    k = [(0.0, P(**{**BASE, "face": "susto"})), (0.14, P(**{**BASE, "face": "eliminado", "sq": (1.1, 0.86)})),
+         (0.2, P(**{**BASE, "oculto": True})), (1.4, P(**{**BASE, "oculto": True}))]
+
+    def fx(t, p):
+        if t < 0.2:
+            return ""
+        u = (t - 0.2) / 1.2
+        o = ""
+        if u < 0.35:
+            r = 20 + 60 * u
+            o += f'<circle cx="0" cy="-30" r="{r:.0f}" fill="#ffd27a" opacity="{1 - u / 0.35:.2f}"/><circle cx="0" cy="-30" r="{r * 0.6:.0f}" fill="#ffffff" opacity="{1 - u / 0.35:.2f}"/>'
+        pecas = [(-60, -160, 400, eu.solda_head(COL, {"face": "eliminado"})), (50, -120, -500, eu.solda_torso(COL, {})),
+                 (-30, -140, 600, eu.R(-8, -14, 8, 22, 4, "#d9482b", k=0.5)), (70, -80, -800, eu.chave((0, 0), 0, {})[0])]
+        for vx, vy, spin, svg in pecas:
+            x = vx * u * 1.6
+            y = -30 + vy * u * 1.6 + 260 * u * u
+            o += f'<g transform="translate({x:.1f},{y:.1f}) rotate({spin * u:.0f}) scale(0.9)">{svg}</g>'
+        return o + fumaca(0, -10, t, 5)
+    return "SOLDA · ELIMINADO (desmonta e fumega)", 1.4, k, fx, None
+
+
 def run(anims, saida, loops=()):
     ab.desenha = desenha
     ab.SC = 2.6
@@ -142,6 +279,9 @@ def run(anims, saida, loops=()):
 
 
 def main():
+    if "--resto" in sys.argv:
+        run([A_duplo, A_parede, A_borda, A_esquiva, A_cima, A_baixo, A_leva, A_arremessado, A_engenhoca, A_vitoria, A_eliminado], "solda_resto", loops=[A_vitoria])
+        return
     run([A_correr, A_pulo, A_leve, A_pesado], "solda_lote1", loops=[A_correr])
 
 
