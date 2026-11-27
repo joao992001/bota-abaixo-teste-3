@@ -475,6 +475,13 @@ func _grab_at(p: Vector2) -> bool:
 	for pl in platforms:
 		if pl["rect"].grow(4).has_point(p):
 			return true
+	var c17: Dictionary = sc("A06")   # coluna de concreto do Bate-Estaca (de pé)
+	for pl in piles:
+		if pl.get("done", false) and not pl.get("gone", false) and pl.get("shp") != null:
+			var hh: float = pl["shp"].size.y
+			var hw: float = float(c17["largura_tiles"]) * T / 2.0
+			if Rect2(pl["x"] - hw, pl["floor_y"] - hh, hw * 2.0, hh).grow(4).has_point(p):
+				return true
 	return false
 
 ## Segmento a→b encosta no retângulo (com folga rad)?
@@ -2934,22 +2941,25 @@ func _hook_auto(r, alcance: float) -> Vector2:
 	return best
 
 ## C03 chegou na garra: passa POR CIMA da plataforma/borda agarrada (topo livre na coluna da garra ou na beirada mais
-## perto, até 2,5 tiles para o lado). Sem topo livre: só o pulinho de antes.
+## perto, até 2,5 tiles para o lado). Sessão 6 (pedido do usuário): agarrou EMBAIXO/na quina de uma estrutura alta
+## (coluna, beirada de laje, parede) → o robô é jogado para CIMA dela (salva-vidas) — busca o topo até topo_tiles acima.
+## Sem topo livre: só o pulinho de antes.
 func _hook_finish(owner, an: Vector2) -> void:
 	owner.spell_lock = false
+	var kmax := int(float(sc("C03")["topo_tiles"]) * T / 8.0)
 	for dx in [0.0, 32.0, -32.0, 64.0, -64.0, 96.0, -96.0, 128.0, -128.0, 160.0, -160.0]:
 		var x: float = an.x + dx
 		var y: float = an.y
 		var k := 0
-		while k < 14 and _grab_at(Vector2(x, y - 2.0)):
+		while k < kmax and _grab_at(Vector2(x, y - 2.0)):
 			y -= 8.0
 			k += 1
-		if k == 0 or k >= 14:
+		if k == 0 or k >= kmax:
 			continue   # coluna sem estrutura ou alta demais
 		y = floor(y / 8.0) * 8.0 + 8.0
 		while _grab_at(Vector2(x, y - 1.0)):
 			y -= 1.0
-		if not _grab_at(Vector2(x, y - 40.0)) and not _grab_at(Vector2(x, y - 70.0)) and y > owner.position.y - 300.0:
+		if not _grab_at(Vector2(x, y - 40.0)) and not _grab_at(Vector2(x, y - 70.0)) and y > owner.position.y - float(sc("C03")["topo_tiles"]) * T - 80.0:
 			owner.climb_onto(Vector2(x, y - 1.0), 1 if x >= owner.position.x else -1)
 			Audio.play("parede", 1.1, -4.0)
 			return

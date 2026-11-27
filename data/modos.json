@@ -889,6 +889,8 @@
         "alcance_tiles": 12,
         "puxa_vel": 1250,
         "puxa_max_s": 0.7,
+        "topo_tiles": 4.5,
+        "nota_topo": "sessão 6: agarrou embaixo/na quina de estrutura alta → sobe por cima dela (busca o topo até topo_tiles)",
         "icone": "s08_gancho"
       },
       "C04": {

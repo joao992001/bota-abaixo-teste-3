@@ -2932,6 +2932,39 @@ func spells_test() -> void:
 	await frames(10)
 	var vx_cheio: float = absf(r1.own_vx)
 	check(vx_cheio > vx_toque * 1.8, "A01: carga cheia arremessa mais longe (toque %.0f × cheio %.0f)" % [vx_toque, vx_cheio])
+	# C03 (sessão 6): o gancho agarra a BASE de uma coluna alta → o robô vai para CIMA dela (salva-vidas)
+	place.call(9.0)
+	sp.clear(r0)
+	sp.equip(r0, "A06")
+	await frames(2)
+	var dx6 := 200.0   # lugar com espaço livre em cima da coluna (sem viga baixa)
+	for cand in [200.0, -200.0, 280.0, -280.0, 360.0, -360.0, 440.0, -440.0, 520.0, -520.0]:
+		var top_c: float = r0.position.y - float(sp.sc("A06")["coluna_tiles"]) * 64.0
+		if absf(sp._floor_below(r0.position.x + cand, r0.position.y - 128.0, 9) - r0.position.y) < 2.0 and not sp._grab_at(Vector2(r0.position.x + cand, top_c - 40.0)) and not sp._grab_at(Vector2(r0.position.x + cand, top_c - 80.0)) and not sp._grab_at(Vector2(r0.position.x + cand, r0.position.y - 40.0)):
+			dx6 = cand
+			break
+	r0.facing = 1 if dx6 > 0.0 else -1
+	sp._drop_pile(r0, sp.slot[0], r0.position.x + dx6)
+	await frames(int((float(sp.sc("A06")["marca_s"]) + float(sp.sc("A06")["sobe_s"])) * 60.0) + 12)
+	var pl6 = sp.piles[sp.piles.size() - 1]
+	var topo6: float = pl6["floor_y"] - pl6["shp"].size.y
+	sp.clear(r0)
+	sp.equip(r0, "C03")
+	r0.facing = 1 if dx6 > 0.0 else -1
+	await frames(2)
+	sp.slot[0]["aim"] = Vector2(signf(dx6), 0)
+	await tap("v0", "item")
+	var subiu6 := false
+	for q in 90:
+		await frames(1)
+		if r0.is_on_floor() and absf(r0.position.y - topo6) < 8.0:
+			subiu6 = true
+			break
+	check(subiu6, "C03: gancho na base da coluna joga o robô para cima dela (y %.0f, topo %.0f)" % [r0.position.y, topo6])
+	for p6 in sp.piles:   # limpa a coluna (os testes seguintes contam as estacas)
+		if p6.get("body") != null and is_instance_valid(p6["body"]):
+			p6["body"].queue_free()
+	sp.piles.clear()
 	# A05 rebiteira: tiro rápido, acerta e some
 	place.call(5.0)
 	sp.clear(r0)
@@ -4370,10 +4403,11 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["C03coluna", 150], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
+	var fx_c03 := 0.0
 	var mira_sp := {"lasercima": "A02", "gelodiag": "A03", "ganchocima": "C03", "ventocima": "C02", "fogocima": "T01", "socobaixo": "A01"}
 	for a0 in OS.get_cmdline_user_args():
 		if a0.begins_with("--so-spells="):
@@ -4424,6 +4458,19 @@ func spells_frames(dir: String) -> void:
 		elif nm == "porte":
 			sp.equip(r0, "A05")
 			sp.equip(r1, "E01")
+		elif nm == "C03coluna":
+			sp.equip(r0, "A06")
+			var dx6 := 200.0
+			for cand in [200.0, -200.0, 280.0, -280.0, 360.0, -360.0, 440.0, -440.0, 520.0, -520.0]:
+				var top_c: float = r0.position.y - float(sp.sc("A06")["coluna_tiles"]) * 64.0
+				if absf(sp._floor_below(r0.position.x + cand, r0.position.y - 128.0, 9) - r0.position.y) < 2.0 and not sp._grab_at(Vector2(r0.position.x + cand, top_c - 40.0)) and not sp._grab_at(Vector2(r0.position.x + cand, top_c - 80.0)) and not sp._grab_at(Vector2(r0.position.x + cand, r0.position.y - 40.0)):
+					dx6 = cand
+					break
+			sp.set_meta("dx6", dx6)
+			fx_c03 = r0.position.x + dx6 * 0.5
+			r0.facing = 1 if dx6 > 0.0 else -1
+			put(r1, Vector2(r0.position.x - signf(dx6) * 500.0, fy))
+			sp._drop_pile(r0, sp.slot[0], r0.position.x + dx6)
 		elif nm == "A02corte":
 			sp.equip(r0, "A02")
 			var ct2 = main.demo.canteiro
@@ -4472,6 +4519,13 @@ func spells_frames(dir: String) -> void:
 					a["v0"]["item"] = f == 14 or f == 15
 				"A01cheio":   # auditoria 2026-11-27: segura até encher e solta
 					a["v0"]["item"] = f >= 10 and f < 76
+				"C03coluna":   # sessão 6: coluna sobe; o gancho agarra a base e o robô vai para cima dela
+					if f == 64:
+						sp.clear(r0)
+						sp.equip(r0, "C03")
+					if f == 66 and sp.slot.has(0):
+						sp.slot[0]["aim"] = Vector2(signf(float(sp.get_meta("dx6", 200.0))), 0)
+					a["v0"]["item"] = f == 67 or f == 68
 				"A02corte":   # segura o feixe e varre para cima até o andaime
 					a["v0"]["item"] = f >= 10 and f < 100
 					a["v0"]["up"] = f >= 8 and f < 70
@@ -4551,6 +4605,8 @@ func spells_frames(dir: String) -> void:
 			for r in main.robots:
 				r.invuln = 0.0
 			main.cam_lock = [2.4, (r0.position + Vector2(150, 0)) + Vector2(0, -70)]
+			if nm == "C03coluna":   # enquadra o robô e a coluna
+				main.cam_lock = [1.9, Vector2(fx_c03, fy - 150.0)]
 			await frames(1)
 			if f % 2 == 0:
 				await grab(dir, nm)

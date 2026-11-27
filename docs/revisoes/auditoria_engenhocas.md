@@ -21,7 +21,7 @@ Classes hoje (A31): **Ataque, Controle, Mechas**. A **Defesa** entra como 4ª cl
 | A08 | Canhão de Molas | manter | MELHORAR | já é muito impactante; o PROJÉTIL deixa a desejar |
 | E02 | Carga Remota | MELHORAR | MELHORAR | (o fio azul hoje repete o do Laço C05) |
 
-## Controle — pendente (C01–C05)
+## Controle — DECIDIDO (2026-11-27): só o C03 Gancho muda (A43: agarrou embaixo/na quina de estrutura alta → sobe por cima, salva-vidas). C01, C02, C04 e C05 ficam como estão.
 ## Defesa (nova) — pendente
 Ideias levadas ao usuário: Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola (revide), Remendo Rápido, Botas
 Magnéticas, Teleporte (sairia do Controle). Proibido: escudo segurado na mão (S28 Escudo de Solda reprovado).

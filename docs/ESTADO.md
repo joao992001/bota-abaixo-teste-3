@@ -11,8 +11,11 @@ bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visu
 **▶ PRÓXIMO PASSO:** Auditoria das engenhocas — ATAQUE CONCLUÍDO (lotes 1–4, A38–A41) e a subida da coluna do A06 REFEITA
 (sessão 6, A42: sai de um buraco em 0,35 s, passa do ponto e assenta com tranco, rachaduras escuras, poeira dos dois lados,
 o rival sobe COLADO no topo e é lançado aos 60% da subida; colisão cresce junto; faixa zebrada grossa; ícone = cravadeira;
-vídeos `out/videos/a06_coluna*.mp4`). **Agora:** pedir ao usuário as notas do CONTROLE (C01–C05; proposta C04 Teleporte →
-Defesa) e depois criar a classe nova DEFESA (mesmo fluxo: proposta → prancha 4 tempos → aprovação → código → vídeo).
+vídeos `out/videos/a06_coluna*.mp4`). **Controle FEITO** (A43: só o C03 Gancho muda — agarrou embaixo/na quina de estrutura alta → sobe por cima; o resto fica).
+**Agora:** classe nova DEFESA. Proposta levada (sem resposta ainda): Âncora de Contrapeso (4 s sem ser empurrado, anda
+devagar), Airbag de Obra (infla ao ser arremessado, corta o voo 1×, salva da queda), Para-choque de Mola (1,5 s rebate
+golpes e tiros), Remendo Rápido (−30 de dano %), Teleporte (sairia do Controle — o usuário disse que o C04 FICA como está:
+confirmar). Fluxo: aprovação → prancha 4 tempos → código → vídeo.
 **Lição da sessão 5:** arte copiada para `game/assets` só aparece depois de `godot --headless --path game --import`; conferir
 SEMPRE de perto (recorte) antes de entregar — o usuário reprovou o lote 3 na 1ª entrega por isso.
 APROVADAS em `docs/revisoes/auditoria_engenhocas.md`, seção "Propostas APROVADAS"). Depois lote 4 = A06 Bate-Estaca (vira
