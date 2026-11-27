@@ -3069,7 +3069,7 @@ func spells_test() -> void:
 	sp.equip(r0, "T03")
 	await frames(2)
 	await tap("v0", "item")
-	await frames(28)
+	await frames(62)   # transformação estilo Transformers dura 0,9 s (A29)
 	check(r0.spell_form == "bola" and not r0.vis.visible, "T03: as cascas fecham e vira bola")
 	vset("v0", "right", true)
 	await frames(50)

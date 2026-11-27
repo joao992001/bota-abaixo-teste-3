@@ -22,6 +22,7 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **FEITO (2026-11-27): os 5 robôs A27 estão no jogo; Guindaste e Escavadeira REFEITOS (A28, G2/E2) com 15 animações em vídeo (`out/videos/guinda_novo.mp4`, `escava_novo.mp4`).** No jogo as poses vêm de `elenco.py` POSES/EXTRA (o motor do jogo ainda não roda as animações dos vídeos). (ids mantidos: picareta=Guindaste, chave=Solda, britadeira=Brita,
 pa=Escavadeira; cabeças em camadas em `elenco_uch.py`, ligação em `elenco.py` `_uch_*`). Skins K1–K5 apagadas (refazer).
 Vídeo: `--modelos=1,2,3,4` no `--video`. PRÓXIMO: ajustar poses/ferramentas que o usuário apontar → telas (passo 3) → `.exe`.
+**NO JOGO (2026-11-27): mechas A29 desenhados por peças (`RobotVis._draw_mecha`, texturas `game/assets/mecha` de `armaduras_export.py`), transformação de 0,9 s peça por peça, rosto do robô no cockpit, Bola nova, Jato (T04). Engenhocas em 3 classes (A31). FALTA: Broca = dash furando (segurar), Para-Raios = raio em cadeia 3 alvos + metal, efeitos fortes no jogo (fogo/dash/rolamento/arco), etiqueta P# acima do mecha. Vídeo de referência: `art/out/robos_v2/armadura_*.mp4` (`armaduras_video.py`).**
 **A29 (aprovado): armaduras = mechas pilotados ameaçadores** (prancha `armaduras_v2_final.png`). PRÓXIMO: levar as 5 armaduras para o jogo (`RobotVis.ARMOR_SETS`/`FORM_TOOLS` em `robot_visual.gd`).
 (Histórico do passo 1, já concluído:)
 Plano (aprovado: "1"): trocar o Marretão do gerador antigo `art/src/robos/elenco.py` pelo design A27 — JÁ FEITO no código

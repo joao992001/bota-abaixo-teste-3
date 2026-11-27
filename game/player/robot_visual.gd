@@ -1136,6 +1136,10 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if pose.has("spin"):   # comemoração "pião": achata na horizontal passando pelo meio
 		var sp: float = pose["spin"]
 		base = base * Transform2D(0.0, Vector2(signf(sp) * maxf(absf(sp), 0.32), 1.0), 0.0, Vector2.ZERO)
+	var fxm: Dictionary = lk.get("fx", {})
+	if String(fxm.get("mecha", "")) != "" and Data.mecha_meta.get("mechas", {}).has(String(fxm["mecha"])):
+		_draw_mecha(ci, lk, pose, base, fxm, mname, col_idx)
+		return
 	var g: Dictionary = Data.robot_meta["modelos"][mname]
 	var limb := Color(Data.robot_meta["membros"][col_idx])
 	var lw := float(g["limb_w"])
@@ -1388,6 +1392,101 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 
 ## Placa da Armadura Fornalha (T01): arte de design 150x130 em escala 0,48 (o robô "vira" a fornalha), vigia (75,50) em `at`.
 ## Montagem: cai de cima e assenta; nos últimos instantes pisca avisando que vai desmontar.
+## ---------------------------------------------------------------- ARMADURAS-MECHA (A29): o robô PILOTA um mecha
+## Peças exportadas por art/src/robos/armaduras_export.py (mesma caixa e origem; pés em 0,0, unidades do desenho).
+## Transformação estilo Transformers: cada peça chega voando, girando e encaixa (fx["assemble"] 0→1); o rosto do
+## robô aparece no cockpit; a arma gira no ombro para mirar (fx["aim_a"]).
+const MECHA_CHEGADA := {   # peça: [início, fim, de onde vem dx, dy, giro em graus] (tempo da montagem 0.3→1.2)
+	"perna_b": [0.40, 0.62, -160, 120, -90], "perna_f": [0.44, 0.66, 160, 120, 90], "tronco": [0.52, 0.76, 0, -260, 25],
+	"cabine": [0.58, 0.82, 0, -60, 0], "peito": [0.62, 0.84, 0, -200, -20], "braco_b": [0.70, 0.90, -220, -40, -140],
+	"ombro_b": [0.74, 0.94, -200, -160, -120], "arma": [0.80, 1.0, 260, -30, 160], "ombro_f": [0.84, 1.04, 220, -170, 140],
+	"costas": [0.88, 1.08, -120, -240, -60], "cabeca": [0.98, 1.16, 0, -300, 200]}
+const MECHA_MIRA := ["T01", "T04", "T06"]   # armaduras cuja arma gira para mirar
+
+static func _ease_back(u: float) -> float:
+	var s := 1.9
+	u -= 1.0
+	return u * u * ((s + 1.0) * u + s) + 1.0
+
+static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: Transform2D, fx: Dictionary, mname: String, col_idx: int) -> void:
+	var mid := String(fx["mecha"])
+	var M: Dictionary = Data.mecha_meta
+	var m: Dictionary = M["mechas"][mid]
+	var px := float(M["px"])
+	var cx: Array = M["caixa"]
+	var box := Rect2(float(cx[0]), float(cx[1]), float(cx[2]), float(cx[3]))
+	var a := clampf(float(fx.get("assemble", 1.0)), 0.0, 1.0)
+	var tt := lerpf(0.3, 1.2, a)
+	var now := Time.get_ticks_msec() / 1000.0
+	var bob := Vector2(0, sin(now * 5.5) * 1.6) if a >= 1.0 else Vector2.ZERO
+	var U := base * Transform2D(0.0, Vector2(px, px), 0.0, Vector2.ZERO)
+	var blink := Color(1.6, 1.5, 1.4) if float(fx.get("armor_end", 0.0)) > 0.0 and fmod(now, 0.16) < 0.08 else Color.WHITE
+	# atrás: raios de luz e brilho enquanto monta
+	if a < 1.0:
+		var ck: Array = m["cockpit"]
+		var c := Vector2(float(ck[0]), float(ck[1]) - 20.0)
+		ci.draw_set_transform_matrix(U)
+		var op := 0.55 * sin(a * PI)
+		for k in 12:
+			var ang := deg_to_rad(now * 90.0 + k * 30.0)
+			ci.draw_colored_polygon(PackedVector2Array([c, c + Vector2.from_angle(ang) * 240.0, c + Vector2.from_angle(ang + 0.18) * 240.0]), Color(1, 0.95, 0.7, op * 0.5))
+		ci.draw_circle(c, 80.0 + 60.0 * a, Color(1, 0.97, 0.85, op))
+	var aim := float(fx.get("aim_a", 0.0)) if mid in MECHA_MIRA else 0.0
+	var sh := Vector2(float(m["ombro"][0]), float(m["ombro"][1]))
+	for p in M["pecas"]:
+		if not (p in m["tem"]):
+			continue
+		var tx: Texture2D = Data.tex("mecha/%s_%s%s" % [mid, p, ("_p%d" % (col_idx + 1)) if p == "tronco" else ""])
+		if tx == null:
+			continue
+		var piv := Vector2(float(m["pivos"][p][0]), float(m["pivos"][p][1]))
+		var xf := Transform2D(0.0, bob)
+		if MECHA_CHEGADA.has(p):
+			var ch: Array = MECHA_CHEGADA[p]
+			var u := clampf((tt - float(ch[0])) / (float(ch[1]) - float(ch[0])), 0.0, 1.0)
+			if u <= 0.0:
+				continue
+			var k := 1.0 - _ease_back(u)
+			var sc := lerpf(0.6, 1.0, 1.0 - pow(1.0 - u, 3.0))
+			xf = xf * Transform2D(0.0, Vector2(float(ch[2]), float(ch[3])) * k) * Transform2D(deg_to_rad(float(ch[4])) * k, piv) * Transform2D(0.0, Vector2(sc, sc), 0.0, Vector2.ZERO) * Transform2D(0.0, -piv)
+		if p == "arma" and aim != 0.0:
+			xf = xf * Transform2D(aim, sh) * Transform2D(0.0, -sh)
+		ci.draw_set_transform_matrix(U * xf)
+		ci.draw_texture_rect(tx, box, false, blink)
+		if p == "cabine":   # o rosto do próprio robô dentro do cockpit
+			_mecha_piloto(ci, U * Transform2D(0.0, bob), m, mname, col_idx, lk, pose)
+	# faísca de encaixe + olho acendendo no fim da montagem
+	if a < 1.0 and a > 0.85:
+		var ol: Array = m["olho"]
+		ci.draw_set_transform_matrix(U)
+		var e := (a - 0.85) / 0.15
+		ci.draw_circle(Vector2(float(ol[0]), float(ol[1])), 6.0 + 26.0 * e, Color(1, 0.25, 0.2, 0.55 * (1.0 - e)))
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+
+static func _mecha_piloto(ci: CanvasItem, U: Transform2D, m: Dictionary, mname: String, col_idx: int, lk: Dictionary, pose: Dictionary) -> void:
+	var ck: Array = m["cockpit"]
+	var w := float(ck[2])
+	var h := float(ck[3])
+	var dst := Rect2(float(ck[0]) - w / 2.0, float(ck[1]) - h / 2.0, w, h)
+	var g: Dictionary = Data.robot_meta["modelos"][mname]
+	var eye: Vector2 = (_v(g["eyes"][0]) + _v(g["eyes"][1])) / 2.0 + ORIGIN
+	var top := float(g["top"])
+	var hh := maxf(eye.y + 14.0 - top, 24.0)
+	var src128 := Rect2(eye.x - hh * 0.62, top - 2.0, hh * 1.24, hh * 0.98)
+	ci.draw_set_transform_matrix(U)
+	var sk := _sk(lk, mname)
+	var body := Data.tex("robo/corpo_%s%s_p%d" % [mname, sk, col_idx + 1])
+	var kq := float(body.get_width()) / 128.0
+	ci.draw_texture_rect_region(body, dst, Rect2(src128.position * kq, src128.size * kq))
+	var ex := String(pose.get("expr", "normal"))
+	var face := Data.tex("robo/rosto_%s_%s" % [mname, ex])
+	if face == null:
+		face = Data.tex("robo/rosto_%s_normal" % mname)
+	if face != null:
+		var kf := float(face.get_width()) / 128.0
+		ci.draw_texture_rect_region(face, dst, Rect2(src128.position * kf, src128.size * kf))
+	ci.draw_rect(Rect2(dst.position + Vector2(3, 3), Vector2(w * 0.4, 2.5)), Color(1, 1, 1, 0.6))   # brilho do vidro
+
 static func _armor_piece(ci: CanvasItem, xf: Transform2D, name: String, asm: float, at: Vector2, sf: Dictionary, sx := 1.0) -> void:
 	var drop := Vector2(0, -(1.0 - asm) * 30.0)
 	var mod := Color(1, 1, 1, asm)

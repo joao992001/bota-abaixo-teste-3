@@ -16,6 +16,7 @@ const DANCAS := ["pulinho", "marreteiro", "pião", "robozinho"]
 
 var ctrl: Dictionary
 var root_dir := ""
+var mecha_meta := {}   # art/out/game/mecha/mechas.json: peças, pivôs, ombro, ponta da arma, cockpit de cada armadura-mecha (A29)
 var robot_meta := {}   # art/out/game/robo/modelos.json: quadris, ombros, mãos, topo, membros, voz e dança por modelo
 
 func _ready() -> void:
@@ -23,6 +24,8 @@ func _ready() -> void:
 	ctrl = read_json("data/controller.json")
 	if FileAccess.file_exists("res://assets/robo/modelos.json"):
 		robot_meta = JSON.parse_string(FileAccess.get_file_as_string("res://assets/robo/modelos.json"))
+	if FileAccess.file_exists("res://assets/mecha/mechas.json"):
+		mecha_meta = JSON.parse_string(FileAccess.get_file_as_string("res://assets/mecha/mechas.json"))
 	var t0 := Time.get_ticks_msec()
 	var n := preload_all()
 	print("Bota-Abaixo: %d imagens carregadas em %d ms" % [n, Time.get_ticks_msec() - t0])

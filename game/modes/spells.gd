@@ -14,8 +14,8 @@ const NOMES := {"A01": "PUNHO PNEUMÁTICO", "A03": "CANHÃO CRIOGÊNICO", "C01":
 	"A06": "BATE-ESTACA", "A07": "MARRETA-BUMERANGUE", "A08": "CANHÃO DE MOLAS",
 	"C02": "TURBOVENTILADOR", "C03": "GANCHO DE ARRASTO", "C05": "LAÇO DE ENERGIA", "E02": "CARGA REMOTA",
 	"E03": "CONTROLE REMOTO",
-	"T02": "MECHA EMPILHADEIRA", "T03": "BOLA DE DEMOLIÇÃO", "T04": "PROPULSOR GAMBIARRA", "T05": "MODO BROCA",
-	"T06": "MODO SOLDADOR", "T07": "MINIRROBÔ VELOZ"}
+	"T02": "MECHA EMPILHADEIRA", "T03": "BOLA DE DEMOLIÇÃO", "T04": "MECHA JATO", "T05": "MECHA BROCA",
+	"T06": "PARA-RAIOS", "T07": "MINIRROBÔ VELOZ"}
 const FORMS := ["T02", "T03", "T05", "T06", "T07"]   # transformações com duração (T01 tem código próprio)
 
 var main: Node
@@ -923,13 +923,7 @@ func _end_armor(r, natural: bool) -> void:
 	if slot.has(r.pid):
 		slot[r.pid]["t"] = -1.0
 		slot[r.pid]["channel"] = false
-	# as placas voam (a armadura desmonta)
-	var parts := [{"tex": [Data.tex("spells/s13_frente")], "rect": Rect2(-36, -31, 72, 62), "mod": Color.WHITE},
-		{"tex": [Data.tex("spells/s13_costas")], "rect": Rect2(-36, -31, 72, 62), "mod": Color.WHITE}]
-	var dbr: Node2D = main.Debris.new()
-	dbr.setup(parts, r.position + Vector2(0, -20), r.facing, Vector2(0, -320))
-	main.world.add_child(dbr)
-	main.dust(r.position + Vector2(0, -30), 1.2)
+	_mecha_explode(r)   # o mecha desmonta: estouro de faíscas, fumaça e poeira (A29)
 	Audio.play("caixote_quebra", 1.2, -2.0)
 	if natural:
 		slot.erase(r.pid)
@@ -985,11 +979,12 @@ func update(dt: float, alive: Array) -> void:
 			if not slot.has(r.pid):
 				continue
 		if s["id"] == "T04" and s["t"] > 0.0:
+			s["data"]["assemble"] = minf(float(s["data"].get("assemble", 0.0)) + dt / 0.9, 1.0)
 			_update_jet(r, s, dt)
 			if not slot.has(r.pid):
 				continue
 		if s["id"] == "T01" and s["t"] > 0.0:
-			s["data"]["assemble"] = minf(float(s["data"].get("assemble", 0.0)) + dt / 0.35, 1.0)
+			s["data"]["assemble"] = minf(float(s["data"].get("assemble", 0.0)) + dt / 0.9, 1.0)
 			_update_flame(r, s, dt)
 			if slot.has(r.pid) and s["t"] > 0.0:
 				s["t"] -= dt
@@ -1103,6 +1098,8 @@ func flags(r) -> Dictionary:
 		var low: float = minf(s["t"], s["energy"] * 2.0)
 		out["armor_end"] = clampf(1.0 - low / 1.2, 0.0, 1.0) if s["t"] > 0.0 else 0.0
 		out["flame"] = float(flames.get(r.pid, {}).get("k", 0.0))
+		if out["armor"]:
+			out["mecha"] = "T01"
 	for f in fists:
 		if f["owner"] == r.pid:
 			out["fist"] = minf(fist_ext(f), 1.0)
@@ -1120,9 +1117,12 @@ func flags(r) -> Dictionary:
 			out["armor_end"] = clampf(1.0 - s["t"] / 1.2, 0.0, 1.0)
 			out["arc"] = s["data"].get("arc", false)
 			out["busy"] = s["data"].get("arc", false) or s["id"] == "T05"
+			out["mecha"] = s["id"]
 	if s["id"] == "T04" and s["t"] > 0.0:
 		out["flying_on"] = s["data"].get("thrust", false) or (not r.is_on_floor() and r.velocity.y < 300.0)
 		out["fly_vx"] = r.velocity.x
+		out["mecha"] = "T04"
+		out["assemble"] = float(s["data"].get("assemble", 1.0))
 	return out
 
 ## HUD: {id, fam, charges, frac} do jogador (ou vazio). frac = barra de energia/duração.
@@ -2858,22 +2858,23 @@ func _end_form(r, natural: bool) -> void:
 	if slot.has(r.pid):
 		slot[r.pid]["t"] = -1.0
 		slot[r.pid]["channel"] = false
-	# peças voando na desmontagem
-	var texs := {"T02": [["a14_frente", Rect2(-36, -31, 72, 62)], ["a14_costas", Rect2(-36, -31, 72, 62)], ["a14_mastro", Rect2(-10, -30, 20, 60)]],
-		"T03": [["s15_bola", Rect2(-30, -30, 60, 60)]],
-		"T05": [["a31_frente", Rect2(-36, -31, 72, 62)], ["a31_costas", Rect2(-36, -31, 72, 62)], ["a31_braco", Rect2(-30, -15, 60, 30)]],
-		"T06": [["a33_frente", Rect2(-36, -31, 72, 62)], ["a33_costas", Rect2(-36, -31, 72, 62)], ["a33_tocha", Rect2(-24, -10, 48, 20)]]}
-	if texs.has(id):
-		var parts := []
-		for tp in texs[id]:
-			parts.append({"tex": [Data.tex("spells/" + tp[0])], "rect": tp[1], "mod": Color.WHITE})
-		var dbr: Node2D = main.Debris.new()
-		dbr.setup(parts, r.position + Vector2(0, -30), r.facing, Vector2(-r.facing * 160.0, -360.0))
-		main.world.add_child(dbr)
-	main.dust(r.position + Vector2(0, -20), 1.0)
+	if id in ["T02", "T03", "T05", "T06"]:
+		_mecha_explode(r)
+	else:
+		main.dust(r.position + Vector2(0, -20), 1.0)
 	Audio.play("caixote_quebra", 1.3, -4.0)
 	if natural:
 		slot.erase(r.pid)
+
+## Fim da armadura-mecha: as peças se soltam num estouro de faíscas, fumaça e poeira.
+func _mecha_explode(r) -> void:
+	var c: Vector2 = r.position + Vector2(0, -70)
+	for k in 18:
+		main.spark(c + Vector2(randf_range(-50, 50), randf_range(-60, 50)), 1)
+	for k in 8:
+		smokes.append({"pos": c + Vector2(randf_range(-40, 40), randf_range(-40, 40)), "vel": Vector2(randf_range(-140, 140), randf_range(-160, -20)), "t": 0.0, "size": randf_range(12, 20)})
+	main.dust(r.position + Vector2(0, -20), 1.6)
+	main.shake(5.0)
 
 ## Ponta do garfo da empilhadeira (sobe com `lift` 0..1).
 func _fork_tip(r, lift: float) -> Vector2:
@@ -2977,7 +2978,7 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 	var c: Dictionary = sc(s["id"])
 	var d: Dictionary = s["data"]
 	var a_before: float = float(d.get("assemble", 0.0))
-	d["assemble"] = minf(a_before + dt / (0.55 if s["id"] == "T07" else 0.38), 1.0)
+	d["assemble"] = minf(a_before + dt / (0.55 if s["id"] == "T07" else 0.9), 1.0)   # transformação estilo Transformers (A29)
 	if a_before < 1.0 and d["assemble"] >= 1.0:   # travou: clarão, faíscas, robô dá uma achatada
 		for k in 10:
 			main.spark(r.rect().get_center() + Vector2(randf_range(-26, 26), randf_range(-36, 26)), 1)
@@ -3147,7 +3148,6 @@ func _draw_etapa4() -> void:
 		var end_blink: bool = s["t"] < 1.0 and fmod(t, 0.16) < 0.08
 		var mod := Color(1.5, 1.4, 1.3) if end_blink else Color.WHITE
 		match s["id"]:
-			"T02": _draw_forklift(r, d, fk, mod)
 			"T03": _draw_ball(r, d, fk, mod)
 			"T06": _draw_welder(r, d, fk, mod)
 	# T04 jetpack: dois jatos saindo dos bicos (grandes acelerando, chama-piloto no resto), inclinados com o corpo
@@ -3225,23 +3225,25 @@ func _draw_forklift(r, d: Dictionary, fk: float, mod: Color) -> void:
 ## T03: bola — enquanto monta, duas cascas fecham sobre o robô; depois esfera rolando com olhos espiando.
 func _draw_ball(r, d: Dictionary, fk: float, mod: Color) -> void:
 	var c: Vector2 = r.position + Vector2(0, -36)
-	var tex := Data.tex("spells/s15_bola")
-	if fk < 0.75:   # cascas vindo dos lados e fechando
+	var M: Dictionary = Data.mecha_meta
+	var tex := Data.tex("mecha/T03_bola_p%d" % (posmod(int(r.vis.color_idx), 4) + 1))
+	var px := float(M.get("px", 0.84))
+	var bx: Array = M.get("caixa", [-150, -280, 340, 300])
+	var box := Rect2(float(bx[0]) * px, (float(bx[1]) + 46.0) * px, float(bx[2]) * px, float(bx[3]) * px)
+	var grow := 1.0
+	var spin := float(d.get("roll", 0.0))
+	if fk < 0.75:   # o gorila se encolhe: a bola cresce girando e as placas fecham
 		var u := ease(fk / 0.75, 0.4)
-		var gap := (1.0 - u) * 60.0
-		draw_texture_rect_region(tex, Rect2(c + Vector2(-38 - gap, -38), Vector2(38, 76)), Rect2(0, 0, 96, 192), mod)
-		draw_texture_rect_region(tex, Rect2(c + Vector2(gap, -38), Vector2(38, 76)), Rect2(96, 0, 96, 192), mod)
-		return
+		grow = lerpf(0.35, 1.0, u)
+		spin = (1.0 - u) * 6.0
+		draw_circle(c, 70.0 * (1.0 - u) + 20.0, Color(1, 0.97, 0.8, 0.5 * (1.0 - u)))
 	var sq: float = float(d.get("squash", 0.0))
-	draw_set_transform(c, float(d.get("roll", 0.0)), Vector2(1.0 + 0.2 * sq, 1.0 - 0.2 * sq))
-	draw_texture_rect(tex, Rect2(-38, -38, 76, 76), false, mod)
+	draw_set_transform(c, spin, Vector2(1.0 + 0.2 * sq, 1.0 - 0.2 * sq) * grow)
+	draw_texture_rect(tex, box, false, mod)
 	draw_set_transform(Vector2.ZERO)
-	draw_arc(c, 39.0, 0, TAU, 32, main.player_color(r.pid), 4.0, true)
-	var eye_c: Vector2 = c + Vector2(r.facing * 10.0, -6.0)
-	draw_rect(Rect2(eye_c - Vector2(16, 6), Vector2(32, 12)), INK)
-	for ex in [-7.0, 7.0]:
-		draw_circle(eye_c + Vector2(ex, 0), 4.0, Color.WHITE)
-		draw_circle(eye_c + Vector2(ex + r.facing * 1.5, 0), 2.0, INK)
+	if grow >= 1.0:   # o piloto na vigia, sempre em pé
+		RobotVis._mecha_piloto(self, Transform2D(0.0, Vector2(px, px), 0.0, c + Vector2(0, 46.0 * px)), {"cockpit": [0.0, -46.0, 26.0, 26.0]},
+			Data.MODELS[posmod(int(r.vis.model), Data.MODELS.size())], posmod(int(r.vis.color_idx), 4), r.vis.look(), {"expr": "esforco"})
 	if absf(r.own_vx) > 400.0:
 		for k in 3:
 			var yy: float = c.y - 20.0 + k * 20.0

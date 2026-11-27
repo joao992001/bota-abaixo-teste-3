@@ -59,7 +59,8 @@ def cabine_peito(cx, cy, w, h, col):
     o = R(cx - w / 2 - 5, cy - h / 2 - 5, w + 10, h + 10, 9, DARK, k=0.4) + R(cx - w / 2, cy - h / 2, w, h, 7, GLASS, k=0.3)
     cid = f"c{int(cx)}{int(cy)}{int(w)}"
     o += f'<clipPath id="{cid}"><rect x="{cx - w / 2}" y="{cy - h / 2}" width="{w}" height="{h}" rx="7"/></clipPath>'
-    o += f'<g clip-path="url(#{cid})">{piloto(cx, cy + h * 0.3, col, h / 52)}</g>'
+    if PILOTO[0]:
+        o += f'<g clip-path="url(#{cid})">{piloto(cx, cy + h * 0.3, col, h / 52)}</g>'
     o += f'<path d="M{cx - w / 2 + 4},{cy - h / 2 + 6} l{w * 0.35},0" stroke="#ffffff" stroke-width="3" opacity="0.7"/>'
     return o
 
@@ -107,6 +108,7 @@ PARTES = {}
 MIRA = [0.0]
 OMBRO = [(0.0, 0.0)]
 ESTATICO = [True]
+PILOTO = [True]   # False = cockpit vazio (o jogo desenha o rosto do próprio robô lá dentro)
 
 
 def _g(nome, svg, piv=(0, 0)):
@@ -209,6 +211,23 @@ def soldador(col):
     arma += P_([(97, -98), (128, -93), (97, -88)], "#7fd3ff", k=0.2) + E(130, -93, 8, 8, "#ffffff", k=0.2)
     arma += "".join(f'<path d="M130,-93 l{dx},{dy}" stroke="#ffd36b" stroke-width="2.4" stroke-linecap="round"/>' for dx, dy in ((14, -10), (16, 2), (10, 14), (2, 16), (-6, 14)))
     return mecha(col, casco, arma, costas, peito, H=50, tw=1.0, th=1.0)   # CORCUNDA de tanques
+
+
+# ---------------------------------------------------------------- T04 JATO (ex-Propulsor Gambiarra, A31): mecha voador, 2 turbinas nas costas,
+# pés de turbina, braço = canhão de ar (soco de propulsão)
+def jato(col):
+    casco = "#d8dde4"
+    costas = ""
+    for x in (-62, -44):
+        costas += R(x, -170, 16, 62, 7, "#7a828f", k=0.5) + R(x + 2, -112, 12, 10, 3, DARK, k=0.3)
+        if ESTATICO[0]:
+            costas += P_([(x + 2, -102), (x + 14, -102), (x + 8, -70)], "#ff9a1f", k=0.3) + P_([(x + 5, -102), (x + 11, -102), (x + 8, -84)], "#fff3b0", k=0.2)
+    arma = f'<path d="M34,-106 L52,-90 L62,-92" stroke="{DARK}" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    arma += R(58, -104, 34, 24, 10, "#7a828f", k=0.4) + E(92, -92, 10, 12, DARK, k=0.3) + E(92, -92, 6, 8, "#5fb8ff", k=0.2)
+    if ESTATICO[0]:
+        arma += "".join(f'<ellipse cx="{104 + i * 12}" cy="-92" rx="{4 + i * 2}" ry="{8 + i * 3}" fill="none" stroke="#bfe7ff" stroke-width="3" opacity="{0.8 - i * 0.2:.2f}"/>' for i in range(3))
+    peito = R(-10, -84, 26, 6, 3, "#5fb8ff", k=0.2)
+    return mecha(col, casco, arma, costas, peito, H=62, tw=0.95, th=1.0, ombro=1.0, perna=0.9)   # leve e esguio, turbinas nas costas
 
 
 ARMAS = [("T01 · FORNALHA (baixa e larga)", fornalha, "#4f86d9"), ("T02 · EMPILHADEIRA (alta, ereta)", empilhadeira, "#5cc45c"), ("T03 · BOLA (gorila)", bola, "#f06aa8"),
