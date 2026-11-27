@@ -1345,10 +1345,18 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		var bk := s0.lerp(h1, 0.55)
 		ci.draw_rect(Rect2(bk - Vector2(3.5, 3.5), Vector2(7, 7)), Color("#2a1a2e"))
 		ci.draw_rect(Rect2(bk - Vector2(2, 2), Vector2(4, 4)), Color("#f2c84b"))
-	if HAND_PROPS.has(sid0) and not armor and not sf.has("form") and not sf.get("flying_on", false) and not sf.get("fading", false) and float(sf.get("fire", -1.0)) < 0.0:
-		var hp: Array = HAND_PROPS[sid0] if not (sid0 == "E02" and sf.get("placed", false)) else ["s12_detonador", Vector2(12, 25)]   # lote 3: dinamite na mão; depois de jogar, o detonador de antena
+	if HAND_PROPS.has(sid0) and not armor and not sf.has("form") and not sf.get("flying_on", false) and not sf.get("fading", false) and (float(sf.get("fire", -1.0)) < 0.0 or (sid0 == "E02" and sf.get("placed", false))):
+		var hp: Array = HAND_PROPS[sid0] if not (sid0 == "E02" and sf.get("placed", false)) else ["s12_detonador", Vector2(19, 40)]   # lote 3: dinamite na mão; depois de jogar, o detonador de antena
 		ci.draw_set_transform_matrix(base * Transform2D(-0.4, hb + Vector2(-2, -4)))
 		ci.draw_texture_rect(Data.tex("spells/" + hp[0]), Rect2(-hp[1] / 2.0, hp[1]), false)
+		if sid0 == "E02" and sf.get("placed", false):   # antena do detonador (desenhada aqui, no mesmo quadro) com luz piscando
+			var on_l: bool = fmod(tnow, 0.4) < 0.2
+			var base_a := Vector2(3.0, -14.0)
+			var tip_a := Vector2(8.0, -30.0)
+			ci.draw_line(base_a, tip_a, Color("#2a1a2e"), 2.4, true)
+			ci.draw_circle(tip_a, 3.6 if on_l else 2.2, Color(1.0, 0.25, 0.2) if on_l else Color("#5a2a20"))
+			if on_l:
+				ci.draw_circle(tip_a, 8.0, Color(1.0, 0.3, 0.2, 0.3))
 	if sid0 == "A06" and not sf.get("fading", false):   # controle remoto do bate-estaca, luz piscando
 		ci.draw_set_transform_matrix(base * Transform2D(-0.2, hb + Vector2(-1, -6)))
 		ci.draw_rect(Rect2(-6, -9, 12, 18), Color("#2a1a2e"))

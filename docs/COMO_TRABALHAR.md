@@ -28,6 +28,9 @@ por isso a passagem de bastão (§6) é obrigatória.
 - Testes: `godot --headless --path game --fixed-fps 60 -- --autotest --so=a,b` durante; **bateria completa 1×** no fim
   (~20 min, rode em segundo plano; referência atual: ~443 verificações, 0 falhas). Teste novo para cada coisa nova.
 - Testes não podem depender da ordem: quem cria bots/estado volta ao menu no fim (`main.go_menu()`).
+- **Arte nova copiada para `game/assets/` SÓ vale depois de `godot --headless --path game --import`** (sem isso o jogo
+  continua com a imagem antiga — já aconteceu no lote 3 e o usuário viu a arma antiga). Confira de PERTO numa captura
+  recortada (o robô ocupa ~5% da tela cheia) antes de dizer que está igual à prancha.
 - Commit + push no fim de cada etapa que funciona (`git -c push.negotiate=true push origin main`). O hook de
   "uncommitted changes": `art/out/.jobs.json` é lixo do gerador → `git checkout -- art/out/.jobs.json`.
 

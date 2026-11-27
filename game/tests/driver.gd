@@ -4320,7 +4320,7 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["A08quique", 110],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
@@ -4382,6 +4382,9 @@ func spells_frames(dir: String) -> void:
 				var xa: float = hr.position.x - 120.0
 				put(r0, Vector2(xa, sp._floor_below(xa, hr.end.y + 8.0)))
 				put(r1, Vector2(hr.position.x + 70.0, hr.position.y))
+		elif nm == "A08quique":   # lote 3: mola em arco alto, alvo longe → quica no chão (amassa e estica)
+			sp.equip(r0, "A08")
+			put(r1, Vector2(x0 + 11.0 * 64.0, fy))
 		elif nm == "A01cheio":
 			sp.equip(r0, "A01")
 			put(r1, Vector2(x0 + 2.6 * 64.0, fy))
@@ -4401,6 +4404,8 @@ func spells_frames(dir: String) -> void:
 				"troca":
 					a["v0"]["item"] = f >= 30 and f < 52
 				"A01", "E01", "A02", "A04", "A06", "A07", "A08":
+					a["v0"]["item"] = f == 14 or f == 15
+				"A08quique":
 					a["v0"]["item"] = f == 14 or f == 15
 				"A01cheio":   # auditoria 2026-11-27: segura até encher e solta
 					a["v0"]["item"] = f >= 10 and f < 76

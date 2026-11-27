@@ -2211,21 +2211,32 @@ func _update_attack2(dt: float) -> void:
 	var c20: Dictionary = sc("A08")
 	for m in springs:
 		m["t"] += dt
-		m["sq"] = maxf(m["sq"] - dt * 5.0, 0.0)
+		m["sq"] = maxf(m["sq"] - dt * 4.0, 0.0)
 		m["vel"].y += 1500.0 * dt
 		var np: Vector2 = m["pos"] + m["vel"] * dt
-		if float(m.get("hit_t", -1.0)) >= 0.0:   # acertou: a mola fica esticada no rival um instante e some
+		# física da mola (lote 3, refeita): o EIXO acompanha a velocidade girando suave; o comprimento é uma mola amortecida
+		# (c = 1 comprimida no voo); o impacto dá um tranco → amassa, passa do ponto e ESTICA (BOING), e assenta.
+		var cc: float = float(m.get("c", 1.0))
+		var cv: float = float(m.get("cv", 0.0))
+		cv += (-900.0 * (cc - 1.0) - 13.0 * cv) * dt
+		cc = clampf(cc + cv * dt, 0.35, 3.0)
+		m["c"] = cc
+		m["cv"] = cv
+		if float(m.get("hit_t", -1.0)) >= 0.0:   # acertou: estica TODA, ricocheteia para trás e cai com gravidade
 			m["hit_t"] = float(m["hit_t"]) + dt
-			if m["hit_t"] > 0.3:
+			m["vel"].y += 1500.0 * dt
+			m["pos"] += m["vel"] * dt
+			m["ang"] = lerp_angle(float(m["ang"]), m["vel"].angle(), 1.0 - exp(-dt * 5.0))
+			if m["hit_t"] > 0.7 or _solid_at(m["pos"] + Vector2(0, 10)):
 				m["dead"] = true
+				main.dust(m["pos"], 0.4)
 			continue
-		m["spin"] = float(m.get("spin", 0.0)) + dt * 9.0 * signf(m["vel"].x)
-		m["st"] = maxf(float(m.get("st", 0.0)) - dt, 0.0)
+		var alvo_ang: float = m["vel"].angle()
+		m["ang"] = lerp_angle(float(m.get("ang", alvo_ang)), alvo_ang, 1.0 - exp(-dt * 12.0))
 		if (_hard_at(np + Vector2(0, 14)) or (_solid_at(np + Vector2(0, 14)) and not _solid_at(m["pos"] + Vector2(0, 14)))) and m["vel"].y > 0.0:
 			m["vel"].y = -absf(m["vel"].y) * float(c20["quique"])
+			m["cv"] = cv - 9.0 * clampf(absf(m["vel"].y) / 500.0, 0.4, 1.2)   # tranco do impacto: amassa e depois estica
 			m["sq"] = 1.0
-			m["st"] = 0.32   # amassa e depois ESTICA (BOING)
-			m["spin"] = 0.0
 			Audio.play("pulo_mola", 1.6, -8.0)
 			main.dust(m["pos"] + Vector2(0, 12), 0.5)
 			np = m["pos"]
@@ -2240,8 +2251,10 @@ func _update_attack2(dt: float) -> void:
 					o.vis.s_sqx[0] = 0.5
 					o.vis.s_sqy[0] = 1.5
 					Audio.play("pulo_mola", 0.7, 4.0)
-				m["hit_t"] = 0.0   # estica TODA contra o rival (lote 3)
-				m["vel"] = Vector2(signf(m["vel"].x), 0.0)
+				m["hit_t"] = 0.0   # estica TODA contra o rival (lote 3): tranco forte para esticar, depois ricocheteia
+				m["cv"] = float(m.get("cv", 0.0)) + 24.0
+				m["ang"] = (o.rect().get_center() - m["pos"]).angle()
+				m["vel"] = Vector2(-signf(m["vel"].x) * 160.0, -320.0)
 				break
 		if m["t"] > float(c20["vida_s"]):
 			m["dead"] = true
@@ -2547,41 +2560,39 @@ func _draw_attack2() -> void:
 		draw_arc(h["pos"], rr, h["rot"] + PI, h["rot"] + PI + 1.9 * h["dir"], 14, Color(1.0, 0.85, 0.35, 0.55), 3.0, true)
 		if fmod(t, 0.06) < 0.02:
 			main.spark(h["pos"] + Vector2.from_angle(h["rot"]) * rr, 1)
-	# A08 (lote 3): mola de aço em ESPIRAL (fio da frente claro, de trás escuro), arruela atrás e batente de borracha
-	# vermelho na frente. Voa comprimida girando; no quique amassa e estica (BOING); no acerto estica TODA.
+	# A08 (lote 3): mola de aço em ESPIRAL, eixo na direção do movimento; comprime e estica pela física (c, cv)
 	for m in springs:
-		var d := signf(m["vel"].x) if m["vel"].x != 0.0 else 1.0
-		var compr := 1.0
-		var ang: float = float(m.get("spin", 0.0))
-		var st: float = float(m.get("st", 0.0))
-		if st > 0.0:   # quique: amassa (primeiros 0,08 s) e estica
-			var u := 1.0 - st / 0.32
-			compr = lerpf(0.45, 1.9, clampf((u - 0.25) / 0.35, 0.0, 1.0)) if u > 0.25 else lerpf(1.0, 0.45, u / 0.25)
-			compr = lerpf(compr, 1.0, clampf((u - 0.6) / 0.4, 0.0, 1.0))
-			ang = -PI / 2.0 if d > 0.0 else -PI / 2.0
-			if u > 0.25 and u < 0.8:
-				Kit.text(self, m["pos"] + Vector2(-50, -70), "BOING!", 20, Color("#ffd23a"), HORIZONTAL_ALIGNMENT_CENTER, 100, 5, INK)
-		if float(m.get("hit_t", -1.0)) >= 0.0:
-			var uh: float = float(m["hit_t"]) / 0.3
-			compr = lerpf(1.0, 2.8, minf(uh * 3.0, 1.0))
-			ang = 0.0 if d > 0.0 else PI
-			Kit.text(self, m["pos"] + Vector2(-60, -80), "BOING!", 26, Color("#ffd23a"), HORIZONTAL_ALIGNMENT_CENTER, 120, 6, INK)
-		_draw_mola(m["pos"], ang, compr, d)
+		var cc: float = float(m.get("c", 1.0))
+		var ang: float = float(m.get("ang", m["vel"].angle()))
+		if cc > 1.45:
+			var bo := clampf((cc - 1.45) / 0.6, 0.0, 1.0)
+			Kit.text(self, m["pos"] + Vector2(-60, -76), "BOING!", 18 + int(10.0 * bo), Color("#ffd23a"), HORIZONTAL_ALIGNMENT_CENTER, 120, 5, INK)
+		_draw_mola(m["pos"], ang, cc, float(m.get("sq", 0.0)))
 		draw_set_transform(Vector2.ZERO)
 
-## Mola em espiral (lote 3, arma C): eixo x local = sentido do voo; compr 1 = comprimida, >1 esticada, <1 amassada.
-func _draw_mola(p: Vector2, ang: float, compr: float, d: float) -> void:
-	draw_set_transform(p, ang, Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8)
+## Mola em espiral (lote 3, arma C): eixo x local = sentido do movimento (ang); compr 1 = comprimida, >1 esticada, <1 amassada.
+## A mola cresce a partir da ARRUELA de trás (o batente vai à frente), como uma mola de verdade.
+func _draw_mola(p: Vector2, ang: float, compr: float, wsq := 0.0) -> void:
+	# wsq = achatamento NO MUNDO a partir do ponto de contato com o chão (quique): achata na vertical e alarga
+	var k := 1.0
+	var W := Transform2D.IDENTITY
+	if wsq > 0.0:
+		var e := sin(wsq * PI * 0.5)
+		var piv := p + Vector2(0, 14)
+		W = Transform2D(0.0, piv) * Transform2D(0.0, Vector2(1.0 + 0.35 * e, 1.0 - 0.45 * e), 0.0, Vector2.ZERO) * Transform2D(0.0, -piv)
 	var L := 26.0 * compr
+	var back := -13.0
+	var B := W * Transform2D(ang, p) * Transform2D(0.0, Vector2(k, k), 0.0, Vector2.ZERO)
+	draw_set_transform_matrix(B)
 	var voltas := 4.5
 	var n := 54
-	var ry := 10.0
+	var ry := 10.0 * clampf(1.15 - 0.15 * compr, 0.8, 1.1)
 	var pts: Array = []
 	for i in n + 1:
 		var tt := float(i) / n
 		var a := tt * voltas * TAU
-		pts.append([Vector2(-L / 2.0 + L * tt, ry * sin(a)), cos(a) >= 0.0])
-	for pass_i in 2:   # 0 = fio de trás (escuro), 1 = fio da frente (contorno + brilho)
+		pts.append([Vector2(back + L * tt, ry * sin(a)), cos(a) >= 0.0])
+	for pass_i in 2:
 		var run := PackedVector2Array()
 		for i in pts.size():
 			var front: bool = pts[i][1]
@@ -2596,14 +2607,12 @@ func _draw_mola(p: Vector2, ang: float, compr: float, d: float) -> void:
 				run = PackedVector2Array()
 			elif front != (pass_i == 1):
 				run = PackedVector2Array()
-	# arruela atrás e batente de borracha na frente
-	draw_set_transform(p + Vector2(-L / 2.0 - 2.0, 0).rotated(ang) * Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8, ang, Vector2(0.28, 1.0) * 0.8)
+	draw_set_transform_matrix(B * Transform2D(0.0, Vector2(0.28, 1.0), 0.0, Vector2(back - 2.0, 0)))
 	draw_circle(Vector2.ZERO, 11.5, Color("#8e98a4"))
-	var fx := Vector2(L / 2.0 + 1.0, 0).rotated(ang) * Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8
-	draw_set_transform(p + fx, ang, Vector2(d if absf(ang) < 0.01 else 1.0, 1.0) * 0.8)
+	draw_set_transform_matrix(B * Transform2D(0.0, Vector2(back + L + 1.0, 0)))
 	var dome := PackedVector2Array()
-	for k in 13:
-		var a2 := -PI / 2.0 + PI * k / 12.0
+	for q in 13:
+		var a2 := -PI / 2.0 + PI * q / 12.0
 		dome.append(Vector2(cos(a2) * 18.0, sin(a2) * 13.0))
 	draw_colored_polygon(dome, Color("#e54b3c"))
 	draw_polyline(dome, Color("#9a2a22"), 1.6, true)
