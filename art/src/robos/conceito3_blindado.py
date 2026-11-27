@@ -142,12 +142,20 @@ def corpo(col, hip, lean, pose):
     h += R(-2, -4, 16, 10, 4, "#1d2128", k=0.3)                                                  # viseira
     if face == "raiva":
         h += f'<path d="M0,-1 L6,1.5 L6,4 L0,2 Z" fill="{GLOW}"/><path d="M8,1.5 L13,-1 L13,1.5 L8,4 Z" fill="{GLOW}"/>'
+    elif face == "susto":
+        h += f'<circle cx="3" cy="1.2" r="2.6" fill="none" stroke="{GLOW}" stroke-width="1.5"/><circle cx="10.5" cy="1.2" r="2.6" fill="none" stroke="{GLOW}" stroke-width="1.5"/>'
+    elif face == "dor":
+        h += f'<path d="M1,-0.5 L4.5,1.5 L1,3.5 M12.5,-0.5 L9,1.5 L12.5,3.5" stroke="{GLOW}" stroke-width="1.5" fill="none" stroke-linecap="round"/>'
+    elif face == "vitoria":
+        h += f'<path d="M0.5,2.8 Q3,-1.5 5.5,2.8 M8,2.8 Q10.5,-1.5 13,2.8" stroke="{GLOW}" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+    elif face == "eliminado":
+        h += f'<path d="M1,-0.5 l4,4 m0,-4 l-4,4 M8.5,-0.5 l4,4 m0,-4 l-4,4" stroke="#ff5a5a" stroke-width="1.4" stroke-linecap="round"/>'
     else:
         h += f'<rect x="0" y="-0.5" width="5.5" height="3.2" rx="1.6" fill="{GLOW}"/><rect x="7.5" y="-0.5" width="5.5" height="3.2" rx="1.6" fill="{GLOW}"/>'
     h += f'<circle cx="2.5" cy="1" r="5" fill="{GLOW}" opacity="0.18"/>'
     h += E(-8, 2, 4.5, 4.5, MEC, k=0.3) + E(-8, 2, 2, 2, MEC_L, k=0.2)                           # disco da orelha
     h += R(-3, -16, 6, 4, 1.5, MEC_D, k=0.3) + E(0, -18.5, 3.6, 3.4, "#ffb22e", k=0.3)            # giroflex
-    h += f'<circle cx="0" cy="-18.5" r="7" fill="#ffd27a" opacity="0.25"/>'
+    h += f'<circle cx="0" cy="-18.5" r="{7 + 6 * pose.get("sirene", 0):.1f}" fill="#ffd27a" opacity="{0.25 + 0.4 * pose.get("sirene", 0):.2f}"/>'
     hd = f'<g transform="translate({hx},{hy}) rotate({pose.get("head", 0)})">{h}</g>'
     return f'<g transform="translate({hip[0]:.1f},{hip[1]:.1f}) rotate({lean:.1f})">{b}{hd}</g>'
 
