@@ -200,35 +200,55 @@ def d03():
     return ps
 
 
+def nuvem(cx, cy, r, op=0.85, n=11):
+    """Nuvem de pó de cimento: bolhas cinza-claras com sombra embaixo (cor do concreto, não branca pura)."""
+    o = ""
+    for i in range(n):
+        a = i * 2 * math.pi / n
+        rr = r * (0.42 + 0.12 * ((i * 7) % 3))
+        x, y = cx + math.cos(a) * r * 0.62, cy + math.sin(a) * r * 0.5
+        o += f'<circle cx="{x:.1f}" cy="{y + 3:.1f}" r="{rr:.1f}" fill="#a8987a" opacity="{op * 0.5:.2f}"/>'
+        o += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{rr:.1f}" fill="#e3dccd" opacity="{op:.2f}"/>'
+    o += f'<circle cx="{cx}" cy="{cy}" r="{r * 0.55:.1f}" fill="#efe9dc" opacity="{op:.2f}"/>'
+    return o
+
+
+def saco_cimento(x, y, rasgado=False):
+    o = R(x - 10, y - 13, 20, 26, 4, "#d8cbb0", k=0.4) + R(x - 10, y - 4, 20, 6, 1, "#c0392b", k=0.1)
+    o += f'<text x="{x}" y="{y + 1}" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="5" fill="#fff">CIMENTO</text>'
+    if rasgado:
+        o += f'<path d="M{x - 10},{y - 13} l5,-4 l4,4 l5,-5 l6,5" fill="none" stroke="#8a7a5e" stroke-width="2"/>'
+    return o
+
+
 def d04():
     ps = []
-    solda = dict(PARADO, hip=(0, -20), lean=10, head=12, feet=[(-12, 0), (10, 0)], bk=(4, -34), fr=(12, -30), face="foco")
-    c = laje(-110, 260) + marretao(dict(PARADO, bk=(-16, -44), fr=(10, -40))) + chapa(-18, -50, 1.3, -20)
-    c += ea.barra_energia(0, -96, 0.1).replace("#9b6bff", VERDE_D) + nota(-205, "aperta: pega uma chapa das costas", "fica parado soldando (0,8 s)")
-    ps.append(("1 · PEGA A CHAPA", c))
-    c = laje(-110, 260) + marretao(solda, sem_ferramenta=True) + chapa(6, -36, 1.2) + macarico(12, -30, -150) + faiscas(4, -36, 10, 16)
-    c += "".join(f'<circle cx="{-4 + i * 5}" cy="{-60 - i * 9}" r="{4 + i}" fill="#ffffff" opacity="{0.6 - i * 0.12:.2f}"/>' for i in range(4))
-    c += ea.barra_energia(0, -96, 0.65).replace("#9b6bff", VERDE_D) + nota(-205, "maçarico + faíscas + fumaça", "barra de solda enchendo")
-    ps.append(("2 · SOLDA — maçarico", c))
-    c = laje(-110, 260) + marretao(dict(PARADO, face="foco")) + chapa(4, -34, 1.25, 0, 0.5)
-    c += f'<text x="0" y="-104" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="24" fill="{VERDE_D}">−30%</text>'
-    c += "".join(estrela(-26 + i * 26, -84 + (i % 2) * 10, 6, "#bff5c8") for i in range(3)) + nota(-205, "pronto: −30 de dano % (os amassados somem)", "a chapa fica rebitada no peito")
-    ps.append(("3 · PRONTO — −30%", c))
-    c = laje(-110, 260) + marretao(dict(solda, face="susto"), sem_ferramenta=True) + rival(46, 0, flip=True) + estrela(20, -40, 18)
-    c += macarico(30, -10, 40, False) + chapa(40, 6, 1.0, 60)
-    c += f'<text x="0" y="-104" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="16" fill="{EYE}">INTERROMPIDO!</text>'
-    c += nota(-205, "levou golpe soldando: cancela", "(não gasta — o risco é ficar parado)")
-    ps.append(("4 · RISCO — interrompido", c))
+    joga = dict(PARADO, hip=(0, -20), lean=-8, head=6, feet=[(-12, 0), (10, 0)], bk=(-6, -60), fr=(8, -62), face="raiva")
+    c = laje(-110, 260) + rival(150, 0) + marretao(joga) + saco_cimento(4, -92, True)
+    c += "".join(f'<circle cx="{4 + math.cos(i) * 12:.0f}" cy="{-110 - i * 5}" r="{3 + i}" fill="#e3dccd"/>' for i in range(4))
+    c += nota(-205, "aperta: rasga um saco de cimento", "por cima da cabeça")
+    ps.append(("1 · RASGA O SACO", c))
+    c = laje(-110, 260) + marretao(PARADO) + nuvem(0, -40, 70, 0.5) + rival(150, 0)
+    c += f'<text x="0" y="-130" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="20" fill="{INK}">PUF!</text>'
+    c += nota(-205, "nuvem de pó em volta (2 s)", "o robô fica meio sumido dentro")
+    ps.append(("2 · PUF — nuvem de pó", c))
+    c = laje(-110, 260) + marretao(PARADO) + nuvem(0, -40, 72, 0.45) + rival(60, 0, flip=True)
+    c += ea.rebite(-40, -40, 180) + ea.rastro([(40, -40), (-40, -40)]) + estrela(26, -40, 10, "#ffffff")
+    c += nota(-205, "golpe e tiro PASSAM DIRETO (sem dano)", "mas dentro dela você não ataca")
+    ps.append(("3 · INTOCÁVEL — passa direto", c))
+    c = laje(-110, 260) + marretao(PARADO) + nuvem(0, -30, 60, 0.25) + nuvem(-40, -10, 30, 0.2, 7) + nuvem(46, -14, 26, 0.2, 7)
+    c += nota(-205, "a poeira assenta e se espalha", "(1 uso)")
+    ps.append(("4 · ASSENTA — acabou", c))
     return ps
 
 
 def prancha2():
     W, H = 1920, 1260
-    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "DEFESA · lote D2 — D03 PARA-CHOQUE DE MOLA e D04 REMENDO RÁPIDO (proposta)", 30)]
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 50, "DEFESA · lote D2 — D03 PARA-CHOQUE DE MOLA (aprovado) e D04 CORTINA DE POEIRA (proposta)", 30)]
     pw, ph = 452, 470
     for r, (nome, sub, ps) in enumerate([
             ("D03 PARA-CHOQUE DE MOLA", "aperta: 1,5 s de molas em volta · quem bate (golpe ou tiro) é REBATIDO de volta · sem escudo na mão", d03()),
-            ("D04 REMENDO RÁPIDO", "aperta: fica 0,8 s parado soldando uma chapa · −30 de dano % · golpe no meio cancela (não gasta)", d04())]):
+            ("D04 CORTINA DE POEIRA", "aperta: nuvem de pó de cimento por 2 s · golpe e tiro passam direto (sem dano) · dentro dela não ataca", d04())]):
         y0 = 80 + r * (ph + 110)
         b.append(f'<text x="40" y="{y0 + 30}" font-family="Fredoka, Arial" font-weight="700" font-size="26" fill="{INK}">{nome}</text>')
         b.append(f'<text x="40" y="{y0 + 58}" font-family="Arial" font-size="17" fill="{INK}">{sub}</text>')

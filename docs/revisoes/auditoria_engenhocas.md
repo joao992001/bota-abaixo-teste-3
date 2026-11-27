@@ -22,7 +22,7 @@ Classes hoje (A31): **Ataque, Controle, Mechas**. A **Defesa** entra como 4ª cl
 | E02 | Carga Remota | MELHORAR | MELHORAR | (o fio azul hoje repete o do Laço C05) |
 
 ## Controle — DECIDIDO (2026-11-27): só o C03 Gancho muda (A43: agarrou embaixo/na quina de estrutura alta → sobe por cima, salva-vidas). C01, C02, C04 e C05 ficam como estão.
-## Defesa (nova) — APROVADA (4): D01 Âncora de Contrapeso + D02 Airbag de Obra (FEITO, A44) → D03 Para-choque de Mola + D04 Remendo Rápido (próximo lote). Teleporte FICA no Controle.
+## Defesa (nova) — APROVADA (4): D01 Âncora de Contrapeso + D02 Airbag de Obra (FEITO, A44) → D03 Para-choque de Mola (APROVADO) + D04 — o usuário REPROVOU o Remendo Rápido e escolheu a CORTINA DE POEIRA (nuvem de pó de cimento 2 s: golpe e tiro passam direto; dentro dela não ataca). Teleporte FICA no Controle.
 Ideias levadas ao usuário: Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola (revide), Remendo Rápido, Botas
 Magnéticas, Teleporte (sairia do Controle). Proibido: escudo segurado na mão (S28 Escudo de Solda reprovado).
 
