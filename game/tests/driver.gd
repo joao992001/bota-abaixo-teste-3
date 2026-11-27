@@ -3846,7 +3846,7 @@ func fase_frames(dir: String) -> void:
 ## kit e objeto nas costas). --equipa=DIR → 2 passadas (modelos 0-3 e 1-4), 1 quadro por estado.
 func equipa_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
-	var states := [["A03", "carrega"], ["A02", "mira"], ["T01", "usa"], ["T02", "usa"], ["T05", "usa"], ["T06", "usa"], ["T04", "voa"], ["T01", "kit"], ["A04", "costas"], ["T07", "usa"]]
+	var states := [["A03", "carrega"], ["A02", "mira"], ["T01", "usa"], ["T02", "usa"], ["T05", "usa"], ["T06", "usa"], ["T04", "voa"], ["T01", "kit"], ["T02", "kit"], ["T03", "kit"], ["T04", "kit"], ["T05", "kit"], ["T06", "kit"], ["A04", "costas"], ["T07", "usa"]]
 	for pass_i in 2:
 		main.go_menu()
 		PlayerInput.virtual = {"v0": {}, "v1": {}, "v2": {}, "v3": {}}

@@ -10,11 +10,11 @@ const Kit := preload("res://ui/kit.gd")
 const RobotVis := preload("res://player/robot_visual.gd")
 const FAM_COR := {"ataque": Color("#f08a3d"), "controle": Color("#8a63d2"), "engenharia": Color("#f2c84b"), "transformacao": Color("#3fc1c9")}
 const NOMES := {"A01": "PUNHO PNEUMÁTICO", "A03": "CANHÃO CRIOGÊNICO", "C01": "SUPERÍMÃ", "E01": "ANDAIME RELÂMPAGO",
-	"C04": "TELEPORTE", "T01": "ARMADURA FORNALHA", "A02": "LASER DE CORTE", "A04": "MARRETA SÍSMICA", "A05": "REBITEIRA RICOCHETE",
+	"C04": "TELEPORTE", "T01": "MECHA FORNALHA", "A02": "LASER DE CORTE", "A04": "MARRETA SÍSMICA", "A05": "REBITEIRA RICOCHETE",
 	"A06": "BATE-ESTACA", "A07": "MARRETA-BUMERANGUE", "A08": "CANHÃO DE MOLAS",
 	"C02": "TURBOVENTILADOR", "C03": "GANCHO DE ARRASTO", "C05": "LAÇO DE ENERGIA", "E02": "CARGA REMOTA",
 	"E03": "CONTROLE REMOTO",
-	"T02": "MECHA EMPILHADEIRA", "T03": "BOLA DE DEMOLIÇÃO", "T04": "MECHA JATO", "T05": "MECHA BROCA",
+	"T02": "MECHA EMPILHADEIRA", "T03": "MECHA BOLA", "T04": "MECHA JATO", "T05": "MECHA BROCA",
 	"T06": "PARA-RAIOS", "T07": "MINIRROBÔ VELOZ"}
 const FORMS := ["T02", "T03", "T05", "T06", "T07"]   # transformações com duração (T01 tem código próprio)
 

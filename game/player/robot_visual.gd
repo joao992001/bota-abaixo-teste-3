@@ -70,17 +70,11 @@ static func armor_fit(mname: String) -> Array:
 	_fit[mname] = res
 	return res
 ## Spells sem arma: objeto nas costas (andaime dobrado, marreta sísmica, fornalha desmontada) ou na mão de trás.
-const BACK_PROPS := {"A04": ["s04_marreta", Vector2(30, 60), -0.5], "E01": ["s10_trouxa", Vector2(34, 23), 1.35],
-	"T04": ["a16_jato", Vector2(38, 44), 0.0]}
+const BACK_PROPS := {"A04": ["s04_marreta", Vector2(30, 60), -0.5], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
 const KITS := {
-	"T01": ["s13_costas", Vector2(52, 45), -0.08, "s13_frente", Vector2(38, 33), -0.42],
-	"T02": ["a14_costas", Vector2(52, 45), -0.08, "a14_frente", Vector2(38, 33), -0.42],
-	"T05": ["a31_costas", Vector2(52, 45), -0.08, "a31_frente", Vector2(38, 33), -0.42],
-	"T06": ["a33_costas", Vector2(52, 45), -0.08, "a33_frente", Vector2(38, 33), -0.42],
-	"T03": ["s15_bola", Vector2(40, 40), 0.0, "", Vector2.ZERO, 0.0],
 	"T07": ["a34_raio", Vector2(48, 32), -1.57, "", Vector2.ZERO, 0.0],
 }
 const HAND_PROPS := {"E02": ["s12_carga", Vector2(30, 22)], "E03": ["s27_controle", Vector2(18, 24)]}
@@ -1393,11 +1387,38 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if gd > 0.0:
 		ci.draw_set_transform_matrix(base)
 		ci.draw_arc(PIVOT, 46.0, 0, TAU, 32, Color(1, 1, 1, 0.45 * gd), 3.0, true)
+	if sid0 in MECHA_CART and not armor and not sf.has("form") and not sf.get("fading", false) and not sf.has("mecha"):
+		_draw_cartucho(ci, base, sid0, hf)
 	var hand := Data.tex("robo/mao")
 	for p in [hb, hf]:
 		ci.draw_set_transform_matrix(base * Transform2D(0.0, hand_q, 0.0, p))
 		ci.draw_texture(hand, -Vector2(8, 8) * 4.0)
 	ci.draw_set_transform_matrix(base)
+
+## CARTUCHO DE MECHA (aprovado 2026-11-27): antes de ativar, o robô segura a cápsula do mecha na mão da frente; o núcleo
+## pulsa e projeta o HOLOGRAMA do mecha girando (art/src/robos/mecha_cartucho.py --jogo).
+const MECHA_CART := ["T01", "T02", "T03", "T04", "T05", "T06"]
+
+static func _draw_cartucho(ci: CanvasItem, base: Transform2D, id: String, at: Vector2, k := 1.0) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var ct: Texture2D = Data.tex("spells/cartucho_" + id)
+	var ht: Texture2D = Data.tex("mecha/%s_inteiro" % id)
+	var c := at + Vector2(4, -8)
+	if ht != null:   # holograma: cone de luz + o mecha girando, piscando como projeção
+		var hp := c + Vector2(0, -26)
+		ci.draw_set_transform_matrix(base)
+		ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-3, -12), hp + Vector2(-20, -40), hp + Vector2(20, -40), c + Vector2(3, -12)]), Color(0.55, 0.92, 1.0, 0.16))
+		ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(1.0, 0.28), 0.0, hp))
+		ci.draw_circle(Vector2.ZERO, 14.0, Color(0.55, 0.92, 1.0, 0.35))
+		var rk := cos(now * 2.2)
+		ci.draw_set_transform_matrix(base * Transform2D(0.0, Vector2(0.105 * rk, 0.105) * k, 0.0, hp))
+		ci.draw_texture(ht, -Vector2(252, 470), Color(0.55, 0.93, 1.0, (0.5 + 0.18 * sin(now * 11.0)) * (1.0 if fmod(now, 1.3) > 0.06 else 0.2)))
+	if ct != null:
+		var pul := (1.0 + 0.05 * sin(now * 6.0)) * k
+		ci.draw_set_transform_matrix(base * Transform2D(-0.14, Vector2(0.085, 0.085) * pul, 0.0, c))
+		ci.draw_texture(ct, -Vector2(160, 208))
+		ci.draw_set_transform_matrix(base)
+		ci.draw_circle(c + Vector2(0, -1), 7.0 + 3.0 * sin(now * 6.0), Color(1, 0.95, 0.75, 0.25))
 
 ## Placa da Armadura Fornalha (T01): arte de design 150x130 em escala 0,48 (o robô "vira" a fornalha), vigia (75,50) em `at`.
 ## Montagem: cai de cima e assenta; nos últimos instantes pisca avisando que vai desmontar.
@@ -1533,6 +1554,18 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 	var ground := 1.0 - air
 	var w := clampf(run * 1.4, 0.0, 1.0) * ground
 	var g := _golpe(st, fx)
+	if a < 0.32:   # ATIVAÇÃO: o robô crava o cartucho no peito (clarão) e as peças explodem para fora
+		var ua := a / 0.32
+		var lk2 := lk.duplicate()
+		lk2["fx"] = {}
+		draw_robot(ci, lk2, pose, base)
+		var hand_p := Vector2(18, -38).lerp(Vector2(10, -84), _smooth(ua * 2.0)).lerp(Vector2(2, -46), _smooth(ua * 2.0 - 1.0))
+		_draw_cartucho(ci, base, mid, hand_p, 1.0 + 0.4 * ua)
+		if ua > 0.55:
+			var f2 := (ua - 0.55) / 0.45
+			ci.draw_set_transform_matrix(base)
+			ci.draw_circle(Vector2(2, -50), 20.0 + 90.0 * f2, Color(1, 1, 1, 0.85 * (1.0 - f2 * 0.6)))
+			ci.draw_arc(Vector2(2, -50), 30.0 + 140.0 * f2, 0, TAU, 32, Color(1, 0.9, 0.5, 1.0 - f2), 8.0, true)
 	var U := base * Transform2D(0.0, Vector2(px, px), 0.0, Vector2.ZERO)
 	var blink := Color(1.6, 1.5, 1.4) if float(fx.get("armor_end", 0.0)) > 0.0 and fmod(now, 0.16) < 0.08 else Color.WHITE
 	# ---------------- juntas do desenho (repouso)

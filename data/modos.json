@@ -924,7 +924,7 @@
         "fogo_alcance_tiles": 3.2,
         "fogo_tick_s": 0.22,
         "explosao_raio_tiles": 2.4,
-        "icone": "s13_frente"
+        "icone": "icone_mecha_T01"
       },
       "T02": {
         "familia": "transformacao",
@@ -940,7 +940,7 @@
         "garfo_altura": 130,
         "investida_s": 0.35,
         "investida_vel": 760,
-        "icone": "s14_chassi"
+        "icone": "icone_mecha_T02"
       },
       "T03": {
         "familia": "transformacao",
@@ -955,7 +955,7 @@
         "contra_mult": 1.6,
         "pulo_ar_mult": 0.85,
         "tolerancia_s": 0.12,
-        "icone": "s15_bola"
+        "icone": "icone_mecha_T03"
       },
       "T04": {
         "familia": "transformacao",
@@ -966,7 +966,7 @@
         "sobe_vel": 520,
         "desce_vel": 140,
         "sobe_acel": 3800,
-        "icone": "s16_mochila"
+        "icone": "icone_mecha_T04"
       },
       "T05": {
         "familia": "transformacao",
@@ -977,7 +977,7 @@
         "empurrao_mult": 0.6,
         "tick_s": 0.25,
         "estrutura_tick_s": 0.45,
-        "combustivel_s": 0.85, "dash_vel": 800, "dash_tick_s": 0.1, "nota_dash": "A30: SEGURAR = dash furando até acabar o combustível (fura trechos à frente, atropela).", "icone": "s31_broca"
+        "combustivel_s": 0.85, "dash_vel": 800, "dash_tick_s": 0.1, "nota_dash": "A30: SEGURAR = dash furando até acabar o combustível (fura trechos à frente, atropela).", "icone": "icone_mecha_T05"
       },
       "T06": {
         "familia": "transformacao",
@@ -988,7 +988,7 @@
         "arco_alcance": 90,
         "tick_s": 0.22,
         "reparo_s": 0.9,
-        "raio_alcance": 300, "raio_salto": 230, "raio_alvos": 3, "metal_alcance": 240, "nota_raio": "A30 PARA-RAIOS: segurar = raio na mira; pula para o próximo robô a até raio_salto (até 3, golpes spell_raio1/2/3 = 100/60/35%) e conduz em estrutura de METAL (grelha/estaca) danificando.", "icone": "s28_macarico"
+        "raio_alcance": 300, "raio_salto": 230, "raio_alvos": 3, "metal_alcance": 240, "nota_raio": "A30 PARA-RAIOS: segurar = raio na mira; pula para o próximo robô a até raio_salto (até 3, golpes spell_raio1/2/3 = 100/60/35%) e conduz em estrutura de METAL (grelha/estaca) danificando.", "icone": "icone_mecha_T06"
       },
       "T07": {
         "familia": "transformacao",

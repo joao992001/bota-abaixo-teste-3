@@ -201,5 +201,28 @@ def em_partes():
     os.remove(tmp)
 
 
+def exportar_jogo():
+    """Texturas do jogo: spells/cartucho_T0x (na mão), spells/icone_mecha_T0x (seleção, sem o nome: a ficha já tem)
+    e mecha/T0x_inteiro (silhueta para o holograma)."""
+    out = os.path.join(ab.ROOT, "art/out/game/spells")
+    os.makedirs(out, exist_ok=True)
+    for tid in TEMAS:
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="80" height="100" viewBox="-40 -52 80 100">{cartucho(tid, 1.0, 1.0)}</svg>'
+        queue(svg, os.path.join(HERE, f"svg/cartucho_{tid}.svg"), os.path.join(out, f"cartucho_{tid}.png"), 80, 100, 4)
+        nome, casco, nucleo, fn, _ = TEMAS[tid]
+        t = 160
+        ic = R(0, 0, t, t, 26, shade(casco, -0.35), k=0.4) + R(6, 6, t - 12, t - 12, 22, shade(nucleo, -0.55), k=0.3)
+        ic += f'<circle cx="{t / 2}" cy="{t / 2}" r="{t * 0.38}" fill="{nucleo}" opacity="0.35"/><circle cx="{t / 2}" cy="{t / 2}" r="{t * 0.24}" fill="{nucleo}" opacity="0.35"/>'
+        ic += f'<g transform="translate({t / 2},{t * 0.52}) rotate(-8)">{cartucho(tid, t / 100.0, 1.0)}</g>'
+        svg2 = f'<svg xmlns="http://www.w3.org/2000/svg" width="{t}" height="{t}" viewBox="0 0 {t} {t}">{ic}</svg>'
+        queue(svg2, os.path.join(HERE, f"svg/icone_mecha_{tid}.svg"), os.path.join(out, f"icone_mecha_{tid}.png"), t, t, 2)
+    print("cartuchos:", render_all())
+    for tid in TEMAS:
+        mecha_png(tid).save(os.path.join(MDIR, f"{tid}_inteiro.png"))
+
+
 if __name__ == "__main__":
-    em_partes()
+    if "--jogo" in sys.argv:
+        exportar_jogo()
+    else:
+        em_partes()
