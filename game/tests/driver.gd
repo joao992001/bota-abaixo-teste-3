@@ -963,6 +963,8 @@ func robos_test() -> void:
 ## COMBATE (relatório de 2026-11-24): golpe rápido × marretada pesada, esquiva (chão/ar, só contra robôs),
 ## arremesso com retorno gradual do controle. Cenários de aceitação da seção 8.
 ## Vitrine do combate r3 (--luta=DIR): leve com avanço e combo, pesado carregado, ▲, ponta = crítico, arremesso na parede.
+var _el_log: Array = []
+
 func luta_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	main.go_menu()
@@ -4328,6 +4330,11 @@ func elenco_frames(dir: String) -> void:
 			await frames(1)
 			if f % 2 == 0:
 				await grab(dir, "el%d" % m)
+				var scp: Vector2 = (r0.position - main.cam_center) * main.cam_zoom + Vector2(960, 540)
+				_el_log.append([m, f, int(scp.x), int(scp.y), main.cam_zoom])
+	var fpos := FileAccess.open(dir.path_join("pos.json"), FileAccess.WRITE)
+	fpos.store_string(JSON.stringify(_el_log))
+	fpos.close()
 	print("quadros: ", _frame_no)
 
 ## Vitrine da FASE em etapas (--fase=DIR): 4 bots lutando no Térreo, a virada inteira (aviso, desaba, queda) e a luta

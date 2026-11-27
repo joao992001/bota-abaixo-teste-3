@@ -605,6 +605,53 @@ EXTRA = {
            "rapido2": dict(lean=12, feet=[(-14, 0), (16, 0)], tool=(30, -28, 20)), "cima": dict(tool=(14, -76, -80)),
            "baixo": dict(tool=(14, -34, 100)), "esquiva_ar": dict(feet=[(-4, -14), (8, -12)], tool=(10, -50, -120))},
 }
+# ---------------------------------------------------------------- A48: poses de JOGO tiradas das ANIMAÇÕES APROVADAS
+# (anim_guinda/solda/brita/escava.py): antes, picareta/chave/britadeira/pa usavam as poses dos robôs ANTIGOS.
+ANIM_DE = {"picareta": "anim_guinda", "chave": "anim_solda", "britadeira": "anim_brita", "pa": "anim_escava"}
+# estado do jogo → (função de animação, índice da chave, rosto)
+ANIM_KEYS = {
+    "rapido_prep": ("A_leve", 1, ""), "rapido": ("A_leve", 2, "ataque"), "rapido2_prep": ("A_cima", 1, ""),
+    "rapido2": ("A_leve", 3, "ataque"), "cima": ("A_cima", 2, "ataque"), "baixo": ("A_baixo", 2, "ataque"),
+    "pesado_prep": ("A_pesado", 2, "forca"), "pesado_golpe": ("A_pesado", 3, "grito"), "esquiva": ("A_esquiva", 1, "esquiva"),
+    "esquiva_ar": ("A_duplo", 2, ""), "ar": ("A_pulo", 3, ""), "corre": ("A_correr", 1, ""),
+}
+GOLPE_IDX = {"anim_solda": 4, "anim_brita": 2}   # golpe pesado: chave de impacto de cada um
+
+
+def _pose_de_anim(base, p, face, so_corpo=False):
+    out = dict(lean=float(p["lean"]), tool=tuple(float(v) for v in p["tool"]))
+    if not so_corpo:
+        out["dy"] = float(p["hip"][1] - base["hip"][1])
+        out["dx"] = float(p["hip"][0] - base["hip"][0])
+        out["feet"] = [tuple(float(v) for v in f) for f in p["feet"]]
+    if face:
+        out["face"] = face
+    return out
+
+
+def _poses_animadas(cid):
+    import importlib
+    m = importlib.import_module(ANIM_DE[cid])
+    base = m.BASE
+    poses = {"parado": _pose_de_anim(base, base, "")}
+    extra = {}
+    for st, (fn, idx, face) in ANIM_KEYS.items():
+        keys = getattr(m, fn)()[2]
+        if st == "pesado_golpe":
+            idx = GOLPE_IDX.get(ANIM_DE[cid], idx)
+        p = keys[min(idx, len(keys) - 1)][1]
+        pz = _pose_de_anim(base, p, face, so_corpo=(st in ("corre",)))
+        (poses if st in ("rapido", "pesado_prep", "pesado_golpe", "esquiva") else extra)[st] = pz
+    return poses, extra
+
+
+for _cid in ANIM_DE:
+    try:
+        POSES[_cid], EXTRA[_cid] = _poses_animadas(_cid)
+    except Exception as _e:   # noqa: BLE001
+        print("poses animadas falharam:", _cid, _e)
+
+
 GAME_EXPR = ("normal", "piscar", "esforco", "susto", "vitoria", "eliminado")
 O = (64.0, 120.0)
 K4 = 4
