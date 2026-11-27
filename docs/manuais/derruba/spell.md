@@ -80,3 +80,7 @@ Armaduras (Transformação) são **raras** nas caixas normais (peso 7) — o mom
 - Jetpack em pulsos → voo segurando com combustível e inclinação.
 - Gancho que puxa pouco → puxa quase tudo (robô, caixa, bomba; estrutura puxa você).
 - Alcance curto (disco, bumerangue) → mais alcance (6).
+
+
+## Visual das armaduras (transformações T##) — A29, obrigatório para as novas
+Toda armadura é um **mecha humanoide pilotado e ameaçador**: cabeça do piloto visível no cockpit do peito; faixa na cor do jogador no mesmo lugar do casco; ~2× o robô; ombreiras com espetos, fenda de olho vermelha, pés com garras; **silhueta própria** (não repetir corpo); o tema vira o braço-arma da frente ou o corpo todo; papel e giz, brasa/fumaça/faísca quando ligado. Referência: `art/out/robos_v2/armaduras_v2_final.png` (gerador `art/src/robos/armaduras_conceito.py`, função `mecha(...)`).

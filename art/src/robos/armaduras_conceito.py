@@ -159,11 +159,9 @@ def empilhadeira(col):
 
 # ---------------------------------------------------------------- T03 BOLA: mecha de demolição, punho = BOLA de aço na corrente (e se enrola numa bola para rolar)
 def bola(col):
+    """Gorila de punhos enormes: a arma é ELE MESMO virar bola (sem corrente — A29)."""
     casco = "#7a828f"
-    arma = f'<path d="M34,-106 L50,-86 L60,-80" stroke="{DARK}" stroke-width="15" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(62, -78, casco, 1.0)
-    arma += "".join(f'<ellipse cx="{72 + i * 7}" cy="{-66 + i * 3}" rx="3.4" ry="2.4" fill="none" stroke="{STEEL_D}" stroke-width="2"/>' for i in range(6))
-    arma += E(128, -40, 24, 24, STEEL_D, k=0.6) + E(124, -44, 20, 20, STEEL, k=0.3, light=STEEL_L)
-    arma += "".join(P_([(128 + math.cos(a) * 22, -40 + math.sin(a) * 22), (128 + math.cos(a + 0.18) * 34, -40 + math.sin(a + 0.18) * 34), (128 + math.cos(a + 0.36) * 22, -40 + math.sin(a + 0.36) * 22)], STEEL_L, k=0.1) for a in (-1.2, 0.2, 1.6, 3.0, 4.4))
+    arma = f'<path d="M34,-106 L54,-80 L60,-50" stroke="{DARK}" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' + punho(60, -36, casco, 1.6)
     return mecha(col, casco, arma, H=40, tw=1.25, th=1.05, gorila=True, ombro=1.45, perna=0.8)   # GORILA: punho no chão
 
 
@@ -196,7 +194,7 @@ ARMAS = [("T01 · FORNALHA (baixa e larga)", fornalha, "#4f86d9"), ("T02 · EMPI
 REGRAS = ["1  TODA armadura é um MECHA humanoide (2 pernas, 2 braços), nunca o veículo: o robô PILOTA de dentro, cabeça visível no COCKPIT do peito.",
           "2  FAIXA NA COR DO JOGADOR sempre no mesmo lugar do casco: quem é quem em 1 segundo.",
           "3  AMEAÇA: ~2× o robô, ombreiras com espetos, cabecinha com FENDA DE OLHO VERMELHA, pés com garras — e SILHUETA PRÓPRIA (baixo/largo, alto/magro, gorila…).",
-          "4  O tema da máquina vira o BRAÇO-ARMA da frente (lança-chamas, garfo, bola na corrente, broca, maçarico) e um detalhe nas costas/peito.",
+          "4  O tema da máquina vira o BRAÇO-ARMA da frente (lança-chamas, garfo, broca, maçarico) — ou o CORPO todo (a Bola se fecha numa esfera).",
           "5  Papel e giz, sem contorno; brasa, fumaça ou faísca dizem que está LIGADO. Mesmas regras de jogo de hoje (só muda o visual)."]
 
 
