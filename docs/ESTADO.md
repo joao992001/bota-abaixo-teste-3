@@ -4,28 +4,38 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-26 (sessão 2)
-**Comece por `docs/COMO_TRABALHAR.md`** (como conversar, ordem de trabalho, testes, entregas, passagem de bastão).
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (fim da sessão 2)
+**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado).
 
-**Onde paramos (sessão 2, 2026-11-26, branch `claude/practical-maxwell-hldv9n`):** avaliação da interface
-(`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`) **toda FEITA**: menu e mapas iguais às pranchas; JOGAR pula a tela de
-modos (A22); sem o placar antigo; **fim da partida** = Gangorra → Projetos → Resultados em telas próprias (`game/ui/fim.gd`,
-pranchas `art/out/recompensas/r1–r3`; luta que não vale = carimbo NÃO CONTOU, A24); resultados com estatísticas
-(`players[i]["stats"]`: derrubadas, quedas, caixotes, engenhocas, golpes) e cronômetro 15 s que reinicia ao mexer (A25,
-`progressao.resultados_cronometro_s`); **pausa nova** com 5 opções, prancheta da partida e "tem certeza?" (A23/A26, `menus._draw_pause`).
-Vitrine das telas: `--menus=DIR` (capturas `m8*` pausa, `m11_fim_*`). Ambiente pessoal `bota-abaixo-teste-3` criado com setup
-(Godot + RTK + cairosvg) — confirmar na próxima sessão nova que ele sobe pronto.
+**Onde paramos — ETAPA 2 da avaliação de gameplay (`docs/avaliacoes/2026-11-26_gameplay/AVALIACAO.md`): robôs novos.**
+- **A27 (aprovado):** robôs reformulados na geometria do **Ultimate Chicken Horse** (cabeça grande de capacete-tela, corpinho
+  de pera, membros finos em curva, corpo que achata/estica, cabeça/acessórios com mola), papel e giz. Cada robô com silhueta,
+  vibe, arma e jeito de mover próprios; **mesmos números de jogo** (alcance, força, velocidade) — o gancho do Guindaste foi
+  encurtado para o alcance padrão (usuário escolheu "A").
+- **Elenco de 5 APROVADO e TODO ANIMADO em vídeo** (15 animações cada: correr, pular, pulo duplo, parede, borda, combo leve,
+  leve ▲/▼, pesado, esquiva, leva golpe, arremessado, engenhoca, vitória, eliminado):
+  Marretão (`art/src/robos/robo_uch.py`), Brita (`anim_brita.py`), Guindaste (`anim_guinda.py`), Solda (`anim_solda.py`),
+  Escavadeira (`anim_escava.py`); desenho de cada um em `art/src/robos/elenco_uch.py`; motor de animação (curva contínua +
+  molas) em `art/src/robos/anim_blindado.py`. Vídeos em `art/out/robos_v2/*.mp4` (`uch_*`, `brita_*`, `guinda_*`, `solda_*`, `escava_*`).
+  Marreta detalhada: `conceito3_blindado.py` (`marreta_cabo/marreta_cabeca`).
 
-**Avaliação de gameplay (2026-11-26, `docs/avaliacoes/2026-11-26_gameplay/AVALIACAO.md`): ETAPA 1 FEITA** — renascimento
-seguro (`--so=renascer`), recompensas só com confirmação, transições orgânicas (`--so=transicao`, câmera aproxima na queda),
-desempenho (G03/eventos sem varrer o mapa todo; temas antigos fora do pré-carregamento; texturas aquecidas; medidor
-`--perf-canteiro` com xvfb), bots com pausas (`bots.pausa`). Respostas assumidas (usuário não respondeu): invulnerável 3 s ao
-voltar; qualquer jogador confirma as recompensas.
-
-**PRÓXIMO PASSO:** o usuário testar a etapa 1 no `.exe`. Depois a **ETAPA 2 (combate)**: golpe pesado com vontade de usar, golpe
-leve com animação que acompanha, arte/animação dos robôs mais articulada (prancha + vídeo ANTES do código) e destruição natural
-pela luta (arremesso/crítico quebram o cenário; dá para "se segurar" e destruir menos). Pendentes antigos: limiares 30%/70%,
-números PROVISÓRIOS (P1, P3, P4/P6).
+**EM ANDAMENTO (parado no meio): passo 1 de "colocar os robôs no jogo" = o MARRETÃO no jogo.**
+Plano (aprovado: "1"): trocar o Marretão do gerador antigo `art/src/robos/elenco.py` pelo design A27 — JÁ FEITO no código
+(`t_marretao/h_marretao/tool_marreta` usam `robo_uch.tronco`, `robo_uch.cabeca_L` e a marreta detalhada; CHARS/POSES/EXTRA/
+GAME/TOOL_BOX do marretao com as poses tiradas das animações; `eyes_at`/`top_at` novos em GAME). A exportação
+(`python3 art/src/robos/elenco.py`, ~5 min) foi INTERROMPIDA no meio: os SVG e `art/out/game/robo/modelos.json` foram
+regenerados, mas os PNG podem estar incompletos e **`game/assets/robo/` ainda NÃO foi tocado** (jogo intacto).
+**Próximo passo exato:**
+1. `NODE_PATH=$(npm root -g) python3 art/src/robos/elenco.py` (gera prancha + texturas + modelos.json de todos; os outros 4 não mudam).
+2. Abrir `art/out/prancha_elenco5.png` e `art/out/game/robo/corpo_marretao_p1.png` e conferir.
+3. `cp art/out/game/robo/* game/assets/robo/` → apagar a skin velha do Marretão (`game/assets/robo/corpo_marretao_k1_p*.png`
+   e `ferramenta_marretao_k1.png`, desenhadas sobre o corpo antigo; refazer a skin K1 depois) → `godot --headless --path game --import`.
+4. Conferir no jogo: `--elenco=DIR --so-elenco=0` (xvfb) e `--so=robos,skins,combate`; ajustar poses/escala até ficar como os vídeos.
+   Limitação: o motor do jogo desenha corpo+cabeça numa peça só; o atraso da cabeça dos vídeos pode precisar de suporte em `robot_visual.gd`.
+5. Mandar vídeo/capturas ao usuário; depois os outros 4 (passo 2) e as telas (passo 3), e gerar `.exe`.
+Pendentes: refazer skins K1–K5 no estilo novo; etapa 2 também pede mecânicas de combate (prancha `art/out/robos_v2/r2_combate.png`:
+golpe pesado carregável/direcional, destruição pela luta, golpe leve não quebra) — decisões A/B dessa prancha ainda NÃO respondidas.
+Pendentes antigos: limiares 30%/70%, números PROVISÓRIOS (P1, P3, P4/P6).
 
 ---
 ### Histórico (sessões anteriores)

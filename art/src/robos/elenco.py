@@ -148,50 +148,19 @@ def _L(L, *want):
 
 # 1 MARRETÃO — brutamontes: tronco em trapézio largo, cabeça pequena de capacete com viseira, braços de pistão, botas.
 def t_marretao(c, e):
-    d = "M-15,0 L15,0 C20,-10 30,-30 27,-42 C25,-48 -22,-48 -25,-42 C-28,-30 -20,-10 -15,0 Z"
-    out = S(d, c, (-30, -50, 30, 2), k=0.7)
-    out += S("M-26,-30 L28,-30 L27,-23 L-24,-23 Z", INK, (-28, -32, 30, -21), k=0.4)
-    for i in range(7):
-        x = -24 + i * 7.6
-        out += f'<path d="M{x},-23 l4,-7 l3.5,0 l-4,7 Z" fill="{YEL}"/>'
-    out += f'<circle cx="18" cy="-12" r="2.2" fill="{shade(c, -0.35)}"/><circle cx="-14" cy="-12" r="2.2" fill="{shade(c, -0.35)}"/>'
-    return out
+    """Marretão no estilo aprovado A27 (Ultimate Chicken Horse): corpinho de pera com cinto de perigo (robo_uch.py)."""
+    import robo_uch as ru
+    return ru.tronco(c, {})
 
 
 def h_marretao(c, e, L="all"):
-    out = ""
-    if _L(L, "acc"):
-        out += f'<rect x="-0.8" y="-25" width="1.6" height="6" fill="{STEEL_D}"/><circle cx="0" cy="-26" r="2.6" fill="#f08a3d"/>'
-    if _L(L, "base"):
-        out += S("M-11,0 C-12,-14 -6,-20 1,-20 C9,-20 13,-14 12,0 Z", YEL, (-13, -22, 14, 2), k=0.6, dark=YEL_D)
-        out += S("M-13,-1 L17,-1 L17,2 L-13,2 Z", YEL_D, (-14, -2, 18, 3), k=0.4)
-        out += S("M-9,2 L13,2 L13,11 C13,14 -9,14 -9,11 Z", c, (-10, 1, 14, 15), k=0.5)
-        out += S("M0,4 L14,4 L14,9 L0,9 Z", INK, (-1, 3, 15, 10), k=0.3)
-    if _L(L, "face"):
-        glow = "#ff6a3a" if e in ANGRY else "#ffd36b"
-        if e == "piscar":
-            out += f'<rect x="7" y="6.1" width="6" height="0.9" fill="{glow}"/>'
-        elif e == "eliminado":
-            out += f'<path d="M8,4.8 L12,8.2 M12,4.8 L8,8.2" stroke="{glow}" stroke-width="1.2"/>'
-        elif e == "vitoria":
-            out += f'<path d="M7.5,7.6 Q10,4 12.5,7.6" stroke="{glow}" stroke-width="1.3" fill="none"/>'
-        elif e == "susto":
-            out += f'<circle cx="10" cy="6.5" r="2.4" fill="{glow}"/>'
-        else:
-            out += f'<rect x="7" y="5.2" width="6" height="2.6" rx="1.3" fill="{glow}"/>'
-        if e in ANGRY:
-            out += f'<path d="M4,3.6 L14,5" stroke="{INK}" stroke-width="1.4"/>'
-        if e in ("grito", "susto", "vitoria", "eliminado"):
-            out += mouth(9, 11.6, 4, e)
-    return out
+    import robo_uch as ru
+    return ru.cabeca_L(c, e, L)
 
 
 def tool_marreta():
-    out = S(rect_d(-16, -2.2, 52, 4.4, 2), WOOD, (-17, -3, 37, 3), k=0.5, dark=WOOD_D)
-    out += S(rect_d(34, -11, 16, 22, 3), STEEL, (33, -12, 51, 12), k=0.6, dark=STEEL_D, light=STEEL_L)
-    out += f'<rect x="38" y="-11" width="3.5" height="22" fill="{YEL}"/><rect x="42.5" y="-11" width="3.5" height="22" fill="{INK}"/>'
-    out += f'<rect x="-16" y="-3" width="8" height="6" rx="2" fill="{INK}"/>'
-    return out
+    import conceito3_blindado as cb3
+    return cb3.marreta_cabo() + cb3.marreta_cabeca()
 
 
 # 2 PICARETA — magrelo de pernas de pássaro (joelho para trás), pescoço longo, cabeça oval com 1 lente.
@@ -350,9 +319,9 @@ def tool_pa():
 
 
 CHARS = {
-    "marretao": dict(nome="MARRETÃO", desc="o forte: tronco largo, marreta de duas mãos", hip_h=30, torso=t_marretao, head=h_marretao,
-                     head_at=(5, -48), sh_b=(-14, -38), sh_f=(12, -38), hip_b=(-7, -3), hip_f=(7, -3), arm=(15, 15, 8.5),
-                     leg=(14, 14, 10), knee=1, boot=(18, 9), hand=5.6, tool=tool_marreta, grips=[(0, 0), (-12, 0)]),
+    "marretao": dict(nome="MARRETÃO", desc="o equilibrado: capacete-tela, quica e verga", hip_h=24, torso=t_marretao, head=h_marretao,
+                     head_at=(2, -34), sh_b=(-5, -13), sh_f=(5, -13), hip_b=(-4, -1), hip_f=(4, -1), arm=(10, 11, 5.5),
+                     leg=(13, 13, 6.5), knee=1, boot=(14, 7), hand=5.5, tool=tool_marreta, grips=[(0, 0), (-16, 0)]),
     "picareta": dict(nome="PICARETA", desc="o ágil: pernas de pássaro, alcance longo", hip_h=40, torso=t_picareta, head=h_picareta,
                      head_at=(3, -30), sh_b=(-4, -24), sh_f=(4, -24), hip_b=(-3, -1), hip_f=(3, -1), arm=(16, 16, 4.2),
                      leg=(20, 22, 5), knee=-1, boot=(12, 5), hand=3.8, tool=tool_picareta, grips=[(0, 0), (-12, 0)]),
@@ -472,15 +441,12 @@ def fx_draw(items, back):
 # ---------------------------------------------------------------- poses
 # tool = (x, y, ângulo) da pegada da frente; feet = [trás, frente]
 POSES = {
-    "marretao": {
-        "parado": dict(lean=4, feet=[(-11, 0), (11, 0)], tool=(17, -34, 52)),
-        "rapido": dict(lean=16, dy=2, feet=[(-13, 0), (15, 0)], tool=(30, -44, -6), face="ataque",
-                       fx=[("linhas", 50, -60, 3, 14, -1)], fx_b=[("arco", 4, -50, 46, -70, 0, 9)]),
-        "pesado_prep": dict(lean=-18, dy=5, feet=[(-15, 0), (13, 0)], tool=(-8, -72, -118), face="forca", head=-6),
-        "pesado_golpe": dict(lean=32, dy=11, feet=[(-17, 0), (17, 0)], tool=(32, -28, 72), face="grito",
-                             fx=[("onda", 50, 0, 30), ("estrela", 50, -4, 13), ("pedras", 50, 0)], fx_b=[("arco", 6, -40, 52, -150, 60, 12)]),
-        "esquiva": dict(lean=-14, dy=16, dx=-4, feet=[(-22, 0), (14, 0)], tool=(20, -46, -84), face="esquiva",
-                        fx_b=[("linhas", -60, -50, 4, 18, 1), ("poeira", -30, 0, 1.0)]),
+    "marretao": {   # poses de jogo do Marretão A27 (tiradas das animações aprovadas, art/src/robos/robo_uch.py)
+        "parado": dict(lean=10, feet=[(-11, 0), (11, 0)], tool=(12, -34, -60)),
+        "rapido": dict(lean=24, dy=2, feet=[(-12, 0), (14, 0)], tool=(20, -30, 10), face="ataque"),
+        "pesado_prep": dict(lean=-20, dy=7, feet=[(-13, 0), (10, 0)], tool=(-6, -44, -140), face="forca", head=12),
+        "pesado_golpe": dict(lean=34, dy=7, feet=[(-16, 0), (18, 0)], tool=(24, -22, 75), face="grito"),
+        "esquiva": dict(lean=-18, dy=7, feet=[(-16, 0), (8, 0)], tool=(8, -30, -160), face="esquiva"),
     },
     "picareta": {
         "parado": dict(lean=6, feet=[(-8, 0), (10, 0)], tool=(14, -52, -72), head=4),
@@ -570,9 +536,9 @@ def prancha():
 # ================================================================ exportação para o jogo
 # Escala de cada um no jogo (o robô fica com ~80-95 px; a Britadeira é baixinha) e da ferramenta.
 GAME = {
-    "marretao": dict(k=0.84, tk=1.18, voz=0.7, danca=1, hand_r=5.6, foot=(18, 9), acc=(0, -20),
-                     torso_d="M-15,0 L15,0 C20,-10 30,-30 27,-42 C25,-48 -22,-48 -25,-42 C-28,-30 -20,-10 -15,0 Z",
-                     especial={"pesado": "", "esquiva": "escudo"}),
+    "marretao": dict(k=0.84, tk=0.72, voz=0.7, danca=1, hand_r=5.5, foot=(16, 8), acc=(0.5, -36), eyes_at=(5, -2), top_at=(0, -44),
+                     torso_d="M-10,0 C-13,-6 -11,-17 0,-18 C11,-17 13,-6 10,0 Z",
+                     especial={"pesado": "", "esquiva": ""}),
     "picareta": dict(k=0.84, tk=0.9, voz=0.9, danca=3, hand_r=3.8, foot=(12, 5), acc=(-2, -29),
                      torso_d="M-9,-2 C-12,-12 -10,-30 0,-32 C10,-32 12,-14 8,-2 C4,2 -6,2 -9,-2 Z",
                      especial={"pesado": "", "esquiva": "mortal"}),
@@ -584,14 +550,14 @@ GAME = {
                torso_d="M-12,-2 C-15,-14 -15,-30 -11,-36 L11,-36 C15,-30 15,-14 12,-2 C6,1 -6,1 -12,-2 Z",
                especial={"pesado": "", "esquiva": "salto"}),
 }
-TOOL_BOX = {"marretao": (-17, -12, 51, 12), "picareta": (-17, -23, 53, 27), "chave": (-15, -15, 50, 15),
+TOOL_BOX = {"marretao": (-30, -20, 75, 20), "picareta": (-17, -23, 53, 27), "chave": (-15, -15, 50, 15),
             "britadeira": (-3, -12, 46, 12), "pa": (-23, -13, 60, 13)}
 # Quadros que só o jogo usa (a prancha mostra os principais). tool = (x, y, ângulo) da pegada da frente.
 EXTRA = {
-    "marretao": {"corre": dict(lean=8, tool=(10, -52, -140)), "ar": dict(tool=(16, -58, -110)),
-                 "rapido_prep": dict(lean=-6, tool=(4, -52, -150)), "rapido2_prep": dict(lean=-4, tool=(12, -32, 120)),
-                 "rapido2": dict(lean=10, feet=[(-12, 0), (16, 0)], tool=(30, -58, -60)), "cima": dict(tool=(14, -74, -80)),
-                 "baixo": dict(tool=(14, -32, 95)), "esquiva_ar": dict(feet=[(-4, -14), (8, -12)], tool=(12, -46, -130))},
+    "marretao": {"corre": dict(lean=22, tool=(6, -32, -160)), "ar": dict(tool=(6, -34, -150)),
+                 "rapido_prep": dict(lean=0, tool=(6, -40, -110)), "rapido2_prep": dict(lean=6, tool=(18, -24, 50)),
+                 "rapido2": dict(lean=18, tool=(16, -42, -70)), "cima": dict(lean=-8, tool=(6, -48, -100)),
+                 "baixo": dict(lean=24, tool=(12, -14, 92)), "esquiva_ar": dict(tool=(8, -32, -100))},
     "picareta": {"corre": dict(lean=10, tool=(10, -56, -120)), "ar": dict(tool=(12, -62, -100)),
                  "rapido_prep": dict(lean=-8, tool=(-2, -52, -12)), "rapido2_prep": dict(tool=(6, -82, -80)),
                  "rapido2": dict(lean=14, feet=[(-16, 0), (20, 0)], tool=(34, -46, 40)), "cima": dict(tool=(14, -88, -75)),
@@ -731,9 +697,9 @@ def export_game():
         poses = dict(POSES[cid])
         poses.update(EXTRA[cid])
         ha = ch["head_at"]
-        eyes_c = add(add(hip, ha), (7, -12) if cid != "marretao" else (10, 6))
+        eyes_c = add(add(hip, ha), g.get("eyes_at", (7, -12)))
         acc_p = add(add(hip, ha), g["acc"])
-        top = add(add(hip, ha), (0, -26 if cid in ("chave", "pa") else (-38 if cid == "picareta" else (-28 if cid == "marretao" else -32))))
+        top = add(add(hip, ha), g.get("top_at", (0, -26 if cid in ("chave", "pa") else (-38 if cid == "picareta" else -32))))
         meta["modelos"][cid] = {
             "nome": ch["nome"].capitalize() if cid != "pa" else "Pá", "hat": [64, 40, 0.5],
             "hips": [cv(add(hip, hb)), cv(add(hip, hf))], "shoulders": [cv(add(hip, shb)), cv(add(hip, ch["sh_f"]))],

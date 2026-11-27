@@ -74,6 +74,27 @@ def cabeca(col, pose):
     return h + hat
 
 
+def cabeca_L(col, e, L="all"):
+    """Cabeça em camadas para o jogo (elenco.py → texturas): base / face (expressão) / acc (giroflex)."""
+    face = {"normal": "foco", "esforco": "raiva", "ataque": "raiva", "forca": "raiva", "grito": "raiva", "esquiva": "susto"}.get(e, e or "foco")
+    o = ""
+    if L in ("all", "base"):
+        o += cb.R(-20, -21, 42, 38, 12, col, k=0.7) + cb.R(-20, -21, 42, 9, 6, shade(col, 0.2), k=0.3)
+        o += cb.R(-6, -12, 27, 22, 7, SCREEN, k=0.35)
+        o += cb.E(-18, 2, 4, 5, shade(col, -0.35), k=0.3) + f'<circle cx="-18" cy="2" r="1.6" fill="{cb.MEC_L}"/>'
+        o += cb.S("M-19,-20 C-19,-37 21,-37 21,-20 Z", YEL, (-20, -38, 22, -19), k=0.5, dark=YEL_D)
+        o += cb.R(-24, -22, 50, 5, 2.5, YEL_D, k=0.3) + f'<path d="M1,-35 v14" stroke="{YEL_D}" stroke-width="3"/>'
+    if L in ("all", "face"):
+        if face == "piscar":
+            o += '<path d="M-3,-2 h8 M8,-2 h8" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>'
+        else:
+            o += olhos(face, 0)
+    if L in ("all", "acc"):
+        o += cb.R(-3, -41, 7, 5, 2, cb.MEC_D, k=0.3) + cb.E(0.5, -44, 4, 3.6, "#ffb22e", k=0.3)
+        o += '<circle cx="0.5" cy="-44" r="7" fill="#ffd27a" opacity="0.25"/>'
+    return o
+
+
 def tronco(col, pose):
     """Corpinho de pera com placa de barriga e cinto de perigo."""
     t = cb.S("M-10,0 C-13,-6 -11,-17 0,-18 C11,-17 13,-6 10,0 Z", col, (-14, -19, 14, 1), k=0.6)
