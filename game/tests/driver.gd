@@ -42,6 +42,10 @@ func _run() -> void:
 			await fase_frames(a.trim_prefix("--fase="))
 			get_tree().quit()
 			return
+		if a.begins_with("--mechas="):
+			await mechas_frames(a.trim_prefix("--mechas="))
+			get_tree().quit()
+			return
 		if a.begins_with("--equipa="):
 			await equipa_frames(a.trim_prefix("--equipa="))
 			get_tree().quit()
@@ -3103,18 +3107,35 @@ func spells_test() -> void:
 	place.call(1.2)
 	await frames(40)
 	check(r1.dmg > 0.0 and sp.flags(r0).get("armor_set", "") == "T05", "T05: veste a broca e fura quem está na frente (dano %d%%)" % int(r1.dmg))
+	# A30: SEGURAR = dash furando para a frente até acabar o combustível; atropela quem está no caminho
+	await frames(30)
+	place.call(3.5)
+	await frames(4)
+	var x_antes: float = r0.position.x
+	var dmg_antes: float = r1.dmg
+	vset("v0", "item", true)
+	await frames(30)
+	var dash_on: bool = sp.slot[0]["data"].get("dash", false)
+	await frames(90)
+	vset("v0", "item", false)
+	check(dash_on and absf(r0.position.x - x_antes) > 150.0, "T05: segurar dispara o DASH furando (andou %d px)" % int(absf(r0.position.x - x_antes)))
+	check(r1.dmg >= dmg_antes + 7.0, "T05: o dash atropela quem está no caminho (%d%% → %d%%)" % [int(dmg_antes), int(r1.dmg)])
+	check(sp.slot.has(0) and float(sp.slot[0]["energy"]) <= 0.0, "T05: o combustível do dash acaba")
 	sp.clear(r0)
 	# T06 soldador: arco curto e conserto de trecho rachado
 	place.call(1.2)
 	sp.equip(r0, "T06")
 	await frames(2)
 	await tap("v0", "item")
-	await frames(20)
-	place.call(1.0)
+	await frames(60)   # transformação (0,9 s)
+	place.call(2.5)
 	vset("v0", "item", true)
-	await frames(30)
+	await frames(12)
+	var cadeia: Array = sp.slot[0]["data"].get("chain", [])
+	await frames(18)
 	vset("v0", "item", false)
-	check(r1.dmg > 0.0, "T06: arco de solda acerta de perto (dano %d%%)" % int(r1.dmg))
+	check(r1.dmg > 0.0, "T06: o raio do Para-Raios acerta (dano %d%%)" % int(r1.dmg))
+	check(cadeia.size() >= 2, "T06: o raio sai da arma e chega no alvo (%d pontos na cadeia)" % cadeia.size())
 	var lajes: Array = ct.parts.filter(func(p): return p["kind"] == "laje" and not p["fallen"] and not p["nucleo"] and p["crit_t"] <= 0.0)
 	if lajes.size() > 0:
 		var lp: Dictionary = lajes[0]
@@ -3838,6 +3859,73 @@ func equipa_frames(dir: String) -> void:
 				main.robots[i].invuln = 0.0
 			await frames(1)
 			await grab(dir, "eq%d_%s_%s" % [pass_i, st[0], st[1]])
+
+## Vitrine dos MECHAS no jogo (A29/A30, --mechas=DIR): P1 pega cada armadura, transforma e usa a habilidade contra
+## 3 alvos (Fornalha, Broca, Bola, Empilhadeira, Para-Raios, Jato). 1 quadro a cada 2 (30/s) → mecha_NNNN.png.
+func mechas_frames(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	main.go_menu()
+	PlayerInput.virtual = {"v0": {}, "v1": {}, "v2": {}, "v3": {}}
+	main.mode = "demolicao"
+	main.go_join()
+	await frames(2)
+	for d in ["v0", "v1", "v2", "v3"]:
+		await tap(d, "jump")
+	for i in 4:
+		main.players[i]["model"] = i
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 9
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	var sp = main.demo.spells
+	sp.spawn_t = 999.0
+	_frame_no = 0
+	var seq := [["T01", "fogo"], ["T05", "dash"], ["T03", "rola"], ["T02", "garfo"], ["T06", "raio"], ["T04", "voa"]]
+	for st in seq:
+		var r0 = main.robots[0]
+		for i in 4:
+			var r = main.robots[i]
+			sp.clear(r)
+			r.dmg = 0.0
+			main.demo.lives[i] = 9
+			put(r, Vector2(520.0 + (0.0 if i == 0 else 260.0 + i * 170.0), 832.0))
+			r.facing = 1 if i == 0 else -1
+		await frames(4)
+		sp.equip(r0, st[0])
+		await frames(2)
+		await tap("v0", "item")
+		main.cam_lock = [1.45, Vector2(900, 720)]
+		var n := 0
+		while n < 190:
+			if n == 58:
+				match st[1]:
+					"fogo", "dash", "raio":
+						vset("v0", "item", true)
+					"rola":
+						vset("v0", "right", true)
+					"garfo":
+						await tap("v0", "item")
+					"voa":
+						vset("v0", "item", true)
+						vset("v0", "right", true)
+			if st[1] == "fogo" and n == 110:
+				vset("v0", "up", true)
+			if n == 150:
+				for k in ["item", "right", "up"]:
+					vset("v0", k, false)
+			if st[1] == "garfo" and n == 95:
+				await tap("v0", "item")
+			for i in range(1, 4):
+				main.demo.lives[i] = 9
+			await frames(1)
+			if n % 2 == 0:
+				await grab(dir, "mecha")
+			n += 1
+		for k in ["item", "right", "up"]:
+			vset("v0", k, false)
+	print("quadros: ", _frame_no)
 
 ## Som aprovado (pack VB): cada ação toca SÓ o seu som, uma vez; golpe no vazio não faz clang; KO fora da arena = UMA
 ## explosão (sem o som de peças) e abaixa a música; tema em loop no barramento Music. --so=som

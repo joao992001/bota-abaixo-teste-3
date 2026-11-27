@@ -439,6 +439,10 @@
         "ky": 70,
         "ky_por": 0.4
       },
+        "spell_broca_dash": {"dano": 8, "kx": 430, "kx_por": 3.0, "ky": 260, "ky_por": 1.0},
+        "spell_raio1": {"dano": 4, "kx": 120, "kx_por": 0.8, "ky": 90, "ky_por": 0.4},
+        "spell_raio2": {"dano": 2.4, "kx": 90, "kx_por": 0.5, "ky": 70, "ky_por": 0.3},
+        "spell_raio3": {"dano": 1.4, "kx": 60, "kx_por": 0.3, "ky": 50, "ky_por": 0.2},
       "evento_entulho": {
         "dano": 8,
         "kx": 240,
@@ -962,7 +966,7 @@
         "empurrao_mult": 0.6,
         "tick_s": 0.25,
         "estrutura_tick_s": 0.45,
-        "icone": "s31_broca"
+        "combustivel_s": 0.85, "dash_vel": 800, "dash_tick_s": 0.1, "nota_dash": "A30: SEGURAR = dash furando até acabar o combustível (fura trechos à frente, atropela).", "icone": "s31_broca"
       },
       "T06": {
         "familia": "transformacao",
@@ -973,7 +977,7 @@
         "arco_alcance": 90,
         "tick_s": 0.22,
         "reparo_s": 0.9,
-        "icone": "s28_macarico"
+        "raio_alcance": 300, "raio_salto": 230, "raio_alvos": 3, "metal_alcance": 240, "nota_raio": "A30 PARA-RAIOS: segurar = raio na mira; pula para o próximo robô a até raio_salto (até 3, golpes spell_raio1/2/3 = 100/60/35%) e conduz em estrutura de METAL (grelha/estaca) danificando.", "icone": "s28_macarico"
       },
       "T07": {
         "familia": "transformacao",

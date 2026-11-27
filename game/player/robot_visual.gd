@@ -1062,6 +1062,8 @@ func _draw_tag() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0 / maxf(absf(scale.x), 0.2) * sx, 1.0 / maxf(scale.y, 0.2)))
 	var meter: bool = (hanging or on_wall or not robot.is_on_floor()) and grip < 0.999
 	var top := float(Data.model_meta(model)["top"]) - ORIGIN.y
+	if robot.has_method("fx_flags") and String(robot.fx_flags().get("mecha", "")) != "":
+		top = minf(top, -178.0)   # pilotando um mecha (A29): a etiqueta vai acima da cabeça da máquina
 	var y := (top - 48.0) if meter else (top - 14.0)
 	var col: Color = Data.COLORS[color_idx % Data.COLORS.size()]
 	draw_colored_polygon(PackedVector2Array([Vector2(-9, y), Vector2(9, y), Vector2(0, y + 10)]), col)

@@ -511,8 +511,12 @@ func use(r) -> void:
 				_start_form(r, s)
 			elif s["id"] == "T02":
 				_fork_action(r, s)
+			elif s["id"] == "T05":
+				s["channel"] = true   # segura: DASH furando (A30)
+				if _is_bot(r.pid):
+					bot_hold[r.pid] = 0.9
 			elif s["id"] == "T06":
-				s["channel"] = true   # segura: arco de solda
+				s["channel"] = true   # segura: raio em cadeia (A30)
 				if _is_bot(r.pid):
 					bot_hold[r.pid] = 0.8
 		"T04":
@@ -2830,6 +2834,9 @@ func _start_form(r, s: Dictionary) -> void:
 		"T05":
 			r.spell_speed = float(c["vel_mult"])
 			r.spell_push = float(c["empurrao_mult"])
+			s["energy"] = float(c["combustivel_s"])
+		"T06":
+			s["energy"] = float(c["combustivel_s"])
 		"T07":
 			r.spell_speed = float(c["vel_mult"])
 			r.spell_push = float(c["empurrao_mult"])
@@ -2865,6 +2872,19 @@ func _end_form(r, natural: bool) -> void:
 	Audio.play("caixote_quebra", 1.3, -4.0)
 	if natural:
 		slot.erase(r.pid)
+
+## Ponta da arma do MECHA (A29) no mundo: ombro + ponta girada pela mira (mesmos números do desenho, mechas.json).
+func mecha_muzzle(r) -> Vector2:
+	var M: Dictionary = Data.mecha_meta
+	var id: String = slot[r.pid]["id"] if slot.has(r.pid) else "T06"
+	if not M.get("mechas", {}).has(id):
+		return r.position + Vector2(r.facing * 40.0, -60.0)
+	var m: Dictionary = M["mechas"][id]
+	var px := float(M["px"])
+	var sh := Vector2(float(m["ombro"][0]), float(m["ombro"][1]))
+	var off := Vector2(float(m["ponta"][0]), float(m["ponta"][1])).rotated(aim_local(r))
+	var p := (sh + off) * px
+	return r.position + Vector2(p.x * r.facing, p.y)
 
 ## Fim da armadura-mecha: as peças se soltam num estouro de faíscas, fumaça e poeira.
 func _mecha_explode(r) -> void:
@@ -3035,14 +3055,57 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 			for oid in hc2.keys():
 				hc2[oid] -= dt
 			d["hitcd"] = hc2
+			var dashing: bool = s["channel"] and held(r) and s["energy"] > 0.0 and float(d.get("assemble", 0.0)) >= 1.0
+			if s["channel"] and not dashing:
+				s["channel"] = false
+				if d.get("dash", false):   # derrapa: faíscas sob os pés
+					for k in 6:
+						main.spark(r.position + Vector2(randf_range(-20, 20), -4), 1)
+					main.dust(r.position, 1.0)
+			d["dash"] = dashing
+			if dashing:
+				s["energy"] -= dt
+				r.forced_t = dt * 2.0
+				r.forced_vel = Vector2(r.facing * float(c["dash_vel"]), 0.0 if r.is_on_floor() else 120.0)
+				_set_aim(r, s, Vector2(r.facing, 0), 30.0, dt)
+				# fura o que estiver na frente e atropela quem estiver no caminho
+				var front := Rect2(r.position + Vector2(r.facing * 20.0 - 40.0, -110.0), Vector2(80, 104))
+				d["dt_t"] = float(d.get("dt_t", 0.0)) - dt
+				if d["dt_t"] <= 0.0:
+					d["dt_t"] = float(c["dash_tick_s"])
+					var ctd = demo.canteiro
+					if ctd != null and is_instance_valid(ctd):
+						for p in ctd.parts:
+							if not p["fallen"] and p["rect"].intersects(front.grow(6)):
+								ctd.damage(p, 1, front.get_center())
+								for k in 4:
+									rocks.append({"pos": front.get_center(), "vel": Vector2(r.facing * randf_range(60, 300), randf_range(-320, -80)), "t": 0.0, "rot": randf() * TAU, "size": randf_range(5, 10)})
+								main.shake(3.0)
+				for o in main.robots:
+					if o != r and o.alive and front.intersects(o.rect()) and float(hc2.get(o.pid, 0.0)) <= 0.0:
+						hc2[o.pid] = 0.45
+						if _hit_dir(o, r.pid, Vector2(r.facing, -0.3), "spell_broca_dash"):
+							main.shake(6.0)
+				if fmod(t, 0.03) < dt:
+					main.spark(r.position + Vector2(r.facing * 70.0, -60.0), 1)
+				if fmod(t, 0.05) < dt:
+					main.dust(r.position + Vector2(-r.facing * 24.0, 0), 0.7)
+				if fmod(t, 0.12) < dt:
+					Audio.play("furadeira", 1.3, -4.0)
+				d["trail"] = (d.get("trail", []) as Array) + [r.position]
+				if (d["trail"] as Array).size() > 5:
+					(d["trail"] as Array).pop_front()
+			else:
+				d["trail"] = []
 			var av: Vector2 = aim_vec(r)
 			if PlayerInput.held(r.pid, "down") and r.is_on_floor():
 				av = Vector2(0, 1)
-			_set_aim(r, s, av, 10.0, dt)
+			if not dashing:
+				_set_aim(r, s, av, 10.0, dt)
 			var tip := muzzle(r, "F31")
 			var root: Vector2 = r.position + Vector2(r.facing * 6.0, -40.0)
 			for o in main.robots:
-				if o != r and o.alive and _seg_rect(root, tip + aim_dir(r) * 8.0, o.rect(), 10.0) and float(hc2.get(o.pid, 0.0)) <= 0.0:
+				if not dashing and o != r and o.alive and _seg_rect(root, tip + aim_dir(r) * 8.0, o.rect(), 10.0) and float(hc2.get(o.pid, 0.0)) <= 0.0:
 					hc2[o.pid] = float(c["tick_s"])
 					_hit_dir(o, r.pid, aim_dir(r), "spell_broca")
 			d["st"] = float(d.get("st", 0.0)) - dt
@@ -3062,11 +3125,13 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 					Audio.play("furadeira", 1.0, -6.0)
 			if fmod(t, 0.04) < dt:
 				main.spark(tip, 1)
-		"T06":   # soldador: segurar = arco curto à frente; parado com ▼ conserta 1 ponto de um trecho danificado
-			var on: bool = s["channel"] and held(r) and s["energy"] > 0.0
+		"T06":   # PARA-RAIOS (A30): segurar = raio na mira que pula de robô em robô (até 3) e conduz no metal
+			var on: bool = s["channel"] and held(r) and s["energy"] > 0.0 and float(d.get("assemble", 0.0)) >= 1.0
 			if s["channel"] and not on:
 				s["channel"] = false
 			d["arc"] = on
+			d["chain"] = []
+			d["metal"] = []
 			if on:
 				s["energy"] -= dt
 				var hc3: Dictionary = d.get("hitcd", {})
@@ -3074,14 +3139,64 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 					hc3[oid] -= dt
 				d["hitcd"] = hc3
 				_set_aim(r, s, aim_vec(r), 10.0, dt)
-				var a := muzzle(r, "F33")
-				var b := a + aim_dir(r) * float(c["arco_alcance"])
+				var a := mecha_muzzle(r)
+				var dirv := aim_dir(r)
+				# 1º alvo: robô mais perto dentro do cone da mira
+				var chain: Array = [a]
+				var used := {}
+				var best = null
+				var bd := float(c["raio_alcance"])
 				for o in main.robots:
-					if o != r and o.alive and _seg_rect(a, b, o.rect(), 14.0) and float(hc3.get(o.pid, 0.0)) <= 0.0:
+					if o == r or not o.alive:
+						continue
+					var v: Vector2 = o.rect().get_center() - a
+					if v.length() < bd and v.normalized().dot(dirv) > 0.55:
+						bd = v.length()
+						best = o
+				var victims: Array = []
+				var cur = best
+				while cur != null and victims.size() < int(c["raio_alvos"]):
+					victims.append(cur)
+					used[cur.pid] = true
+					chain.append(cur.rect().get_center())
+					var nxt = null
+					var nd := float(c["raio_salto"])
+					for o in main.robots:
+						if o == r or not o.alive or used.has(o.pid):
+							continue
+						var dd: float = o.rect().get_center().distance_to(cur.rect().get_center())
+						if dd < nd:
+							nd = dd
+							nxt = o
+					cur = nxt
+				if victims.is_empty():
+					chain.append(a + dirv * float(c["raio_alcance"]) * 0.6)
+				d["chain"] = chain
+				for i in victims.size():
+					var o = victims[i]
+					if float(hc3.get(o.pid, 0.0)) <= 0.0:
 						hc3[o.pid] = float(c["tick_s"])
-						_hit_dir(o, r.pid, aim_dir(r), "spell_solda")
-				if fmod(t, 0.1) < dt:
-					Audio.play("laser", 1.8, -12.0)
+						_hit_dir(o, r.pid, (o.rect().get_center() - (chain[i] as Vector2)).normalized(), "spell_raio%d" % (i + 1))
+						o.vis.hurt(0.4, int(signf(o.position.x - r.position.x)))
+				# conduz no metal (grelha/estaca) perto do último ponto da cadeia
+				var lastp: Vector2 = chain[-1]
+				var ctm = demo.canteiro
+				if ctm != null and is_instance_valid(ctm):
+					var metal: Array = []
+					for p in ctm.parts:
+						if not p["fallen"] and String(p["kind"]) in ["grelha", "estaca"] and p["rect"].get_center().distance_to(lastp) < float(c["metal_alcance"]):
+							metal.append(p["rect"].get_center())
+							d["mt"] = float(d.get("mt", 0.0)) - dt
+							if float(d["mt"]) <= 0.0:
+								d["mt"] = float(c["tick_s"]) * 2.0
+								ctm.damage(p, 1, p["rect"].get_center())
+								main.spark(p["rect"].get_center(), 1)
+							break
+					d["metal"] = metal
+				if fmod(t, 0.08) < dt:
+					Audio.play("laser", 2.2, -8.0)
+				if fmod(t, 0.05) < dt:
+					main.spark(lastp, 1)
 			# conserto: parado, segurando ▼ + especial em cima de um trecho rachado
 			var rep_ok: bool = not d.get("repaired", false) and r.is_on_floor() and absf(r.velocity.x) < 30.0 and PlayerInput.held(r.pid, "down") and held(r)
 			var part = null
@@ -3149,6 +3264,7 @@ func _draw_etapa4() -> void:
 		var mod := Color(1.5, 1.4, 1.3) if end_blink else Color.WHITE
 		match s["id"]:
 			"T03": _draw_ball(r, d, fk, mod)
+			"T05": _draw_drill_dash(r, d)
 			"T06": _draw_welder(r, d, fk, mod)
 	# T04 jetpack: dois jatos saindo dos bicos (grandes acelerando, chama-piloto no resto), inclinados com o corpo
 	for r in main.robots:
@@ -3252,20 +3368,58 @@ func _draw_ball(r, d: Dictionary, fk: float, mod: Color) -> void:
 		draw_circle(c, 44.0, Color(1, 1, 1, 0.5 * d["flash"]))
 	_ptag(r, c + Vector2(0, -50))
 
+## T05 dash furando (A30): vultos do mecha ficando para trás, linhas de velocidade, faíscas na broca e poeira.
+func _draw_drill_dash(r, d: Dictionary) -> void:
+	if not d.get("dash", false):
+		return
+	var f := float(r.facing)
+	var tr: Array = d.get("trail", [])
+	for i in tr.size():
+		var p: Vector2 = tr[i]
+		var k := float(i + 1) / float(tr.size() + 1)
+		draw_rect(Rect2(p + Vector2(-45, -170), Vector2(90, 170)), Color(0.75, 0.9, 1.0, 0.10 + 0.12 * k))
+	for k in 10:   # linhas de velocidade
+		var yy: float = r.position.y - 160.0 + fmod(k * 37.0, 160.0)
+		var ln := 60.0 + fmod(k * 53.0 + t * 900.0, 120.0)
+		var x0: float = r.position.x - f * (60.0 + fmod(k * 71.0 + t * 1400.0, 260.0))
+		draw_line(Vector2(x0, yy), Vector2(x0 - f * ln, yy), Color(1, 1, 1, 0.75), 3.0 + fmod(k, 3.0), true)
+	var tip: Vector2 = r.position + Vector2(f * 100.0, -84.0)
+	draw_circle(tip, 22.0 + sin(t * 70.0) * 5.0, Color(1, 0.95, 0.6, 0.45))
+	for k in 6:   # faíscas espirrando da broca
+		var ang := (PI if f > 0 else 0.0) + sin(t * 40.0 + k * 1.7) * 1.1
+		var L := 20.0 + fmod(k * 13.0 + t * 300.0, 40.0)
+		draw_line(tip, tip + Vector2.from_angle(ang) * L, Color(1, 0.85, 0.35, 0.9), 2.5, true)
+
 ## T06: arco de solda saindo do maçarico-braço (o robô veste a armadura de soldador — robot_visual).
 func _draw_welder(r, d: Dictionary, fk: float, mod: Color) -> void:
-	if d.get("arc", false):
-		var a := muzzle(r, "F33")
-		var b := a + aim_dir(r) * float(sc("T06")["arco_alcance"])
-		_draw_bolt(a, b, 0.7, 0.0, t)
-		draw_circle(a, 9.0, Color(0.75, 0.9, 1.0, 0.9))
-		draw_circle(a, 4.0, Color.WHITE)
-		draw_circle(b, 12.0 + sin(t * 40.0) * 3.0, Color(1, 0.95, 0.8, 0.8))
-		for k in 3:   # gotas de solda caindo
-			var u := fposmod(t * 3.0 + k * 0.33, 1.0)
-			draw_circle(b + Vector2(sin(k * 2.0) * 8.0, u * 40.0), 2.5, Color(1, 0.6, 0.2, 1.0 - u))
-		if fmod(t, 0.08) < 0.02:
-			smokes.append({"pos": b, "vel": Vector2(randf_range(-20, 20), -70), "t": 0.0, "size": 6.0})
+	var a0 := mecha_muzzle(r)
+	var en: float = float(slot[r.pid].get("energy", 0.0)) if slot.has(r.pid) else 0.0
+	# bobina das costas estalando sempre que tem carga
+	if en > 0.0 and fk >= 1.0:
+		var coil: Vector2 = r.position + Vector2(-r.facing * 46.0, -150.0)
+		draw_circle(coil, 14.0 + sin(t * 40.0) * 3.0, Color(0.5, 0.9, 1.0, 0.35))
+		for k in 2:
+			var ang := t * 9.0 + k * 2.6
+			_draw_bolt(coil, coil + Vector2.from_angle(ang) * 26.0, 0.2, 0.0, t + k, 0.8)
+	if not d.get("arc", false):
+		return
+	var chain: Array = d.get("chain", [])
+	for i in range(chain.size() - 1):
+		var pa: Vector2 = chain[i]
+		var pb: Vector2 = chain[i + 1]
+		var k := 1.0 - i * 0.3
+		_draw_bolt(pa, pb, k, 0.0, t + i * 1.7, 1.0)
+		_draw_bolt(pa, pb, k * 0.5, 0.0, t * 1.3 + i * 3.1 + 7.0, 0.6)   # 2º fio, mais fino
+		draw_circle(pb, 26.0 * k + sin(t * 50.0) * 4.0, Color(0.6, 0.95, 1.0, 0.35))
+		draw_circle(pb, 9.0 * k, Color(1, 1, 1, 0.9))
+	for mp in d.get("metal", []):
+		var last: Vector2 = chain[-1]
+		_draw_bolt(last, mp, 0.4, 0.0, t + 5.0, 0.9)
+		for k in 3:
+			var u := fposmod(t * 2.5 + k * 0.33, 1.0)
+			draw_circle(mp + Vector2(sin(k * 3.0) * 20.0, u * 50.0), 2.4, Color(1, 0.9, 0.4, 1.0 - u))
+	draw_circle(a0, 16.0 + sin(t * 60.0) * 4.0, Color(0.6, 0.95, 1.0, 0.45))
+	draw_circle(a0, 7.0, Color.WHITE)
 	var rep: float = float(d.get("rep_t", 0.0))
 	if rep > 0.0:   # anel de progresso do conserto
 		var k := clampf(rep / float(sc("T06")["reparo_s"]), 0.0, 1.0)

@@ -523,7 +523,7 @@ const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "comb
 	"spell_punho", "spell_gelo", "spell_fogo", "spell_explosao",
 	"spell_laser", "spell_sismo", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
 	"spell_gancho", "spell_carga", "spell_viga",
-	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda"]
+	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_raio1", "spell_raio2", "spell_raio3"]
 
 func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if invuln > 0.0 or god:
@@ -537,7 +537,7 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		"spell_explosao": "fornalha explodiu", "spell_laser": "laser de corte", "spell_sismo": "marreta sísmica",
 		"spell_rebite": "rebite", "spell_estaca": "bate-estaca", "spell_bumerangue": "marreta-bumerangue",
 		"spell_mola": "canhão de molas", "spell_gancho": "gancho", "spell_carga": "carga de demolição", "spell_viga": "viga do guindaste",
-		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda",
+		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios",
 		"evento_entulho": "entulho", "evento_rebite": "chuva de rebites", "evento_viga": "viga do cabo rompido", "evento_carga": "carga do guindaste",
 		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
 	last_attacker = by
