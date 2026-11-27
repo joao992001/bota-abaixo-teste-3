@@ -6,3 +6,4 @@ game/data/
 game/levels/
 __pycache__/
 art/src/robos/svg/armaduras_conceito.svg
+art/src/robos/svg/armaduras_bola.svg

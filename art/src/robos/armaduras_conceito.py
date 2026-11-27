@@ -231,3 +231,56 @@ if __name__ == "__main__":
     svg, w, h = prancha()
     queue(svg, os.path.join(HERE, "svg/armaduras_conceito.svg"), os.path.join(ab.OUT, "armaduras_conceito.png"), w, h, 1)
     print("prancha:", render_all())
+
+
+# ================================================================ T03: o gorila SE FECHA numa BOLA (pedido 2026-11-27)
+def bola_fechada(col, rot=0.0, aberto=0.0):
+    """Bola blindada: as placas do casco (ombreiras/costas) viram gomos; janela do piloto e faixa na cor do jogador."""
+    casco = "#7a828f"
+    r = 46
+    o = f'<g transform="translate(0,{-r}) rotate({rot:.0f})">'
+    o += E(0, 0, r, r, DARK, k=0.6)
+    for a in range(0, 360, 60):                                                    # gomos de placa
+        a0, a1 = math.radians(a + 4 + aberto * 10), math.radians(a + 56 - aberto * 10)
+        p = [(math.cos(a0) * 12, math.sin(a0) * 12), (math.cos(a0) * (r - 3), math.sin(a0) * (r - 3)),
+             (math.cos((a0 + a1) / 2) * (r + 2), math.sin((a0 + a1) / 2) * (r + 2)), (math.cos(a1) * (r - 3), math.sin(a1) * (r - 3)), (math.cos(a1) * 12, math.sin(a1) * 12)]
+        o += P_(p, casco if a % 120 else shade(casco, 0.15), k=0.4)
+        sx, sy = math.cos(math.radians(a + 30)), math.sin(math.radians(a + 30))
+        o += P_([(sx * r - sy * 5, sy * r + sx * 5), (sx * (r + 14), sy * (r + 14)), (sx * r + sy * 5, sy * r - sx * 5)], STEEL_L, k=0.1)   # espetos
+    o += R(-r, -6, 2 * r, 12, 5, col, k=0.4)                                       # cinturão na cor do jogador
+    o += f'<g transform="rotate({-rot:.0f})">{janela_redonda(0, 0, 17, col)}</g>'
+    o += P_([(-10, -24), (10, -24), (8, -19), (-8, -19)], EYE, k=0.1)
+    return o + "</g>"
+
+
+def bola_virando(col):
+    """4 quadros: gorila → agacha e encolhe → placas fecham → rola."""
+    q = []
+    q.append(("1 · gorila", bola(col)))
+    ag = f'<g transform="translate(0,0) scale(1.05,0.72)">{bola(col)}</g>'
+    q.append(("2 · agacha e abraça o corpo", ag))
+    meio = f'<g opacity="0.35" transform="scale(0.9,0.6)">{bola(col)}</g>' + f'<g transform="scale(0.9)">{bola_fechada(col, 0, 1.0)}</g>'
+    q.append(("3 · as placas fecham", meio))
+    rola = bola_fechada(col, 140) + "".join(f'<path d="M{-80 - i * 18},{-30 + i * 14} h26" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>' for i in range(3))
+    rola += ab.fx_dust(-30, 0, 0.5, 1.0)
+    q.append(("4 · BOLA: rola e esmaga", rola))
+    return q
+
+
+def prancha_bola():
+    W, H = 1920, 620
+    b = [f'<rect width="{W}" height="{H}" fill="#9fe2ec"/>', label(W / 2, 54, "T03 · BOLA DE DEMOLIÇÃO — o mecha gorila SE FECHA numa bola blindada", 32)]
+    for i, (nome, svg) in enumerate(bola_virando("#f06aa8")):
+        x = 20 + i * 475
+        b.append(f'<rect x="{x}" y="86" width="460" height="510" rx="22" fill="#ffffff" opacity="0.5"/>')
+        b.append(label(x + 230, 130, nome, 24, INK))
+        b.append(f'<rect x="{x + 20}" y="500" width="420" height="8" rx="3" fill="#c9b99a"/>')
+        b.append(f'<g transform="translate({x + 210},500) scale(2.0)">{svg}</g>')
+    b.append(label(W / 2, 560, "Fechada: piloto na vigia, cinturão na cor do jogador, espetos e olho vermelho — o resto (rolar, quicar, esmagar) segue as regras de hoje.", 17, "#2a4a58", "middle", 600))
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{"".join(b)}</svg>', W, H
+
+
+if __name__ == "__main__" and "--bola" in sys.argv:
+    svg, w, h = prancha_bola()
+    queue(svg, os.path.join(HERE, "svg/armaduras_bola.svg"), os.path.join(ab.OUT, "armaduras_bola.png"), w, h, 1)
+    print("bola:", render_all())
