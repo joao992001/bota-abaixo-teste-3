@@ -511,6 +511,10 @@ func use(r) -> void:
 				_start_form(r, s)
 			elif s["id"] == "T02":
 				_fork_action(r, s)
+			elif s["id"] == "T03":
+				s["channel"] = true   # segura: fecha em bola e rola (A30/A33)
+				if _is_bot(r.pid):
+					bot_hold[r.pid] = 1.4
 			elif s["id"] == "T05":
 				s["channel"] = true   # segura: DASH furando (A30)
 				if _is_bot(r.pid):
@@ -945,6 +949,7 @@ func _end_armor(r, natural: bool) -> void:
 
 # ---------------------------------------------------------------- quadro a quadro
 var fire_ps: Array = []   # partículas de fogo da Fornalha (A30)
+var mecha_fx: Array = []  # rastros e ondas dos golpes leve/pesado do mecha (A33)
 var trans_fx: Array = []  # fecho da transformação: clarão, raios, onda de choque no chão, nome (A29)
 
 ## Mecha montado (fim da transformação estilo Transformers): o olho acende, clarão, onda de choque, poeira e o NOME.
@@ -969,6 +974,9 @@ func update(dt: float, alive: Array) -> void:
 			fp["vel"] *= 0.985
 			fp["vel"].y -= 160.0 * dt   # o fogo sobe
 	fire_ps = fire_ps.filter(func(fp): return fp["t"] < fp["life"])
+	for e in mecha_fx:
+		e["t"] += dt
+	mecha_fx = mecha_fx.filter(func(e): return e["t"] < 0.45)
 	for tf in trans_fx:
 		tf["t"] += dt
 	trans_fx = trans_fx.filter(func(tf): return tf["t"] < 0.7)
@@ -1165,6 +1173,16 @@ func flags(r) -> Dictionary:
 			out["arc"] = s["data"].get("arc", false)
 			out["busy"] = s["data"].get("arc", false) or s["id"] == "T05"
 			out["mecha"] = s["id"]
+	if s["id"] == "T03" and s["t"] > 0.0 and r.spell_form != "bola":
+		out["mecha"] = "T03"
+		out["assemble"] = float(s["data"].get("assemble", 1.0))
+		out["armor_end"] = clampf(1.0 - s["t"] / 1.2, 0.0, 1.0)
+	if out.has("mecha") and r.atk != "":   # golpe leve/pesado do mecha (A33): fase para a animação
+		var pre: float = float(r._atk_cfg()["preparo"])
+		out["matk"] = r.atk
+		out["matk_t"] = r.atk_t
+		out["matk_pre"] = pre
+		out["matk_tot"] = r._atk_total()
 	if s["id"] == "T04" and s["t"] > 0.0:
 		out["flying_on"] = s["data"].get("thrust", false) or (not r.is_on_floor() and r.velocity.y < 300.0)
 		out["fly_vx"] = r.velocity.x
@@ -1208,6 +1226,7 @@ func _draw() -> void:
 	_draw_magnets()
 	_draw_flames()
 	_draw_trans_fx()
+	_draw_mecha_fx()
 	_draw_fists()
 	_draw_attack2()
 	_draw_etapa3()
@@ -2895,9 +2914,8 @@ func _start_form(r, s: Dictionary) -> void:
 		"T02":
 			r.spell_speed = float(c["vel_mult"])
 			r.spell_push = float(c["empurrao_mult"])
-		"T03":
-			r.spell_form = "bola"
-			r.own_vx = r.facing * 300.0
+		"T03":   # A33: começa EM PÉ (mecha gorila); segurar o especial fecha numa bola e rola
+			s["data"]["bk"] = 0.0
 		"T05":
 			r.spell_speed = float(c["vel_mult"])
 			r.spell_push = float(c["empurrao_mult"])
@@ -2938,6 +2956,99 @@ func _end_form(r, natural: bool) -> void:
 	Audio.play("caixote_quebra", 1.3, -4.0)
 	if natural:
 		slot.erase(r.pid)
+
+## Modo mecha (A33): id do mecha que o robô está pilotando JÁ MONTADO ("" se não está). A bola fechada não conta como
+## "em pé" para golpes, mas mantém os atributos.
+func mecha_of(r) -> String:
+	if r == null or not slot.has(r.pid):
+		return ""
+	var s: Dictionary = slot[r.pid]
+	var id: String = s["id"]
+	if not (id in ["T01", "T02", "T03", "T04", "T05", "T06"]) or float(s["t"]) <= 0.0:
+		return ""
+	if float(s["data"].get("assemble", 0.0)) < 1.0:
+		return ""
+	return id
+
+## Atributos do modo mecha do robô (recebe, empurrao, causa, alcances, área) ou {} se não está de mecha.
+func mecha_cfg(r) -> Dictionary:
+	var id := mecha_of(r)
+	if id == "":
+		return {}
+	return demo.cfg.get("modo_mecha", {}).get(id, {})
+
+## Golpe do mecha (A33), chamado por demolicao.attack: devolve [área, tipo] e solta os efeitos do golpe.
+func mecha_strike(r, kind: String) -> Array:
+	var id := mecha_of(r)
+	var m: Dictionary = mecha_cfg(r)
+	var heavy := kind == "pesado"
+	var rr: Rect2 = r.rect()
+	var cx: float = rr.get_center().x
+	var reach: float = float(m.get("alcance_pesado" if heavy else "alcance_leve", 120))
+	var hit: Rect2
+	if heavy and String(m.get("area_pesado", "frente")) == "volta":
+		hit = Rect2(cx - reach, rr.position.y - 40.0, reach * 2.0, rr.size.y + 40.0)
+	else:
+		var w := reach + rr.size.x / 2.0
+		hit = Rect2(cx if r.facing > 0 else cx - w, rr.position.y - 40.0, w, rr.size.y + 40.0)
+	if heavy:
+		_mecha_heavy_fx(r, id, reach)
+	else:
+		mecha_fx.append({"kind": "leve", "id": id, "pos": r.position + Vector2(r.facing * (reach * 0.8), -55.0), "f": r.facing, "t": 0.0})
+	return [hit, "mecha_pesado" if heavy else "mecha_leve"]
+
+func _mecha_heavy_fx(r, id: String, reach: float) -> void:
+	var g: Vector2 = r.position
+	match id:
+		"T01":   # pisão em chamas: fogo correndo pelo chão para os dois lados
+			for side in [-1.0, 1.0]:
+				for i in 26:
+					fire_ps.append({"pos": g + Vector2(side * main.rng.randf_range(10, 40), -6.0), "vel": Vector2(side * main.rng.randf_range(260, 520), main.rng.randf_range(-260, -60)),
+						"t": 0.0, "life": main.rng.randf_range(0.35, 0.55), "s": main.rng.randf_range(0.9, 1.3), "em": false})
+		"T05":   # perfuração: chuva de faíscas na frente
+			for i in 16:
+				main.spark(g + Vector2(r.facing * main.rng.randf_range(60, reach), main.rng.randf_range(-80, -20)), 1)
+		"T04":   # mergulho: se está no ar, desce em diagonal
+			if not r.is_on_floor():
+				r.forced_t = 0.22
+				r.forced_vel = Vector2(r.facing * 700.0, 900.0)
+	mecha_fx.append({"kind": "pesado", "id": id, "pos": g, "f": r.facing, "t": 0.0, "reach": reach})
+	main.dust(g, 1.6)
+	main.shake(8.0)
+
+func _draw_mecha_fx() -> void:
+	for e in mecha_fx:
+		var u: float = e["t"] / 0.45
+		var p: Vector2 = e["pos"]
+		var f: float = e["f"]
+		if e["kind"] == "leve":   # rastro curto do golpe + estrelinha
+			var cor := Color(1, 0.7, 0.3) if e["id"] == "T01" else (Color(0.6, 0.95, 1.0) if e["id"] in ["T06", "T04"] else Color.WHITE)
+			draw_arc(p - Vector2(f * 30.0, 0), 42.0, -0.9 if f > 0 else PI - 0.9, 0.9 if f > 0 else PI + 0.9, 12, Color(cor, 0.8 * (1.0 - u)), 10.0 * (1.0 - u) + 2.0, true)
+			draw_circle(p, 16.0 * (1.0 - u) + 4.0, Color(1, 1, 0.85, 0.8 * (1.0 - u)))
+			if e["id"] == "T06" and u < 0.6:
+				_draw_bolt(p - Vector2(f * 50.0, 0), p + Vector2(f * 20.0, 0), 0.4, 0.0, t, 1.0 - u)
+			continue
+		var R0: float = float(e.get("reach", 150.0))
+		draw_set_transform(p, 0.0, Vector2(1.0, 0.22))   # onda de choque no chão
+		draw_arc(Vector2.ZERO, 30.0 + R0 * 1.3 * (1.0 - pow(1.0 - u, 3.0)), 0, TAU, 48, Color(1, 1, 1, 1.0 - u), 14.0 * (1.0 - u) + 2.0, true)
+		draw_set_transform(Vector2.ZERO)
+		match String(e["id"]):
+			"T06":   # descarga em anel: raios saindo em volta
+				if u < 0.7:
+					for k in 8:
+						var ang := k * TAU / 8.0 + t
+						_draw_bolt(p + Vector2(0, -50), p + Vector2(0, -50) + Vector2.from_angle(ang) * R0 * (0.5 + 0.5 * u), 0.6, 0.0, t + k, 1.0 - u)
+					draw_circle(p + Vector2(0, -50), 40.0 * (1.0 - u) + 10.0, Color(0.6, 0.95, 1.0, 0.5 * (1.0 - u)))
+			"T03":   # socão no chão: rachaduras e pedras
+				for k in 6:
+					var a2 := PI + 0.25 + k * (PI - 0.5) / 5.0
+					draw_line(p, p + Vector2.from_angle(a2) * R0 * 0.6 * minf(u * 3.0, 1.0) * Vector2(1, 0.25), Color(0.25, 0.2, 0.2, 1.0 - u), 3.0, true)
+			"T02":   # garfada cravada: lascas
+				draw_line(p + Vector2(f * 80.0, -120.0 * (1.0 - minf(u * 4.0, 1.0))), p + Vector2(f * 80.0, 0), Color(1, 1, 1, 0.8 * (1.0 - u)), 8.0, true)
+			"T05":
+				draw_line(p + Vector2(f * 40.0, -60.0), p + Vector2(f * R0, -60.0), Color(1, 0.9, 0.5, 0.7 * (1.0 - u)), 14.0 * (1.0 - u) + 2.0, true)
+			"T04":
+				draw_circle(p + Vector2(0, -20), 50.0 * u + 10.0, Color(0.75, 0.9, 1.0, 0.5 * (1.0 - u)))
 
 ## Ponta da arma do MECHA (A29) no mundo: ombro + ponta girada pela mira (mesmos números do desenho, mechas.json).
 func mecha_muzzle(r) -> Vector2:
@@ -3101,8 +3212,22 @@ func _update_form(r, s: Dictionary, dt: float) -> void:
 					_fork_toss(r, s)
 			elif d.has("drop_t"):
 				d["drop_t"] += dt
-		"T03":   # bola: quem é atropelado leva o golpe (uma vez a cada meio segundo)
-			r.vis.visible = float(d["assemble"]) < 0.75   # as placas fecham e o robô some dentro
+		"T03":   # A33: gorila em pé; SEGURANDO o especial fecha em bola (bk 0→1) e rola; soltou, abre e fica em pé
+			var want: bool = s["channel"] and held(r) and float(d.get("assemble", 0.0)) >= 1.0
+			if s["channel"] and not want:
+				s["channel"] = false
+			var bk0: float = float(d.get("bk", 0.0))
+			d["bk"] = move_toward(bk0, 1.0 if want else 0.0, dt / 0.25)
+			if bk0 < 0.75 and float(d["bk"]) >= 0.75:
+				r.spell_form = "bola"
+				r.own_vx = r.facing * maxf(absf(r.own_vx), 300.0)
+				main.dust(r.position, 1.0)
+				Audio.play("caixote_pancada", 1.3, -6.0)
+			elif bk0 >= 0.75 and float(d["bk"]) < 0.75:
+				r.spell_form = ""
+				for k in 6:
+					main.spark(r.position + Vector2(randf_range(-30, 30), randf_range(-60, -10)), 1)
+			r.vis.visible = r.spell_form != "bola"
 			d["roll"] = float(d.get("roll", 0.0)) + r.velocity.x * dt / 36.0
 			var hc: Dictionary = d.get("hitcd", {})
 			for oid in hc.keys():
@@ -3331,7 +3456,9 @@ func _draw_etapa4() -> void:
 		var end_blink: bool = s["t"] < 1.0 and fmod(t, 0.16) < 0.08
 		var mod := Color(1.5, 1.4, 1.3) if end_blink else Color.WHITE
 		match s["id"]:
-			"T03": _draw_ball(r, d, fk, mod)
+			"T03":
+				if float(d.get("bk", 0.0)) > 0.0:
+					_draw_ball(r, d, float(d["bk"]) * 0.75 if r.spell_form != "bola" else 1.0, mod)
 			"T05": _draw_drill_dash(r, d)
 			"T06": _draw_welder(r, d, fk, mod)
 	# T04 jetpack: dois jatos saindo dos bicos (grandes acelerando, chama-piloto no resto), inclinados com o corpo

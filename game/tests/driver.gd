@@ -1850,7 +1850,9 @@ func limpa_test() -> void:
 	sp.equip(r0, "T03")
 	await frames(3)
 	await tap("v0", "item")
-	await frames(45)
+	await frames(62)
+	vset("v0", "item", true)   # A33: segurar o especial fecha em bola
+	await frames(20)
 	var y0: float = r0.position.y
 	await tap("v0", "jump")
 	var top := y0
@@ -1858,6 +1860,7 @@ func limpa_test() -> void:
 		await frames(1)
 		top = minf(top, r0.position.y)
 	check(r0.spell_form == "bola" and y0 - top > 90.0, "T03: a bola pula (%.0f px)" % (y0 - top))
+	vset("v0", "item", false)
 	sp.clear(r0)
 	await frames(20)
 	# T02: rival a 2,3 tiles na frente → o garfo pega
@@ -3074,11 +3077,17 @@ func spells_test() -> void:
 	await frames(2)
 	await tap("v0", "item")
 	await frames(62)   # transformação estilo Transformers dura 0,9 s (A29)
-	check(r0.spell_form == "bola" and not r0.vis.visible, "T03: as cascas fecham e vira bola")
+	check(r0.spell_form == "" and r0.vis.visible and sp.flags(r0).get("mecha", "") == "T03", "T03: monta o mecha gorila EM PÉ (A33)")
+	vset("v0", "item", true)
+	await frames(20)
+	check(r0.spell_form == "bola" and not r0.vis.visible, "T03: segurando o especial fecha em bola")
 	vset("v0", "right", true)
 	await frames(50)
 	vset("v0", "right", false)
 	check(r1.dmg > 0.0, "T03: atropela o rival (dano %d%%)" % int(r1.dmg))
+	vset("v0", "item", false)
+	await frames(20)
+	check(r0.spell_form == "" and r0.vis.visible, "T03: soltou, abre e volta a ficar em pé")
 	await frames(int(float(sp.sc("T03")["duracao_s"]) * 60.0))
 	check(r0.spell_form == "" and r0.vis.visible and sp.hud_info(0).is_empty(), "T03: abre de volta no fim")
 	# T04 jetpack: segurar = voar gastando combustível; acabou, a mochila cai
@@ -3099,6 +3108,28 @@ func spells_test() -> void:
 	await frames(2)
 	check(sp.hud_info(0).is_empty() and not r0.spell_fly, "T04: combustível acabou, a mochila cai")
 	await frames(60)
+	# A33 modo mecha: o golpe leve do mecha causa mais; o mecha recebe menos dano
+	place.call(1.0)
+	sp.equip(r0, "T01")
+	await frames(2)
+	await tap("v0", "item")
+	await frames(62)
+	place.call(1.0)
+	r1.dmg = 0.0
+	r1.invuln = 0.0
+	await frames(4)
+	await tap("v0", "hammer")
+	await frames(30)
+	var esperado: float = float(main.demo.cfg["amassometro"]["mecha_leve"]["dano"]) * float(main.demo.cfg["modo_mecha"]["T01"]["causa"])
+	check(absf(r1.dmg - esperado) < 0.6, "modo mecha: golpe LEVE da Fornalha dá %.1f%% (esperado %.1f%%)" % [r1.dmg, esperado])
+	r0.dmg = 0.0
+	r0.invuln = 0.0
+	r0.guard_t = 0.0
+	r0.take_hit(-1, "rapido", 1)
+	var normal: float = float(main.demo.cfg["amassometro"]["rapido"]["dano"])
+	check(r0.dmg < normal - 0.1 and r0.dmg > 0.0, "modo mecha: a Fornalha recebe menos dano (%.1f%% em vez de %.1f%%)" % [r0.dmg, normal])
+	sp.clear(r0)
+	await frames(10)
 	# T05 broca: rival na frente leva dano contínuo
 	place.call(1.2)
 	sp.equip(r0, "T05")
@@ -3898,7 +3929,7 @@ func mechas_frames(dir: String) -> void:
 		await tap("v0", "item")
 		main.cam_lock = [1.45, Vector2(900, 720)]
 		var n := 0
-		while n < 190:
+		while n < 250:
 			if n == 58:
 				match st[1]:
 					"fogo", "dash", "raio":
@@ -3917,6 +3948,12 @@ func mechas_frames(dir: String) -> void:
 					vset("v0", k, false)
 			if st[1] == "garfo" and n == 95:
 				await tap("v0", "item")
+			if n == 165:
+				put(main.robots[1], r0.position + Vector2(110, 0))
+				await tap("v0", "hammer")   # golpe LEVE do mecha (A33)
+			if n == 200:
+				put(main.robots[1], r0.position + Vector2(120, 0))
+				await tap("v0", "heavy")    # golpe PESADO do mecha (A33)
 			for i in range(1, 4):
 				main.demo.lives[i] = 9
 			main.cam_lock = [1.6, Vector2(clampf(main.robots[0].position.x + 220.0, 700.0, 1300.0), 700.0)]

@@ -471,6 +471,10 @@ func attack(r, kind: String) -> bool:
 				hk = "corrida"
 			_:
 				hk = "combo_final" if r.combo_i == 2 else "combo"
+	if spells != null and spells.mecha_of(r) != "" and r.spell_form != "bola":   # golpes do modo mecha (A33)
+		var ms: Array = spells.mecha_strike(r, kind)
+		hit = ms[0]
+		hk = ms[1]
 	var hit_robot := false
 	var hs: Dictionary = r.c["hitstop"]
 	for o in main.robots:

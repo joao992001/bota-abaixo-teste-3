@@ -1441,6 +1441,37 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 		ci.draw_circle(c, 80.0 + 60.0 * a, Color(1, 0.97, 0.85, op))
 	var aim := float(fx.get("aim_a", 0.0)) if mid in MECHA_MIRA else 0.0
 	var sh := Vector2(float(m["ombro"][0]), float(m["ombro"][1]))
+	# golpe leve/pesado do mecha (A33): preparo → impacto → volta
+	var b_dy := 0.0
+	var b_rot := 0.0
+	var a_rot := 0.0
+	var a_dx := 0.0
+	var bb_rot := 0.0
+	var ak := String(fx.get("matk", ""))
+	if ak != "":
+		var at := float(fx.get("matk_t", 0.0))
+		var pre := maxf(float(fx.get("matk_pre", 0.1)), 0.01)
+		var tot := maxf(float(fx.get("matk_tot", 0.3)), pre + 0.02)
+		var kp := clampf(at / pre, 0.0, 1.0)                                   # preparo
+		var kh := clampf((at - pre) / 0.07, 0.0, 1.0) if at >= pre else 0.0    # impacto rápido
+		var kr := clampf((at - pre - 0.07) / maxf(tot - pre - 0.07, 0.01), 0.0, 1.0)   # volta
+		var hold := (1.0 - kr) if at >= pre else 0.0
+		var cfg: Dictionary = Data.mecha_meta.get("ataques", {})
+		var volta: bool = ak == "pesado" and mid in ["T01", "T03", "T06"]
+		if ak == "rapido":
+			a_rot = deg_to_rad(lerpf(-28.0 * kp, 22.0, kh) * (1.0 if at < pre else hold))
+			a_dx = lerpf(-6.0 * kp, 20.0, kh) * (1.0 if at < pre else hold)
+			b_rot = deg_to_rad(5.0 * kh * hold)
+		elif volta:   # pesado em volta: sobe com os braços para o alto e bate no chão
+			b_dy = lerpf(-14.0 * kp, 12.0, kh) * (1.0 if at < pre else hold)
+			a_rot = deg_to_rad(lerpf(-105.0 * kp, 35.0, kh) * (1.0 if at < pre else hold))
+			bb_rot = deg_to_rad(lerpf(110.0 * kp, -20.0, kh) * (1.0 if at < pre else hold))
+		else:   # pesado para a frente: inclina para trás, arma levantada, golpe que leva o corpo
+			b_rot = deg_to_rad(lerpf(-10.0 * kp, 12.0, kh) * (1.0 if at < pre else hold))
+			b_dy = lerpf(-6.0 * kp, 8.0, kh) * (1.0 if at < pre else hold)
+			a_rot = deg_to_rad(lerpf(-75.0 * kp, 45.0, kh) * (1.0 if at < pre else hold))
+			a_dx = 14.0 * kh * hold
+	var hip_p := Vector2(0.0, -40.0)
 	for p in M["pecas"]:
 		if not (p in m["tem"]):
 			continue
@@ -1457,8 +1488,12 @@ static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: 
 			var k := 1.0 - _ease_back(u)
 			var sc := lerpf(0.6, 1.0, 1.0 - pow(1.0 - u, 3.0))
 			xf = xf * Transform2D(0.0, Vector2(float(ch[2]), float(ch[3])) * k) * Transform2D(deg_to_rad(float(ch[4])) * k, piv) * Transform2D(0.0, Vector2(sc, sc), 0.0, Vector2.ZERO) * Transform2D(0.0, -piv)
-		if p == "arma" and aim != 0.0:
-			xf = xf * Transform2D(aim, sh) * Transform2D(0.0, -sh)
+		if not (p in ["perna_b", "perna_f"]) and (b_dy != 0.0 or b_rot != 0.0):
+			xf = xf * Transform2D(0.0, Vector2(0.0, b_dy)) * Transform2D(b_rot, hip_p) * Transform2D(0.0, -hip_p)
+		if p == "arma" and (aim != 0.0 or a_rot != 0.0 or a_dx != 0.0):
+			xf = xf * Transform2D(0.0, Vector2(a_dx, 0.0)) * Transform2D(aim + a_rot, sh) * Transform2D(0.0, -sh)
+		if p == "braco_b" and bb_rot != 0.0:
+			xf = xf * Transform2D(bb_rot, piv) * Transform2D(0.0, -piv)
 		ci.draw_set_transform_matrix(U * xf)
 		ci.draw_texture_rect(tx, box, false, blink)
 		if p == "cabine":   # o rosto do próprio robô dentro do cockpit

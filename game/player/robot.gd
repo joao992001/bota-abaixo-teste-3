@@ -523,7 +523,7 @@ const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "comb
 	"spell_punho", "spell_gelo", "spell_fogo", "spell_explosao",
 	"spell_laser", "spell_sismo", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
 	"spell_gancho", "spell_carga", "spell_viga",
-	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_raio1", "spell_raio2", "spell_raio3"]
+	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_raio1", "spell_raio2", "spell_raio3", "mecha_leve", "mecha_pesado"]
 
 func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if invuln > 0.0 or god:
@@ -537,18 +537,24 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		"spell_explosao": "fornalha explodiu", "spell_laser": "laser de corte", "spell_sismo": "marreta sísmica",
 		"spell_rebite": "rebite", "spell_estaca": "bate-estaca", "spell_bumerangue": "marreta-bumerangue",
 		"spell_mola": "canhão de molas", "spell_gancho": "gancho", "spell_carga": "carga de demolição", "spell_viga": "viga do guindaste",
-		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios",
+		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios", "mecha_leve": "golpe de mecha", "mecha_pesado": "golpe pesado de mecha",
 		"evento_entulho": "entulho", "evento_rebite": "chuva de rebites", "evento_viga": "viga do cabo rompido", "evento_carga": "carga do guindaste",
 		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
 	last_attacker = by
 	hanging = false
 	var am: Dictionary = main.demo.cfg["amassometro"]
 	var k: Dictionary = am[kind]
-	dmg += float(k["dano"])
+	# modo mecha (A33): quem está no mecha recebe menos dano/empurrão; quem ataca de mecha causa mais
+	var sp_m = main.demo.spells if main.demo != null else null
+	var mv: Dictionary = sp_m.mecha_cfg(self) if sp_m != null else {}
+	var ma: Dictionary = sp_m.mecha_cfg(main.robots[by]) if sp_m != null and by >= 0 and by < main.robots.size() and by != pid else {}
+	var dano := float(k["dano"]) * float(mv.get("recebe", 1.0)) * float(ma.get("causa", 1.0))
+	dmg += dano
 	var kx := minf(float(k["kx"]) + dmg * float(k["kx_por"]), float(am["max_kx"]))
 	var ky := float(k["ky"]) + dmg * float(k["ky_por"])
-	kx *= spell_push   # armadura: empurrão bem menor
-	ky *= spell_push
+	var push := float(mv.get("empurrao", spell_push)) * float(ma.get("causa", 1.0))
+	kx *= push   # armadura/mecha: empurrão bem menor
+	ky *= push
 	if by >= 0 and by < main.robots.size():
 		kx *= main.robots[by].spell_hit   # minirobô bate mais fraco
 		ky *= main.robots[by].spell_hit
@@ -563,7 +569,7 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		ky *= 0.7
 	var ar: Dictionary = c["arremesso"]
 	var stun := minf(float(ar["sem_controle_base"]) + dmg * float(ar["sem_controle_por"]), float(ar["sem_controle_max"]))
-	main.float_text(position + Vector2(0, -100), "+%d%%" % int(k["dano"]), main.dmg_color(dmg))
+	main.float_text(position + Vector2(0, -100), "+%d%%" % maxi(int(round(dano)), 1), main.dmg_color(dmg))
 	_apply_knock(dir, kx, ky, stun)
 	vis.hurt(clampf((kx + ky) / 1400.0, 0.25, 1.0), dir)
 	PlayerInput.vibrate(pid, 0.35 + dmg / 300.0, 0.15 + dmg / 250.0, 0.12 + minf(dmg, 150.0) / 1000.0)
