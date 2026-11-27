@@ -26,6 +26,14 @@ GLOVE, GLOVE_D = "#f4f1ea", "#cfc8bc"
 
 def olhos_tela(face, x0, y0, r=4.4, gap=10):
     o = ""
+    if face == "vitoria":
+        return f'<path d="M{x0 - r},{y0 + 1} Q{x0},{y0 - r * 1.4} {x0 + r},{y0 + 1} M{x0 + gap - r},{y0 + 1} Q{x0 + gap},{y0 - r * 1.4} {x0 + gap + r},{y0 + 1}" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    if face == "dor":
+        return f'<path d="M{x0 - r},{y0 - r} L{x0 + r * 0.6},{y0} L{x0 - r},{y0 + r} M{x0 + gap + r},{y0 - r} L{x0 + gap - r * 0.6},{y0} L{x0 + gap + r},{y0 + r}" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>'
+    if face == "eliminado":
+        return f'<path d="M{x0 - r},{y0 - r} l{2 * r},{2 * r} m0,{-2 * r} l{-2 * r},{2 * r} M{x0 + gap - r},{y0 - r} l{2 * r},{2 * r} m0,{-2 * r} l{-2 * r},{2 * r}" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round"/>'
+    if face == "susto":
+        r *= 1.15
     for i in range(2):
         ex = x0 + i * gap
         ry = r * (1.45 if face != "raiva" else 1.0)
