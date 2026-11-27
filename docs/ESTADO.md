@@ -19,7 +19,7 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
   molas) em `art/src/robos/anim_blindado.py`. Vídeos em `art/out/robos_v2/*.mp4` (`uch_*`, `brita_*`, `guinda_*`, `solda_*`, `escava_*`).
   Marreta detalhada: `conceito3_blindado.py` (`marreta_cabo/marreta_cabeca`).
 
-**FEITO (2026-11-27): os 5 robôs A27 estão no jogo** (ids mantidos: picareta=Guindaste, chave=Solda, britadeira=Brita,
+**FEITO (2026-11-27): os 5 robôs A27 estão no jogo; Guindaste e Escavadeira REFEITOS (A28, G2/E2) com 15 animações em vídeo (`out/videos/guinda_novo.mp4`, `escava_novo.mp4`).** No jogo as poses vêm de `elenco.py` POSES/EXTRA (o motor do jogo ainda não roda as animações dos vídeos). (ids mantidos: picareta=Guindaste, chave=Solda, britadeira=Brita,
 pa=Escavadeira; cabeças em camadas em `elenco_uch.py`, ligação em `elenco.py` `_uch_*`). Skins K1–K5 apagadas (refazer).
 Vídeo: `--modelos=1,2,3,4` no `--video`. PRÓXIMO: ajustar poses/ferramentas que o usuário apontar → telas (passo 3) → `.exe`.
 (Histórico do passo 1, já concluído:)

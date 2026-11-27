@@ -1,6 +1,6 @@
-"""ANIMAÇÕES do GUINDASTE (elenco aprovado 2026-11-27): alto, magro e calmo; pescoço longo que ginga; olhão de lente;
-gancho na corrente de alcance longo. Jeito próprio: passos longos e lentos, sobe flutuando e desce devagar, a corrente
-balança atrasada (mola) e chicoteia no golpe. Rodar: python3 art/src/robos/anim_guinda.py [--resto]
+"""ANIMAÇÕES do GUINDASTE refeito (2026-11-27, opção G2 "LANÇA"): olhão-lente gigante, corpinho de pera, empunha a lança
+treliçada do guindaste com o gancho pendurado na ponta. Jeito próprio: calmo e gingado, cutuca de longe (estocada), o gancho
+balança atrasado (mola) e o golpe pesado é a lança caindo como um guindaste tombando. Rodar: python3 art/src/robos/anim_guinda.py [--resto]
 """
 import math
 import os
@@ -19,35 +19,26 @@ def desenha(pose, col=COL):
     if pose.get("oculto"):
         return ""
     pz = dict(hip=pose["hip"], lean=pose["lean"], head=pose.get("head", 0), feet=pose["feet"], grip=pose["tool"][:2], ang=pose["tool"][2],
-              bk=pose.get("bk"), face=pose.get("face", "foco"), chain_L=pose.get("chain_L", 30), chain_sag=pose.get("chain_sag", 10), rastro=False)
+              bk=pose.get("bk"), face=pose.get("face", "foco"), chain_L=pose.get("chain_L", 14), chain_sag=pose.get("chain_sag", 0))
     body = eu.corpo_generico(eu.GUINDA, col, pz)
     sqx, sqy = pose["sq"]
     body = f'<g transform="skewX({pose.get("skew", 0):.2f}) scale({sqx:.3f},{sqy:.3f})">{body}</g>'
     if abs(pose["rot"]) > 0.01:
-        body = f'<g transform="rotate({pose["rot"]:.1f} 0 -40)">{body}</g>'
+        body = f'<g transform="rotate({pose["rot"]:.1f} 0 -30)">{body}</g>'
     return body
 
 
-def C(L, sag, **k):
-    """Pose com corrente (comprimento e barriga interpolados pelo motor através de 'sirene' livre? não: campos próprios)."""
-    p = P(**k)
-    p["chain_L"], p["chain_sag"] = L, sag
-    return p
-
-
-BASE = C(30, 10, hip=(0, -36), lean=2, head=0, feet=[(-9, 0), (9, 0)], tool=(12, -34, 80), bk=(-10, -26), face="foco")
-
-# o motor interpola só os campos conhecidos: a corrente vai junto pelo "bk"? Não — interpolamos aqui por tempo.
+BASE = P(hip=(0, -24), lean=3, head=0, feet=[(-10, 0), (10, 0)], tool=(10, -22, -60), face="foco")
 
 
 def anim(nome, dur, keys, fx=None, modo=None, chain=None):
-    """chain = [(t, L, sag), …]: comprimento/barriga da corrente ao longo do tempo (interpolado aqui, com balanço)."""
+    """chain = [(t, cabo, balanço), …]: comprimento do cabo do gancho e balanço lateral (com mola)."""
     return nome, dur, keys, fx, modo, chain
 
 
 def chain_at(chain, t):
     if not chain:
-        return 30, 10
+        return 14, 0
     if t <= chain[0][0]:
         return chain[0][1], chain[0][2]
     for (t0, l0, s0), (t1, l1, s1) in zip(chain, chain[1:]):
@@ -58,35 +49,44 @@ def chain_at(chain, t):
     return chain[-1][1], chain[-1][2]
 
 
+def Q(**k):
+    return P(**{**BASE, **k})
+
+
+def ponta(p):
+    g, a = p["tool"][:2], math.radians(p["tool"][2])
+    return g[0] + math.cos(a) * eu.LANCA_L + p.get("ox", 0), g[1] + math.sin(a) * eu.LANCA_L + p.get("oy", 0)
+
+
 def A_correr():
-    b = dict(lean=10, tool=(14, -34, 100), bk=(-14, -24), face="foco")
-    k = [(0.0, P(hip=(0, -34), head=-6, feet=[(-20, -2), (18, 0)], sq=(1, 0.97), **b)),
-         (0.15, P(hip=(0, -40), head=4, feet=[(-4, -12), (4, -2)], sq=(1, 1.03), **b)),
-         (0.3, P(hip=(0, -34), head=-6, feet=[(18, 0), (-20, -2)], sq=(1, 0.97), **b)),
-         (0.45, P(hip=(0, -40), head=4, feet=[(4, -2), (-4, -12)], sq=(1, 1.03), **b)),
-         (0.6, P(hip=(0, -34), head=-6, feet=[(-20, -2), (18, 0)], sq=(1, 0.97), **b))]
+    b = dict(lean=12, tool=(12, -24, -30))
+    k = [(0.0, Q(hip=(0, -22), head=-4, feet=[(-16, -2), (14, 0)], sq=(1, 0.97), **b)),
+         (0.12, Q(hip=(0, -27), head=4, feet=[(-3, -9), (4, -1)], sq=(1, 1.03), **b)),
+         (0.24, Q(hip=(0, -22), head=-4, feet=[(14, 0), (-16, -2)], sq=(1, 0.97), **b)),
+         (0.36, Q(hip=(0, -27), head=4, feet=[(4, -1), (-3, -9)], sq=(1, 1.03), **b)),
+         (0.48, Q(hip=(0, -22), head=-4, feet=[(-16, -2), (14, 0)], sq=(1, 0.97), **b))]
 
     def fx(t, p):
-        off = (t / 0.6 * 140) % 70
+        off = (t / 0.48 * 140) % 70
         return "".join(f'<path d="M{x - off:.0f},2 h18" stroke="#9ab" stroke-width="3" stroke-linecap="round"/>' for x in range(-140, 180, 70))
-    return anim("GUINDASTE · CORRER (passos longos, ginga)", 0.6, k, fx, None, [(0, 30, 10), (0.15, 28, 4), (0.3, 30, 12), (0.45, 28, 4), (0.6, 30, 10)])
+    return anim("GUINDASTE · CORRER (ginga, o gancho balança)", 0.48, k, fx, None, [(0, 14, -6), (0.12, 12, -2), (0.24, 14, -6), (0.36, 12, -2), (0.48, 14, -6)])
 
 
 def A_pulo():
-    k = [(0.0, BASE), (0.14, P(**{**BASE, "hip": (0, -30), "sq": (1, 0.86), "lean": 12, "head": 8})),
-         (0.22, P(**{**BASE, "oy": -18, "sq": (1, 1.1), "feet": [(-4, -2), (4, 0)]})),
-         (0.55, P(**{**BASE, "oy": -44, "head": -8, "feet": [(-12, -10), (10, -14)], "tool": (14, -34, 150)})),   # flutua (o gancho fica para trás, atrasado)
-         (0.95, P(**{**BASE, "oy": -40, "head": -4, "feet": [(-10, -12), (12, -8)], "tool": (14, -34, 130)})),
-         (1.3, P(**{**BASE, "oy": 0, "feet": [(-10, 0), (10, 0)]})), (1.38, P(**{**BASE, "hip": (0, -31), "sq": (1, 0.9)})), (1.6, BASE)]
+    k = [(0.0, BASE), (0.12, Q(hip=(0, -19), sq=(1, 0.86), lean=10, head=8)),
+         (0.2, Q(oy=-18, sq=(1, 1.1), feet=[(-4, -2), (4, 0)])),
+         (0.5, Q(oy=-48, head=-8, feet=[(-10, -10), (9, -12)], tool=(10, -26, -40))),
+         (0.85, Q(oy=-40, head=-4, feet=[(-9, -10), (10, -7)], tool=(10, -24, -50))),
+         (1.15, Q(oy=0)), (1.22, Q(hip=(0, -20), sq=(1, 0.9))), (1.45, BASE)]
 
     def fx(t, p):
         o = ""
-        if 0.14 < t < 0.34:
-            o += ab.fx_dust(0, 0, (t - 0.14) / 0.2, 0.7)
-        if 1.38 < t < 1.58:
-            o += ab.fx_dust(0, 0, (t - 1.38) / 0.2, 0.7)
+        if 0.12 < t < 0.32:
+            o += ab.fx_dust(0, 0, (t - 0.12) / 0.2, 0.7)
+        if 1.22 < t < 1.42:
+            o += ab.fx_dust(0, 0, (t - 1.22) / 0.2, 0.7)
         return o
-    return anim("GUINDASTE · PULAR (flutua · desce devagar)", 1.6, k, fx, None, [(0, 30, 10), (0.22, 24, -6), (0.55, 30, 14), (1.0, 32, 4), (1.3, 30, 16), (1.6, 30, 10)])
+    return anim("GUINDASTE · PULAR (flutua · desce devagar)", 1.45, k, fx, None, [(0, 14, 0), (0.2, 8, 0), (0.5, 18, 6), (1.15, 16, -4), (1.45, 14, 0)])
 
 
 def marca_alcance(x, nome):
@@ -95,154 +95,146 @@ def marca_alcance(x, nome):
 
 
 def A_leve():
-    prep = P(**{**BASE, "lean": -4, "head": 6, "tool": (6, -50, -150), "face": "raiva"})
-    hit = P(**{**BASE, "lean": 14, "head": -6, "tool": (12, -60, -8), "feet": [(-14, 0), (14, 0)], "face": "raiva"})
-    k = [(0.0, BASE), (0.12, prep), (0.2, hit), (0.42, P(**{**hit, "tool": (12, -56, 10)})), (0.8, BASE)]
+    prep = Q(lean=-6, head=6, tool=(-2, -24, -8), face="raiva", feet=[(-12, 0), (10, 0)])
+    hit = Q(lean=20, head=-4, tool=(20, -26, -4), feet=[(-15, 0), (17, 0)], face="raiva")
+    k = [(0.0, BASE), (0.1, prep), (0.17, hit), (0.36, Q(**{**hit, "tool": (18, -26, -6)})), (0.7, BASE)]
 
     def fx(t, p):
-        if 0.16 < t < 0.34:
-            L = p.get("chain_L", 70)
-            g, a = p["tool"][:2], math.radians(p["tool"][2])
-            hx, hy = g[0] + math.cos(a) * L, g[1] + math.sin(a) * L
-            return marca_alcance(56, "alcance") + f'<path d="M{g[0] - 4:.0f},{g[1] - 18:.0f} Q{(g[0] + hx) / 2:.0f},{g[1] - 30:.0f} {hx:.0f},{hy:.0f}" stroke="#ffffff" stroke-width="9" fill="none" opacity="0.5" stroke-linecap="round"/>' + ab.fx_estrela(hx + 4, hy, (t - 0.18) / 0.16, 12)
-        return marca_alcance(56, "alcance")
-    return anim("GUINDASTE · GOLPE LEVE (chicotada de longe)", 0.8, k, fx, None, [(0, 30, 10), (0.12, 26, -8), (0.18, 34, 0), (0.32, 35, -2), (0.48, 32, 8), (0.8, 30, 10)])
+        o = marca_alcance(66, "alcance")
+        if 0.15 < t < 0.33:
+            x, y = ponta(p)
+            o += f'<path d="M{x - 40:.0f},{y:.0f} h34" stroke="#ffffff" stroke-width="8" opacity="0.5" stroke-linecap="round"/>' + ab.fx_estrela(x + 4, y, (t - 0.15) / 0.18, 12)
+        return o
+    return anim("GUINDASTE · GOLPE LEVE (estocada de longe)", 0.7, k, fx, None, [(0, 14, 0), (0.1, 14, 6), (0.17, 12, -10), (0.36, 13, -4), (0.7, 14, 0)])
 
 
 def A_pesado():
-    gira = P(**{**BASE, "lean": -2, "head": -10, "tool": (4, -70, -90), "bk": (-6, -66), "face": "raiva", "feet": [(-12, 0), (12, 0)]})
-    lanca = P(**{**BASE, "lean": 18, "head": -8, "tool": (14, -56, 34), "feet": [(-18, 0), (18, 0)], "face": "raiva"})
-    k = [(0.0, BASE), (0.18, gira), (1.0, P(**{**gira, "lean": -4})), (1.1, lanca), (1.45, P(**{**lanca, "tool": (14, -50, 38)})), (2.0, BASE)]
+    sobe = Q(lean=-10, head=-10, tool=(4, -40, -100), face="raiva", feet=[(-12, 0), (11, 0)], hip=(0, -25))
+    cai = Q(lean=22, head=-6, tool=(18, -24, 30), feet=[(-17, 0), (19, 0)], face="raiva", hip=(0, -20), sq=(1.04, 0.94))
+    k = [(0.0, BASE), (0.2, sobe), (0.9, Q(**{**sobe, "lean": -12, "tool": (2, -42, -104)})), (1.02, cai), (1.4, Q(**{**cai, "sq": (1, 1)})), (1.9, BASE)]
 
     def fx(t, p):
-        o = marca_alcance(70, "alcance")
-        if 0.18 < t < 1.04:   # gancho girando acima da cabeça (laço)
-            kk = min((t - 0.18) / 0.8, 1)
-            a = t * (14 + 12 * kk)
-            cx, cy = 4, -104
-            R = 30 + 6 * kk
-            hx, hy = cx + math.cos(a) * R, cy + math.sin(a) * R * 0.35
-            o += f'<ellipse cx="{cx}" cy="{cy}" rx="{R:.0f}" ry="{R * 0.35:.0f}" fill="none" stroke="#ffffff" stroke-width="{3 + 4 * kk:.1f}" opacity="{0.3 + 0.4 * kk:.2f}"/>'
-            o += f'<line x1="4" y1="-70" x2="{hx:.1f}" y2="{hy:.1f}" stroke="#6b7783" stroke-width="2.5" stroke-dasharray="4 2"/>'
-            o += f'<rect x="{hx - 6:.1f}" y="{hy - 4:.1f}" width="12" height="8" rx="2" fill="#f2c84b"/>'
-        if 1.06 < t < 1.6:
-            kk = (t - 1.06) / 0.54
-            L = p.get("chain_L", 90)
-            g, a = p["tool"][:2], math.radians(p["tool"][2])
-            hx, hy = g[0] + math.cos(a) * L, g[1] + math.sin(a) * L
-            o += f'<path d="M{g[0]:.0f},{g[1]:.0f} L{hx:.0f},{hy:.0f}" stroke="#ffffff" stroke-width="{8 * (1 - kk):.1f}" opacity="0.5" stroke-linecap="round"/>' if kk < 0.4 else ""
-            o += ab.fx_estrela(hx, hy, kk, 20) if kk < 0.4 else ""
-            o += f'<g transform="translate({hx:.0f},{min(hy, 0):.0f})">{ab.fx_onda(0, 0, kk, 1.0)}</g>' if hy > -10 else ""
+        o = marca_alcance(66, "alcance")
+        if 0.2 < t < 0.96:   # carregando: a lança treme e brilha
+            kk = min((t - 0.2) / 0.7, 1)
+            x, y = ponta(p)
+            o += f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{6 + 10 * kk:.0f}" fill="#ffe27a" opacity="{0.25 + 0.4 * kk:.2f}"/>'
+        if 0.98 < t < 1.5:
+            kk = (t - 0.98) / 0.52
+            x, y = ponta(p)
+            o += f'<path d="M4,-70 Q{x - 10:.0f},{-80:.0f} {x:.0f},{y:.0f}" stroke="#ffffff" stroke-width="{10 * (1 - kk):.1f}" fill="none" opacity="0.5" stroke-linecap="round"/>' if kk < 0.4 else ""
+            o += ab.fx_estrela(x, y, kk, 20) if kk < 0.45 else ""
+            o += f'<g transform="translate({x:.0f},0)">{ab.fx_onda(0, 0, kk, 1.0)}</g>'
         return o
-    return anim("GUINDASTE · GOLPE PESADO (gira o gancho e lança)", 2.0, k, fx, None, [(0, 30, 10), (0.18, 2, 0), (1.04, 2, 0), (1.1, 52, 0), (1.45, 50, 4), (2.0, 30, 10)])
+    return anim("GUINDASTE · GOLPE PESADO (a lança tomba como guindaste)", 1.9, k, fx, None, [(0, 14, 0), (0.2, 10, 8), (0.9, 10, -8), (1.02, 24, 0), (1.4, 18, 6), (1.9, 14, 0)])
 
 
 def A_duplo():
-    air = dict(feet=[(-12, -10), (10, -14)], tool=(14, -34, 150))
-    tuck = dict(feet=[(-6, -18), (6, -16)], tool=(10, -36, 120), hip=(0, -32))
-    k = [(0.0, P(**{**BASE, "oy": -18, **air})), (0.1, P(**{**BASE, "oy": -22, "sq": (1, 1.06), "feet": [(-4, -2), (4, 0)], "tool": (14, -34, 150)})),
-         (0.5, P(**{**BASE, "oy": -32, "rot": 360, "face": "raiva", **tuck})), (0.75, P(**{**BASE, "oy": -32, "rot": 360, **air})),
-         (1.2, P(**{**BASE, "oy": 0, "rot": 360, "feet": [(-10, 0), (10, 0)]})), (1.28, P(**{**BASE, "rot": 360, "hip": (0, -31), "sq": (1, 0.9)})), (1.5, P(**{**BASE, "rot": 360}))]
+    air = dict(feet=[(-10, -10), (9, -12)], tool=(10, -26, -40))
+    tuck = dict(feet=[(-5, -16), (5, -14)], tool=(8, -26, -80), hip=(0, -22))
+    k = [(0.0, Q(oy=-18, **air)), (0.1, Q(oy=-22, sq=(1, 1.06), feet=[(-4, -2), (4, 0)], tool=(10, -26, -40))),
+         (0.45, Q(oy=-34, rot=360, face="raiva", **tuck)), (0.7, Q(oy=-34, rot=360, **air)),
+         (1.1, Q(oy=0, rot=360)), (1.17, Q(rot=360, hip=(0, -20), sq=(1, 0.9))), (1.4, Q(rot=360))]
 
     def fx(t, p):
         return f'<circle cx="0" cy="-30" r="{6 + 30 * (t - 0.06):.0f}" fill="#fff6e4" opacity="{0.7 - (t - 0.06) * 4:.2f}"/>' if 0.06 < t < 0.22 else ""
-    return anim("GUINDASTE · PULO DUPLO (giro lento)", 1.5, k, fx, None, [(0, 30, 14), (0.5, 20, 0), (0.9, 30, 16), (1.5, 30, 10)])
+    return anim("GUINDASTE · PULO DUPLO (giro com a lança)", 1.4, k, fx, None, [(0, 16, 4), (0.45, 6, 0), (0.8, 16, 8), (1.4, 14, 0)])
 
 
 def A_parede():
-    wall = dict(lean=-4, head=10, feet=[(-14, -8), (-2, -2)], tool=(14, -40, 120), face="foco")
-    k = [(0.0, P(**{**BASE, "ox": -24, "oy": -34, **wall})), (0.9, P(**{**BASE, "ox": -24, "oy": -10, **wall})),
-         (1.0, P(**{**BASE, "ox": -22, "oy": -12, "hip": (0, -30), "sq": (1, 0.9), "lean": -10, "feet": [(-12, -2), (-6, 0)], "tool": (14, -40, 120)})),
-         (1.5, P(**{**BASE, "ox": 50, "oy": -40, "lean": 16, "feet": [(-12, -10), (10, -14)], "tool": (14, -34, 160), "face": "raiva"}))]
+    wall = dict(lean=-4, head=10, feet=[(-12, -8), (-2, -2)], tool=(10, -26, -70))
+    k = [(0.0, Q(ox=-22, oy=-34, **wall)), (0.9, Q(ox=-22, oy=-10, **wall)),
+         (1.0, Q(ox=-20, oy=-12, hip=(0, -20), sq=(1, 0.9), lean=-10, feet=[(-10, -2), (-5, 0)], tool=(10, -26, -70))),
+         (1.5, Q(ox=50, oy=-40, lean=16, feet=[(-10, -10), (9, -12)], tool=(12, -26, -30), face="raiva"))]
 
     def fx(t, p):
-        return '<rect x="-74" y="-200" width="34" height="210" fill="#d9a35f"/><rect x="-46" y="-200" width="6" height="210" fill="#b57a3e"/>'
-    return anim("GUINDASTE · PAREDE (desliza · salta)", 1.5, k, fx, None, [(0, 30, 6), (0.9, 30, 14), (1.5, 30, 6)])
+        return '<rect x="-70" y="-200" width="34" height="210" fill="#d9a35f"/><rect x="-42" y="-200" width="6" height="210" fill="#b57a3e"/>'
+    return anim("GUINDASTE · PAREDE (desliza · salta)", 1.5, k, fx, None, [(0, 14, -4), (0.9, 14, 4), (1.5, 14, -6)])
 
 
 def A_borda():
-    hang = dict(hip=(0, -36), lean=0, head=-10, feet=[(-3, -6), (4, -2)], tool=(14, -64, -40), bk=(-4, -60), face="susto")
-    k = [(0.0, P(**{**BASE, "oy": 22, **hang})), (0.5, P(**{**BASE, "oy": 22, **{**hang, "feet": [(-8, -2), (8, -8)]}})), (0.9, P(**{**BASE, "oy": 22, **hang})),
-         (1.25, P(**{**BASE, "ox": 10, "oy": -30, "lean": 20, "feet": [(-4, -10), (12, -2)], "tool": (12, -34, 100), "face": "raiva", "sq": (1, 0.92)})),
-         (1.7, P(**{**BASE, "ox": 40, "oy": -40}))]
+    hang = dict(hip=(0, -24), lean=0, head=-8, feet=[(-3, -4), (4, -2)], tool=(8, -36, -88), face="susto", sem_gancho=True)
+    k = [(0.0, Q(oy=30, **hang)), (0.5, Q(oy=30, **{**hang, "feet": [(-7, -2), (7, -6)]})), (0.9, Q(oy=30, **hang)),
+         (1.2, Q(ox=10, oy=-26, lean=20, feet=[(-4, -10), (12, -2)], tool=(12, -24, -40), face="raiva", sq=(1, 0.92))),
+         (1.6, Q(ox=40, oy=-36))]
 
     def fx(t, p):
-        return '<rect x="24" y="-40" width="210" height="44" fill="#cfc6b4"/><rect x="24" y="-40" width="210" height="8" fill="#e8e0d0"/>'
-    return anim("GUINDASTE · BORDA (pendura no gancho · sobe)", 1.7, k, fx, None, [(0, 12, 0), (0.9, 12, 0), (1.2, 30, 12), (1.7, 30, 10)])
+        o = '<rect x="24" y="-40" width="210" height="44" fill="#cfc6b4"/><rect x="24" y="-40" width="210" height="8" fill="#e8e0d0"/>'
+        if t < 1.0:   # o gancho preso na quina da borda
+            x, y = ponta(p)
+            o += eu.gancho_ponta(x, y, max(-40 - y, 2), 0)
+        return o
+    return anim("GUINDASTE · BORDA (engancha a lança · sobe)", 1.6, k, fx, None, [(0, 14, 0), (1.6, 14, 0)])
 
 
 def A_esquiva():
-    low = P(**{**BASE, "hip": (0, -30), "lean": -20, "head": 14, "sq": (1.04, 0.92), "tool": (10, -30, 130), "face": "susto", "feet": [(-18, 0), (8, 0)]})
-    k = [(0.0, BASE), (0.05, low), (0.22, P(**{**low, "ox": -56})), (0.45, P(**{**BASE, "ox": -56})), (0.85, P(**{**BASE, "ox": 0}))]
-    return anim("GUINDASTE · ESQUIVA", 0.85, k, None, "fantasma", [(0, 30, 10), (0.22, 30, 18), (0.85, 30, 10)])
+    low = Q(hip=(0, -19), lean=-20, head=14, sq=(1.04, 0.92), tool=(6, -20, -110), face="susto", feet=[(-16, 0), (7, 0)])
+    k = [(0.0, BASE), (0.05, low), (0.22, P(**{**low, "ox": -56})), (0.45, Q(ox=-56)), (0.85, Q(ox=0))]
+    return anim("GUINDASTE · ESQUIVA", 0.85, k, None, "fantasma", [(0, 14, 0), (0.22, 14, 12), (0.85, 14, 0)])
 
 
 def A_cima():
-    k = [(0.0, BASE), (0.1, P(**{**BASE, "lean": 6, "tool": (12, -40, 40), "face": "raiva"})),
-         (0.2, P(**{**BASE, "lean": -6, "head": -14, "tool": (8, -60, -88), "face": "raiva"})), (0.45, P(**{**BASE, "lean": -4, "head": -10, "tool": (8, -58, -96)})), (0.85, BASE)]
+    k = [(0.0, BASE), (0.1, Q(lean=4, tool=(10, -18, -40), face="raiva")),
+         (0.18, Q(lean=-6, head=-14, tool=(6, -34, -90), face="raiva")), (0.42, Q(lean=-4, head=-10, tool=(6, -32, -92))), (0.8, BASE)]
 
     def fx(t, p):
-        return ab.fx_estrela(8, -104, (t - 0.18) / 0.25, 11) if 0.18 < t < 0.43 else ""
-    return anim("GUINDASTE · GOLPE LEVE PARA CIMA", 0.85, k, fx, None, [(0, 30, 10), (0.1, 26, -6), (0.2, 42, 0), (0.45, 40, 2), (0.85, 30, 10)])
+        x, y = ponta(p)
+        return ab.fx_estrela(x, y - 6, (t - 0.16) / 0.25, 11) if 0.16 < t < 0.41 else ""
+    return anim("GUINDASTE · GOLPE LEVE PARA CIMA (estocada no alto)", 0.8, k, fx, None, [(0, 14, 0), (0.18, 6, 0), (0.42, 8, 0), (0.8, 14, 0)])
 
 
 def A_baixo():
-    air = dict(oy=-40, feet=[(-10, -12), (10, -10)])
-    k = [(0.0, P(**{**BASE, **air, "tool": (12, -50, -100), "face": "raiva"})), (0.12, P(**{**BASE, **air, "tool": (12, -40, 80), "face": "raiva"})),
-         (0.45, P(**{**BASE, "oy": 0, "tool": (12, -34, 85), "feet": [(-10, 0), (10, 0)], "hip": (0, -31), "sq": (1, 0.9), "face": "raiva"})), (0.9, BASE)]
+    air = dict(oy=-44, feet=[(-9, -10), (9, -8)])
+    k = [(0.0, Q(tool=(10, -30, -80), face="raiva", **air)), (0.12, Q(tool=(10, -18, 85), face="raiva", **air)),
+         (0.42, Q(oy=0, tool=(10, -18, 88), hip=(0, -20), sq=(1, 0.9), face="raiva")), (0.85, BASE)]
 
     def fx(t, p):
-        return ab.fx_onda(16, 0, (t - 0.45) / 0.35, 0.9) if 0.45 < t < 0.8 else ""
-    return anim("GUINDASTE · GOLPE LEVE PARA BAIXO (no ar)", 0.9, k, fx, None, [(0, 20, 0), (0.12, 40, 0), (0.45, 34, 0), (0.9, 30, 10)])
+        return ab.fx_onda(12, 0, (t - 0.42) / 0.35, 0.9) if 0.42 < t < 0.77 else ""
+    return anim("GUINDASTE · GOLPE LEVE PARA BAIXO (no ar, espeta o chão)", 0.85, k, fx, None, [(0, 14, 0), (0.12, 4, 0), (0.42, 4, 0), (0.85, 14, 0)])
 
 
 def A_leva():
-    hit = P(**{**BASE, "lean": -22, "head": 24, "sq": (1, 1.04), "ox": -12, "feet": [(-16, -2), (8, 0)], "tool": (10, -34, 140), "face": "dor"})
-    k = [(0.0, BASE), (0.06, hit), (0.4, P(**{**hit, "ox": -20})), (0.95, P(**{**BASE, "ox": 0}))]
+    hit = Q(lean=-22, head=24, sq=(1, 1.04), ox=-12, feet=[(-14, -2), (7, 0)], tool=(6, -24, -110), face="dor")
+    k = [(0.0, BASE), (0.06, hit), (0.4, P(**{**hit, "ox": -20})), (0.95, Q(ox=0))]
 
     def fx(t, p):
-        return ab.fx_estrela(10, -66, (t - 0.04) / 0.25, 11) if 0.04 < t < 0.29 else ""
-    return anim("GUINDASTE · LEVA GOLPE (o pescoço chicoteia)", 0.95, k, fx, None, [(0, 30, 10), (0.06, 30, 22), (0.95, 30, 10)])
+        return ab.fx_estrela(10, -50, (t - 0.04) / 0.25, 11) if 0.04 < t < 0.29 else ""
+    return anim("GUINDASTE · LEVA GOLPE (o olhão arregala)", 0.95, k, fx, None, [(0, 14, 0), (0.06, 14, 16), (0.95, 14, 0)])
 
 
 def A_arremessado():
-    fly = dict(feet=[(-14, -12), (-2, -20)], tool=(-6, -40, 170), face="susto")
-    k = [(0.0, BASE), (0.05, P(**{**BASE, "oy": -6, **fly})), (0.55, P(**{**BASE, "ox": -80, "oy": -46, "rot": -300, **fly})),
-         (1.0, P(**{**BASE, "ox": -124, "oy": -16, "rot": -660, **fly})), (1.1, P(**{**BASE, "ox": -128, "oy": -10, "rot": -720, "feet": [(-12, -6), (12, -4)]})),
-         (1.2, P(**{**BASE, "ox": -130, "oy": 0, "rot": -720, "hip": (0, -30), "sq": (1, 0.88)})), (1.7, P(**{**BASE, "ox": -132, "rot": -720}))]
+    fly = dict(feet=[(-12, -10), (-2, -16)], tool=(-4, -28, -150), face="susto")
+    k = [(0.0, BASE), (0.05, Q(oy=-6, **fly)), (0.55, Q(ox=-80, oy=-46, rot=-300, **fly)),
+         (1.0, Q(ox=-124, oy=-16, rot=-660, **fly)), (1.1, Q(ox=-128, oy=-10, rot=-720, feet=[(-10, -6), (10, -4)])),
+         (1.2, Q(ox=-130, oy=0, rot=-720, hip=(0, -19), sq=(1, 0.88))), (1.7, Q(ox=-132, rot=-720))]
 
     def fx(t, p):
         if t < 0.95:
             return f'<g transform="translate({p["ox"] + 30:.0f},{p["oy"] - 50:.0f})">{ab.fx_lines(0, 0, 4, 26, 1)}</g>'
         return ""
-    return anim("GUINDASTE · ARREMESSADO (gira devagar)", 1.7, k, fx, "desloca", [(0, 30, 10), (0.5, 30, 20), (1.2, 30, 14), (1.7, 30, 10)])
+    return anim("GUINDASTE · ARREMESSADO (gira)", 1.7, k, fx, "desloca", [(0, 14, 0), (0.5, 14, 14), (1.2, 14, -8), (1.7, 14, 0)])
 
 
 def A_engenhoca():
-    k = [(0.0, BASE), (0.12, P(**{**BASE, "bk": (14, -50), "lean": 10, "face": "raiva"})), (0.6, P(**{**BASE, "bk": (15, -49), "lean": 10, "face": "raiva"})), (1.0, BASE)]
+    k = [(0.0, BASE), (0.12, Q(bk=(14, -40), lean=10, face="raiva")), (0.6, Q(bk=(15, -39), lean=10, face="raiva")), (1.0, BASE)]
 
     def fx(t, p):
         if 0.12 < t < 0.6:
             kk = (t - 0.12) / 0.48
-            return (f'<rect x="12" y="-60" width="10" height="13" rx="3" fill="#3a3f4a"/><circle cx="17" cy="-63" r="2.6" fill="#d42035"/>'
-                    + ab.fx_estrela(17, -68, kk, 12) + f'<circle cx="17" cy="-54" r="{8 + kk * 46:.0f}" fill="none" stroke="#ffe27a" stroke-width="3" opacity="{1 - kk:.2f}"/>')
+            return (f'<rect x="12" y="-50" width="10" height="13" rx="3" fill="#3a3f4a"/><circle cx="17" cy="-53" r="2.6" fill="#d42035"/>'
+                    + ab.fx_estrela(17, -58, kk, 12) + f'<circle cx="17" cy="-44" r="{8 + kk * 46:.0f}" fill="none" stroke="#ffe27a" stroke-width="3" opacity="{1 - kk:.2f}"/>')
         return ""
-    return anim("GUINDASTE · USAR ENGENHOCA", 1.0, k, fx, None, [(0, 30, 10), (1.0, 30, 10)])
+    return anim("GUINDASTE · USAR ENGENHOCA", 1.0, k, fx, None, [(0, 14, 0), (1.0, 14, 0)])
 
 
 def A_vitoria():
-    up = P(**{**BASE, "tool": (8, -76, -80), "bk": (-14, -40), "face": "vitoria", "lean": -2})
+    up = Q(tool=(6, -36, -88), bk=(-12, -30), face="vitoria", lean=-2)
     k = [(0.0, up), (0.5, P(**{**up, "lean": 8, "head": 10, "oy": -6})), (1.0, P(**{**up, "lean": -8, "head": -10})), (1.5, P(**{**up, "lean": 8, "head": 10, "oy": -6})), (2.0, up)]
-
-    def fx(t, p):
-        a = t * 8
-        return f'<ellipse cx="8" cy="-110" rx="28" ry="9" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.5"/><rect x="{8 + math.cos(a) * 28 - 6:.1f}" y="{-110 + math.sin(a) * 9 - 4:.1f}" width="12" height="8" rx="2" fill="#f2c84b"/>'
-    return anim("GUINDASTE · VITÓRIA (gira o gancho, gingando)", 2.0, k, fx, None, [(0, 2, 0), (2.0, 2, 0)])
+    return anim("GUINDASTE · VITÓRIA (ergue a lança, o gancho balança)", 2.0, k, None, None, [(0, 14, -10), (0.5, 14, 10), (1.0, 14, -10), (1.5, 14, 10), (2.0, 14, -10)])
 
 
 def A_eliminado():
-    k = [(0.0, P(**{**BASE, "face": "susto"})), (0.14, P(**{**BASE, "face": "eliminado", "sq": (1, 0.9)})),
-         (0.2, P(**{**BASE, "oculto": True})), (1.4, P(**{**BASE, "oculto": True}))]
+    k = [(0.0, Q(face="susto")), (0.14, Q(face="eliminado", sq=(1, 0.9))), (0.2, Q(oculto=True)), (1.4, Q(oculto=True))]
 
     def fx(t, p):
         if t < 0.2:
@@ -251,15 +243,15 @@ def A_eliminado():
         o = ""
         if u < 0.35:
             r = 20 + 60 * u
-            o += f'<circle cx="0" cy="-50" r="{r:.0f}" fill="#ffd27a" opacity="{1 - u / 0.35:.2f}"/><circle cx="0" cy="-50" r="{r * 0.6:.0f}" fill="#ffffff" opacity="{1 - u / 0.35:.2f}"/>'
+            o += f'<circle cx="0" cy="-40" r="{r:.0f}" fill="#ffd27a" opacity="{1 - u / 0.35:.2f}"/><circle cx="0" cy="-40" r="{r * 0.6:.0f}" fill="#ffffff" opacity="{1 - u / 0.35:.2f}"/>'
         pecas = [(-60, -160, 400, eu.guinda_head(COL, {"face": "eliminado"})), (50, -120, -500, eu.guinda_torso(COL, {})),
-                 (70, -80, -800, eu.gancho((0, 0), 90, {"chain_L": 20, "chain_sag": 4})[0])]
+                 (70, -80, -800, eu.lanca((0, 0), 0, {"chain_L": 10})[0])]
         for vx, vy, spin, svg in pecas:
             x = vx * u * 1.6
-            y = -50 + vy * u * 1.6 + 260 * u * u
+            y = -40 + vy * u * 1.6 + 260 * u * u
             o += f'<g transform="translate({x:.1f},{y:.1f}) rotate({spin * u:.0f}) scale(0.9)">{svg}</g>'
         return o
-    return anim("GUINDASTE · ELIMINADO (desmonta)", 1.4, k, fx, None, [(0, 30, 10)])
+    return anim("GUINDASTE · ELIMINADO (desmonta)", 1.4, k, fx, None, [(0, 14, 0)])
 
 
 def run(anims, saida):
@@ -283,7 +275,7 @@ def run(anims, saida):
         nome = sim.atual
         poses = orig_sim(keys, dur, loop)
         ch = chains.get(nome)
-        m = ab.Mola(30, 4.0, 0.35)
+        m = ab.Mola(0, 4.0, 0.35)
         for i, p in enumerate(poses):
             L, sag = chain_at(ch, i / ab.FPS)
             p["chain_L"] = L

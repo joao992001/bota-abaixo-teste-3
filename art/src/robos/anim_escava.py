@@ -1,4 +1,4 @@
-"""ANIMAÇÕES da ESCAVADEIRA (elenco aprovado 2026-11-27): pesadona e assimétrica, braço que é uma caçamba, cabecinha de
+"""ANIMAÇÕES da ESCAVADEIRA (refeita 2026-11-27, opção E2 "TRATOR": lâmina no rosto, esteira na cintura, braço-caçamba).
 óculos. Jeito próprio: passos pesados que tremem o chão, tomba para o lado do braço, pousos com estrondo; golpe pesado =
 ergue a caçamba e esmaga. Rodar: python3 art/src/robos/anim_escava.py [--resto]
 """
@@ -28,7 +28,7 @@ def desenha(pose, col=COL):
     return body
 
 
-BASE = P(hip=(0, -20), lean=6, head=0, feet=[(-13, 0), (13, 0)], tool=(24, -20, 10), bk=(-22, -14), face="foco")
+BASE = P(hip=(0, -18), lean=4, head=0, feet=[(-13, 0), (13, 0)], tool=(22, -14, 10), bk=(-20, -10), face="foco")
 
 
 def pedras(x, y, k, n=5, s=1.0):

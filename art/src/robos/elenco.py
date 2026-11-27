@@ -334,8 +334,6 @@ def _uch_t(spec):
         out = sp["torso"](c, {})
         if sp.get("pre") is not None and spec == "SOLDA":
             out = sp["pre"](c, {"hip": (0, 0), "lean": 0}) + out
-        if spec == "GUINDA":
-            out = sp["neck_draw"](c, (0, -22), (2, -40)) + out
         return out
     return t
 
@@ -357,18 +355,18 @@ CHARS = {
     "marretao": dict(nome="MARRETÃO", desc="o equilibrado: capacete-tela, quica e verga", hip_h=24, torso=t_marretao, head=h_marretao,
                      head_at=(2, -34), sh_b=(-5, -13), sh_f=(5, -13), hip_b=(-4, -1), hip_f=(4, -1), arm=(10, 11, 5.5),
                      leg=(13, 13, 6.5), knee=1, boot=(14, 7), hand=5.5, tool=tool_marreta, grips=[(0, 0), (-16, 0)]),
-    "picareta": dict(nome="GUINDASTE", desc="o alto: pescoço que ginga, gancho na corrente", hip_h=36, torso=_uch_t("GUINDA"), head=_uch_h("GUINDA"),
-                     head_at=(2, -44), sh_b=(-4, -21), sh_f=(4, -21), hip_b=(-4, -1), hip_f=(4, -1), arm=(13, 13, 4),
-                     leg=(18, 19, 4.6), knee=1, boot=(12, 5), hand=5, tool=_uch_tool("gancho", 0, chain_L=30, chain_sag=4), grips=[(0, 0), (-6, 4)]),
+    "picareta": dict(nome="GUINDASTE", desc="o do olhão: cutuca de longe com a lança do guindaste", hip_h=24, torso=_uch_t("GUINDA"), head=_uch_h("GUINDA"),
+                     head_at=(1, -22), sh_b=(-7, -18), sh_f=(7, -18), hip_b=(-6, -1), hip_f=(6, -1), arm=(11, 11, 6),
+                     leg=(12, 13, 7), knee=1, boot=(14, 7), hand=5, tool=_uch_tool("lanca", 0, chain_L=14), grips=[(0, 0), (-10, 0)]),
     "chave": dict(nome="SOLDA", desc="o ranzinza: corcunda, faísca, chave inglesa gigante", hip_h=22, torso=_uch_t("SOLDA"), head=_uch_h("SOLDA"),
                   head_at=(8, -26), sh_b=(-6, -17), sh_f=(7, -17), hip_b=(-6, -1), hip_f=(6, -1), arm=(11, 12, 5.5),
                   leg=(11, 12, 6), knee=1, boot=(14, 7), hand=5.5, tool=_uch_tool("chave", 0), grips=[(0, 0), (-10, 0)]),
     "britadeira": dict(nome="BRITA", desc="o baixinho elétrico: cabeça de betoneira, britadeira", hip_h=15, torso=_uch_t("BRITA"), head=_uch_h("BRITA"),
                        head_at=(2, -13), sh_b=(-11, -10), sh_f=(11, -10), hip_b=(-8, -1), hip_f=(8, -1), arm=(9, 9, 6),
                        leg=(7, 8, 7.5), knee=1, boot=(13, 7), hand=5, tool=_uch_tool("britadeira", 0), grips=[(0, 8), (0, -8)]),
-    "pa": dict(nome="ESCAVADEIRA", desc="o pesadão: braço-caçamba que pega e arremessa", hip_h=20, torso=_uch_t("ESCAVA"), head=_uch_h("ESCAVA"),
-               head_at=(4, -34), sh_b=(-12, -26), sh_f=(13, -26), hip_b=(-9, -1), hip_f=(9, -1), arm=(13, 13, 8),
-               leg=(10, 10, 9), knee=1, boot=(15, 8), hand=5.5, tool=_uch_tool("cacamba", 0), grips=[(0, 0), (-6, 0)]),
+    "pa": dict(nome="ESCAVADEIRA", desc="o trator: lâmina no rosto, braço-caçamba", hip_h=18, torso=_uch_t("ESCAVA"), head=_uch_h("ESCAVA"),
+               head_at=(1, -26), sh_b=(-12, -20), sh_f=(12, -20), hip_b=(-9, -1), hip_f=(9, -1), arm=(12, 12, 8),
+               leg=(9, 9, 9), knee=1, boot=(15, 8), hand=5.5, tool=_uch_tool("cacamba", 0), grips=[(0, 0), (-6, 0)]),
 }
 
 
@@ -483,15 +481,12 @@ POSES = {
         "pesado_golpe": dict(lean=34, dy=7, feet=[(-16, 0), (18, 0)], tool=(24, -22, 75), face="grito"),
         "esquiva": dict(lean=-18, dy=7, feet=[(-16, 0), (8, 0)], tool=(8, -30, -160), face="esquiva"),
     },
-    "picareta": {
-        "parado": dict(lean=6, feet=[(-8, 0), (10, 0)], tool=(14, -52, -72), head=4),
-        "rapido": dict(lean=24, dy=7, feet=[(-24, 0), (26, 0)], tool=(40, -48, -4), face="ataque",
-                       fx=[("linhas", 70, -58, 3, 16, -1)]),
-        "pesado_prep": dict(lean=-14, dy=-7, feet=[(-5, 0), (7, 0)], tool=(-6, -100, -104), face="forca", head=-10),
-        "pesado_golpe": dict(lean=42, dy=12, feet=[(-20, 0), (28, 0)], tool=(46, -32, 78), face="grito",
-                             fx=[("estrela", 52, 2, 12), ("pedras", 54, 0)], fx_b=[("arco", 4, -50, 62, -110, 75, 10)]),
-        "esquiva": dict(lean=0, dy=-26, feet=[(-12, -18), (4, -14)], tool=(-2, -70, -90), face="esquiva", spin=-160, spin_c=(0, -46),
-                        fx_b=[("arco", 0, -46, 40, -40, 200, 5)]),
+    "picareta": {   # Guindaste G2: poses tiradas de anim_guinda.py
+        "parado": dict(lean=3, feet=[(-10, 0), (10, 0)], tool=(10, -22, -60)),
+        "rapido": dict(lean=20, dy=2, feet=[(-15, 0), (17, 0)], tool=(20, -26, -4), face="ataque", fx=[("linhas", 70, -26, 3, 16, -1)]),
+        "pesado_prep": dict(lean=-10, dy=-1, feet=[(-12, 0), (11, 0)], tool=(4, -40, -100), face="forca", head=-10),
+        "pesado_golpe": dict(lean=22, dy=4, feet=[(-17, 0), (19, 0)], tool=(18, -24, 30), face="grito", fx=[("estrela", 56, 0, 12)]),
+        "esquiva": dict(lean=-20, dy=5, feet=[(-16, 0), (7, 0)], tool=(6, -20, -110), face="esquiva"),
     },
     "chave": {
         "parado": dict(lean=2, feet=[(-10, 0), (10, 0)], tool=(12, -42, -128)),
@@ -575,28 +570,28 @@ GAME = {
                      torso_d="M-10,0 C-13,-6 -11,-17 0,-18 C11,-17 13,-6 10,0 Z",
                      especial={"pesado": "", "esquiva": ""}),
     "picareta": dict(k=0.84, tk=0.9, voz=0.9, danca=3, hand_r=3.8, foot=(12, 5), acc=(-2, -29),
-                     torso_d=rect_d(-7, -24, 14, 24, 6),
+                     torso_d="M-11,0 C-14,-8 -11,-22 0,-23 C11,-22 14,-8 11,0 Z",
                      especial={"pesado": "", "esquiva": "mortal"}),
     "chave": dict(k=1.0, tk=0.88, voz=1.08, danca=2, hand_r=4.6, foot=(14, 7), acc=(-2, -24),
                   torso_d="M-12,0 C-15,-10 -10,-22 2,-22 C13,-21 14,-9 11,0 Z", especial={"pesado": "giro", "esquiva": "carrinho"}),
     "britadeira": dict(k=1.0, tk=0.9, voz=1.4, danca=2, hand_r=4.4, foot=(13, 7), acc=(2.5, -28),
                        torso_d=rect_d(-15, -15, 30, 16, 7), especial={"pesado": "monta", "esquiva": "pulinho"}),
     "pa": dict(k=0.92, tk=0.88, voz=1.0, danca=0, hand_r=4.8, foot=(15, 8), acc=(1.5, -22),
-               torso_d="M-20,0 C-24,-14 -18,-34 0,-34 C18,-34 24,-14 20,0 Z",
+               torso_d=rect_d(-17, -26, 34, 27, 7),
                especial={"pesado": "", "esquiva": "salto"}),
 }
-TOOL_BOX = {"marretao": (-30, -20, 75, 20), "picareta": (-8, -8, 44, 26), "chave": (-15, -13, 48, 13),
-            "britadeira": (-3, -12, 47, 12), "pa": (-7, -18, 37, 16)}
+TOOL_BOX = {"marretao": (-30, -20, 75, 20), "picareta": (-11, -6, 48, 32), "chave": (-15, -13, 48, 13),
+            "britadeira": (-3, -12, 47, 12), "pa": (-9, -19, 42, 16)}
 # Quadros que só o jogo usa (a prancha mostra os principais). tool = (x, y, ângulo) da pegada da frente.
 EXTRA = {
     "marretao": {"corre": dict(lean=22, tool=(6, -32, -160)), "ar": dict(tool=(6, -34, -150)),
                  "rapido_prep": dict(lean=0, tool=(6, -40, -110)), "rapido2_prep": dict(lean=6, tool=(18, -24, 50)),
                  "rapido2": dict(lean=18, tool=(16, -42, -70)), "cima": dict(lean=-8, tool=(6, -48, -100)),
                  "baixo": dict(lean=24, tool=(12, -14, 92)), "esquiva_ar": dict(tool=(8, -32, -100))},
-    "picareta": {"corre": dict(lean=10, tool=(10, -56, -120)), "ar": dict(tool=(12, -62, -100)),
-                 "rapido_prep": dict(lean=-8, tool=(-2, -52, -12)), "rapido2_prep": dict(tool=(6, -82, -80)),
-                 "rapido2": dict(lean=14, feet=[(-16, 0), (20, 0)], tool=(34, -46, 40)), "cima": dict(tool=(14, -88, -75)),
-                 "baixo": dict(tool=(18, -36, 100)), "esquiva_ar": dict(feet=[(-6, -20), (6, -18)], tool=(4, -66, -90))},
+    "picareta": {"corre": dict(lean=12, tool=(12, -24, -30)), "ar": dict(tool=(10, -26, -40)),
+                 "rapido_prep": dict(lean=-6, tool=(-2, -24, -8)), "rapido2_prep": dict(tool=(10, -18, -40)),
+                 "rapido2": dict(lean=18, feet=[(-14, 0), (16, 0)], tool=(18, -26, -6)), "cima": dict(lean=-6, tool=(6, -34, -90)),
+                 "baixo": dict(tool=(10, -18, 85)), "esquiva_ar": dict(feet=[(-5, -16), (5, -14)], tool=(8, -26, -80))},
     "chave": {"corre": dict(lean=8, tool=(12, -44, -128)), "ar": dict(tool=(14, -50, -100)),
               "rapido_prep": dict(lean=-6, tool=(6, -44, -24)), "rapido2_prep": dict(tool=(18, -60, -120)),
               "rapido2": dict(lean=10, feet=[(-12, 0), (16, 0)], tool=(32, -34, 30)), "cima": dict(tool=(16, -66, -80)),

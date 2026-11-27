@@ -176,60 +176,59 @@ def brita_fx(pose):
 BRITA["fx"] = brita_fx
 
 
-# ---------------------------------------------------------------- 3 GUINDASTE: alto e magro, pescoço longo, olhão, gancho na corrente
+# ---------------------------------------------------------------- 3 GUINDASTE (refeito 2026-11-27, opção G2 "LANÇA"): olhão-lente gigante,
+# corpinho de pera, empunha a LANÇA treliçada do guindaste com o gancho pendurado na ponta (o gancho balança com mola).
+GLASS = "#7fd3ff"
+
+
 def guinda_head(col, pose):
+    f = pose.get("face", "foco")
     h = ""
     if _Lb(pose):
-        h += E(0, 0, 13, 12, col, k=0.6) + E(3, 0, 8.5, 8.5, "#2a2f38", k=0.3) + E(3, 0, 6, 6, "#7fd3ff", k=0.2)   # olhão-lente
-        h += f'<path d="M-6,-11 L-14,-24 L4,-24" stroke="{YEL_D}" stroke-width="2.4" fill="none"/>'
+        h += E(0, -10, 20, 18, col, k=0.7) + E(-2, -20, 14, 6, shade(col, 0.2), k=0.3)
+        h += E(4, -9, 13, 13, "#2a2f38", k=0.3) + E(4, -9, 10, 10, GLASS, k=0.2)
+        h += R(-22, -14, 5, 10, 2, YEL, k=0.3)
     if _Lf(pose):
-        h += olho_unico(3, 0, 5.6, pose.get("face", "foco"))
+        h += olho_unico(4, -9, 8.5, f)
     if _La(pose):
-        h += f'<path d="M4,-24 v5" stroke="{cb.MEC_D}" stroke-width="1.2"/><circle cx="4" cy="-18" r="1.6" fill="#ffb22e"/>'
+        h += f'<path d="M-12,-25 v-3" stroke="{cb.MEC_D}" stroke-width="1.6"/>' + E(-12, -29, 3, 3, "#ffb22e", k=0.2)
     return h
 
 
 def guinda_torso(col, pose):
-    return R(-7, -24, 14, 24, 6, col, k=0.6) + R(-7, -10, 14, 3.5, 1.5, YEL, k=0.3)
+    return S("M-11,0 C-14,-8 -11,-22 0,-23 C11,-22 14,-8 11,0 Z", col, (-15, -24, 15, 1), k=0.6) + R(-11, -6, 22, 4, 2, YEL, k=0.3)
 
 
-def guinda_neck(col, a, b):
-    return tubo(a, ((a[0] + b[0]) / 2 + 5, (a[1] + b[1]) / 2), b, 5, 4.5, shade(col, -0.35))
+def gancho_ponta(x, y, drop, swing=0.0):
+    """Cabo + gancho pendurados em (x, y); swing = deslocamento lateral do gancho (mola)."""
+    ex, ey = x + swing, y + drop
+    return (f'<path d="M{x:.1f},{y:.1f} L{ex:.1f},{ey:.1f}" stroke="{STEEL_D}" stroke-width="1.8" stroke-dasharray="3 1.5"/>'
+            + R(ex - 4, ey - 1, 8, 6, 2, YEL, k=0.3, dark=YEL_D)
+            + f'<path d="M{ex:.1f},{ey + 5:.1f} v4 a6,6 0 1 1 -9,5" stroke="{STEEL}" stroke-width="4.5" fill="none" stroke-linecap="round"/>')
 
 
-def gancho(g, ang, pose):
-    """Alça na pegada; corrente pendurada (ou esticada no golpe) até um gancho amarelo."""
-    L = pose.get("chain_L", 30 if pose.get("face") != "raiva" else 66)
-    sag = pose.get("chain_sag", 10 if pose.get("face") != "raiva" else 0)
-    end = (g[0] + math.cos(math.radians(ang)) * L, g[1] + math.sin(math.radians(ang)) * L)
-    o = R(g[0] - 7, g[1] - 3, 14, 6, 3, "#3a3f4a", k=0.4)
-    n = 9
-    for i in range(n):
-        u = (i + 0.5) / n
-        x = g[0] + (end[0] - g[0]) * u
-        y = g[1] + (end[1] - g[1]) * u + math.sin(u * math.pi) * sag
-        o += f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="2.8" ry="2" fill="none" stroke="{STEEL_D}" stroke-width="1.6"/>'
-    hx, hy = end
-    o += R(hx - 6, hy - 4, 12, 8, 2, YEL, k=0.4, dark=YEL_D)
-    hk = f'<path d="M0,4 v6 a7,7 0 1 1 -10,6" stroke="{STEEL}" stroke-width="4.5" fill="none" stroke-linecap="round"/>'
-    o += f'<g transform="translate({hx:.1f},{hy:.1f}) rotate({ang - 90 if pose.get("chain_L", 0) > 40 else 0:.1f})">{hk}</g>'
-    return o, g, (g[0] - 6, g[1] + 4)
+LANCA_L = 44
 
 
-GUINDA = dict(nome="GUINDASTE", vibe="alto e calmo: passos longos, pescoço que ginga, flutua", arma="gancho na corrente (alcance longo)",
-              hip_w=4, leg=(18, 19, 4.6, 4), foot_h=4, arm=(13, 13, 4), sh_b=(-4, -21), sh_f=(4, -21), torso_h=24, neck=(2, -44),
-              torso=guinda_torso, head=guinda_head, weapon=gancho, hand=mao, boot=lambda en, b: botina(en, b, 0.9), neck_draw=guinda_neck)
-GUINDA_P = {"parado": dict(hip=(0, -36), lean=2, feet=[(-9, 0), (9, 0)], grip=(12, -34), ang=80, bk=(-10, -26)),
-            "golpe": dict(hip=(0, -34), lean=10, head=-6, feet=[(-16, 0), (16, 0)], grip=(10, -64), ang=-10, face="raiva", bk=(-14, -30))}
+def lanca(g, ang, pose):
+    """Lança treliçada amarela: pegada em g, aponta no ângulo ang; gancho pendurado na ponta (chain_L = cabo, chain_sag = balanço)."""
+    L = LANCA_L
+    body = R(-6, -4, L + 6, 8, 2, YEL, k=0.5, dark=YEL_D)
+    body += "".join(f'<path d="M{x},-3 L{x + 5},3 L{x + 10},-3" stroke="{YEL_D}" stroke-width="1.6" fill="none"/>' for x in range(-4, L - 4, 10))
+    body += R(-10, -5, 8, 10, 2, "#3a3f4a", k=0.3) + E(L, 0, 3.2, 3.2, STEEL_D, k=0.2)
+    o = f'<g transform="translate({g[0]:.1f},{g[1]:.1f}) rotate({ang:.1f})">{body}</g>'
+    if not pose.get("sem_gancho"):
+        tip = (g[0] + math.cos(math.radians(ang)) * L, g[1] + math.sin(math.radians(ang)) * L)
+        o += gancho_ponta(tip[0], tip[1], pose.get("chain_L", 14), pose.get("chain_sag", 0))
+    g2 = (g[0] - math.cos(math.radians(ang)) * 10, g[1] - math.sin(math.radians(ang)) * 10)
+    return o, g, g2
 
 
-def guinda_fxb(pose):
-    if pose.get("face") == "raiva" and pose.get("rastro", True):
-        return '<path d="M12,-64 A60,60 0 0 1 72,-60" stroke="#ffffff" stroke-width="10" fill="none" opacity="0.5" stroke-linecap="round"/>'
-    return ""
-
-
-GUINDA["fx_b"] = guinda_fxb
+GUINDA = dict(nome="GUINDASTE", vibe="o alto do olhão: calmo, ginga, cutuca de longe", arma="lança do guindaste com gancho na ponta",
+              hip_w=6, leg=(12, 13, 7, 6.5), foot_h=4, arm=(11, 11, 6), sh_b=(-7, -18), sh_f=(7, -18), torso_h=22, neck=(1, -22),
+              torso=guinda_torso, head=guinda_head, weapon=lanca, hand=mao, boot=lambda en, b: botina(en, b, 1.1))
+GUINDA_P = {"parado": dict(hip=(0, -24), lean=3, feet=[(-10, 0), (10, 0)], grip=(10, -22), ang=-60),
+            "golpe": dict(hip=(0, -22), lean=18, head=-4, feet=[(-15, 0), (17, 0)], grip=(16, -26), ang=-4, face="raiva")}
 
 
 # ---------------------------------------------------------------- 4 SOLDA: corcunda, máscara de solda, tanques nas costas, chave inglesa
@@ -296,45 +295,45 @@ SOLDA_P = {"parado": dict(hip=(0, -22), lean=16, head=6, feet=[(-11, 0), (11, 0)
            "golpe": dict(hip=(0, -21), lean=26, head=-4, feet=[(-14, 0), (16, 0)], grip=(26, -28), ang=-10, face="raiva")}
 
 
-# ---------------------------------------------------------------- 5 ESCAVADEIRA: pesadão assimétrico, braço-CAÇAMBA, cabecinha de óculos
+# ---------------------------------------------------------------- 5 ESCAVADEIRA (refeita 2026-11-27, opção E2 "TRATOR"): cabeça com
+# LÂMINA de trator na frente (olhos de tela espiando), escapamento, esteira na cintura, braço-caçamba.
 def escava_head(col, pose):
     h = ""
-    f = pose.get("face", "foco")
     if _Lb(pose):
-        h += E(0, -6, 11, 9, YEL, k=0.5, dark=YEL_D) + R(-11, -4, 22, 3, 1.5, YEL_D, k=0.2)
-        h += R(-6, -11, 17, 8, 4, "#2a2f38", k=0.3)
+        h += R(-16, -26, 34, 30, 8, col, k=0.7) + R(-16, -26, 34, 7, 4, shade(col, 0.2), k=0.3)
+        h += R(-6, -20, 24, 12, 6, SCREEN, k=0.35)
+        h += S("M10,-6 C20,-8 26,-2 26,6 C26,12 20,14 10,12 Z", YEL, (9, -9, 27, 15), k=0.5, dark=YEL_D)                # lâmina
+        h += f'<path d="M12,-3 C20,-4 23,1 23,6" stroke="{shade(YEL, 0.3)}" stroke-width="2" fill="none"/>'
     if _Lf(pose):
-        if f in ("eliminado", "vitoria", "piscar"):
-            h += olhos_tela(f, -1, -7, 2.6, 7).replace("#ffffff", "#9ff7c8")
-        else:
-            rr = 3.6 if f == "susto" else 3
-            h += E(-1, -7, rr, rr, "#9ff7c8", k=0.2) + E(6, -7, rr, rr, "#9ff7c8", k=0.2)
-            if f == "raiva":
-                h += f'<path d="M-5,-13 L10,-10" stroke="#1a1a22" stroke-width="2" stroke-linecap="round"/>'
+        h += olhos_tela(pose.get("face", "foco"), 1.5, -14, 3.6, 9)
+    if _La(pose):
+        h += R(-8, -34, 8, 8, 2, cb.MEC_D, k=0.2) + f'<circle cx="-4" cy="-38" r="3" fill="#8a8a8a" opacity="0.6"/>'      # escapamento
     return h
 
 
 def escava_torso(col, pose):
-    return (S("M-20,0 C-24,-14 -18,-34 0,-34 C18,-34 24,-14 20,0 Z", col, (-25, -35, 25, 1), k=0.7)
-            + S("M-12,-6 C-14,-14 -10,-24 0,-24 C10,-24 13,-14 11,-6 Z", shade(col, 0.22), (-15, -25, 14, -5), k=0.3)
-            + cb.faixa(-20, -5, 40, 5, n=6))
+    t = R(-17, -26, 34, 22, 7, col, k=0.6)
+    t += R(-19, -8, 38, 9, 4.5, "#3a3f4a", k=0.4) + "".join(E(x, -3.5, 2.6, 2.6, STEEL, k=0.15) for x in (-13, -6, 1, 8, 15))
+    return t
 
 
 def cacamba(g, ang, pose):
-    body = R(-6, -5, 12, 10, 3, "#4a505c", k=0.4)
-    body += S("M4,-16 L30,-14 C34,-6 34,8 28,14 L4,12 Z", YEL, (3, -17, 35, 15), k=0.6, dark=YEL_D)
+    body = R(-8, -5, 14, 10, 3, "#4a505c", k=0.4) + R(2, -4, 10, 8, 2, STEEL, k=0.3)            # pistão hidráulico
+    body += S("M8,-18 L34,-16 C39,-6 39,8 32,15 L8,13 Z", YEL, (7, -19, 40, 16), k=0.6, dark=YEL_D)
     for i in range(4):
-        body += P_([(28 + (i % 2), -11 + i * 7), (36, -9 + i * 7), (28 + (i % 2), -6 + i * 7)], STEEL, k=0.2)
-    body += R(6, -14, 4, 26, 1.5, YEL_D, k=0.2)
-    return f'<g transform="translate({g[0]:.1f},{g[1]:.1f}) rotate({ang:.1f})">{body}</g>', g, (g[0] - 22, g[1] + 6)
+        y = -12 + i * 7.5
+        body += P_([(32, y), (41, y + 2.5), (32, y + 5)], STEEL, k=0.2)
+    body += R(10, -16, 4, 28, 1.5, YEL_D, k=0.2)
+    g2 = (g[0] - math.cos(math.radians(ang)) * 6, g[1] - math.sin(math.radians(ang)) * 6)
+    return f'<g transform="translate({g[0]:.1f},{g[1]:.1f}) rotate({ang:.1f})">{body}</g>', g, g2
 
 
-ESCAVA = dict(nome="ESCAVADEIRA", vibe="pesadão: pisa forte, tomba com o peso do braço", arma="braço-caçamba (pega e arremessa)",
-              hip_w=9, leg=(10, 10, 9, 8.5), foot_h=5, arm=(13, 13, 8), sh_b=(-12, -26), sh_f=(13, -26), torso_h=34, neck=(4, -34),
-              torso=escava_torso, head=escava_head, weapon=cacamba, hand=lambda e, b: (E(e[0], e[1], 5.5, 5.5, GLOVE_D, k=0.3) if b else ""),
+ESCAVA = dict(nome="ESCAVADEIRA", vibe="o trator: pisa forte, empurra com a lâmina", arma="braço-caçamba (pega e arremessa)",
+              hip_w=9, leg=(9, 9, 9, 8.5), foot_h=5, arm=(12, 12, 8), sh_b=(-12, -20), sh_f=(12, -20), torso_h=26, neck=(1, -26),
+              torso=escava_torso, head=escava_head, weapon=cacamba, hand=lambda e, b: E(e[0], e[1], 5.5, 5.5, GLOVE_D if b else GLOVE, k=0.3),
               boot=lambda en, b: botina(en, b, 1.4))
-ESCAVA_P = {"parado": dict(hip=(0, -20), lean=6, feet=[(-13, 0), (13, 0)], grip=(24, -20), ang=10, bk=(-22, -14)),
-            "golpe": dict(hip=(0, -20), lean=-8, head=-8, feet=[(-15, 0), (15, 0)], grip=(22, -52), ang=-80, face="raiva", bk=(-24, -20))}
+ESCAVA_P = {"parado": dict(hip=(0, -18), lean=4, feet=[(-13, 0), (13, 0)], grip=(22, -14), ang=10, bk=(-20, -10)),
+            "golpe": dict(hip=(0, -18), lean=-6, head=-6, feet=[(-15, 0), (15, 0)], grip=(20, -46), ang=-80, face="raiva", bk=(-22, -16))}
 
 
 ELENCO = [("MARRETÃO", "o equilibrado: capacete-tela, quica e verga", "marreta de demolição", None, None),
