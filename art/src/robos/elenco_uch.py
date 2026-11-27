@@ -122,7 +122,7 @@ BRITA_P = {"parado": dict(hip=(0, -15), lean=4, feet=[(-12, 0), (12, 0)], grip=(
 
 
 def brita_fx(pose):
-    if pose.get("face") == "raiva":
+    if pose.get("face") == "raiva" and pose.get("rajada", True):
         return "".join(f'<path d="M{56 + i * 4},{-24 + i * 6} l8,0" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>' for i in range(3)) + \
             "".join(f'<path d="M{48},{-18 + d} l6,{d * 0.5}" stroke="#ffe27a" stroke-width="2" stroke-linecap="round"/>' for d in (-6, 0, 6))
     return ""
