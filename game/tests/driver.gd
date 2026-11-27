@@ -2238,6 +2238,10 @@ func selecao_test() -> void:
 	main.demo.spells = null   # como no jogo de verdade vindo do menu: ainda não existe partida (derrubava o .exe)
 	await tap("v0", "jump")
 	var sl = main.selecao
+	for nn in [sl.spells_do_mapa().size() + 2, 40, 60]:   # o mosaico cabe sempre na tela (cartas encolhem)
+		var gd: Dictionary = sl.grade_spells(nn)
+		var fim: Vector2 = gd["origem"] + Vector2(gd["cols"] * (gd["size"].x + gd["gap"]) - gd["gap"], gd["rows"] * (gd["size"].y + gd["gap"]) - gd["gap"])
+		check(gd["cols"] * gd["rows"] >= nn and fim.y <= 990.0 and fim.x <= 1812.0 and gd["origem"].x >= 108.0, "%d cartas de engenhoca cabem na tela (%d×%d, carta %.0f×%.0f)" % [nn, gd["cols"], gd["rows"], gd["size"].x, gd["size"].y])
 	var n_sp: int = sl.spells_do_mapa().size()   # A31: 3 famílias, engenhocas sem E01/E03 (números lidos dos dados)
 	var fams := {}
 	for id in sl.spells_do_mapa():
@@ -5291,6 +5295,12 @@ func menus_frames(dir: String) -> void:
 	main.menus.paginas_min = 1
 	main.menus.arena_sel = 0
 	main.menus.pag_x = 0.0
+	main.arena_choice = "canteiro_obras"   # tela de engenhocas: todas as cartas (e ALEATÓRIO + chave) cabem na tela
+	main.selecao.abrir_spells()
+	main.selecao.sel = main.selecao.spells_do_mapa().size() + 1
+	main.state = S.SELSPELLS
+	await frames(10)
+	await snap(dir, "m4e_engenhocas")
 	main.state = S.JOIN
 	main.mode = "demolicao"
 	main.demo.cfg["rounds_to_win"] = 5

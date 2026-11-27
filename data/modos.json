@@ -892,7 +892,7 @@
         "nota": "2026-11-27 DEFESA lote D3: capacete de aço por cima — absorve os próximos `protecoes` golpes/tiros (sem dano, sem empurrão); no último voa longe",
         "protecoes": 3,
         "intervalo_s": 0.15,
-        "icone": "d05_capacete"
+        "icone": "d05_capacete0"
       },
       "D06": {
         "familia": "defesa",
