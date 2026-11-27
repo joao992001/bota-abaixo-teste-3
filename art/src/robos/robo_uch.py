@@ -35,6 +35,14 @@ def marreta(g, ang, s=0.72):
 def olhos(face, x0=4):
     """Olhos grandes brancos na tela (expressão estilo UCH) + sobrancelha."""
     o = ""
+    if face == "dor":
+        return (f'<path d="M{x0 - 3},-5 L{x0 + 3},-2 L{x0 - 3},1 M{x0 + 14},-5 L{x0 + 8},-2 L{x0 + 14},1" stroke="#ffffff" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+                f'<path d="M{x0 + 2},6 q3,-2 6,0" stroke="#ffffff" stroke-width="1.6" fill="none"/>')
+    if face == "vitoria":
+        return (f'<path d="M{x0 - 3},0 Q{x0},-6 {x0 + 3},0 M{x0 + 8},0 Q{x0 + 11},-6 {x0 + 14},0" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+                f'<path d="M{x0 + 1},4 Q{x0 + 5.5},9 {x0 + 10},4 Z" fill="#ffffff"/>')
+    if face == "eliminado":
+        return f'<path d="M{x0 - 3},-5 l6,6 m0,-6 l-6,6 M{x0 + 8},-5 l6,6 m0,-6 l-6,6" stroke="#ff6b6b" stroke-width="2.2" stroke-linecap="round"/>'
     big = face == "susto"
     for i, ex in enumerate((x0, x0 + 11)):
         ry = 6.5 if not big else 7.5
@@ -83,8 +91,16 @@ def desenha(pose, col=ab.COL):
         q = rot(p, lp + lc * 0.3 + extra, (0, 0))
         return (q[0] + hip[0], q[1] + hip[1])
     sh_f, sh_b = T((5, -13)), T((-5, -13))
-    tool, g1, g2 = marreta(pose["tool"][:2], pose["tool"][2])
-    bk = pose["bk"] if pose.get("bk") is not None else g2
+    if pose.get("oculto"):
+        return ""
+    fr = pose.get("fr")
+    if fr is not None:   # mão da frente livre (borda): a marreta pendurada na mão de trás
+        bk = pose["bk"]
+        tool, g1, g2 = marreta(bk, pose["tool"][2])
+        g1 = fr
+    else:
+        tool, g1, g2 = marreta(pose["tool"][:2], pose["tool"][2])
+        bk = pose["bk"] if pose.get("bk") is not None else g2
     parts = []
     # perna de trás, braço de trás
     legs = []
@@ -106,7 +122,7 @@ def desenha(pose, col=ab.COL):
     hw = rot((neck[0], neck[1] + pose.get("hdy", 0.0)), lp + lc * 0.3, (0, 0))
     head = (f'<g transform="translate({hip[0] + hw[0]:.1f},{hip[1] + hw[1]:.1f}) rotate({lean * 0.6 + pose.get("head", 0):.1f}) '
             f'translate(0,-17)">{cabeca(col, pose)}</g>')
-    behind = pose["tool"][2] < -110
+    behind = pose["tool"][2] < -110 and fr is None
     parts = ([tool] if behind else []) + [back_arm, legs[0], torso, legs[1], head] + ([] if behind else [tool]) + [front_arm]
     body = "".join(parts)
     sqx, sqy = pose["sq"]
@@ -224,8 +240,156 @@ def A_esquiva():
     return "ESQUIVA", 0.8, k, None, "fantasma"
 
 
+def A_duplo():
+    tuck = dict(feet=[(-4, -14), (4, -12)], tool=(8, -32, -100), bk=(-2, -30), hip=(0, -28))
+    air = dict(feet=[(-10, -8), (9, -5)], tool=(6, -34, -150), bk=(-12, -48))
+    k = [(0.0, P(oy=-24, **air)), (0.08, P(oy=-30, feet=[(-3, -1), (5, 2)], tool=(6, -34, -150), bk=(-8, -52), sq=(1, 1.12))),
+         (0.4, P(oy=-50, rot=360, face="raiva", **tuck)), (0.55, P(oy=-50, rot=360, **air)),
+         (0.95, P(oy=0, rot=360, sq=(1, 1.1), feet=[(-10, 0), (10, 0)])), (1.02, P(rot=360, hip=(0, -15), sq=(1, 0.74), lean=22, head=12)), (1.3, P(rot=360, **{k_: v for k_, v in PARADO.items() if k_ != "rot"}))]
+
+    def fx(t, p):
+        if 0.05 < t < 0.2:
+            return f'<circle cx="0" cy="{-44 + 6:.0f}" r="{6 + 30 * (t - 0.05):.0f}" fill="#fff6e4" opacity="{0.7 - (t - 0.05) * 4:.2f}"/>'
+        if 1.0 < t < 1.25:
+            return ab.fx_dust(0, 0, (t - 1.0) / 0.25, 1.2)
+        return ""
+    return "PULO DUPLO (cambalhota)", 1.3, k, fx, None
+
+
+def A_parede():
+    wall = dict(lean=8, head=10, feet=[(-12, -6), (2, -2)], tool=(6, -34, -150), bk=(-20, -44), face="foco")
+    k = [(0.0, P(ox=-32, oy=-52, **wall)), (0.9, P(ox=-32, oy=-16, **wall)),
+         (1.0, P(ox=-30, oy=-18, lean=-8, hip=(0, -18), feet=[(-12, -2), (-6, 0)], tool=(6, -34, -150), bk=(-20, -36), sq=(1, 0.82))),
+         (1.4, P(ox=50, oy=-56, lean=20, feet=[(-10, -10), (9, -6)], tool=(6, -34, -150), bk=(-12, -48), face="raiva", sq=(1, 1.1)))]
+
+    def fx(t, p):
+        o = '<rect x="-88" y="-200" width="34" height="210" fill="#d9a35f"/><rect x="-60" y="-200" width="6" height="210" fill="#b57a3e"/>'
+        if t < 0.9:
+            o += ab.fx_dust(-50, p["oy"] + 2, (t * 4) % 1, 0.45)
+        return o
+    return "PAREDE (desliza · pulo de parede)", 1.4, k, fx, None
+
+
+def A_borda():
+    hang = dict(hip=(0, -23), lean=0, head=-10, tool=(0, 0, 120), face="susto")
+    k = [(0.0, P(oy=-26, feet=[(-3, -4), (4, -1)], bk=(-6, -18), fr=(20, -56), **hang)),
+         (0.5, P(oy=-26, feet=[(-8, -1), (8, -6)], bk=(-6, -17), fr=(20, -56), **hang)),
+         (0.9, P(oy=-26, feet=[(-3, -4), (4, -1)], bk=(-6, -18), fr=(20, -56), **hang)),
+         (1.2, P(ox=12, oy=-66, hip=(0, -20), lean=26, head=0, feet=[(-6, -10), (12, -2)], tool=(8, -32, -150), bk=(-10, -22), face="raiva", sq=(1, 0.9))),
+         (1.6, P(ox=34, oy=-82, **{k_: v for k_, v in PARADO.items() if k_ not in ("ox", "oy")}))]
+
+    def fx(t, p):
+        return '<rect x="22" y="-82" width="200" height="86" fill="#cfc6b4"/><rect x="22" y="-82" width="200" height="8" fill="#e8e0d0"/>'
+    return "BORDA (pendurado · sobe)", 1.6, k, fx, None
+
+
+def A_cima():
+    k = [(0.0, GUARD), (0.07, P(hip=(0, -18), lean=12, tool=(14, -18, 60), face="raiva", sq=(1, 0.88))),
+         (0.15, P(hip=(0, -27), lean=-8, head=-14, oy=-4, tool=(6, -48, -100), face="raiva", sq=(1, 1.12), feet=[(-11, 0), (11, -2)])),
+         (0.45, P(hip=(0, -26), lean=-4, head=-10, tool=(4, -46, -108))), (0.8, GUARD)]
+
+    def fx(t, p):
+        if 0.08 < t < 0.45:
+            return ab.smear(p["tool"][:2], 60, -100, 22, 48) + ab.fx_estrela(10, -92, (t - 0.15) / 0.3, 10)
+        return ""
+    return "GOLPE LEVE PARA CIMA", 0.8, k, fx, None
+
+
+def A_baixo():
+    air = dict(oy=-56, feet=[(-10, -9), (9, -6)])
+    k = [(0.0, P(tool=(0, -50, -120), face="raiva", lean=-4, **air)),
+         (0.08, P(tool=(0, -52, -130), lean=-8, face="raiva", sq=(1, 1.08), **air)),
+         (0.16, P(tool=(12, -14, 92), lean=24, head=-10, face="raiva", **air)),
+         (0.5, P(oy=0, tool=(12, -14, 92), lean=24, feet=[(-11, 0), (11, 0)], sq=(1, 0.8), hip=(0, -17))), (0.9, GUARD)]
+
+    def fx(t, p):
+        o = ""
+        if 0.1 < t < 0.3:
+            o += f'<g transform="translate(0,{p["oy"]:.0f})">{ab.smear((12, -14), -130, 92, 22, 48)}</g>'
+        if 0.5 < t < 0.85:
+            o += ab.fx_onda(16, 0, (t - 0.5) / 0.35)
+        return o
+    return "GOLPE LEVE PARA BAIXO (no ar)", 0.9, k, fx, None
+
+
+def A_leva():
+    hit = P(lean=-26, head=20, sq=(1, 1.1), ox=-12, hip=(-2, -23), feet=[(-14, -2), (8, 0)], tool=(4, -30, -160), bk=(-14, -14), face="dor")
+    k = [(0.0, GUARD), (0.06, hit), (0.35, P(**{**hit, "ox": -20, "sq": (1, 0.92)})), (0.9, P(**{**GUARD, "ox": 0}))]
+
+    def fx(t, p):
+        return ab.fx_estrela(14, -46, (t - 0.04) / 0.25, 12) if 0.04 < t < 0.29 else ""
+    return "LEVA GOLPE", 0.9, k, fx, None
+
+
+def A_arremessado():
+    fly = dict(feet=[(-14, -10), (-2, -18)], tool=(-10, -44, -170), bk=(-18, -40), face="susto", hip=(0, -28))
+    k = [(0.0, GUARD), (0.05, P(ox=0, oy=-8, **fly)), (0.5, P(ox=-80, oy=-60, rot=-300, **fly)),
+         (0.95, P(ox=-130, oy=-24, rot=-600, **fly)), (1.05, P(ox=-136, oy=-18, rot=-720, feet=[(-10, -4), (9, -2)], tool=(6, -34, -150), bk=(-12, -40))),
+         (1.15, P(ox=-140, oy=0, rot=-720, sq=(1, 0.76), hip=(0, -16))), (1.6, P(ox=-140, rot=-720, **{k_: v for k_, v in PARADO.items() if k_ not in ("ox", "rot")}))]
+
+    def fx(t, p):
+        if t < 0.9:
+            return f'<g transform="translate({p["ox"] + 30:.0f},{p["oy"] - 40:.0f})">{ab.fx_lines(0, 0, 4, 28, 1)}</g>'
+        if 1.0 < t < 1.15:
+            return f'<circle cx="{p["ox"]:.0f}" cy="{p["oy"] - 30:.0f}" r="{(t - 1.0) * 260:.0f}" fill="none" stroke="#ffffff" stroke-width="4" opacity="{1 - (t - 1) / 0.15:.2f}"/>'
+        return ""
+    return "ARREMESSADO (gira · recupera)", 1.6, k, fx, "desloca"
+
+
+def A_engenhoca():
+    k = [(0.0, PARADO), (0.12, P(**{**PARADO, "bk": (18, -40), "lean": 12, "face": "raiva", "sq": (1, 1.05)})),
+         (0.6, P(**{**PARADO, "bk": (19, -38), "lean": 12, "face": "raiva"})), (1.0, PARADO)]
+
+    def fx(t, p):
+        if 0.12 < t < 0.6:
+            kk = (t - 0.12) / 0.48
+            return (f'<rect x="16" y="-50" width="10" height="13" rx="3" fill="#3a3f4a"/><circle cx="21" cy="-53" r="2.6" fill="#d42035"/>'
+                    + ab.fx_estrela(21, -58, kk, 13) + f'<circle cx="21" cy="-44" r="{8 + kk * 50:.0f}" fill="none" stroke="#ffe27a" stroke-width="3" opacity="{1 - kk:.2f}"/>')
+        return ""
+    return "USAR ENGENHOCA", 1.0, k, fx, None
+
+
+def A_vitoria():
+    up = P(hip=(0, -26), lean=-4, head=-10, feet=[(-10, 0), (10, 0)], tool=(16, -54, -62), bk=(-16, -50), face="vitoria")
+    k = [(0.0, up), (0.4, P(**{**up, "oy": -16, "sirene": 1, "feet": [(-8, -4), (8, -4)], "sq": (1, 1.08)})), (0.8, P(**{**up, "sq": (1, 0.9)})),
+         (1.2, P(**{**up, "oy": -16, "sirene": 1, "feet": [(-8, -4), (8, -4)], "sq": (1, 1.08)})), (1.6, up)]
+    return "VITÓRIA", 1.6, k, None, None
+
+
+def A_eliminado():
+    k = [(0.0, P(**{**GUARD, "face": "susto"})), (0.14, P(**{**GUARD, "face": "eliminado", "sq": (1, 0.8), "hip": (0, -17)})),
+         (0.2, P(**{**GUARD, "face": "eliminado", "oculto": True})), (1.4, P(**{**GUARD, "oculto": True}))]
+
+    def fx(t, p):
+        if t < 0.2:
+            return ""
+        u = (t - 0.2) / 1.2
+        o = ""
+        if u < 0.35:   # explosão cartoon
+            r = 20 + 60 * u
+            o += f'<circle cx="0" cy="-40" r="{r:.0f}" fill="#ffd27a" opacity="{1 - u / 0.35:.2f}"/><circle cx="0" cy="-40" r="{r * 0.6:.0f}" fill="#ffffff" opacity="{1 - u / 0.35:.2f}"/>'
+        pecas = [(-60, -160, 400, cabeca(ab.COL, {"face": "eliminado"})), (50, -120, -500, tronco(ab.COL, {})),
+                 (-30, -90, 700, cb.R(-7, -7, 15, 15, 6, cb.MEC_D, k=0.45)), (70, -70, -800, marreta((0, 0), 0)[0])]
+        for vx, vy, spin, svg in pecas:
+            x = vx * u * 1.6
+            y = -40 + vy * u * 1.6 + 260 * u * u
+            o += f'<g transform="translate({x:.1f},{y:.1f}) rotate({spin * u:.0f}) scale(0.9)">{svg}</g>'
+        return o
+    return "ELIMINADO (desmonta)", 1.4, k, fx, None
+
+
 def main():
     import sys as _s
+    if "--resto" in _s.argv:
+        ab.desenha = desenha
+        ab.SC = 2.0
+        ab.ANIMS = [A_duplo, A_parede, A_borda, A_cima, A_baixo, A_leva, A_arremessado, A_engenhoca, A_vitoria, A_eliminado]
+        ab.LOOPS = {A_vitoria}
+        ab.main()
+        for a, b in (("anim_blindado.mp4", "uch_resto.mp4"), ("anim_blindado_lento.mp4", "uch_resto_lento.mp4"), ("anim_blindado_folha.png", "uch_resto_folha.png")):
+            if os.path.exists(os.path.join(ab.OUT, a)):
+                os.replace(os.path.join(ab.OUT, a), os.path.join(ab.OUT, b))
+        return
     if "--golpes" in _s.argv:
         ab.desenha = desenha
         ab.SC = 2.0
