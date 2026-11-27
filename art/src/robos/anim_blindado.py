@@ -178,7 +178,12 @@ def simular(keys, dur, loop):
             ls = m["lean"].step(p["lean"], dt)
             l2 = m["lean2"].step(p["lean"], dt)
             q["bend"] = (ls - p["lean"]) * 0.45                       # o peito acompanha o quadril com atraso
-            q["head"] = p["head"] + (l2 - p["lean"]) * 0.7           # a cabeça atrasa mais
+            q["head"] = p["head"] + (l2 - p["lean"]) * 1.1           # a cabeça atrasa mais
+            m.setdefault("hdy", Mola(0, 4.0, 0.3))
+            m["hdy"].v += ay * 0.0012 * dt * 60
+            q["hdy"] = max(-6, min(6, m["hdy"].step(0, dt)))         # cabeça quica atrasada
+            m.setdefault("sk", Mola(0, 5, 0.4))
+            q["skew"] = m["sk"].step(-(ls - 4) * 0.35 - vx * 0.01, dt)   # o corpo todo verga com a inclinação/velocidade
             ta = m["ta"].step(p["tool"][2], dt)                       # ferramenta: continua o arco e assenta
             q["tool"] = (m["tx"].step(p["tool"][0], dt), m["ty"].step(p["tool"][1], dt), ta)
             bk = _bk_point(p)
@@ -188,7 +193,7 @@ def simular(keys, dur, loop):
             if ay < -2500 and vy_prev > -50:                          # pouso / tranco: o corpo achata e volta
                 m["sq"].v -= min(abs(ay) / 9000.0, 3.0)
             sqy = m["sq"].step(p["sq"][1] - min(abs(vy) / 4000.0, 0.06) * (-1), dt)
-            q["sq"] = (p["sq"][0] + (1 - sqy) * 0.7, sqy)
+            q["sq"] = (1.0 / max(sqy, 0.5) ** 0.8 * (p["sq"][0] / max(p["sq"][0], 1e-3)) if True else 1, sqy)
             m["omb"].v += ay * 0.0004 * dt * 60
             q["omb"] = m["omb"].step(0, dt)
             m["sir"].v += (-vx * 0.02 - dlean * 0.05 + ay * 0.004) * dt * 60 * 1.6
@@ -203,6 +208,54 @@ def simular(keys, dur, loop):
 
 
 # ---------------------------------------------------------------- desenho de uma pose (com mão da frente livre e corpo girando)
+def _bez(p, c, q, u):
+    return ((1 - u) ** 2 * p[0] + 2 * (1 - u) * u * c[0] + u * u * q[0], (1 - u) ** 2 * p[1] + 2 * (1 - u) * u * c[1] + u * u * q[1])
+
+
+def tubo(p, k, q, w0, w1, fill):
+    """Membro em CURVA (estilo UCH): passa pelo joelho/cotovelo k sem quina; largura w0→w1."""
+    c = (2 * k[0] - (p[0] + q[0]) / 2, 2 * k[1] - (p[1] + q[1]) / 2)
+    n = 10
+    pts_l, pts_r = [], []
+    for i in range(n + 1):
+        u = i / n
+        a = _bez(p, c, q, u)
+        b = _bez(p, c, q, min(u + 0.01, 1)) if u < 1 else a
+        if u >= 1:
+            b0 = _bez(p, c, q, 0.99)
+            dx, dy = a[0] - b0[0], a[1] - b0[1]
+        else:
+            dx, dy = b[0] - a[0], b[1] - a[1]
+        L = math.hypot(dx, dy) or 1
+        w = (w0 + (w1 - w0) * u) / 2
+        pts_l.append((a[0] - dy / L * w, a[1] + dx / L * w))
+        pts_r.append((a[0] + dy / L * w, a[1] - dx / L * w))
+    poly = pts_l + pts_r[::-1]
+    return cb.P(poly, fill, k=0.5) + cb.E(p[0], p[1], w0 / 2, w0 / 2, fill, k=0.3) + cb.E(q[0], q[1], w1 / 2, w1 / 2, fill, k=0.3)
+
+
+def braco_uch(col, sh, el, end, back):
+    k = -0.38 if back else 0.0
+    out = tubo(sh, el, end, 10, 13, shade(col, -0.05 + k))
+    out += cb.E(el[0], el[1], 4.6, 4.6, shade(cb.CREME, k), k=0.3)
+    a = math.degrees(math.atan2(end[1] - el[1], end[0] - el[0]))
+    fist = cb.R(-7.5, -7.5, 15, 15, 6, shade(cb.MEC_D, k), k=0.45)
+    return out + f'<g transform="translate({end[0]:.1f},{end[1]:.1f}) rotate({a:.1f})">{fist}</g>'
+
+
+def perna_uch(col, hp, knee, end, back):
+    k = -0.38 if back else 0.0
+    out = tubo(hp, knee, (end[0], end[1] - 2), 13, 14, shade(col, -0.05 + k))
+    out += cb.R(knee[0] - 5.5, knee[1] - 5.5, 11, 10, 4, shade(cb.CREME, k), k=0.35)
+    bx, by = end[0], end[1] + 5
+    out += cb.P([(bx - 9, by - 9), (bx + 9, by - 9), (bx + 15, by - 3), (bx + 15, by), (bx - 10, by)], shade(cb.MEC_D, k), k=0.45)
+    out += cb.R(bx - 11, by - 1, 27, 4.5, 2, shade(cb.SOLA, k), k=0.35)
+    return out
+
+
+UCH = True
+
+
 def desenha(pose, col=COL):
     hip, lean = pose["hip"], pose["lean"]
     st = cb.ST
@@ -216,22 +269,23 @@ def desenha(pose, col=COL):
     else:
         tool, g1, g2 = cb.marreta(pose["tool"][:2], pose["tool"][2])
     el, end = ik(sh_b, pose["bk"] if pose.get("bk") is not None else g2, st["uarm"], st["farm"], lambda q: q[1])
-    back_arm = cb.braco(col, sh_b, el, end, True)
+    back_arm = (braco_uch if UCH else cb.braco)(col, sh_b, el, end, True)
     legs = []
     for i in range(2):
         hp = (hip[0] + (-st["hip_w"] if i == 0 else st["hip_w"]), hip[1] + 2)
         ft = pose["feet"][i]
         kn, en = ik(hp, (ft[0], ft[1] - st["foot_h"]), st["thigh"], st["shin"], lambda q: q[0])
-        legs.append(cb.perna(col, hp, kn, en, i == 0))
+        legs.append((perna_uch if UCH else cb.perna)(col, hp, kn, en, i == 0))
     el, end = ik(sh_f, fr if fr is not None else g1, st["uarm"], st["farm"], lambda q: q[1])
-    front_arm = cb.braco(col, sh_f, el, end, False)
+    front_arm = (braco_uch if UCH else cb.braco)(col, sh_f, el, end, False)
     corpo = cb.corpo(col, hip, lean, pose)
     behind = pose["tool"][2] < -110 and fr is None   # marreta nas costas (no ombro / erguida atrás)
     parts = ([tool] if behind else []) + [cb.ombreira(col, sh_b, True, dy=pose.get("omb", 0)), back_arm, legs[0], corpo, legs[1]] + ([] if behind else [tool]) + [front_arm, cb.ombreira(col, sh_f, False, dy=pose.get("omb", 0))]
     body = "".join(parts)
     sqx, sqy = pose["sq"]
-    if sqx != 1 or sqy != 1:
-        body = f'<g transform="scale({sqx:.3f},{sqy:.3f})">{body}</g>'
+    sk = pose.get("skew", 0.0)
+    if sqx != 1 or sqy != 1 or abs(sk) > 0.01:
+        body = f'<g transform="skewX({sk:.2f}) scale({sqx:.3f},{sqy:.3f})">{body}</g>'
     if abs(pose["rot"]) > 0.01:
         body = f'<g transform="rotate({pose["rot"]:.1f} 0 -44)">{body}</g>'
     return body
@@ -286,35 +340,36 @@ def A_parado():
 
 
 def A_correr():
-    base = dict(lean=16, head=-6, tool=(4, -46, -150), face="foco")
-    k = [(0.0, P(hip=(0, -40), feet=[(-22, -3), (20, 0)], bk=(-20, -30), **base)),
-         (0.125, P(hip=(0, -36), feet=[(-6, -12), (6, 0)], bk=(-12, -27), **base)),
-         (0.25, P(hip=(0, -40), feet=[(20, 0), (-22, -3)], bk=(-4, -24), **base)),
-         (0.375, P(hip=(0, -36), feet=[(6, 0), (-6, -12)], bk=(-12, -27), **base)),
-         (0.5, P(hip=(0, -40), feet=[(-22, -3), (20, 0)], bk=(-20, -30), **base))]
+    base = dict(lean=18, head=-8, tool=(4, -46, -150), face="foco")
+    k = [(0.0, P(hip=(0, -34), feet=[(-24, -4), (22, 0)], bk=(-22, -30), sq=(1.0, 0.88), **base)),
+         (0.1, P(hip=(0, -46), feet=[(-6, -16), (4, -4)], bk=(-12, -26), sq=(1.0, 1.08), **base)),
+         (0.2, P(hip=(0, -34), feet=[(22, 0), (-24, -4)], bk=(-2, -22), sq=(1.0, 0.88), **base)),
+         (0.3, P(hip=(0, -46), feet=[(4, -4), (-6, -16)], bk=(-12, -26), sq=(1.0, 1.08), **base)),
+         (0.4, P(hip=(0, -34), feet=[(-24, -4), (22, 0)], bk=(-22, -30), sq=(1.0, 0.88), **base))]
 
     def fx(t, p):
-        off = (t / 0.5 * 120) % 60
-        return "".join(f'<path d="M{x - off:.0f},2 h18" stroke="#9ab" stroke-width="3" stroke-linecap="round"/>' for x in range(-120, 160, 60)) + (fx_dust(-26, 0, (t % 0.25) / 0.25, 0.7))
-    return "CORRER", 0.5, k, fx, None
+        off = (t / 0.4 * 140) % 70
+        return "".join(f'<path d="M{x - off:.0f},2 h18" stroke="#9ab" stroke-width="3" stroke-linecap="round"/>' for x in range(-140, 180, 70)) + fx_dust(-28, 0, (t % 0.2) / 0.2, 0.7)
+    return "CORRER (estilo UCH)", 0.4, k, fx, None
 
 
 def A_pulo():
-    air = dict(feet=[(-12, -16), (10, -10)], tool=(6, -50, -150), bk=(-16, -40))
-    k = [(0.0, GUARDA), (0.10, P(hip=(0, -30), sq=(1.12, 0.88), lean=16)),
-         (0.17, P(hip=(0, -44), sq=(0.9, 1.12), oy=-14, lean=6, face="raiva", **air)),
-         (0.45, P(hip=(0, -42), oy=-66, lean=2, head=-6, **air)),
-         (0.75, P(hip=(0, -44), oy=-20, lean=10, feet=[(-14, -4), (14, -2)], tool=(8, -54, -120), bk=(-18, -46))),
-         (0.82, P(hip=(0, -30), sq=(1.14, 0.86), lean=18)), (1.0, GUARDA), (1.3, GUARDA)]
+    air = dict(feet=[(-14, -18), (12, -12)], tool=(6, -50, -150), bk=(-14, -70))
+    k = [(0.0, GUARDA), (0.12, P(hip=(0, -26), sq=(1.0, 0.76), lean=20, head=10)),
+         (0.18, P(hip=(0, -46), sq=(1.0, 1.24), oy=-18, lean=4, face="raiva", feet=[(-6, -4), (6, 0)], tool=(6, -50, -150), bk=(-8, -80))),
+         (0.42, P(hip=(0, -42), oy=-70, lean=0, head=-8, **air)),
+         (0.62, P(hip=(0, -42), oy=-50, lean=6, sq=(1.0, 1.08), feet=[(-14, -8), (14, -4)], tool=(8, -54, -120), bk=(-20, -58))),
+         (0.74, P(hip=(0, -46), oy=0, lean=10, sq=(1.0, 1.1), feet=[(-16, 0), (16, 0)])),
+         (0.8, P(hip=(0, -26), sq=(1.0, 0.74), lean=22, head=12)), (1.0, GUARDA), (1.3, GUARDA)]
 
     def fx(t, p):
         o = ""
-        if 0.1 < t < 0.3:
-            o += fx_dust(0, 0, (t - 0.1) / 0.2)
-        if 0.82 < t < 1.05:
-            o += fx_dust(0, 0, (t - 0.82) / 0.23, 1.2)
+        if 0.12 < t < 0.32:
+            o += fx_dust(0, 0, (t - 0.12) / 0.2)
+        if 0.8 < t < 1.05:
+            o += fx_dust(0, 0, (t - 0.8) / 0.25, 1.4)
         return o
-    return "PULO (prepara · sobe · cai · pousa)", 1.3, k, fx, None
+    return "PULO (estilo UCH)", 1.3, k, fx, None
 
 
 def A_pulo_duplo():
@@ -490,7 +545,7 @@ def A_vitoria():
 
 
 ANIMS_TODAS = [A_parado, A_correr, A_pulo, A_pulo_duplo, A_parede, A_borda, A_combo, A_cima, A_baixo, A_pesado, A_esq_chao, A_esq_ar, A_leva, A_arremessado, A_engenhoca, A_vitoria]
-ANIMS = [A_correr, A_combo] if os.environ.get("TODAS") is None else ANIMS_TODAS
+ANIMS = [A_correr, A_pulo] if os.environ.get("TODAS") is None else ANIMS_TODAS
 LOOPS = {A_parado, A_correr, A_vitoria}
 
 

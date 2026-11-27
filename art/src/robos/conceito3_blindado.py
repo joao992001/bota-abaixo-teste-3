@@ -137,7 +137,7 @@ def corpo(col, hip, lean, pose):
     b += faixa(-2, -36, 17, 9, n=3)                                                            # placa de perigo
     b += f'<circle cx="-11" cy="-26" r="1.5" fill="{shade(col, -0.45)}"/><circle cx="14" cy="-24" r="1.5" fill="{shade(col, -0.45)}"/>'
     b += R(-5, -51, 11, 7, 2.5, MEC_D, k=0.35)                                                  # pescoço
-    hx, hy = 3, -60
+    hx, hy = 3, -60 + pose.get("hdy", 0.0)
     face = pose.get("face", "foco")
     h = E(0, 0, 13, 12.5, col, k=0.6) + E(-1, -5, 12, 6.5, shade(col, 0.2), k=0.3)              # capacete
     h += R(-2, -4, 16, 10, 4, "#1d2128", k=0.3)                                                  # viseira
