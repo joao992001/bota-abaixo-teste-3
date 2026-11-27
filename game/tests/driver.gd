@@ -2657,7 +2657,12 @@ func spells_test() -> void:
 		var d: Dictionary = sp.pick()
 		cnt[d["fam"]] = cnt.get(d["fam"], 0) + 1
 		check(d["id"] in sp.pool() and sp.sc(d["id"])["familia"] == d["fam"], "sorteio dá spell do pool na família certa") if k == 0 else null
-	check(cnt.size() == 3 and cnt["ataque"] > cnt["controle"] and cnt["ataque"] > cnt["transformacao"], "sorteio: 3 famílias, ataque mais frequente %s" % str(cnt))
+	var nfam: int = main.demo.cfg["spells"]["classes_spells"].size() if main.demo.cfg["spells"].has("classes_spells") else 4
+	var mais_ataque := true
+	for fk in cnt:
+		if fk != "ataque" and cnt[fk] >= cnt["ataque"]:
+			mais_ataque = false
+	check(cnt.size() == nfam and mais_ataque, "sorteio: as %d famílias aparecem, ataque mais frequente %s" % [nfam, str(cnt)])
 	check(sp.spawn_points().size() >= 6 and sp.spawn_points().any(func(q): return q["fixo"]), "pontos de caixa fixos e variáveis no Canteiro (%d)" % sp.spawn_points().size())
 	# coleta por contato com slot vazio
 	place.call(6.0)
@@ -2965,6 +2970,43 @@ func spells_test() -> void:
 		if p6.get("body") != null and is_instance_valid(p6["body"]):
 			p6["body"].queue_free()
 	sp.piles.clear()
+	# ===== DEFESA (2026-11-27): D01 Âncora de Contrapeso e D02 Airbag de Obra
+	place.call(1.6)
+	sp.clear(r0)
+	sp.equip(r0, "D01")
+	await frames(2)
+	await tap("v0", "item")
+	check(sp.anchors.has(0) and r0.ancora_t > 0.0, "D01: crava o contrapeso (ancorado)")
+	var x_d1: float = r0.position.x
+	var dano_d1: float = r0.dmg
+	r0.take_hit(-1, "spell_mola", 1)
+	await frames(20)
+	check(absf(r0.position.x - x_d1) < 12.0 and r0.dmg > dano_d1, "D01: golpe forte NÃO empurra, mas o dano conta (andou %.0f px, %d%%)" % [absf(r0.position.x - x_d1), int(r0.dmg)])
+	vset("v0", "right", true)
+	await frames(20)
+	vset("v0", "right", false)
+	var andou_d1: float = absf(r0.position.x - x_d1)
+	check(andou_d1 > 20.0 and andou_d1 < 0.7 * float(main.demo.robots_cfg["max_run"]) * 20.0 / 60.0 if main.demo.get("robots_cfg") != null else andou_d1 > 20.0, "D01: anda, devagar (%.0f px em 20 quadros)" % andou_d1)
+	await frames(int(float(sp.sc("D01")["duracao_s"]) * 60.0))
+	check(not sp.anchors.has(0) and r0.ancora_t == 0.0 and sp.hud_info(0).is_empty(), "D01: acaba em %.0f s e some" % float(sp.sc("D01")["duracao_s"]))
+	# D02: passivo — arremesso forte infla o airbag e corta o voo
+	place.call(1.6)
+	sp.clear(r0)
+	sp.equip(r0, "D02")
+	await frames(2)
+	r0.dmg = 120.0
+	r0.take_hit(-1, "spell_mola", 1)
+	await frames(3)
+	check(sp.airbags.has(0), "D02: arremesso forte infla o airbag sozinho")
+	check(absf(r0.own_vx) < 300.0, "D02: o airbag corta o voo (vx %.0f)" % r0.own_vx)
+	var pousou_d2 := false
+	for q in 200:
+		await frames(1)
+		if not sp.airbags.has(0):
+			pousou_d2 = true
+			break
+	await frames(30)
+	check(pousou_d2 and sp.hud_info(0).is_empty() and r0.alive, "D02: pousa, o balão murcha e a engenhoca acaba")
 	# A05 rebiteira: tiro rápido, acerta e some
 	place.call(5.0)
 	sp.clear(r0)
@@ -4403,7 +4445,7 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["C03coluna", 150], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["C03coluna", 150], ["D01", 200], ["D02", 170], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
@@ -4458,6 +4500,12 @@ func spells_frames(dir: String) -> void:
 		elif nm == "porte":
 			sp.equip(r0, "A05")
 			sp.equip(r1, "E01")
+		elif nm == "D01" or nm == "D02":
+			sp.equip(r0, nm)
+			put(r0, Vector2(x0 + 2.0 * 64.0, fy))
+			put(r1, Vector2(x0 + 3.2 * 64.0, fy))
+			r0.facing = 1
+			r1.facing = -1
 		elif nm == "C03coluna":
 			sp.equip(r0, "A06")
 			var dx6 := 200.0
@@ -4519,6 +4567,15 @@ func spells_frames(dir: String) -> void:
 					a["v0"]["item"] = f == 14 or f == 15
 				"A01cheio":   # auditoria 2026-11-27: segura até encher e solta
 					a["v0"]["item"] = f >= 10 and f < 76
+				"D01":   # Defesa: crava, leva um golpe forte e não sai do lugar, anda devagar arrastando
+					a["v0"]["item"] = f == 10 or f == 11
+					if f == 40 or f == 80:
+						r0.take_hit(-1, "spell_mola", 1)
+					a["v0"]["right"] = f >= 110 and f < 170
+				"D02":   # Defesa: arremesso forte → airbag infla, desce e pousa
+					if f == 20:
+						r0.dmg = 130.0
+						r0.take_hit(-1, "spell_mola", 1)
 				"C03coluna":   # sessão 6: coluna sobe; o gancho agarra a base e o robô vai para cima dela
 					if f == 64:
 						sp.clear(r0)

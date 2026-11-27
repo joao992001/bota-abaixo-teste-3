@@ -12,10 +12,10 @@ bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visu
 (sessão 6, A42: sai de um buraco em 0,35 s, passa do ponto e assenta com tranco, rachaduras escuras, poeira dos dois lados,
 o rival sobe COLADO no topo e é lançado aos 60% da subida; colisão cresce junto; faixa zebrada grossa; ícone = cravadeira;
 vídeos `out/videos/a06_coluna*.mp4`). **Controle FEITO** (A43: só o C03 Gancho muda — agarrou embaixo/na quina de estrutura alta → sobe por cima; o resto fica).
-**Agora:** classe nova DEFESA. Proposta levada (sem resposta ainda): Âncora de Contrapeso (4 s sem ser empurrado, anda
-devagar), Airbag de Obra (infla ao ser arremessado, corta o voo 1×, salva da queda), Para-choque de Mola (1,5 s rebate
-golpes e tiros), Remendo Rápido (−30 de dano %), Teleporte (sairia do Controle — o usuário disse que o C04 FICA como está:
-confirmar). Fluxo: aprovação → prancha 4 tempos → código → vídeo.
+**Defesa lote D1 FEITO** (A44: classe nova verde/cúpula/capacete; D01 Âncora de Contrapeso, D02 Airbag de Obra passivo;
+vídeos `out/videos/defesa_lote1*.mp4`). **Agora:** lote D2 = **D03 Para-choque de Mola** (1,5 s: quem te acerta, inclusive
+tiro, é rebatido) + **D04 Remendo Rápido** (−30 de dano %). Mesmo fluxo: prancha em `art/src/robos/eng_defesa.py`
+(criar `prancha2()`/`--l2`) → aprovação → código (`spells.gd`, `robot.gd`, `data/modos.json`, manifesto do Canteiro) → vídeo.
 **Lição da sessão 5:** arte copiada para `game/assets` só aparece depois de `godot --headless --path game --import`; conferir
 SEMPRE de perto (recorte) antes de entregar — o usuário reprovou o lote 3 na 1ª entrega por isso.
 APROVADAS em `docs/revisoes/auditoria_engenhocas.md`, seção "Propostas APROVADAS"). Depois lote 4 = A06 Bate-Estaca (vira

@@ -140,5 +140,21 @@ def prancha():
     print(render_all(), out)
 
 
+def exportar_jogo():
+    """Texturas do jogo: spells/d01_contrapeso (64x80, base em 32,72) e spells/d02_airbag (48x64, centro 24,32)."""
+    out = os.path.join(ab.ROOT, "art/out/game/spells")
+    os.makedirs(out, exist_ok=True)
+    itens = [("d01_contrapeso", contrapeso(16, 37, 0.9), 32, 40, 4),
+             ("d02_airbag", f'<g transform="translate(12,16) scale(1.0)">' + R(-9, -12, 18, 26, 5, "#f2c84b", k=0.4) + ab.cb.faixa(-9, 3, 18, 5, n=3)
+              + E(-1, -13, 3.5, 3, STEEL_D, k=0.1) + R(-9, -12, 18, 5, 3, "#ffe27a", k=0.1) + "</g>", 24, 32, 4)]
+    for nome, g, w, h, sc in itens:
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{g}</svg>'
+        queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, sc)
+    print("defesa:", render_all())
+
+
 if __name__ == "__main__":
-    prancha()
+    if "--jogo" in sys.argv:
+        exportar_jogo()
+    else:
+        prancha()

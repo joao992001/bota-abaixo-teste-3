@@ -69,6 +69,7 @@ var hammer_out := false       # A07: a marreta está voando (sem marretada pesad
 var spell_lock := false       # mirando/viajando (C04 Teleporte): ignora movimento, pulo e golpes
 var god := false              # Laboratório: invencível (não leva golpe)
 var push_vx := 0.0            # empurrão externo deste quadro (ímã); zera a cada quadro
+var ancora_t := 0.0          # D01 Âncora de Contrapeso: ninguém empurra (golpe, vento, ímã, onda, gancho); anda devagar, não pula
 var fall_reason := ""
 var last_hit := 99.0
 var stomp_immune := 0.0
@@ -314,6 +315,12 @@ func _physics_process(dt: float) -> void:
 		_attack_update(dt, on_floor)
 	# mover
 	land_v = velocity.y
+	if ancora_t > 0.0:   # D01: preso ao contrapeso — só o próprio passo (devagar), nada de fora move
+		ext_vx = 0.0
+		var vmax := f("max_run") * spell_speed
+		own_vx = clampf(own_vx, -vmax, vmax)
+		if on_floor:
+			velocity.y = maxf(velocity.y, 0.0)
 	velocity.x = own_vx + ext_vx
 	_corner_correction(dt)
 	move_and_slide()
@@ -554,6 +561,8 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 	var kx := minf(float(k["kx"]) + dmg * float(k["kx_por"]), float(am["max_kx"]))
 	var ky := float(k["ky"]) + dmg * float(k["ky_por"])
 	var push := float(mv.get("empurrao", spell_push)) * float(ma.get("causa", 1.0))
+	if ancora_t > 0.0:
+		push = 0.0   # D01 Âncora: o dano conta, o empurrão não
 	kx *= push   # armadura/mecha: empurrão bem menor
 	ky *= push
 	if by >= 0 and by < main.robots.size():
@@ -570,6 +579,8 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		ky *= 0.7
 	var ar: Dictionary = c["arremesso"]
 	var stun := minf(float(ar["sem_controle_base"]) + dmg * float(ar["sem_controle_por"]), float(ar["sem_controle_max"]))
+	if ancora_t > 0.0:
+		stun = minf(stun, 0.12)   # ancorado: só o tranco, segue no controle
 	main.float_text(position + Vector2(0, -100), "+%d%%" % maxi(int(round(dano)), 1), main.dmg_color(dmg))
 	_apply_knock(dir, kx, ky, stun)
 	vis.hurt(clampf((kx + ky) / 1400.0, 0.25, 1.0), dir)

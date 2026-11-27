@@ -847,7 +847,7 @@ def prancha():
     b = ['<rect width="1920" height="1080" fill="#eef7f6"/>', label(960, 56, "SPELLS — ETAPA 1 (para aprovar a arte)", 40)]
     # caixas
     b.append(label(250, 110, "CAIXAS (família visível, spell escondida)", 24))
-    names = {"ataque": "ATAQUE", "controle": "CONTROLE", "engenharia": "ENGENHARIA", "transformacao": "TRANSFORM."}
+    names = {"ataque": "ATAQUE", "controle": "CONTROLE", "engenharia": "ENGENHARIA", "transformacao": "TRANSFORM.", "defesa": "DEFESA"}
     for i, fam in enumerate(FAM):
         x = 40 + i * 120
         b.append(f'<g transform="translate({x},130)">{caixa_body(fam)}</g>')

@@ -316,6 +316,8 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 		"T07":   # A36: vira o mecha Corredor; já montado, ARRANCADA quando o rival está na frente, na mesma altura
 			it_ok = (sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 420.0) or (sp.slot[r.pid]["t"] > 0.0 and absf(dy) < 40.0 and absf(dx) < 460.0 and signf(dx) == float(r.facing))
 		"C03": it_ok = absf(dy) < 40.0 and absf(dx) > 120.0 and absf(dx) < 480.0
+		"D01": it_ok = r.is_on_floor() and sp.slot[r.pid]["t"] < 0.0 and absf(dy) < 60.0 and absf(dx) < 170.0   # Defesa: ancora quando o rival chega perto
+		"D02": it_ok = false   # passivo
 		"C05": it_ok = absf(dy) < 50.0 and absf(dx) > 100.0 and absf(dx) < 400.0
 		"E03":
 			var tg = sp.remote_target(r)

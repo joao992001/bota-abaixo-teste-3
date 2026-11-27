@@ -71,7 +71,7 @@ static func armor_fit(mname: String) -> Array:
 	_fit[mname] = res
 	return res
 ## Spells sem arma: objeto nas costas (andaime dobrado, marreta sísmica, fornalha desmontada) ou na mão de trás.
-const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
+const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "D01": ["d01_contrapeso", Vector2(30, 38), 0.15], "D02": ["d02_airbag", Vector2(24, 32), 0.1], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
@@ -1220,7 +1220,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	var moch_anc: Vector2 = (_v(sh[0]) + _v(hips[0])) / 2.0 + Vector2(-13, -4) + MOCH_OFF.get(mname, Vector2.ZERO)
 	if moch_on:   # A aprovada (2026-11-27): a cápsula do mecha vai nas COSTAS, como mochila (nada na mão)
 		_draw_mochila(ci, base * bx, sid0, moch_anc, 1.0, -0.12)
-	if BACK_PROPS.has(sid0) and not armor and not sf.get("fading", false) and not (sid0 == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or float(sf.get("fire", -1.0)) >= 0.0)):
+	if BACK_PROPS.has(sid0) and not armor and not sf.get("fading", false) and not sf.get("defesa_ativa", false) and not (sid0 == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or float(sf.get("fire", -1.0)) >= 0.0)):
 		var bp: Array = BACK_PROPS[sid0]
 		ci.draw_set_transform_matrix(base * bx * Transform2D(float(bp[2]), _v(sh[0]) + Vector2(-12, 10)))
 		ci.draw_texture_rect(Data.tex("spells/" + bp[0]), Rect2(-bp[1] / 2.0, bp[1]), false)

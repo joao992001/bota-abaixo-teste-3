@@ -630,8 +630,8 @@ func _draw_howto(ci: CanvasItem) -> void:
 				po["expr"] = "susto"
 				RobotVis.draw_robot(ci, {"color": 2, "model": 2}, po, Transform2D(0.0, Vector2(0.9, 0.9), 0.0, c + Vector2(0, 60)))
 			"itens":
-				var names := ["ataque", "controle", "transformacao"]
-				for k in 3:
+				var names := ["ataque", "controle", "transformacao", "defesa"]
+				for k in 4:
 					ci.draw_texture_rect(Data.tex("spells/caixa_" + names[k]), Rect2(c + Vector2(-70 + (k % 2) * 60, -40 + (k / 2) * 52), Vector2(54, 54)), false)
 			"parado":
 				ci.draw_texture_rect(Data.tex("cenario/caixote_0"), Rect2(c - Vector2(40, 30), Vector2(80, 80)), false)
