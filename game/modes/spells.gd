@@ -23,6 +23,7 @@ var demo: Node
 var cfg: Dictionary
 var boxes: Array = []        # {fam, id, charges, pos, vy, t, land_t, block: {pid: s}, special}
 var slot := {}               # pid -> {id, fam, charges, cd, prep, prep_len, fire, t, data}
+var puffs := []              # A04: poeira na cor do concreto {pos, vel, r, t, life}
 var craters := []            # A04: clarão da cratera {rect, t}
 var punch_fly := []          # A01: rivais voando do soco carregado {pid, owner, t, dir} (quicam na parede)
 var bonks := []              # A01: estrela de pancada na parede {pos, t}
@@ -1858,12 +1859,17 @@ func _fire2(r, s: Dictionary) -> void:
 					if p["fallen"] or not ct.hit_rect(p).intersects(zr) or ct.hit_rect(p).grow(2).has_point(pe):
 						continue
 					ct.damage(p, 9999, ct.hit_rect(p).get_center())
-					if p["crit_t"] > 0.0:
-						p["crit_t"] = minf(p["crit_t"], 0.12)   # sem o aviso longo: a laje some no golpe
+					if p["crit_t"] > 0.0:   # desaba NO golpe (sem o estado de aviso com fita zebrada)
+						p["crit_t"] = 0.0
+						ct._collapse(p)
 			craters.append({"rect": zr, "t": 0.0})
-			for j in 26:
-				rocks.append({"pos": Vector2(randf_range(zr.position.x, zr.end.x), y - 4.0), "vel": Vector2(randf_range(-260, 260) + r.facing * 120.0, randf_range(-900, -380)),
-					"t": 0.0, "rot": randf() * TAU, "size": randf_range(6, 14)})
+			for j in 22:   # nuvem de poeira subindo da cratera
+				var px := randf_range(zr.position.x, zr.end.x)
+				puffs.append({"pos": Vector2(px, y - randf_range(0, 20)), "vel": Vector2(randf_range(-90, 90) + (px - zr.get_center().x) * 0.8, randf_range(-260, -60)),
+					"r": randf_range(12, 26), "t": 0.0, "life": randf_range(0.6, 1.1)})
+			for j in 14:
+				rocks.append({"pos": Vector2(randf_range(zr.position.x, zr.end.x), y - 4.0), "vel": Vector2(randf_range(-240, 240) + r.facing * 100.0, randf_range(-780, -320)),
+					"t": 0.0, "rot": randf() * TAU, "size": randf_range(4, 10)})
 			main.dust(zr.get_center() + Vector2(0, zr.size.y * 0.3), 2.2)
 			r.hitstop = 0.09
 			main.shake(18.0)
@@ -1981,7 +1987,8 @@ func _update_attack2(dt: float) -> void:
 				var lim2: float = (w["r_end"] - w["x0"]) if dir > 0.0 else (w["x0"] - w["l_end"])
 				if front < lim2:
 					var fx: float = w["x0"] + dir * front
-					main.dust(Vector2(fx - dir * 20.0, w["y"]), 0.7)
+					puffs.append({"pos": Vector2(fx + randf_range(-8, 8), w["y"] - 6.0), "vel": Vector2(dir * randf_range(20, 90), randf_range(-120, -40)),
+						"r": randf_range(8, 15), "t": 0.0, "life": randf_range(0.45, 0.7)})
 					for j in 2:
 						rocks.append({"pos": Vector2(fx + randf_range(-10, 10), w["y"] - 4.0), "vel": Vector2(dir * randf_range(40, 220), randf_range(-520, -260)),
 							"t": 0.0, "rot": randf() * TAU, "size": randf_range(4, 9)})
@@ -1992,6 +1999,11 @@ func _update_attack2(dt: float) -> void:
 		rk["pos"] += rk["vel"] * dt
 		rk["rot"] += dt * 10.0
 	rocks = rocks.filter(func(rk): return rk["t"] < 0.8)
+	for pf in puffs:
+		pf["t"] += dt
+		pf["vel"] *= 1.0 - 2.2 * dt
+		pf["pos"] += pf["vel"] * dt
+	puffs = puffs.filter(func(pf): return pf["t"] < pf["life"])
 	# A05 rebites
 	var c5: Dictionary = sc("A05")
 	for rv in rivets:
@@ -2200,16 +2212,13 @@ func _draw_attack2() -> void:
 			draw_set_transform(grip, ang * r.facing, Vector2(r.facing * 0.224, 0.224))
 			draw_texture(mtex, -Vector2(224, 480))
 			draw_set_transform(Vector2.ZERO)
-	for e in craters:   # clarão da cratera: estrela + anel + poeira subindo
+	for e in craters:   # impacto: lampejo curtíssimo na cabeça da marreta + anel de poeira baixo rente ao chão
 		var u: float = e["t"] / 0.5
 		var c0: Vector2 = Vector2(e["rect"].get_center().x, e["rect"].end.y - 24.0)
-		if u < 0.4:
-			var star := PackedVector2Array()
-			for k in 16:
-				star.append(c0 + Vector2.from_angle(k * TAU / 16.0) * ((70.0 if k % 2 == 0 else 26.0) * (0.6 + u)))
-			draw_colored_polygon(star, Color(1, 0.92, 0.55, 1.0 - u / 0.4))
-		draw_set_transform(c0, 0.0, Vector2(1.0, 0.3))
-		draw_arc(Vector2.ZERO, 40.0 + 220.0 * u, 0, TAU, 32, Color(1, 1, 1, 1.0 - u), 10.0 * (1.0 - u) + 2.0, true)
+		if e["t"] < 0.07:
+			draw_circle(c0 + Vector2(0, -14), 46.0 * (1.0 - e["t"] / 0.07), Color(1, 1, 0.95, 0.55))
+		draw_set_transform(c0, 0.0, Vector2(1.0, 0.22))
+		draw_arc(Vector2.ZERO, 50.0 + 200.0 * u, PI, TAU, 28, Color(0.93, 0.89, 0.81, 0.7 * (1.0 - u)), 22.0 * (1.0 - u) + 4.0, true)
 		draw_set_transform(Vector2.ZERO)
 	# A02 feixe: dispara da lente até a parede em 0,04 s; tubo de luz com borda tremendo, anéis correndo, clarão na
 	# boca e na parede; depois afina de cima para baixo e deixa calor
@@ -2268,57 +2277,25 @@ func _draw_attack2() -> void:
 		draw_circle(e["pos"], 9.0, Color(col, 1.0 - u))
 		if u < 0.4 and fmod(t, 0.08) < 0.04:
 			main.spark(e["pos"], 1)
-	# A04 tremor: anel de choque no impacto, placas do piso levantando em sequência atrás da frente da onda,
-	# rachadura incandescente que esfria, pedrinhas voando
-	var c4: Dictionary = sc("A04")
-	for w in waves:
-		var front: float = w["t"] * float(c4["vel"])
-		var fade := clampf(1.0 - (w["t"] - 0.6) / 0.5, 0.0, 1.0)
-		var y: float = w["y"]
-		var x0: float = w["x0"]
-		if w["t"] < 0.3:   # anel de choque
-			var u: float = w["t"] / 0.3
-			draw_set_transform(Vector2(x0, y), 0.0, Vector2(1.0, 0.32))
-			draw_arc(Vector2.ZERO, 30.0 + 150.0 * u, PI, TAU, 24, Color(1, 0.95, 0.75, 1.0 - u), 8.0 * (1.0 - u) + 2.0, true)
-			draw_set_transform(Vector2.ZERO)
-			draw_circle(Vector2(x0, y - 10.0), 34.0 * (1.0 - u), Color(1, 0.8, 0.4, 0.6 * (1.0 - u)))
-		for dir in [-1.0, 1.0]:
-			var lim: float = (w["r_end"] - x0) if dir > 0.0 else (x0 - w["l_end"])
-			# rachadura: zigue-zague grosso que vai de laranja vivo a escuro
-			var f := minf(front, lim)
-			var crack := PackedVector2Array()
-			var n := int(f / 12.0)
-			for i in n + 1:
-				crack.append(Vector2(x0 + dir * i * 12.0, y + 2.0 + (5.0 if i % 2 == 0 else -1.0) + sin(i * 3.1) * 2.0))
-			if crack.size() > 1:
-				var hot := clampf(1.0 - w["t"] / 0.7, 0.0, 1.0)
-				draw_polyline(crack, Color(0.16, 0.1, 0.18, 0.8 * fade), 7.0, true)
-				draw_polyline(crack, Color(1, 0.5, 0.15, fade * (0.3 + 0.7 * hot)), 4.0, true)
-				draw_polyline(crack, Color(1, 0.95, 0.7, fade * hot), 1.6, true)
-			# placas do piso (20 px) levantando quando a onda passa e caindo de volta
-			var slabs := int(lim / 20.0)
-			for i in slabs:
-				var dist := i * 20.0 + 10.0
-				var u := (front - dist) / 90.0
-				if u <= 0.0 or u >= 1.0:
-					continue
-				var amp := 18.0 * (1.0 - 0.4 * dist / maxf(lim, 1.0))
-				var lift := sin(u * PI) * amp
-				var tilt: float = sin(u * PI) * 0.22 * dir * (1.0 if i % 2 == 0 else -0.6)
-				var cx: float = x0 + dir * dist
-				draw_rect(Rect2(cx - 10.0, y, 20.0, 8.0), Color(0.16, 0.1, 0.18, 0.55))   # vão escuro embaixo
-				draw_set_transform(Vector2(cx, y - lift), tilt)
-				draw_rect(Rect2(-11, -2, 22, 14), INK)
-				draw_rect(Rect2(-9.5, -0.5, 19, 11), Color("#cdbfa6"))
-				draw_rect(Rect2(-9.5, -0.5, 19, 3), Color("#e6dcc8"))
-				draw_set_transform(Vector2.ZERO)
-			if front >= lim and fade > 0.0:   # a onda bateu numa borda/junta: estalo
-				draw_circle(Vector2(x0 + dir * lim, y - 6.0), 10.0 * fade, Color(1, 0.85, 0.4, fade))
-	for rk in rocks:
-		var a: float = 1.0 - rk["t"] / 0.8
+	# A04 impacto (revisto 2026-11-27: "a linha amarela em zigue-zague está artificial"): nada de traço desenhado no
+	# chão — poeira na cor do concreto subindo e rolando com a onda, pedaços de concreto com borda escura girando
+	for pf in puffs:
+		var u: float = pf["t"] / pf["life"]
+		var rr: float = pf["r"] * (0.6 + 0.9 * u)
+		draw_circle(pf["pos"], rr + 2.0, Color(0.55, 0.48, 0.4, 0.25 * (1.0 - u)))
+		draw_circle(pf["pos"], rr, Color(0.93, 0.89, 0.81, 0.85 * (1.0 - u * u)))
+		draw_circle(pf["pos"] + Vector2(-rr * 0.25, -rr * 0.3), rr * 0.55, Color(1, 0.98, 0.93, 0.6 * (1.0 - u)))
+	for rk in rocks:   # pedaços de concreto: borda escura + face clara (mesmas cores da laje)
+		var a: float = clampf((0.8 - rk["t"]) / 0.25, 0.0, 1.0)
 		draw_set_transform(rk["pos"], rk["rot"])
 		var z: float = rk["size"]
-		draw_colored_polygon(PackedVector2Array([Vector2(-z, -z * 0.6), Vector2(z * 0.8, -z), Vector2(z, z * 0.5), Vector2(-z * 0.4, z)]), Color(0.55, 0.48, 0.42, a))
+		var pts := PackedVector2Array([Vector2(-z, -z * 0.3), Vector2(-z * 0.2, -z), Vector2(z * 0.9, -z * 0.5), Vector2(z * 0.7, z * 0.6), Vector2(-z * 0.5, z * 0.8)])
+		var big := PackedVector2Array()
+		for q in pts:
+			big.append(q * 1.25)
+		draw_colored_polygon(big, Color(0.36, 0.3, 0.26, a))
+		draw_colored_polygon(pts, Color(0.80, 0.75, 0.65, a) if int(z * 10.0) % 3 != 0 else Color(0.66, 0.6, 0.5, a))
+		draw_colored_polygon(PackedVector2Array([pts[0], pts[1], pts[2], Vector2.ZERO]), Color(0.9, 0.86, 0.78, a))
 		draw_set_transform(Vector2.ZERO)
 	# A05 rebites: rastro claro, rebite grande (cabeça abaulada dourada + haste de aço) apontando para onde vai
 	for rv in rivets:
