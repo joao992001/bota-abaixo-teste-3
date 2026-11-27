@@ -103,8 +103,9 @@ def braco(col, sh, el, end, back, punho_aberto=False):
     return out
 
 
-def ombreira(col, sh, back, num=True):
+def ombreira(col, sh, back, num=True, dy=0.0):
     k = -0.38 if back else 0.0
+    sh = (sh[0], sh[1] + dy)
     out = E(sh[0], sh[1] - 1, 10.5, 9.5, shade(col, k), k=0.6) + E(sh[0], sh[1] - 4.5, 9, 4.5, shade(col, 0.22 + k), k=0.3)
     out += R(sh[0] - 10, sh[1] + 4.5, 20, 3, 1.5, shade(MEC_D, k), k=0.3)
     if num and not back:
@@ -128,10 +129,10 @@ def perna(col, hp, knee, end, back):
 
 def corpo(col, hip, lean, pose):
     """Quadril com cinto e bolsa, abdômen mecânico, peitoral blindado com faixa de perigo, capacete."""
-    b = R(-13, -9, 26, 10, 3, MEC, k=0.45) + R(-14, -11, 28, 4.5, 1.5, "#5a3d2b", k=0.3) + R(-3, -12, 7, 6, 1.5, "#c9b07a", k=0.3)   # cinto + fivela
-    b += R(-15, -9, 9, 9, 2.5, "#8a5a33", k=0.35)                                               # bolsa de ferramentas
-    b += R(-9, -21, 18, 11, 3, MEC_D, k=0.4) + f'<path d="M-8,-17 h16 M-8,-13.5 h16" stroke="{MEC}" stroke-width="1.6"/>'   # abdômen
-    b += P([(-15, -46), (17, -46), (19, -34), (13, -20), (-11, -20), (-16, -32)], col, k=0.75)  # peitoral
+    pel = R(-13, -9, 26, 10, 3, MEC, k=0.45) + R(-14, -11, 28, 4.5, 1.5, "#5a3d2b", k=0.3) + R(-3, -12, 7, 6, 1.5, "#c9b07a", k=0.3)   # cinto + fivela
+    pel += f'<g transform="rotate({pose.get("pouch", 0):.1f} -11 -10)">' + R(-15, -9, 9, 9, 2.5, "#8a5a33", k=0.35) + "</g>"   # bolsa (balança)
+    pel += R(-9, -21, 18, 11, 3, MEC_D, k=0.4) + f'<path d="M-8,-17 h16 M-8,-13.5 h16" stroke="{MEC}" stroke-width="1.6"/>'   # abdômen
+    b = P([(-15, -46), (17, -46), (19, -34), (13, -20), (-11, -20), (-16, -32)], col, k=0.75)  # peitoral
     b += P([(-13, -45), (15, -45), (16, -39), (-14, -39)], shade(col, 0.22), k=0.35)
     b += faixa(-2, -36, 17, 9, n=3)                                                            # placa de perigo
     b += f'<circle cx="-11" cy="-26" r="1.5" fill="{shade(col, -0.45)}"/><circle cx="14" cy="-24" r="1.5" fill="{shade(col, -0.45)}"/>'
@@ -154,10 +155,25 @@ def corpo(col, hip, lean, pose):
         h += f'<rect x="0" y="-0.5" width="5.5" height="3.2" rx="1.6" fill="{GLOW}"/><rect x="7.5" y="-0.5" width="5.5" height="3.2" rx="1.6" fill="{GLOW}"/>'
     h += f'<circle cx="2.5" cy="1" r="5" fill="{GLOW}" opacity="0.18"/>'
     h += E(-8, 2, 4.5, 4.5, MEC, k=0.3) + E(-8, 2, 2, 2, MEC_L, k=0.2)                           # disco da orelha
-    h += R(-3, -16, 6, 4, 1.5, MEC_D, k=0.3) + E(0, -18.5, 3.6, 3.4, "#ffb22e", k=0.3)            # giroflex
-    h += f'<circle cx="0" cy="-18.5" r="{7 + 6 * pose.get("sirene", 0):.1f}" fill="#ffd27a" opacity="{0.25 + 0.4 * pose.get("sirene", 0):.2f}"/>'
+    sir = R(-3, -16, 6, 4, 1.5, MEC_D, k=0.3) + E(0, -18.5, 3.6, 3.4, "#ffb22e", k=0.3)            # giroflex (balança)
+    sir += f'<circle cx="0" cy="-18.5" r="{7 + 6 * pose.get("sirene", 0):.1f}" fill="#ffd27a" opacity="{0.25 + 0.4 * pose.get("sirene", 0):.2f}"/>'
+    h += f'<g transform="rotate({pose.get("sir_ang", 0):.1f} 0 -12)">{sir}</g>'
     hd = f'<g transform="translate({hx},{hy}) rotate({pose.get("head", 0)})">{h}</g>'
-    return f'<g transform="translate({hip[0]:.1f},{hip[1]:.1f}) rotate({lean:.1f})">{b}{hd}</g>'
+    lp, lc = lean * 0.55, lean * 0.45 + pose.get("bend", 0)
+    br = pose.get("breath", 0.0)
+    chest = f'<g transform="translate(0,{WAIST}) rotate({lc:.2f}) translate(0,{-WAIST}) translate(0,{-br:.2f})">{b}{hd}</g>'
+    return f'<g transform="translate({hip[0]:.1f},{hip[1]:.1f}) rotate({lp:.2f})">{pel}{chest}</g>'
+
+
+WAIST = -18   # dobra da cintura (no espaço do quadril)
+
+
+def chest_pt(hip, lean, pose, p):
+    """Ponto p do espaço do tronco → mundo, pela mesma cadeia do desenho (quadril gira lean·0,55; peito dobra na cintura)."""
+    lp, lc = lean * 0.55, lean * 0.45 + pose.get("bend", 0)
+    q = rot((p[0], p[1] - pose.get("breath", 0.0)), lc, (0, WAIST))
+    q = rot(q, lp, (0, 0))
+    return (q[0] + hip[0], q[1] + hip[1])
 
 
 ST = dict(hip_w=6, thigh=19, shin=19, uarm=14, farm=15, foot_h=6, shl=(13, -41), sh_gap=22)
@@ -172,8 +188,8 @@ POSES = {
 def robo(col, pose):
     hip, lean = pose["hip"], pose["lean"]
     sx, sy = ST["shl"]
-    sh_f = rot((hip[0] + sx, hip[1] + sy), lean, hip)
-    sh_b = rot((hip[0] + sx - ST["sh_gap"], hip[1] + sy + 1), lean, hip)
+    sh_f = chest_pt(hip, lean, pose, (sx, sy))
+    sh_b = chest_pt(hip, lean, pose, (sx - ST["sh_gap"], sy + 1))
     tool, g1, g2 = marreta(pose["tool"][:2], pose["tool"][2])
     out = []
     if pose.get("sw"):

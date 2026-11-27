@@ -76,6 +76,7 @@ def mix(a, b, t):
 
 
 def pose_at(keys, t):
+    """Interpolação simples (usada só para os fantasmas). O movimento real vem de simular()."""
     if t <= keys[0][0]:
         return dict(keys[0][1])
     for (t0, p0), (t1, p1) in zip(keys, keys[1:]):
@@ -84,13 +85,130 @@ def pose_at(keys, t):
     return dict(keys[-1][1])
 
 
+# ---------------------------------------------------------------- movimento suave: curva contínua + molas (atraso, continuação)
+CH_KEYS = ["lean", "head", "ox", "oy", "rot", "sirene"]
+
+
+def _vec(p):
+    bk = _bk_point(p)
+    fr = p.get("fr") or p["tool"][:2]
+    v = [p[k] for k in CH_KEYS] + [p["hip"][0], p["hip"][1], p["feet"][0][0], p["feet"][0][1], p["feet"][1][0], p["feet"][1][1],
+                                   p["tool"][0], p["tool"][1], p["tool"][2], p["sq"][0], p["sq"][1], bk[0], bk[1], fr[0], fr[1]]
+    return v
+
+
+def _from_vec(base, v):
+    o = dict(base)
+    for i, k in enumerate(CH_KEYS):
+        o[k] = v[i]
+    j = len(CH_KEYS)
+    o["hip"] = (v[j], v[j + 1])
+    o["feet"] = [(v[j + 2], v[j + 3]), (v[j + 4], v[j + 5])]
+    o["tool"] = (v[j + 6], v[j + 7], v[j + 8])
+    o["sq"] = (v[j + 9], v[j + 10])
+    o["bk"] = (v[j + 11], v[j + 12])
+    if base.get("fr") is not None:
+        o["fr"] = (v[j + 13], v[j + 14])
+    return o
+
+
+def _cr(p0, p1, p2, p3, u):
+    """Catmull-Rom: passa pelas poses sem parar nelas (velocidade contínua)."""
+    u2, u3 = u * u, u * u * u
+    return 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u2 + (-p0 + 3 * p1 - 3 * p2 + p3) * u3)
+
+
+def curva(keys, t, loop):
+    ts = [k[0] for k in keys]
+    vs = [_vec(k[1]) for k in keys]
+    n = len(keys)
+    if t >= ts[-1]:
+        return _from_vec(keys[-1][1], vs[-1])
+    i = max(0, max(j for j in range(n) if ts[j] <= t))
+    i = min(i, n - 2)
+    u = (t - ts[i]) / max(ts[i + 1] - ts[i], 1e-6)
+    if loop:
+        p0 = vs[i - 1] if i > 0 else vs[n - 2]
+        p3 = vs[i + 2] if i + 2 < n else vs[1]
+    else:
+        p0 = vs[i - 1] if i > 0 else vs[i]
+        p3 = vs[i + 2] if i + 2 < n else vs[i + 1]
+    v = [_cr(p0[c], vs[i][c], vs[i + 1][c], p3[c], u) for c in range(len(vs[i]))]
+    base = keys[i][1] if u < 0.5 else keys[i + 1][1]
+    if keys[i][1].get("fr") is not None and keys[i + 1][1].get("fr") is None and u < 0.5:
+        base = keys[i][1]
+    return _from_vec(base, v)
+
+
+class Mola:
+    def __init__(self, x, f, z):
+        self.x, self.v, self.w, self.z = x, 0.0, 2 * math.pi * f, z
+
+    def step(self, alvo, dt):
+        h = dt / 12.0   # subpassos: estável mesmo com molas rápidas (1/30 s explodia)
+        for _ in range(12):
+            a = self.w * self.w * (alvo - self.x) - 2 * self.z * self.w * self.v
+            self.v += a * h
+            self.x += self.v * h
+        return self.x
+
+
+def simular(keys, dur, loop):
+    """Gera a pose de cada quadro: curva contínua + molas. Em loop, simula 2 voltas e usa a 2ª (sem emenda)."""
+    dt = 1.0 / FPS
+    n = max(1, int(round(dur * FPS)))
+    p0 = curva(keys, 0, loop)
+    m = dict(lean=Mola(p0["lean"], 4.5, 0.55), lean2=Mola(p0["lean"], 2.6, 0.5), ta=Mola(p0["tool"][2], 6.5, 0.42),
+             tx=Mola(p0["tool"][0], 9, 0.6), ty=Mola(p0["tool"][1], 9, 0.6), bx=Mola(_bk_point(p0)[0], 6, 0.5), by=Mola(_bk_point(p0)[1], 6, 0.5),
+             sq=Mola(1.0, 7, 0.32), omb=Mola(0, 6, 0.3), sir=Mola(0, 3.2, 0.25), pouch=Mola(0, 3, 0.3), hy=Mola(p0["hip"][1], 10, 0.5))
+    out = []
+    passes = 2 if loop else 1
+    prev = p0
+    vy_prev = 0.0
+    for ps in range(passes):
+        for f in range(n):
+            t = f * dt
+            p = curva(keys, t, loop)
+            vy = (p["oy"] + p["hip"][1] - prev["oy"] - prev["hip"][1]) / dt
+            ay = (vy - vy_prev) / dt
+            vx = (p["ox"] - prev["ox"]) / dt
+            dlean = (p["lean"] - prev["lean"]) / dt
+            prev, vy_prev = p, vy
+            q = dict(p)
+            ls = m["lean"].step(p["lean"], dt)
+            l2 = m["lean2"].step(p["lean"], dt)
+            q["bend"] = (ls - p["lean"]) * 0.45                       # o peito acompanha o quadril com atraso
+            q["head"] = p["head"] + (l2 - p["lean"]) * 0.7           # a cabeça atrasa mais
+            ta = m["ta"].step(p["tool"][2], dt)                       # ferramenta: continua o arco e assenta
+            q["tool"] = (m["tx"].step(p["tool"][0], dt), m["ty"].step(p["tool"][1], dt), ta)
+            bk = _bk_point(p)
+            q["bk"] = (m["bx"].step(bk[0], dt), m["by"].step(bk[1], dt)) if p.get("bk") is not None else None
+            if p.get("bk") is None:
+                q["bk"] = None
+            if ay < -2500 and vy_prev > -50:                          # pouso / tranco: o corpo achata e volta
+                m["sq"].v -= min(abs(ay) / 9000.0, 3.0)
+            sqy = m["sq"].step(p["sq"][1] - min(abs(vy) / 4000.0, 0.06) * (-1), dt)
+            q["sq"] = (p["sq"][0] + (1 - sqy) * 0.7, sqy)
+            m["omb"].v += ay * 0.0004 * dt * 60
+            q["omb"] = m["omb"].step(0, dt)
+            m["sir"].v += (-vx * 0.02 - dlean * 0.05 + ay * 0.004) * dt * 60 * 1.6
+            q["sir_ang"] = max(-35, min(35, m["sir"].step(0, dt)))
+            m["pouch"].v += (-vx * 0.02 - dlean * 0.06) * dt * 60 * 1.6
+            q["pouch"] = max(-30, min(30, m["pouch"].step(0, dt)))
+            q["breath"] = 0.8 * math.sin(t * 2 * math.pi / 1.6)
+            q["hip"] = (p["hip"][0], m["hy"].step(p["hip"][1], dt))
+            if ps == passes - 1:
+                out.append(q)
+    return out
+
+
 # ---------------------------------------------------------------- desenho de uma pose (com mão da frente livre e corpo girando)
 def desenha(pose, col=COL):
     hip, lean = pose["hip"], pose["lean"]
     st = cb.ST
     sx, sy = st["shl"]
-    sh_f = rot((hip[0] + sx, hip[1] + sy), lean, hip)
-    sh_b = rot((hip[0] + sx - st["sh_gap"], hip[1] + sy + 1), lean, hip)
+    sh_f = cb.chest_pt(hip, lean, pose, (sx, sy))
+    sh_b = cb.chest_pt(hip, lean, pose, (sx - st["sh_gap"], sy + 1))
     fr = pose.get("fr")
     if fr is not None:   # mão da frente livre (borda): a marreta fica na mão de trás
         bkp = pose["bk"]
@@ -109,7 +227,7 @@ def desenha(pose, col=COL):
     front_arm = cb.braco(col, sh_f, el, end, False)
     corpo = cb.corpo(col, hip, lean, pose)
     behind = pose["tool"][2] < -110 and fr is None   # marreta nas costas (no ombro / erguida atrás)
-    parts = ([tool] if behind else []) + [cb.ombreira(col, sh_b, True), back_arm, legs[0], corpo, legs[1]] + ([] if behind else [tool]) + [front_arm, cb.ombreira(col, sh_f, False)]
+    parts = ([tool] if behind else []) + [cb.ombreira(col, sh_b, True, dy=pose.get("omb", 0)), back_arm, legs[0], corpo, legs[1]] + ([] if behind else [tool]) + [front_arm, cb.ombreira(col, sh_f, False, dy=pose.get("omb", 0))]
     body = "".join(parts)
     sqx, sqy = pose["sq"]
     if sqx != 1 or sqy != 1:
@@ -371,11 +489,13 @@ def A_vitoria():
     return "VITÓRIA", 1.6, k, None, None
 
 
-ANIMS = [A_parado, A_correr, A_pulo, A_pulo_duplo, A_parede, A_borda, A_combo, A_cima, A_baixo, A_pesado, A_esq_chao, A_esq_ar, A_leva, A_arremessado, A_engenhoca, A_vitoria]
+ANIMS_TODAS = [A_parado, A_correr, A_pulo, A_pulo_duplo, A_parede, A_borda, A_combo, A_cima, A_baixo, A_pesado, A_esq_chao, A_esq_ar, A_leva, A_arremessado, A_engenhoca, A_vitoria]
+ANIMS = [A_correr, A_combo] if os.environ.get("TODAS") is None else ANIMS_TODAS
+LOOPS = {A_parado, A_correr, A_vitoria}
 
 
-def frame_svg(nome, dur, keys, fx, modo, t, col=COL):
-    p = pose_at(keys, t)
+def frame_svg(nome, dur, keys, fx, modo, t, col=COL, p=None):
+    p = p if p is not None else pose_at(keys, t)
     ox, oy = p["ox"], p["oy"]
     jit = ""
     if modo == "treme" and 0.18 < t < 1.0:
@@ -409,13 +529,15 @@ def main():
     for ai, fn in enumerate(ANIMS):
         nome, dur, keys, fx, modo = fn()
         n = max(1, int(round(dur * FPS)))
+        poses = simular(keys, dur, loop=fn in LOOPS)
         for f in range(n):
-            svg = frame_svg(nome, dur, keys, fx, modo, f / FPS)
+            svg = frame_svg(nome, dur, keys, fx, modo, f / FPS, p=poses[f])
             queue(svg, f"{tmp}/svg/a{ai:02d}_{f:03d}.svg", f"{tmp}/png/a{ai:02d}_{f:03d}.png", CW, CH, 1)
         meta.append(n)
     print("quadros:", render_all())
     from PIL import Image
-    cols, rows = 4, (len(ANIMS) + 3) // 4
+    cols = 2 if len(ANIMS) <= 2 else (3 if len(ANIMS) <= 6 else 4)
+    rows = (len(ANIMS) + cols - 1) // cols
     for nome_saida, lento in (("anim_blindado", 1), ("anim_blindado_lento", 2)):
         fr = os.path.join(tmp, "grid_" + nome_saida)
         os.makedirs(fr, exist_ok=True)
