@@ -15,7 +15,7 @@ const NOMES := {"A01": "PUNHO PNEUMÁTICO", "A03": "CANHÃO CRIOGÊNICO", "C01":
 	"C02": "TURBOVENTILADOR", "C03": "GANCHO DE ARRASTO", "C05": "LAÇO DE ENERGIA", "E02": "CARGA REMOTA",
 	"E03": "CONTROLE REMOTO",
 	"T02": "MECHA EMPILHADEIRA", "T03": "MECHA BOLA", "T04": "MECHA JATO", "T05": "MECHA BROCA",
-	"T06": "PARA-RAIOS", "T07": "MECHA CORREDOR", "D01": "ÂNCORA DE CONTRAPESO", "D02": "AIRBAG DE OBRA"}
+	"T06": "PARA-RAIOS", "T07": "MECHA CORREDOR", "D01": "ÂNCORA DE CONTRAPESO", "D02": "AIRBAG DE OBRA", "D03": "PARA-CHOQUE DE MOLA", "D04": "CORTINA DE POEIRA"}
 const FORMS := ["T02", "T03", "T05", "T06", "T07"]   # transformações com duração (T01 tem código próprio)
 
 var main: Node
@@ -23,6 +23,8 @@ var demo: Node
 var cfg: Dictionary
 var boxes: Array = []        # {fam, id, charges, pos, vy, t, land_t, block: {pid: s}, special}
 var slot := {}               # pid -> {id, fam, charges, cd, prep, prep_len, fire, t, data}
+var bumpers := {}            # D03: pid -> {t, len, tranco, cd: {pid: s}}
+var dusts := {}              # D04: pid -> {t, len, rasga}
 var sinks := []              # D01: contrapeso afundando no fim {pos, t}
 var pops := []               # D02: balão murchando {pos, t}
 var anchors := {}            # D01: pid -> {t, len, pos (onde o contrapeso cravou), fim}
@@ -299,6 +301,12 @@ func clear(r) -> void:
 	_stop_channel(r)
 	if anchors.has(r.pid):
 		_end_anchor(r)
+	if bumpers.has(r.pid):
+		bumpers.erase(r.pid)
+		r.mola_t = 0.0
+	if dusts.has(r.pid):
+		dusts.erase(r.pid)
+		r.poeira_t = 0.0
 	airbags.erase(r.pid)
 	slot.erase(r.pid)
 	holds.erase(r.pid)
@@ -508,6 +516,8 @@ func use(r) -> void:
 	var s: Dictionary = slot[r.pid]
 	if s["cd"] > 0.0 or s["prep"] >= 0.0 or s.has("empty_t") or s["channel"] or s.has("beam") or int(s.get("burst", 0)) > 0:
 		return
+	if r.poeira_t > 0.0:   # D04: dentro da poeira não usa engenhoca
+		return
 	var c: Dictionary = sc(s["id"])
 	_set_aim(r, s, aim_vec(r))
 	main.add_stat(r.pid, "engenhocas")   # estatística dos resultados (desfeita em _fail se não deu para usar)
@@ -564,6 +574,20 @@ func use(r) -> void:
 			Audio.play("marreta_vento", 0.6, -4.0)
 		"D02":   # passivo: dispara sozinho (ver _update_airbag)
 			_fail(r, "DISPARA SOZINHO")
+		"D03":   # DEFESA lote D2: molas em volta por duracao_s — rebate golpe e tiro
+			if s["t"] > 0.0:
+				return
+			s["t"] = float(c["duracao_s"])
+			bumpers[r.pid] = {"t": 0.0, "len": float(c["duracao_s"]), "tranco": 0.0, "cd": {}}
+			r.mola_t = 1.0
+			main.shake(3.0)
+			Audio.play("pulo_mola", 1.2, -2.0)
+		"D04":   # DEFESA lote D2: rasga o saco de cimento → nuvem de pó (intocável, não ataca)
+			if s["t"] > 0.0:
+				return
+			s["t"] = float(c["duracao_s"]) + float(c["rasga_s"])
+			dusts[r.pid] = {"t": 0.0, "len": float(c["duracao_s"]), "rasga": float(c["rasga_s"]), "puf": false, "pts": []}
+			Audio.play("arremesso", 0.7, -4.0)
 		"T02", "T03", "T05", "T06", "T07":
 			if s["t"] < 0.0:
 				_start_form(r, s)
@@ -1112,6 +1136,10 @@ func update(dt: float, alive: Array) -> void:
 			_update_anchor(r, s, dt)
 		if s["id"] == "D02":
 			_update_airbag(r, s, dt)
+		if s["id"] == "D03" and bumpers.has(r.pid):
+			_update_bumper(r, s, dt)
+		if s["id"] == "D04" and dusts.has(r.pid):
+			_update_dust(r, s, dt)
 		if int(s.get("burst", 0)) > 0 and s["id"] == "A05":
 			s["burst_t"] -= dt
 			if r.stun_t > 0.0:
@@ -1261,9 +1289,11 @@ func _update_shots(dt: float) -> void:
 		s["pos"] += s["vel"] * dt
 		var hit = null
 		for o in main.robots:
-			if o.pid != s["owner"] and o.alive and o.invuln <= 0.0 and not o.god and o.rect().grow(6).has_point(s["pos"]):
+			if o.pid != s["owner"] and o.alive and o.invuln <= 0.0 and not o.god and not _intangivel(o) and o.rect().grow(6).has_point(s["pos"]):
 				hit = o
 				break
+		if hit != null and _rebate_tiro(hit, s):
+			hit = null
 		var wall: bool = _hard_at(s["pos"])
 		if hit != null:
 			var was_frozen: bool = hit.frozen_t > 0.0
@@ -1286,9 +1316,11 @@ func flags(r) -> Dictionary:
 		return {}
 	var s: Dictionary = slot[r.pid]
 	var out := {"spell": s["id"], "fire": s["fire"], "prep": minf(s["prep"] / maxf(s["prep_len"], 0.01), 1.0) if s["prep"] >= 0.0 else -1.0,
-		"channel": s["channel"], "aim_a": aim_local(r), "beam": s.has("beam"), "defesa_ativa": anchors.has(r.pid) or airbags.has(r.pid),
+		"channel": s["channel"], "aim_a": aim_local(r), "beam": s.has("beam"), "defesa_ativa": anchors.has(r.pid) or airbags.has(r.pid) or bumpers.has(r.pid) or dusts.has(r.pid),
 		"ancora_t": float(anchors[r.pid]["t"]) if anchors.has(r.pid) else -1.0, "ancora_tranco": float(anchors[r.pid]["tranco"]) if anchors.has(r.pid) else 0.0,
-		"arrasta": anchors.has(r.pid) and anchors[r.pid]["arrasta"], "airbag_k": clampf(float(airbags[r.pid]["t"]) / 0.15, 0.0, 1.0) if airbags.has(r.pid) else 0.0}
+		"arrasta": anchors.has(r.pid) and anchors[r.pid]["arrasta"], "airbag_k": clampf(float(airbags[r.pid]["t"]) / 0.15, 0.0, 1.0) if airbags.has(r.pid) else 0.0,
+		"rasga_k": clampf(float(dusts[r.pid]["t"]) / float(dusts[r.pid]["rasga"]), 0.0, 1.0) if dusts.has(r.pid) and not dusts[r.pid]["puf"] else -1.0,
+		"molas": bumpers.has(r.pid)}
 	if s["id"] == "T01":
 		out["armor"] = s["t"] > 0.0
 		out["assemble"] = float(s["data"].get("assemble", 0.0))
@@ -1344,7 +1376,7 @@ func hud_info(pid: int) -> Dictionary:
 		frac = s["energy"] / float(sc(s["id"])["energia_s"])
 	elif s["id"] == "T01" and s["t"] > 0.0:
 		frac = s["energy"] / float(sc("T01")["combustivel_s"])
-	elif (s["id"] in FORMS or s["id"] == "D01") and s["t"] > 0.0:
+	elif (s["id"] in FORMS or s["id"] in ["D01", "D03", "D04"]) and s["t"] > 0.0:
 		frac = s["t"] / float(sc(s["id"])["duracao_s"])
 	elif s["id"] == "T04":
 		frac = s["energy"] / float(sc("T04")["combustivel_s"])
@@ -1873,6 +1905,80 @@ func _floor_below(x: float, y: float, n := 8) -> float:
 			return (cy + k) * T
 	return -1.0
 
+## D03 Para-choque: conta o tempo; acabou → recolhe
+func _update_bumper(r, s: Dictionary, dt: float) -> void:
+	var bp: Dictionary = bumpers[r.pid]
+	bp["t"] += dt
+	bp["tranco"] = maxf(float(bp["tranco"]) - dt * 4.0, 0.0)
+	for k in bp["cd"].keys():
+		bp["cd"][k] -= dt
+	s["t"] = maxf(bp["len"] - bp["t"], 0.0)
+	r.mola_t = 1.0
+	if bp["t"] >= bp["len"] or not r.alive:
+		bumpers.erase(r.pid)
+		r.mola_t = 0.0
+		s["t"] = -1.0
+		_spend(r, s)
+
+## D03: um golpe bateu no Para-choque → as molas comprimem e quem bateu (perto) é rebatido para longe
+func bumper_rebate(o, by: int) -> void:
+	if not bumpers.has(o.pid) or by < 0 or by >= main.robots.size():
+		return
+	var bp: Dictionary = bumpers[o.pid]
+	bp["tranco"] = 1.0
+	var a = main.robots[by]
+	if bumpers.has(by) or float(bp["cd"].get(by, 0.0)) > 0.0:
+		return
+	bp["cd"][by] = 0.35
+	main.float_text(o.position + Vector2(0, -140), "BOING!", FAM_COR["defesa"])
+	Audio.play("pulo_mola", 0.8, 2.0)
+	main.shake(6.0)
+	if a.alive and a.position.distance_to(o.position) < float(sc("D03")["rebate_raio"]):
+		a.take_hit(1 if a.position.x >= o.position.x else -1, "defesa_rebate", o.pid)
+		a.hitstop = 0.08
+	o.hitstop = 0.06
+
+## DEFESA: um tiro chegou num robô. Cortina → passa direto (true = ignora); Para-choque → volta com dono novo.
+func _intangivel(o) -> bool:
+	return o.poeira_t > 0.0
+
+func _rebate_tiro(o, p: Dictionary) -> bool:
+	if not bumpers.has(o.pid):
+		return false
+	p["vel"] = -p["vel"] * 1.1
+	p["owner"] = o.pid
+	if p.has("hit"):
+		p["hit"].clear()
+	p["pos"] += p["vel"].normalized() * 30.0
+	bumpers[o.pid]["tranco"] = 1.0
+	main.spark(p["pos"], 5)
+	Audio.play("pulo_mola", 1.4, -2.0)
+	return true
+
+## D04 Cortina de Poeira: rasga o saco (rasga_s) → PUF → intocável por duracao_s → assenta
+func _update_dust(r, s: Dictionary, dt: float) -> void:
+	var d: Dictionary = dusts[r.pid]
+	d["t"] += dt
+	s["t"] = maxf(d["len"] + d["rasga"] - d["t"], 0.0)
+	if not d["puf"]:
+		if d["t"] >= d["rasga"]:
+			d["puf"] = true
+			main.shake(4.0)
+			Audio.play("vento", 0.7, 0.0)
+			for j in 26:   # nuvem: bolhas de pó na cor do concreto em volta do robô
+				var a := randf() * TAU
+				d["pts"].append({"o": Vector2(cos(a), sin(a) * 0.8) * randf_range(30, 64), "r": randf_range(12, 24), "ph": randf() * TAU})
+		return
+	r.poeira_t = 1.0
+	if d["t"] >= d["rasga"] + d["len"] or not r.alive:
+		dusts.erase(r.pid)
+		r.poeira_t = 0.0
+		s["t"] = -1.0
+		for j in 10:   # assenta: a poeira se espalha baixa
+			puffs.append({"pos": r.position + Vector2(randf_range(-50, 50), -randf_range(0, 50)), "vel": Vector2(randf_range(-120, 120), randf_range(-20, 30)),
+				"r": randf_range(14, 24), "t": 0.0, "life": randf_range(0.6, 1.0)})
+		_spend(r, s)
+
 static func _smoothf(u: float) -> float:
 	return u * u * (3.0 - 2.0 * u)
 
@@ -2335,7 +2441,9 @@ func _update_attack2(dt: float) -> void:
 		else:
 			rv["pos"] = np
 		for o in main.robots:
-			if o.pid != rv["owner"] and o.alive and not (o.pid in rv["hit"]) and o.rect().grow(4).has_point(rv["pos"]):
+			if o.pid != rv["owner"] and o.alive and not (o.pid in rv["hit"]) and not _intangivel(o) and o.rect().grow(4).has_point(rv["pos"]):
+				if _rebate_tiro(o, rv):
+					break
 				rv["hit"].append(o.pid)
 				if _hit_dir(o, rv["owner"], rv["vel"].normalized(), "spell_rebite"):
 					_rivet_hit(o, rv["owner"])
@@ -2580,7 +2688,9 @@ func _update_attack2(dt: float) -> void:
 			main.dust(np, 0.6)
 		m["pos"] = np
 		for o in main.robots:
-			if o.pid != m["owner"] and o.alive and o.rect().grow(8).has_point(m["pos"]):
+			if o.pid != m["owner"] and o.alive and not _intangivel(o) and o.rect().grow(8).has_point(m["pos"]):
+				if _rebate_tiro(o, m):
+					break
 				if _hit(o, m["owner"], int(signf(m["vel"].x)), "spell_mola"):
 					main.float_text(o.position + Vector2(0, -120), "BOING!", Color("#ffd23a"))
 					o.vis.s_sqx[0] = 0.5
@@ -2854,6 +2964,60 @@ func _draw_attack2() -> void:
 		draw_colored_polygon(pts, Color(0.95, 0.78, 0.29, 0.75 * (1.0 - u)))
 		for j in 3:
 			draw_arc(e["pos"] + Vector2(34.0 + 12.0 * j, -18.0 - 10.0 * j - 30.0 * u), 6.0, PI, TAU, 8, Color(1, 1, 1, 0.7 * (1.0 - u)), 2.0, true)
+	# DEFESA D03: molas com batente em leque em volta do corpo; brotam, comprimem no tranco, recolhem no fim
+	for pid in bumpers:
+		var ro = main.robots[pid]
+		var bp: Dictionary = bumpers[pid]
+		var sai: float = _smoothf(clampf(bp["t"] / 0.12, 0.0, 1.0)) * (1.0 - _smoothf(clampf((bp["t"] - bp["len"] + 0.18) / 0.18, 0.0, 1.0)))
+		var cc: Vector2 = ro.position + Vector2(0, -40)
+		var arm: bool = (fmod(t, 0.24) < 0.12) and float(bp["len"]) - float(bp["t"]) < 0.5
+		for i in 7:
+			var a := deg_to_rad(-200.0 + i * 220.0 / 6.0)
+			var dv := Vector2(cos(a), sin(a))
+			var L: float = (18.0 + 30.0 * sai) * (1.0 - 0.5 * float(bp["tranco"])) + sin(t * 30.0 + i) * 1.5
+			var p0: Vector2 = cc + dv * Vector2(18, 24)
+			var p1: Vector2 = p0 + dv * L
+			var nv := dv.orthogonal()
+			var pts := PackedVector2Array()
+			for j in 11:
+				var u := j / 10.0
+				pts.append(p0.lerp(p1, u) + nv * (3.4 if j % 2 else -3.4))
+			if sai > 0.05:
+				draw_polyline(pts, INK, 4.0, true)
+				draw_polyline(pts, Color("#9aa4ae"), 2.0, true)
+				draw_set_transform(p1, a + PI / 2.0)
+				draw_rect(Rect2(-8, -4, 16, 8), INK)
+				draw_rect(Rect2(-7, -3, 14, 3.5), Color.WHITE if arm else Color("#f2c84b"))
+				draw_rect(Rect2(-7, 0.5, 14, 2.5), Color("#2b2b33"))
+				draw_set_transform(Vector2.ZERO)
+	# DEFESA D04: saco de cimento rasgando sobre a cabeça → nuvem de pó cor de concreto em volta (robô meio sumido)
+	var stex: Texture2D = Data.tex("spells/d04_saco")
+	for pid in dusts:
+		var ro = main.robots[pid]
+		var d: Dictionary = dusts[pid]
+		var cc: Vector2 = ro.position + Vector2(0, -42)
+		if not d["puf"]:
+			var k: float = d["t"] / d["rasga"]
+			var sp: Vector2 = ro.position + Vector2(ro.facing * 4.0, -78.0 - 18.0 * k)
+			if stex != null:
+				draw_set_transform(sp, sin(k * 20.0) * 0.15, Vector2(1.0 + 0.2 * k, 1.0 - 0.15 * k))
+				draw_texture_rect(stex, Rect2(-13, -16, 26, 32), false)
+				draw_set_transform(Vector2.ZERO)
+			for j in int(3 + 5 * k):
+				draw_circle(sp + Vector2(sin(j * 2.1) * 12.0, -16.0 - j * 4.0 * k), 3.0 + j, Color(0.93, 0.9, 0.84, 0.8))
+			continue
+		var u: float = (d["t"] - d["rasga"]) / d["len"]
+		var cresce: float = _smoothf(clampf((float(d["t"]) - float(d["rasga"])) / 0.15, 0.0, 1.0))
+		var fade: float = 1.0 - _smoothf(clampf((u - 0.8) / 0.2, 0.0, 1.0))
+		for bp2 in d["pts"]:
+			var q: Vector2 = cc + bp2["o"] * cresce + Vector2(sin(t * 1.7 + bp2["ph"]) * 5.0, cos(t * 1.3 + bp2["ph"]) * 4.0)
+			var rr: float = bp2["r"] * (0.5 + 0.5 * cresce)
+			draw_circle(q + Vector2(0, 4), rr, Color(0.66, 0.6, 0.48, 0.18 * fade))
+			draw_circle(q, rr, Color(0.9, 0.87, 0.8, 0.36 * fade))
+		if cresce < 1.0:
+			for j in 8:
+				var a := j * TAU / 8.0
+				draw_line(cc + Vector2.from_angle(a) * (60.0 + 30.0 * cresce), cc + Vector2.from_angle(a) * (80.0 + 40.0 * cresce), Color(1, 1, 1, 1.0 - cresce), 3.0, true)
 	# A05 rebites: rastro claro, rebite grande (cabeça abaulada dourada + haste de aço) apontando para onde vai
 	for rv in rivets:
 		var tr: Array = rv["trail"]

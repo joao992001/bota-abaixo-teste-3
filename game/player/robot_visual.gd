@@ -71,7 +71,8 @@ static func armor_fit(mname: String) -> Array:
 	_fit[mname] = res
 	return res
 ## Spells sem arma: objeto nas costas (andaime dobrado, marreta sísmica, fornalha desmontada) ou na mão de trás.
-const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "D01": ["d01_contrapeso", Vector2(30, 38), 0.15], "D02": ["d02_airbag", Vector2(24, 32), 0.1], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
+const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "D01": ["d01_contrapeso", Vector2(30, 38), 0.15], "D02": ["d02_airbag", Vector2(24, 32), 0.1],
+	"D03": ["d03_molas", Vector2(30, 30), 0.1], "D04": ["d04_saco", Vector2(26, 32), 0.15], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
@@ -403,6 +404,8 @@ func tick(r, dt: float) -> void:
 	drops = drops.filter(func(d): return d["t"] < 0.6)
 	# piscando enquanto invulnerável; clarão branco no golpe
 	var al := 0.45 if r.invuln > 0.0 and fmod(t, 0.16) < 0.08 else 1.0
+	if r.get("poeira_t") != null and r.poeira_t > 0.0:
+		al = 0.55   # D04: meio sumido na poeira
 	var fl := 1.0 + 2.2 * (flash_t / 0.08) + 0.8 * dodged_flash
 	modulate = Color(fl, fl, fl, al)
 	_pose_springs(r, dt, on_floor, v)
@@ -739,6 +742,19 @@ func current_pose() -> Dictionary:
 			lean = lerpf(lean, (0.28 if arr else 0.08) - 0.3 * tr + sin(t * 40.0) * 0.08 * tr, 0.6)
 			if arr:
 				bob += 2.0 + sin(t * 14.0) * 1.5
+		def_set = true
+	# DEFESA D04 (Cortina): as duas mãos erguem o saco de cimento e rasgam por cima da cabeça
+	var rk := float(sf.get("rasga_k", -1.0))
+	if rk >= 0.0:
+		two_hand = false
+		hf = Vector2(8, -40).lerp(Vector2(10, -74), _smooth(minf(rk * 2.0, 1.0)))
+		p["hb_abs"] = hf + Vector2(-12, 2)
+		lean = lerpf(lean, -0.15, 0.6)
+		def_set = true
+	elif sf.get("molas", false):   # D03: braços abertos, firme
+		hf = Vector2(18, -38)
+		p["hb_abs"] = Vector2(-16, -38)
+		two_hand = false
 		def_set = true
 	# DEFESA D02 (Airbag): encolhido dentro do balão (joelhos no peito, braços abraçando)
 	var abk := float(sf.get("airbag_k", 0.0))

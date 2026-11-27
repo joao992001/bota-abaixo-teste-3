@@ -267,6 +267,10 @@ def exportar_jogo():
     itens = [("d01_contrapeso", contrapeso(16, 37, 0.9), 32, 40, 4),
              ("d02_airbag", f'<g transform="translate(12,16) scale(1.0)">' + R(-9, -12, 18, 26, 5, "#f2c84b", k=0.4) + ab.cb.faixa(-9, 3, 18, 5, n=3)
               + E(-1, -13, 3.5, 3, STEEL_D, k=0.1) + R(-9, -12, 18, 5, 3, "#ffe27a", k=0.1) + "</g>", 24, 32, 4)]
+    mola = "".join(f'<polyline points="{" ".join(f"{6 + j * 2.2:.1f},{(4 if j % 2 else -4) + 8 + k * 9}" for j in range(9))}" fill="none" stroke="{STEEL_D}" stroke-width="2"/>' for k in range(3))
+    mola += "".join(R(24, 3 + k * 9, 6, 10, 2, "#2b2b33", k=0.1) + R(24, 3 + k * 9, 6, 4, 1, "#f2c84b", k=0.1) for k in range(3))
+    itens.append(("d03_molas", R(2, 1, 6, 28, 2, "#4a505c", k=0.2) + mola, 32, 32, 4))
+    itens.append(("d04_saco", saco_cimento(13, 17), 26, 32, 4))
     for nome, g, w, h, sc in itens:
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{g}</svg>'
         queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, sc)

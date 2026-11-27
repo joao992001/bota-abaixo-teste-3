@@ -69,6 +69,8 @@ var hammer_out := false       # A07: a marreta está voando (sem marretada pesad
 var spell_lock := false       # mirando/viajando (C04 Teleporte): ignora movimento, pulo e golpes
 var god := false              # Laboratório: invencível (não leva golpe)
 var push_vx := 0.0            # empurrão externo deste quadro (ímã); zera a cada quadro
+var mola_t := 0.0            # D03 Para-choque de Mola: quem bate é rebatido (golpe não passa)
+var poeira_t := 0.0          # D04 Cortina de Poeira: intocável (golpe e tiro passam direto); não ataca
 var ancora_t := 0.0          # D01 Âncora de Contrapeso: ninguém empurra (golpe, vento, ímã, onda, gancho); anda devagar, não pula
 var fall_reason := ""
 var last_hit := 99.0
@@ -298,7 +300,7 @@ func _physics_process(dt: float) -> void:
 		_start_dodge(on_floor)
 		vis.tick(self, dt)
 		return
-	if atk == "" and atk_cd <= 0.0:
+	if atk == "" and atk_cd <= 0.0 and poeira_t <= 0.0:   # D04: dentro da poeira não ataca
 		if _pressed("heavy"):
 			if heavy_cd <= 0.0 and not hammer_out:
 				_start_attack("pesado")
@@ -535,6 +537,12 @@ const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "comb
 
 func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if invuln > 0.0 or god:
+		return false
+	if poeira_t > 0.0:   # D04: passa direto
+		return false
+	if mola_t > 0.0 and by >= 0 and by != pid:   # D03: rebate quem bateu
+		if main.demo.spells != null:
+			main.demo.spells.bumper_rebate(self, by)
 		return false
 	if guard_t > 0.0 and by >= 0 and by != pid and kind in ROBOT_HITS:
 		_dodged()
