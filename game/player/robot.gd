@@ -70,6 +70,7 @@ var spell_lock := false       # mirando/viajando (C04 Teleporte): ignora movimen
 var god := false              # Laboratório: invencível (não leva golpe)
 var push_vx := 0.0            # empurrão externo deste quadro (ímã); zera a cada quadro
 var mola_t := 0.0            # D03 Para-choque de Mola: quem bate é rebatido (golpe não passa)
+var capacete_n := 0           # D05 Capacete de Aço: proteções restantes (cada golpe/tiro gasta 1, sem dano nem empurrão)
 var poeira_t := 0.0          # D04 Cortina de Poeira: intocável (golpe e tiro passam direto); não ataca
 var ancora_t := 0.0          # D01 Âncora de Contrapeso: ninguém empurra (golpe, vento, ímã, onda, gancho); anda devagar, não pula
 var fall_reason := ""
@@ -543,6 +544,9 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if mola_t > 0.0 and by >= 0 and by != pid:   # D03: rebate quem bateu
 		if main.demo.spells != null:
 			main.demo.spells.bumper_rebate(self, by)
+		return false
+	if capacete_n > 0 and main.demo.spells != null:   # D05: o capacete de aço absorve
+		main.demo.spells.helmet_absorb(self, by)
 		return false
 	if guard_t > 0.0 and by >= 0 and by != pid and kind in ROBOT_HITS:
 		_dodged()

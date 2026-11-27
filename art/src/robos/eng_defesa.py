@@ -371,6 +371,9 @@ def exportar_jogo():
     mola += "".join(R(24, 3 + k * 9, 6, 10, 2, "#2b2b33", k=0.1) + R(24, 3 + k * 9, 6, 4, 1, "#f2c84b", k=0.1) for k in range(3))
     itens.append(("d03_molas", R(2, 1, 6, 28, 2, "#4a505c", k=0.2) + mola, 32, 32, 4))
     itens.append(("d04_saco", saco_cimento(13, 17), 26, 32, 4))
+    for n in range(3):   # capacete de aço: 0, 1 e 2 amassos (64x32, base em 32,26)
+        itens.append((f"d05_capacete{n}", capacete_aco(32, 20, 1.0, n), 64, 32, 4))
+    itens.append(("d06_boneco", boneco(24, 92, 1.0), 48, 96, 4))
     for nome, g, w, h, sc in itens:
         svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">{g}</svg>'
         queue(svg, os.path.join(HERE, f"svg/eng_{nome}.svg"), os.path.join(out, f"{nome}.png"), w, h, sc)

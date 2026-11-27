@@ -273,6 +273,10 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 		return cmd
 	var dx: float = target.position.x - pos.x
 	var dy: float = target.position.y - pos.y
+	var dc6 = demo.spells.decoy_of(target.pid) if demo.spells != null else null
+	if dc6 != null:   # D06: o boneco de teste é a isca — o bot vai nele
+		dx = dc6.x - pos.x
+		dy = dc6.y - pos.y
 	# 3a) rival preparando a marretada pesada virado para mim: esquiva para longe (bots melhores fazem mais)
 	if absf(dx) < 130.0 and absf(dy) < 60.0 and target.atk == "pesado" and not target.atk_hit \
 			and signi(int(-dx)) == target.facing and r.dodge_cd <= 0.0 and main.rng.randf() < float(lv["hammer_acc"]) * 0.7:
@@ -320,6 +324,8 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 		"D02": it_ok = false   # passivo
 		"D03": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dy) < 60.0 and absf(dx) < 130.0 and target.atk != ""   # rival atacando perto
 		"D04": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 160.0 and r.dmg > 60.0   # machucado e cercado
+		"D05": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 220.0
+		"D06": it_ok = absf(dx) < 140.0 and absf(dy) < 60.0
 		"C05": it_ok = absf(dy) < 50.0 and absf(dx) > 100.0 and absf(dx) < 400.0
 		"E03":
 			var tg = sp.remote_target(r)

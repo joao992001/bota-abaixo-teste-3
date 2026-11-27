@@ -72,7 +72,7 @@ static func armor_fit(mname: String) -> Array:
 	return res
 ## Spells sem arma: objeto nas costas (andaime dobrado, marreta sísmica, fornalha desmontada) ou na mão de trás.
 const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "D01": ["d01_contrapeso", Vector2(30, 38), 0.15], "D02": ["d02_airbag", Vector2(24, 32), 0.1],
-	"D03": ["d03_molas", Vector2(30, 30), 0.1], "D04": ["d04_saco", Vector2(26, 32), 0.15], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
+	"D03": ["d03_molas", Vector2(30, 30), 0.1], "D04": ["d04_saco", Vector2(26, 32), 0.15], "D06": ["d06_boneco", Vector2(20, 40), 0.2], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
@@ -1337,6 +1337,14 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			pts.append(s0.lerp(sc, u).lerp(sc.lerp(s1, u), u))
 		ci.draw_polyline(pts, Color("#2b2b33"), 3.4, true)
 		ci.draw_circle(s1, 2.6, Color("#5d6672"))
+	var cap_n := int(sf.get("capacete_n", 0))
+	if cap_n > 0:   # DEFESA D05: capacete de aço por cima do capacete de obra (amassa a cada golpe)
+		var ctr := float(sf.get("capacete_tranco", 0.0))
+		var ctx: Texture2D = Data.tex("spells/d05_capacete%d" % clampi(3 - cap_n, 0, 2))
+		var eye2: Vector2 = (_v(g["eyes"][0]) + _v(g["eyes"][1])) / 2.0
+		if ctx != null:
+			ci.draw_set_transform_matrix(base * bx * Transform2D(sin(tnow_cap() * 70.0) * 0.12 * ctr, eye2 + Vector2(2, -24 + 4.0 * ctr)))
+			ci.draw_texture_rect(ctx, Rect2(-30, -20, 60, 30), false)
 	var ab := _v(g["antenna"])
 	ci.draw_set_transform_matrix(base * bx * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
 	ci.draw_texture(Data.tex("robo/antena_" + mname), Vector2.ZERO)
@@ -1456,6 +1464,9 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		ci.draw_set_transform_matrix(base * Transform2D(0.0, hand_q, 0.0, p))
 		ci.draw_texture(hand, -Vector2(8, 8) * 4.0)
 	ci.draw_set_transform_matrix(base)
+
+static func tnow_cap() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 ## DEFESA D01: caminho da mão ao cravar o contrapeso (u 0..1): das costas → por cima da cabeça → crava atrás, baixo
 const ANCORA_CRAVA_S := 0.42

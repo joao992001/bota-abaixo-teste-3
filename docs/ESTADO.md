@@ -14,7 +14,8 @@ o rival sobe COLADO no topo e é lançado aos 60% da subida; colisão cresce jun
 vídeos `out/videos/a06_coluna*.mp4`). **Controle FEITO** (A43: só o C03 Gancho muda — agarrou embaixo/na quina de estrutura alta → sobe por cima; o resto fica).
 **Defesa lote D1 FEITO** (A44: classe nova verde/cúpula/capacete; D01 Âncora de Contrapeso, D02 Airbag de Obra passivo;
 vídeos `out/videos/defesa_lote1*.mp4`) e **lote D2 FEITO** (A45: D03 Para-choque de Mola; D04 Cortina de Poeira — o
-Remendo Rápido foi reprovado; vídeos `out/videos/defesa_lote2*.mp4`). **A auditoria das engenhocas (Ataque, Controle,
+Remendo Rápido foi reprovado; vídeos `out/videos/defesa_lote2*.mp4`) e **lote D3 FEITO** (A46: D05 Capacete de Aço,
+D06 Boneco de Teste; vídeos `out/videos/defesa_lote3*.mp4`). Defesa = 6 engenhocas (D01–D06). **A auditoria das engenhocas (Ataque, Controle,
 Defesa) está CONCLUÍDA e APROVADA pelo usuário (2026-11-27).** Próximo: o usuário escolher entre as pendências; pendências antigas abaixo (skins K1–K5, prancha de
 combate r2, números provisórios, 7 pontos da avaliação de interface).
 **Lição da sessão 5:** arte copiada para `game/assets` só aparece depois de `godot --headless --path game --import`; conferir

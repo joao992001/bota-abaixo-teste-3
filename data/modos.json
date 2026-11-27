@@ -365,6 +365,7 @@
         "ky": 160,
         "ky_por": 1.2
       },
+      "defesa_serragem": {"dano": 5, "kx": 520, "kx_por": 3.0, "ky": 300, "ky_por": 1.2},
       "defesa_rebate": {"dano": 6, "kx": 820, "kx_por": 4.0, "ky": 380, "ky_por": 1.5},
       "spell_cratera": {"dano": 14, "kx": 760, "kx_por": 5.0, "ky": 560, "ky_por": 3.0},
       "spell_sismo": {
@@ -880,6 +881,25 @@
         "rasga_s": 0.25,
         "duracao_s": 2.0,
         "icone": "d04_saco"
+      },
+      "D05": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 DEFESA lote D3: capacete de aço por cima — absorve os próximos `protecoes` golpes/tiros (sem dano, sem empurrão); no último voa longe",
+        "protecoes": 3,
+        "intervalo_s": 0.15,
+        "icone": "d05_capacete"
+      },
+      "D06": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 DEFESA lote D3: deixa um boneco de teste no lugar e recua num pulo; bots miram nele por duracao_s; quem bate leva serragem (defesa_serragem)",
+        "duracao_s": 5.0,
+        "recuo_vx": 480,
+        "recuo_vy": 560,
+        "icone": "d06_boneco"
       },
       "A07": {
         "familia": "ataque",

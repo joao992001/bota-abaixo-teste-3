@@ -1745,7 +1745,7 @@ func mapa_test() -> void:
 	var classes: Dictionary = MapaReg.modo_cfg("derruba")["classes_spells"]
 	check(classes.keys() == ["ataque", "controle", "transformacao", "defesa"], "classes de spell pertencem ao MODO Derruba (%s)" % str(classes.keys()))
 	var sp: Array = MapaReg.spells("derruba", "canteiro_obras", [])
-	check(sp.size() == 25 and ["D01", "D02", "D03", "D04"].all(func(x): return x in sp), "Canteiro autoriza as 25 spells aprovadas (sem E01/E03, com a Defesa D01–D04) (%d)" % sp.size())
+	check(sp.size() == 27 and ["D01", "D02", "D03", "D04", "D05", "D06"].all(func(x): return x in sp), "Canteiro autoriza as 27 spells aprovadas (sem E01/E03, com a Defesa D01–D06) (%d)" % sp.size())
 	check(MapaReg.spells("batata", "obra_concreto", ["A01"]).is_empty() and MapaReg.spells("derruba", "mapa_sem_manifesto", ["A01"]).is_empty(), "sem manifesto: nenhuma spell (outro modo não herda as do Derruba)")
 	check(MapaReg.spells("derruba", "demolicao", ["A01", "A02"]).size() == 2, "mapa-ferramenta (laboratório/testes) recebe o pool do modo, explícito")
 	var e1: Array = MapaReg.eventos("derruba", "canteiro_obras", 1)
@@ -3048,6 +3048,38 @@ func spells_test() -> void:
 	check(r0.atk == "", "D04: dentro da poeira não ataca")
 	await frames(int(float(sp.sc("D04")["duracao_s"]) * 60.0) + 10)
 	check(not sp.dusts.has(0) and r0.poeira_t == 0.0 and sp.hud_info(0).is_empty(), "D04: a poeira assenta e acaba")
+	# DEFESA lote D3: D05 Capacete de Aço (absorve 3) e D06 Boneco de Teste (isca)
+	place.call(1.2)
+	sp.clear(r0)
+	sp.equip(r0, "D05")
+	await frames(2)
+	await tap("v0", "item")
+	check(r0.capacete_n == 3, "D05: capacete de aço com 3 proteções")
+	var d5x: float = r0.position.x
+	for k5 in 2:
+		r0.take_hit(-1, "spell_mola", 1)
+		await frames(12)
+	check(r0.dmg == 0.0 and absf(r0.position.x - d5x) < 4.0 and r0.capacete_n == 1, "D05: 2 golpes absorvidos (sem dano/empurrão), resta 1 (%d)" % r0.capacete_n)
+	r0.take_hit(-1, "spell_mola", 1)
+	await frames(30)
+	check(r0.dmg == 0.0 and r0.capacete_n == 0 and sp.helmet_fly.size() > 0 and sp.hud_info(0).is_empty(), "D05: o 3º golpe também não passa e o capacete voa")
+	r0.take_hit(-1, "spell_mola", 1)
+	check(r0.dmg > 0.0, "D05: depois do capacete, o golpe volta a doer")
+	place.call(1.4)
+	sp.clear(r0)
+	sp.equip(r0, "D06")
+	await frames(2)
+	var d6x: float = r0.position.x
+	await tap("v0", "item")
+	await frames(20)
+	check(sp.decoys.size() == 1 and absf(r0.position.x - d6x) > 40.0, "D06: boneco no lugar, o robô recuou (%.0f px)" % absf(r0.position.x - d6x))
+	check(sp.decoy_of(0) != null and absf(sp.decoy_of(0).x - d6x) < 2.0, "D06: os bots miram no boneco (decoy_of)")
+	var d6dmg: float = r1.dmg
+	check(sp.decoy_hit(r1, Rect2(d6x - 30.0, r0.position.y - 80.0, 60, 70), false), "D06: golpe no boneco estoura")
+	await frames(10)
+	check(r1.dmg > d6dmg, "D06: quem bateu leva serragem (%d%%)" % int(r1.dmg))
+	await frames(60)
+	check(sp.decoys.is_empty(), "D06: o boneco some")
 	# A05 rebiteira: tiro rápido, acerta e some
 	place.call(5.0)
 	sp.clear(r0)
@@ -4486,7 +4518,7 @@ func spells_frames(dir: String) -> void:
 	_frame_no = 0
 	var segs := [["caixas", 50], ["A01", 60], ["A03", 120], ["C01", 90], ["E01", 70], ["C04", 70], ["T01", 300], ["troca", 60],
 		["A02", 60], ["A04", 70], ["A05", 60], ["A06", 90], ["A07", 90], ["A08", 70], ["porte", 90],
-		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["C03coluna", 150], ["D01", 200], ["D02", 170], ["D03", 130], ["D04", 190], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
+		["C02", 90], ["C03", 70], ["C05", 120], ["E02", 110], ["E03", 90], ["A01cheio", 130], ["A02corte", 130], ["C03coluna", 150], ["D01", 200], ["D02", 170], ["D03", 130], ["D04", 190], ["D05", 150], ["D06", 170], ["A08quique", 110], ["A06col", 160], ["A07guinda", 110], ["A07brita", 110], ["A07escava", 100], ["A07solda", 100],
 		["lasercima", 70], ["gelodiag", 70], ["ganchocima", 90], ["ventocima", 80], ["fogocima", 140], ["socobaixo", 60], ["ganchocaixa", 70],
 		["T02", 130], ["T03", 120], ["T04", 100], ["T05", 100], ["T06", 100], ["T07", 110],
 		["kitT01", 40], ["kitT02", 40], ["kitT05", 40], ["kitT06", 40], ["kitT03", 40], ["kitT07", 40]]
@@ -4541,7 +4573,7 @@ func spells_frames(dir: String) -> void:
 		elif nm == "porte":
 			sp.equip(r0, "A05")
 			sp.equip(r1, "E01")
-		elif nm in ["D01", "D02", "D03", "D04"]:
+		elif nm in ["D01", "D02", "D03", "D04", "D05", "D06"]:
 			sp.equip(r0, nm)
 			put(r0, Vector2(x0 + 2.0 * 64.0, fy))
 			put(r1, Vector2(x0 + 3.2 * 64.0, fy))
@@ -4620,6 +4652,14 @@ func spells_frames(dir: String) -> void:
 						r0.take_hit(-1, "rapido", 1)
 					if f == 70:
 						sp.rivets.append({"owner": 1, "pos": r0.rect().get_center() + Vector2(220, 0), "vel": Vector2(-900, 0), "bounces": 0, "t": 0.0, "hit": [], "trail": []})
+				"D05":   # Defesa: capacete de aço absorve 3 golpes e voa
+					a["v0"]["item"] = f == 10 or f == 11
+					if f in [40, 70, 100]:
+						r0.take_hit(-1, "spell_mola", 1)
+				"D06":   # Defesa: boneco no lugar, recua; o rival bate no boneco e leva serragem
+					a["v0"]["item"] = f == 10 or f == 11
+					if f == 60:
+						sp.decoy_hit(r1, Rect2(r0.position.x - 400.0, r0.position.y - 120.0, 800, 120), false)
 				"D04":   # Defesa: rasga o saco, nuvem; golpe e tiro passam direto
 					a["v0"]["item"] = f == 10 or f == 11
 					if f == 50:
@@ -4716,6 +4756,8 @@ func spells_frames(dir: String) -> void:
 			for r in main.robots:
 				r.invuln = 0.0
 			main.cam_lock = [2.4, (r0.position + Vector2(150, 0)) + Vector2(0, -70)]
+			if nm == "D06":   # enquadra o boneco, o robô que recuou e o rival
+				main.cam_lock = [2.0, Vector2(x0 + 1.6 * 64.0, fy - 80.0)]
 			if nm == "C03coluna":   # enquadra o robô e a coluna
 				main.cam_lock = [1.9, Vector2(fx_c03, fy - 150.0)]
 			await frames(1)

@@ -15,7 +15,7 @@ const NOMES := {"A01": "PUNHO PNEUMÁTICO", "A03": "CANHÃO CRIOGÊNICO", "C01":
 	"C02": "TURBOVENTILADOR", "C03": "GANCHO DE ARRASTO", "C05": "LAÇO DE ENERGIA", "E02": "CARGA REMOTA",
 	"E03": "CONTROLE REMOTO",
 	"T02": "MECHA EMPILHADEIRA", "T03": "MECHA BOLA", "T04": "MECHA JATO", "T05": "MECHA BROCA",
-	"T06": "PARA-RAIOS", "T07": "MECHA CORREDOR", "D01": "ÂNCORA DE CONTRAPESO", "D02": "AIRBAG DE OBRA", "D03": "PARA-CHOQUE DE MOLA", "D04": "CORTINA DE POEIRA"}
+	"T06": "PARA-RAIOS", "T07": "MECHA CORREDOR", "D01": "ÂNCORA DE CONTRAPESO", "D02": "AIRBAG DE OBRA", "D03": "PARA-CHOQUE DE MOLA", "D04": "CORTINA DE POEIRA", "D05": "CAPACETE DE AÇO", "D06": "BONECO DE TESTE"}
 const FORMS := ["T02", "T03", "T05", "T06", "T07"]   # transformações com duração (T01 tem código próprio)
 
 var main: Node
@@ -23,6 +23,9 @@ var demo: Node
 var cfg: Dictionary
 var boxes: Array = []        # {fam, id, charges, pos, vy, t, land_t, block: {pid: s}, special}
 var slot := {}               # pid -> {id, fam, charges, cd, prep, prep_len, fire, t, data}
+var helmets := {}            # D05: pid -> {t, cd, tranco}
+var helmet_fly := []         # D05: capacete voando no fim {pos, vel, rot, t}
+var decoys := []             # D06: {owner, pos, t, len, wob, morre}
 var bumpers := {}            # D03: pid -> {t, len, tranco, cd: {pid: s}}
 var dusts := {}              # D04: pid -> {t, len, rasga}
 var sinks := []              # D01: contrapeso afundando no fim {pos, t}
@@ -304,6 +307,9 @@ func clear(r) -> void:
 	if bumpers.has(r.pid):
 		bumpers.erase(r.pid)
 		r.mola_t = 0.0
+	if helmets.has(r.pid):
+		helmets.erase(r.pid)
+		r.capacete_n = 0
 	if dusts.has(r.pid):
 		dusts.erase(r.pid)
 		r.poeira_t = 0.0
@@ -582,6 +588,22 @@ func use(r) -> void:
 			r.mola_t = 1.0
 			main.shake(3.0)
 			Audio.play("pulo_mola", 1.2, -2.0)
+		"D05":   # DEFESA lote D3: capacete de aço — absorve os próximos golpes/tiros
+			if s["t"] > 0.0:
+				return
+			s["t"] = 1.0
+			helmets[r.pid] = {"t": 0.0, "cd": 0.0, "tranco": 0.0, "fc": r.facing}
+			r.capacete_n = int(c["protecoes"])
+			main.shake(3.0)
+			main.float_text(r.position + Vector2(0, -140), "CLANC!", FAM_COR["defesa"])
+			Audio.play("chave", 0.6, 0.0)
+		"D06":   # DEFESA lote D3: deixa o boneco de teste no lugar e recua num pulo
+			decoys.append({"owner": r.pid, "pos": r.position, "t": 0.0, "len": float(c["duracao_s"]), "fc": r.facing, "morre": -1.0})
+			r.forced_t = 0.2   # pulo para trás garantido (sem o freio do chão)
+			r.forced_vel = Vector2(-r.facing * float(c["recuo_vx"]), -float(c["recuo_vy"]))
+			main.dust(r.position, 1.0)
+			Audio.play("pulo_mola", 1.1, -2.0)
+			_spend(r, s)
 		"D04":   # DEFESA lote D2: rasga o saco de cimento → nuvem de pó (intocável, não ataca)
 			if s["t"] > 0.0:
 				return
@@ -1091,6 +1113,13 @@ func update(dt: float, alive: Array) -> void:
 	_update_teles(dt)
 	_update_frozen(dt)
 	_update_pinned(dt)
+	_update_decoys(dt)
+	for hf in helmet_fly:
+		hf["t"] += dt
+		hf["vel"].y += 1400.0 * dt
+		hf["pos"] += hf["vel"] * dt
+		hf["rot"] += dt * 14.0
+	helmet_fly = helmet_fly.filter(func(hf): return hf["t"] < 1.2)
 	for e in sinks:
 		e["t"] += dt
 	sinks = sinks.filter(func(e): return e["t"] < 0.8)
@@ -1138,6 +1167,13 @@ func update(dt: float, alive: Array) -> void:
 			_update_airbag(r, s, dt)
 		if s["id"] == "D03" and bumpers.has(r.pid):
 			_update_bumper(r, s, dt)
+		if s["id"] == "D05" and helmets.has(r.pid):
+			helmets[r.pid]["t"] += dt
+			helmets[r.pid]["cd"] = maxf(float(helmets[r.pid]["cd"]) - dt, 0.0)
+			helmets[r.pid]["tranco"] = maxf(float(helmets[r.pid]["tranco"]) - dt * 4.0, 0.0)
+			if not r.alive:
+				helmets.erase(r.pid)
+				r.capacete_n = 0
 		if s["id"] == "D04" and dusts.has(r.pid):
 			_update_dust(r, s, dt)
 		if int(s.get("burst", 0)) > 0 and s["id"] == "A05":
@@ -1320,7 +1356,7 @@ func flags(r) -> Dictionary:
 		"ancora_t": float(anchors[r.pid]["t"]) if anchors.has(r.pid) else -1.0, "ancora_tranco": float(anchors[r.pid]["tranco"]) if anchors.has(r.pid) else 0.0,
 		"arrasta": anchors.has(r.pid) and anchors[r.pid]["arrasta"], "airbag_k": clampf(float(airbags[r.pid]["t"]) / 0.15, 0.0, 1.0) if airbags.has(r.pid) else 0.0,
 		"rasga_k": clampf(float(dusts[r.pid]["t"]) / float(dusts[r.pid]["rasga"]), 0.0, 1.0) if dusts.has(r.pid) and not dusts[r.pid]["puf"] else -1.0,
-		"molas": bumpers.has(r.pid)}
+		"molas": bumpers.has(r.pid), "capacete_n": r.capacete_n, "capacete_tranco": float(helmets[r.pid]["tranco"]) if helmets.has(r.pid) else 0.0}
 	if s["id"] == "T01":
 		out["armor"] = s["t"] > 0.0
 		out["assemble"] = float(s["data"].get("assemble", 0.0))
@@ -1378,6 +1414,8 @@ func hud_info(pid: int) -> Dictionary:
 		frac = s["energy"] / float(sc("T01")["combustivel_s"])
 	elif (s["id"] in FORMS or s["id"] in ["D01", "D03", "D04"]) and s["t"] > 0.0:
 		frac = s["t"] / float(sc(s["id"])["duracao_s"])
+	elif s["id"] == "D05" and helmets.has(pid):
+		frac = float(main.robots[pid].capacete_n) / float(sc("D05")["protecoes"])
 	elif s["id"] == "T04":
 		frac = s["energy"] / float(sc("T04")["combustivel_s"])
 	return {"id": s["id"], "fam": s["fam"], "charges": s["charges"] if not s["id"] in ["C01", "C02"] else 0, "frac": clampf(frac, 0.0, 1.0),
@@ -1937,6 +1975,76 @@ func bumper_rebate(o, by: int) -> void:
 		a.take_hit(1 if a.position.x >= o.position.x else -1, "defesa_rebate", o.pid)
 		a.hitstop = 0.08
 	o.hitstop = 0.06
+
+## D05: o capacete de aço absorveu um golpe/tiro: amassa, faísca; a última proteção faz o capacete voar e acaba
+func helmet_absorb(o, by: int) -> void:
+	if not helmets.has(o.pid):
+		o.capacete_n = 0
+		return
+	var hm: Dictionary = helmets[o.pid]
+	if float(hm["cd"]) > 0.0:
+		return   # o mesmo golpe acertando várias vezes conta 1
+	hm["cd"] = float(sc("D05")["intervalo_s"])
+	hm["tranco"] = 1.0
+	o.capacete_n -= 1
+	var top: Vector2 = o.position + Vector2(0, -78)
+	main.spark(top, 8)
+	main.shake(4.0)
+	o.hitstop = 0.06
+	Audio.play("chave", 0.9 + 0.1 * o.capacete_n, 2.0)
+	if o.capacete_n <= 0:
+		var dirx: float = 1.0 if by < 0 or by >= main.robots.size() else signf(o.position.x - main.robots[by].position.x + 0.01)
+		helmet_fly.append({"pos": top, "vel": Vector2(dirx * 380.0, -620.0), "rot": 0.0, "t": 0.0})
+		main.float_text(o.position + Vector2(0, -150), "PLONC!", FAM_COR["defesa"])
+		helmets.erase(o.pid)
+		o.capacete_n = 0
+		if slot.has(o.pid) and slot[o.pid]["id"] == "D05":
+			slot[o.pid]["t"] = -1.0
+			_spend(o, slot[o.pid])
+
+## D06: posição do boneco de teste de um robô (para os bots mirarem) ou null
+func decoy_of(pid: int):
+	for d in decoys:
+		if d["owner"] == pid and d["morre"] < 0.0:
+			return d["pos"]
+	return null
+
+## D06: um golpe (hit = área da marretada) pegou o boneco? → estoura em serragem e joga quem bateu
+func decoy_hit(r, hit: Rect2, heavy: bool) -> bool:
+	for d in decoys:
+		if d["morre"] >= 0.0 or d["owner"] == r.pid:
+			continue
+		if hit.intersects(Rect2(d["pos"] + Vector2(-22, -88), Vector2(44, 88))):
+			_decoy_pop(d, r)
+			return true
+	return false
+
+func _decoy_pop(d: Dictionary, r) -> void:
+	d["morre"] = 0.0
+	main.float_text(d["pos"] + Vector2(0, -120), "PUF!", FAM_COR["defesa"])
+	main.shake(6.0)
+	Audio.play("caixote_quebra", 1.2, 0.0)
+	for j in 16:
+		puffs.append({"pos": d["pos"] + Vector2(randf_range(-26, 26), -randf_range(10, 80)), "vel": Vector2(randf_range(-260, 260), randf_range(-260, 40)),
+			"r": randf_range(8, 16), "t": 0.0, "life": randf_range(0.5, 0.9)})
+	if r != null and r.alive:
+		r.take_hit(1 if r.position.x >= d["pos"].x else -1, "defesa_serragem", d["owner"])
+
+func _update_decoys(dt: float) -> void:
+	for d in decoys:
+		d["t"] += dt
+		if d["morre"] >= 0.0:
+			d["morre"] += dt
+			continue
+		for sh in shots + rivets + springs:   # tiro no boneco também estoura
+			if Rect2(d["pos"] + Vector2(-22, -88), Vector2(44, 88)).has_point(sh["pos"]) and sh["owner"] != d["owner"]:
+				sh["dead"] = true
+				_decoy_pop(d, null)
+				break
+		if d["t"] >= d["len"] and d["morre"] < 0.0:
+			d["morre"] = 0.0
+			d["tomba"] = true
+	decoys = decoys.filter(func(d): return d["morre"] < 0.7)
 
 ## DEFESA: um tiro chegou num robô. Cortina → passa direto (true = ignora); Para-choque → volta com dono novo.
 func _intangivel(o) -> bool:
@@ -3018,6 +3126,39 @@ func _draw_attack2() -> void:
 			for j in 8:
 				var a := j * TAU / 8.0
 				draw_line(cc + Vector2.from_angle(a) * (60.0 + 30.0 * cresce), cc + Vector2.from_angle(a) * (80.0 + 40.0 * cresce), Color(1, 1, 1, 1.0 - cresce), 3.0, true)
+	# DEFESA D05: capacete voando no fim
+	for hf in helmet_fly:
+		var htx: Texture2D = Data.tex("spells/d05_capacete2")
+		if htx != null:
+			draw_set_transform(hf["pos"], hf["rot"])
+			draw_texture_rect(htx, Rect2(-32, -20, 64, 32), false, Color(1, 1, 1, clampf(1.2 - hf["t"], 0.0, 1.0)))
+			draw_set_transform(Vector2.ZERO)
+	# DEFESA D06: boneco de teste balançando (pisca no fim); estoura em serragem ou tomba
+	var btx: Texture2D = Data.tex("spells/d06_boneco")
+	for d in decoys:
+		if btx == null:
+			break
+		var p0: Vector2 = d["pos"]
+		if d["morre"] >= 0.0:
+			if d.get("tomba", false):
+				var u: float = clampf(d["morre"] / 0.35, 0.0, 1.0)
+				draw_set_transform(p0, -d["fc"] * u * u * PI / 2.0, Vector2(d["fc"], 1.0))
+				draw_texture_rect(btx, Rect2(-24, -92, 48, 96), false, Color(1, 1, 1, 1.0 - clampf((d["morre"] - 0.4) / 0.3, 0.0, 1.0)))
+				draw_set_transform(Vector2.ZERO)
+			else:
+				var u2: float = d["morre"] / 0.7
+				for j in 12:
+					var a := j * TAU / 12.0
+					var q: Vector2 = p0 + Vector2(0, -44) + Vector2(cos(a), sin(a) * 0.8) * (24.0 + 90.0 * u2) + Vector2(0, 120.0 * u2 * u2)
+					draw_set_transform(q, j * 0.7 + u2 * 8.0)
+					draw_rect(Rect2(-4, -2, 8, 4), Color(0.85, 0.66, 0.41, 1.0 - u2))
+					draw_set_transform(Vector2.ZERO)
+			continue
+		var wob: float = sin(d["t"] * 4.0) * 0.06 * (1.0 + 2.0 * maxf(0.0, 1.0 - d["t"] / 0.3))
+		var pisca: bool = d["len"] - d["t"] < 1.0 and fmod(t, 0.2) < 0.1
+		draw_set_transform(p0, wob, Vector2(d["fc"], 1.0))
+		draw_texture_rect(btx, Rect2(-24, -92, 48, 96), false, Color(1.6, 1.6, 1.6) if pisca else Color.WHITE)
+		draw_set_transform(Vector2.ZERO)
 	# A05 rebites: rastro claro, rebite grande (cabeça abaulada dourada + haste de aço) apontando para onde vai
 	for rv in rivets:
 		var tr: Array = rv["trail"]

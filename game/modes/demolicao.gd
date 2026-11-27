@@ -493,6 +493,8 @@ func attack(r, kind: String) -> bool:
 			main.impact_fx(o.rect().get_center() + Vector2(-r.facing * 10, 0), r.facing, 1.0 if heavy else 0.3)
 			main.add_stat(r.pid, "golpes")
 			hit_robot = true
+	if spells != null and spells.decoy_hit(r, hit, heavy):   # D06: bateu no boneco de teste
+		hit_robot = true
 	var struct_hit := false
 	if fx != null and is_instance_valid(fx) and fx.hammer_hit(r, hit.grow(8), heavy):
 		struct_hit = true
