@@ -4,43 +4,27 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (fim da sessão 2)
-**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado).
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (fim da sessão 3)
+**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado; `.exe` entregue).
 
-**Onde paramos — ETAPA 2 da avaliação de gameplay (`docs/avaliacoes/2026-11-26_gameplay/AVALIACAO.md`): robôs novos.**
-- **A27 (aprovado):** robôs reformulados na geometria do **Ultimate Chicken Horse** (cabeça grande de capacete-tela, corpinho
-  de pera, membros finos em curva, corpo que achata/estica, cabeça/acessórios com mola), papel e giz. Cada robô com silhueta,
-  vibe, arma e jeito de mover próprios; **mesmos números de jogo** (alcance, força, velocidade) — o gancho do Guindaste foi
-  encurtado para o alcance padrão (usuário escolheu "A").
-- **Elenco de 5 APROVADO e TODO ANIMADO em vídeo** (15 animações cada: correr, pular, pulo duplo, parede, borda, combo leve,
-  leve ▲/▼, pesado, esquiva, leva golpe, arremessado, engenhoca, vitória, eliminado):
-  Marretão (`art/src/robos/robo_uch.py`), Brita (`anim_brita.py`), Guindaste (`anim_guinda.py`), Solda (`anim_solda.py`),
-  Escavadeira (`anim_escava.py`); desenho de cada um em `art/src/robos/elenco_uch.py`; motor de animação (curva contínua +
-  molas) em `art/src/robos/anim_blindado.py`. Vídeos em `art/out/robos_v2/*.mp4` (`uch_*`, `brita_*`, `guinda_*`, `solda_*`, `escava_*`).
-  Marreta detalhada: `conceito3_blindado.py` (`marreta_cabo/marreta_cabeca`).
+**Feito nesta sessão (decisões A28–A35 em `docs/revisoes/reformulacao_derruba.md`):**
+- Elenco A27 no jogo; Guindaste (G2 Lança) e Escavadeira (E2 Trator) refeitos (A28). Ids internos antigos mantidos:
+  picareta=Guindaste, chave=Solda, britadeira=Brita, pa=Escavadeira.
+- Engenhocas em 3 classes (A31): sai Andaime Relâmpago e Controle Remoto; Carga Remota → Ataque; Propulsor → MECHA JATO.
+- ARMADURAS = MECHAS pilotados ameaçadores (A29) com silhueta própria; Bola sem corrente, fica em pé e fecha em bola
+  SEGURANDO o especial. Habilidades (A30): Broca dash furando (segurar), Para-Raios (ex-Soldador) raio em cadeia 3 alvos
+  + metal, Fornalha fogo de partículas 8 direções, Empilhadeira agarra/arremessa, Jato voa. Tamanho ≈ 2 blocos (A32).
+  Modo mecha (A33): atributos recebe/empurrão/causa por mecha (`demolicao.modo_mecha`), golpe LEVE/PESADO próprios.
+- Animação ARTICULADA (A34): `RobotVis._draw_mecha` = esqueleto com IK (coxa/canela/pé, braço/antebraço), pé plantado
+  (`walk_d`), estilos `MECHA_ESTILO` e golpes `MECHA_GOLPES`. Peças: `art/src/robos/armaduras_export.py` → `game/assets/mecha`.
+- Cartucho de Mecha na mão + holograma, ativação cravando no peito, ícones = cartucho, duração +50% (A35).
+- Vitrines: `--mechas=DIR` (grava pos.json para recortar), `--equipa=DIR` (inclui kits T01–T06). Vídeos em `out/videos/`.
 
-**FEITO (2026-11-27): os 5 robôs A27 estão no jogo; Guindaste e Escavadeira REFEITOS (A28, G2/E2) com 15 animações em vídeo (`out/videos/guinda_novo.mp4`, `escava_novo.mp4`).** No jogo as poses vêm de `elenco.py` POSES/EXTRA (o motor do jogo ainda não roda as animações dos vídeos). (ids mantidos: picareta=Guindaste, chave=Solda, britadeira=Brita,
-pa=Escavadeira; cabeças em camadas em `elenco_uch.py`, ligação em `elenco.py` `_uch_*`). Skins K1–K5 apagadas (refazer).
-Vídeo: `--modelos=1,2,3,4` no `--video`. PRÓXIMO: ajustar poses/ferramentas que o usuário apontar → telas (passo 3) → `.exe`.
-**NO JOGO (2026-11-27): mechas A29 desenhados por peças (`RobotVis._draw_mecha`, texturas `game/assets/mecha` de `armaduras_export.py`), transformação de 0,9 s peça por peça, rosto do robô no cockpit, Bola nova, Jato (T04). Engenhocas em 3 classes (A31). FALTA: Broca = dash furando (segurar), Para-Raios = raio em cadeia 3 alvos + metal, efeitos fortes no jogo (fogo/dash/rolamento/arco), etiqueta P# acima do mecha. Vídeo de referência: `art/out/robos_v2/armadura_*.mp4` (`armaduras_video.py`).**
-**A29 (aprovado): armaduras = mechas pilotados ameaçadores** (prancha `armaduras_v2_final.png`). PRÓXIMO: levar as 5 armaduras para o jogo (`RobotVis.ARMOR_SETS`/`FORM_TOOLS` em `robot_visual.gd`).
-(Histórico do passo 1, já concluído:)
-Plano (aprovado: "1"): trocar o Marretão do gerador antigo `art/src/robos/elenco.py` pelo design A27 — JÁ FEITO no código
-(`t_marretao/h_marretao/tool_marreta` usam `robo_uch.tronco`, `robo_uch.cabeca_L` e a marreta detalhada; CHARS/POSES/EXTRA/
-GAME/TOOL_BOX do marretao com as poses tiradas das animações; `eyes_at`/`top_at` novos em GAME). A exportação
-(`python3 art/src/robos/elenco.py`, ~5 min) foi INTERROMPIDA no meio: os SVG e `art/out/game/robo/modelos.json` foram
-regenerados, mas os PNG podem estar incompletos e **`game/assets/robo/` ainda NÃO foi tocado** (jogo intacto).
-**Próximo passo exato:**
-1. `NODE_PATH=$(npm root -g) python3 art/src/robos/elenco.py` (gera prancha + texturas + modelos.json de todos; os outros 4 não mudam).
-2. Abrir `art/out/prancha_elenco5.png` e `art/out/game/robo/corpo_marretao_p1.png` e conferir.
-3. `cp art/out/game/robo/* game/assets/robo/` → apagar a skin velha do Marretão (`game/assets/robo/corpo_marretao_k1_p*.png`
-   e `ferramenta_marretao_k1.png`, desenhadas sobre o corpo antigo; refazer a skin K1 depois) → `godot --headless --path game --import`.
-4. Conferir no jogo: `--elenco=DIR --so-elenco=0` (xvfb) e `--so=robos,skins,combate`; ajustar poses/escala até ficar como os vídeos.
-   Limitação: o motor do jogo desenha corpo+cabeça numa peça só; o atraso da cabeça dos vídeos pode precisar de suporte em `robot_visual.gd`.
-5. Mandar vídeo/capturas ao usuário; depois os outros 4 (passo 2) e as telas (passo 3), e gerar `.exe`.
-Pendentes: refazer skins K1–K5 no estilo novo; etapa 2 também pede mecânicas de combate (prancha `art/out/robos_v2/r2_combate.png`:
-golpe pesado carregável/direcional, destruição pela luta, golpe leve não quebra) — decisões A/B dessa prancha ainda NÃO respondidas.
-Pendentes antigos: limiares 30%/70%, números PROVISÓRIOS (P1, P3, P4/P6).
+**PRÓXIMO passo (esperando o usuário jogar o último .exe):** ajustar o que ele apontar na animação dos mechas
+(estilos/golpes em `robot_visual.gd`), depois os 7 pontos da avaliação de interface (`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`).
+**Decisões pendentes:** T07 Minirrobô Veloz (virar mecha "Corredor"?) ainda com visual antigo; skins K1–K5 a refazer no
+estilo novo; prancha de combate `r2_combate.png` (A/B) sem resposta; números PROVISÓRIOS (atributos dos mechas, 100/60/35%
+do raio, limiares 30/70%). Animações do elenco (robôs a pé) no jogo ainda usam as poses antigas, não as dos vídeos.
 
 ---
 ### Histórico (sessões anteriores)
