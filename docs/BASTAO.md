@@ -32,7 +32,26 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-(nenhum)
+### Correções urgentes do mapa 1 (Canteiro) + controle principal
+- Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
+- Pedido do usuário: "a obra cede em 20 s… tem que ter um equilíbrio dos 90 s (estudo de proporção jogando partidas)…
+  travação no subterrâneo quando ativa a gravidade… ficando sem engenhocas no subterrâneo… só o controle principal
+  (o 1º conectado) mexe nos menus; na configuração de controles o P1 escolhe o controle do P2, ele assume e depois volta"
+- Arquivos reservados: `data/modos.json` (destruicao, canteiro), `game/modes/etapas.gd`, `game/modes/canteiro.gd`,
+  `game/modes/spells.gd` (spawn), `game/modes/eventos.gd` (G03), `game/autoload/player_input.gd`, `game/ui/menus.gd` (controles)
+- Passos:
+  - [ ] 1. Estudo da destruição: medir com bots (4 bots, padrão) % destruído × tempo no Canteiro; achar a regra
+        (verificação ~90 s: faixa X–Y → moderada, ≥ Y → total, < X → espera) e por que hoje vira em 20 s
+  - [ ] 2. Aplicar a regra (números em `data/modos.json`), medir de novo (várias partidas), registrar A56
+  - [ ] 3. Engenhocas no subterrâneo: achar por que param de cair (spawn_points da cena) e corrigir + teste
+  - [ ] 4. FPS com a gravidade (G03) na Fundação: medir com a sonda Perf e corrigir + teste
+  - [ ] 5. Controle principal: só o 1º controle navega os menus; Configurar controle → P1 escolhe o aparelho, ele assume
+        até salvar/voltar, e o P1 volta + teste
+  - [ ] 6. Bateria, .exe, relatório
+- **Próximo passo exato:** passo 1 — ler `game/modes/etapas.gd` (verificar/limiares) e `data/modos.json` (destruicao) e
+  rodar partidas de bots medindo o progresso por segundo.
+- Decisões pendentes do usuário: nenhuma (o estudo decide os números; reportar).
+
 
 ## AGUARDANDO USUÁRIO
 
