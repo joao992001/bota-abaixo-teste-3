@@ -6971,6 +6971,14 @@ func cargueiro_frames(dir: String) -> void:
 					await snap(dir, "f2_2e_m8_estala")
 					await frames(int(float(i["d"]["aviso_s"]) * 60.0) - 30 + 14)
 					await snap(dir, "f2_2f_m8_cai")
+			for i in mc2.list:   # M9: lança quem pisa e fecha
+				if i["tipo"] == "concha":
+					var cr9: Rect2 = mc2._concha_rect(i)
+					var r9 = main.robots[2]
+					r9.invuln = 99.0
+					put(r9, Vector2(cr9.get_center().x, cr9.position.y - 20.0))
+					await frames(14)
+					await snap(dir, "f2_2g_m9_lanca")
 			for i in mc2.list:
 				if i["tipo"] == "geiser":
 					var cg := float(i["d"]["ciclo_s"])
@@ -7208,3 +7216,42 @@ func m8_test() -> void:
 	check(s["fase"] == "caiu" and r0.dmg > d0, "caiu e acertou quem estava embaixo (+%.0f%%)" % (r0.dmg - d0))
 	await frames(90)
 	check(p["fallen"], "o lustre se desfaz depois de cair")
+
+## M9 Concha-trampolim: lança alto quem pisa; fecha e prende; marretada abre.
+func m9_test() -> void:
+	print("== Fase 2 · M9 concha-trampolim")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "concha":
+			inst = i
+	check(inst != null, "M9 está em Atlântida")
+	if inst == null:
+		return
+	var s: Dictionary = inst["s"]
+	var cr: Rect2 = mc._concha_rect(inst)
+	var r0 = main.robots[0]
+	r0.active = true
+	put(r0, Vector2(cr.get_center().x, cr.position.y - 30.0))
+	var y0: float = cr.end.y
+	var top := y0
+	for k in 70:
+		await frames(1)
+		top = minf(top, r0.position.y)
+	check(y0 - top > 6.0 * 64.0, "pisou na concha: lançado muito alto (%.1f tiles)" % ((y0 - top) / 64.0))
+	put(r0, Vector2(cr.get_center().x, cr.end.y - 2.0))
+	s["fase"] = "fechada"
+	s["k"] = 0.0
+	await frames(20)
+	check(s["fase"] == "fechada" and absf(r0.velocity.x) < 1.0 and r0.stun_t > 0.0, "fechada: prende quem está em cima")
+	check(mc.hammer_hit(cr, false, 1) and s["fase"] == "aberta", "marretada abre a concha")

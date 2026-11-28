@@ -173,6 +173,7 @@ func update(dt: float) -> void:
 			"cupula_racha": _cupula(inst, dt)
 			"geiser": _geiser(inst, dt)
 			"lustre_cai": _lustre(inst, dt)
+			"concha": _concha(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -946,6 +947,44 @@ func _draw_lustre(inst: Dictionary) -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(r.get_center().x - 5.0, chao - 38.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color.WHITE)
 		draw_line(Vector2(cr.get_center().x - 10.0, top + 20.0), Vector2(cr.get_center().x + 10.0, top + 36.0), Color(1, 1, 1, 0.9), 4.0, true)
 
+## M9 Concha-trampolim (Atlântida): quem pisa na concha ABERTA é lançado MUITO alto (lanca_tiles); ela FECHA por fecha_s e
+## prende quem estiver em cima (parado, sem controle); marretada na concha fechada abre na hora.
+func _concha_rect(inst: Dictionary) -> Rect2:
+	var d: Dictionary = inst["d"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	return Rect2(o + Vector2(float(d["x_px"]) - 56.0, float(d["chao_px"]) - 30.0), Vector2(112.0, 34.0))
+
+func _concha(inst: Dictionary, dt: float) -> void:
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	var cr := _concha_rect(inst)
+	if String(s.get("fase", "aberta")) == "fechada":
+		s["k"] = float(s["k"]) + dt
+		for r in _robots():   # preso dentro: parado, sem controle
+			if cr.has_point(r.position):
+				r.velocity = Vector2.ZERO
+				r.stun_t = maxf(r.stun_t, 0.1)
+				r.position.x = clampf(r.position.x, cr.position.x + 10.0, cr.end.x - 10.0)
+		if float(s["k"]) >= float(d["fecha_s"]):
+			s["fase"] = "aberta"
+		return
+	s["fase"] = "aberta"
+	for r in _robots():
+		if cr.has_point(r.position) and r.velocity.y >= 0.0:
+			r.launch(float(d["lanca_tiles"]))
+			s["fase"] = "fechada"
+			s["k"] = 0.0
+			main.dust(Vector2(cr.get_center().x, cr.end.y), 0.8)
+			return
+
+func _draw_concha(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	var cr := _concha_rect(inst)
+	var tx: Texture2D = Data.tex("cargueiro/concha_fechada" if String(s.get("fase", "aberta")) == "fechada" else "cargueiro/concha_aberta")
+	if tx != null:
+		var base := Vector2(cr.get_center().x, cr.end.y + 4.0)   # sprite 140×110, base em y=100
+		draw_texture_rect(tx, Rect2(base - Vector2(70, 100), Vector2(140, 110)), false)
+
 ## Alvo do vidro em px do mundo (o manifesto dá em px relativos à cena).
 func _cup_alvo(inst: Dictionary) -> Rect2:
 	var a: Array = inst["d"]["alvo_rel"]
@@ -1390,6 +1429,14 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 			main.spark(hit.get_center(), 8)
 			Audio.play("bonk", 0.8, 0.0)
 			return true
+		if String(inst["tipo"]) == "concha":   # M9: marretada na concha fechada abre na hora
+			if String(s.get("fase", "aberta")) == "fechada" and _concha_rect(inst).grow(20).intersects(hit):
+				s["fase"] = "aberta"
+				s["k"] = 0.0
+				main.spark(hit.get_center(), 5)
+				main.float_text(hit.get_center() + Vector2(0, -60), "ABRIU!", Color("#f7c6d8"))
+				return true
+			continue
 		if String(inst["tipo"]) == "lustre_cai":   # M8: marretada na corrente solta o lustre
 			if String(s.get("fase", "preso")) == "preso" and _lustre_corrente(inst).intersects(hit):
 				lustre_solta(inst)
@@ -1494,6 +1541,8 @@ func _draw_perf() -> void:
 				_draw_geiser(inst)
 			"lustre_cai":
 				_draw_lustre(inst)
+			"concha":
+				_draw_concha(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":

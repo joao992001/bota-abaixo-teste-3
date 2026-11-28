@@ -256,6 +256,14 @@
      "aviso_s": 1.0,
      "gravidade": 2600.0,
      "dano_plataforma": 2
+    },
+    {
+     "tipo": "concha",
+     "nota": "M9 (aprovado): pisou na concha aberta → lança muito alto; depois fecha 2 s e prende quem estiver em cima (marretada abre).",
+     "x_px": 960,
+     "chao_px": 704,
+     "lanca_tiles": 9.0,
+     "fecha_s": 2.0
     }
    ],
    "rota_moderada": null,

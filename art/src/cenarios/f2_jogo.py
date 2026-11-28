@@ -93,9 +93,7 @@ def e3_palco():
 def e2_palco():
     """Atlântida: os três pilares dourados (topo plano) e a grua submarina da equipe."""
     o = fp.pilar_ouro(1 * T, 6 * T, 12 * T) + fp.pilar_ouro(12 * T, 18 * T, 11 * T) + fp.pilar_ouro(24 * T, 29 * T, 12 * T) + fp.c3_grua()
-    # concha-trampolim no pilar do centro (M9 vira mecanismo no bloco C; por enquanto é cenário)
-    o += E(15 * T, 11 * T - 30, 48, 18, "#f2a7c3", 1.2) + f'<path d="M{15 * T - 48},{11 * T - 34} a48,40 0 0 1 96,-28" fill="#f7c6d8" stroke="#d1708f" stroke-width="4"/>'
-    o += E(15 * T, 11 * T - 36, 10, 8, "#ffffff", 0.6)
+    # (a concha-trampolim M9 virou mecanismo: sprites concha_aberta/concha_fechada, desenhados pelo mecanismos.gd)
     for k in range(9):   # moedas caídas no topo do pilar da direita
         o += E(28 * T + 10 + k * 10, 12 * T - 4 - (k % 3) * 6, 8, 4, fp.OURO, 0.5)
     return o
@@ -252,6 +250,23 @@ def peixe(cor):
     return f
 
 
+def _concha(aberta):
+    """M9 concha-trampolim (140×110, base no y=100): valva de baixo + valva de cima aberta (pérola) ou fechada."""
+    o = E(70, 92, 58, 18, "#f2a7c3", 1.2, dark="#d1708f")
+    for k in range(5):
+        o += f'<path d="M{30 + k * 20},{100} q4,-12 0,-20" stroke="#d1708f" stroke-width="3" fill="none"/>'
+    if aberta:
+        o += f'<path d="M14,88 a58,52 0 0 1 112,-40 L126,58 A58,40 0 0 0 14,90 Z" fill="#f7c6d8" stroke="#d1708f" stroke-width="4"/>'
+        for k in range(5):
+            o += f'<path d="M70,80 L{24 + k * 22},{40 + abs(2 - k) * 8}" stroke="#e8a0b8" stroke-width="3"/>'
+        o += E(70, 84, 13, 10, "#ffffff", 0.6) + f'<circle cx="66" cy="80" r="4" fill="#fff6e0"/>'
+    else:
+        o += f'<path d="M12,92 a58,30 0 0 1 116,0 Z" fill="#f7c6d8" stroke="#d1708f" stroke-width="4"/>'
+        for k in range(5):
+            o += f'<path d="M70,92 L{24 + k * 23},{70 + abs(2 - k) * 6}" stroke="#e8a0b8" stroke-width="3"/>'
+    return o
+
+
 SPRITES = {
     "gaivota": (64, 48, gaivota_voa),
     "gaivota_pousada": (72, 56, gaivota_pousada),
@@ -264,6 +279,8 @@ SPRITES = {
     "tubarao": (300, 160, lambda: ft.tubarao(170, 90, 0, 0.0)),
     "tubarao_boca": (300, 160, lambda: ft.tubarao(170, 90, 0, 1.0)),
     "barbatana": (120, 70, lambda: ft.barbatana(60, 60, 1.0)),
+    "concha_aberta": (140, 110, lambda: _concha(True)),
+    "concha_fechada": (140, 110, lambda: _concha(False)),
 }
 
 

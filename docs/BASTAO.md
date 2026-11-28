@@ -32,27 +32,6 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-### Fase 2 · bloco C (água + perigos M1–M10)
-- Quem: sessão 018QUPBQj4sLX3w64QQJCiVt (assumiu do 017desNJ…) · Desde: 2026-11-28 · Última atualização: 2026-11-28
-- Pedido do usuário: "as fotografias estão muito boas… falta substituir as plataformas pelos elementos do tema (→ bloco D)…
-  já podemos avançar para a próxima parte". Bugs/gameplay do mapa 1 relatados por ele passam na FRENTE.
-- Arquivos reservados: `game/modes/agua.gd` (novo), `game/player/robot.gd` (agua_*), `game/modes/mecanismos.gd`,
-  `data/mapas/derruba/cargueiro_perdido.json`, `data/modos.json` (demolicao.agua)
-- Passos:
-  - [x] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
-        `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
-  - [x] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste — M1 contêiner despenca FEITO (`conteiner_cai`, `--so=m1`); M2 gancho balança FEITO (`gancho_balanca`, `--so=m2`); M3 onda na balsa FEITO (`onda_balsa`, `--so=m3`) — cena 1 completa
-  - [ ] 3. M-perigos da cena 2a (M4–M6, M10 FEITOS) e 2b — M7 racha da cúpula FEITO e APROVADO (`--so=m7`); M11 Gêiser FEITO (`geiser`, `--so=m11`); M8 lustre FEITO (`lustre_cai`, `--so=m8`); falta M9
-  - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
-        `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
-        e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** **M9 concha-trampolim** (cena 2 Atlântida): tirar o desenho fixo da concha do `e2_palco`
-  (art/src/cenarios/f2_jogo.py) e criar o tipo `concha` em `mecanismos.gd`: pisou na concha aberta → lança MUITO alto; depois
-  FECHA 2 s e prende quem estiver dentro (marretada abre); `--so=m9` + captura na vitrine `--cargueiro`. **Antes de capturar:
-  `godot --headless --path game --import`.** Feitos: M7 racha, M8 lustre (marretada na corrente → estala+sombra → cai; a
-  corrente ainda fica esticada no desenho = lapidar), M11 gêiser. Depois do M9: lapidação visual (FILA).
-- Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
-
 ## AGUARDANDO USUÁRIO
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
@@ -61,6 +40,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
 ## CONCLUÍDO (últimos; detalhes no "Retomar aqui" do ESTADO)
+- 2026-11-28 · Fase 2 bloco C: água + perigos M1–M11 no jogo (`--so=agua,m1..m11` verdes; capturas `art/out/fase2/uso/`); visual a lapidar (FILA) — sessões 017desNJ… e 018QUPBQ…
 - 2026-11-28 · Fase 2 bloco B: cena viva do Cargueiro (`cena_cargueiro.gd`, `f2_jogo.py`); usuário aprovou a composição — sessão 017desNJ…
 - 2026-11-28 · Correções urgentes do Canteiro (A56 regra dos 90 s, caixas no subterrâneo, FPS da G03, controle principal); bateria 623 ok, .exe — sessão 017desNJ…
 - 2026-11-28 · Fase 2 bloco A: `.lvl` + manifesto + teste `--so=cargueiro` (2 rotas de verdade) + vitrine `--cargueiro=DIR` — sessão 017desNJ…

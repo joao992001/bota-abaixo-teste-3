@@ -21,6 +21,9 @@ Testes `--so=caixas_subsolo,principal,verificacao,etapas`. Falta o usuário joga
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
+**▶ FASE 2 · BLOCO C FEITO (2026-11-28):** água + perigos M1–M11 do Cargueiro no jogo (M7 racha, M8 lustre, M9 concha, M11 gêiser
+nesta passada); testes `--so=agua,m1..m11,cargueiro,mapa` verdes; capturas `art/out/fase2/uso/`. Usuário: "faltam muitos ajustes
+visuais, depois a gente lapida" → FILA. **Antes de capturar num contêiner novo: `godot --headless --path game --import`.**
 **▶ BASTÃO CONTÍNUO (2026-11-28):** quadro `docs/BASTAO.md` + gancho `.claude/hooks/session-start.sh` (mostra o quadro em todo
 chat novo) + regras em `docs/COMO_TRABALHAR.md` §6. Até 3 chats na mesma branch: pegue a tarefa no quadro, envie a cada passo.
 **▶ FASE 2 · DOSSIÊ APROVADO (A55) + BLOCO A FEITO** (`levels/cargueiro_perdido.lvl`, manifesto, `--so=cargueiro` verde com as 2 rotas,
