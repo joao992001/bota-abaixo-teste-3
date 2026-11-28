@@ -270,8 +270,12 @@ func go_menu() -> void:
 		load_arena("demolicao")
 	state = S.MENU
 
+## Toda configuração (jogar, configurar mapa, selecionar mapa) termina AQUI, na escolha dos personagens.
+## O aperto que trouxe para cá não vale nesta tela (antes o mesmo START da etapa VIDAS já pulava para DETONAR).
+var join_f := -10
 func go_join() -> void:
 	state = S.JOIN
+	join_f = Engine.get_physics_frames()
 
 func player_color(p: int) -> Color:
 	if p >= 0 and p < players.size():
@@ -512,6 +516,8 @@ func to_screen(p: Vector2) -> Vector2:
 
 # ---------------------------------------------------------------- entrada
 func _join_update() -> void:
+	if Engine.get_physics_frames() <= join_f + 1:
+		return
 	var devs: Array = PlayerInput.all_devices()
 	devs.sort_custom(func(a, b): return PlayerInput.is_known(a) and not PlayerInput.is_known(b))   # reconhecidos primeiro
 	for dev in devs:

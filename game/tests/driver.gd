@@ -557,6 +557,7 @@ func demolicao_test() -> void:
 	await controles_test()
 	await bots_entrada_test()
 	await seletor_test()
+	await fluxo_test()
 	await controle_real_test()
 	await robos_test()
 	await combate_test()
@@ -4028,6 +4029,37 @@ func bots_entrada_test() -> void:
 	check(main.players.size() == 4, "mesa cheia")
 	await tap("v0", "heavy")
 	check(main.players.size() == 4, "Y/△ com a mesa cheia não tira mais todos os bots")
+	main.players.clear()
+	PlayerInput.slots.clear()
+	main.go_menu()
+
+## Fluxo (2026-11-28): CONFIGURAR MAPA / SELECIONAR MAPA terminam na escolha dos personagens; o START que fecha a
+## etapa VIDAS não pula a tela de jogadores.
+func fluxo_test() -> void:
+	print("== Fluxo: tudo termina na escolha dos personagens")
+	main.go_menu()
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await frames(2)
+	main.go_join()
+	await frames(3)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.start_match()
+	await frames(5)
+	main.resultado_escolhe(1)   # CONFIGURAR MAPA
+	check(main.state == S.SELSPELLS, "CONFIGURAR MAPA abre as engenhocas")
+	await tap("v0", "start")
+	await tap("v0", "start")
+	check(main.state == S.AJUSTES, "engenhocas → eventos → vidas")
+	await tap("v0", "start")
+	await frames(3)
+	check(main.state == S.JOIN and main.players.size() == 2, "START em VIDAS para na escolha dos personagens (não pula para DETONAR)")
+	await tap("v0", "start")
+	check(main.state == S.DETONAR, "outro START na escolha dos personagens segue para DETONAR")
+	main.resultado_escolhe(2)   # SELECIONAR MAPA
+	check(main.state == S.ARENAS, "SELECIONAR MAPA abre os mapas")
 	main.players.clear()
 	PlayerInput.slots.clear()
 	main.go_menu()
