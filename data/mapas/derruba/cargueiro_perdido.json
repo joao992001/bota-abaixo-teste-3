@@ -302,7 +302,24 @@
    "nome": "Destroços do Cargueiro",
    "nivel": 2,
    "eventos": [],
-   "mecanismos": [],
+   "mecanismos": [
+    {
+     "tipo": "mare",
+     "nota": "M4 (aprovado): seta + som → até a linha da maré alta fica ALAGADO (lento, pulo flutua); bote e jangada boiam e sobem; ~8 s alta a cada ~25 s.",
+     "zona": 0,
+     "alta_px": 784,
+     "baixa_px": 960,
+     "ciclo_s": 25.0,
+     "fase_s": 8.0,
+     "aviso_s": 2.0,
+     "sobe_s": 1.6,
+     "alta_s": 8.0,
+     "boiam": [
+      7,
+      8
+     ]
+    }
+   ],
    "rota_moderada": null,
    "rota_total": null,
    "base_fixa": [
@@ -391,7 +408,18 @@
      ]
     ]
    },
-   "nota": "Ficha: cenas/destrocos.md. pranchas = convés quebrado, pedaço do convés, tábuas, contêiner içado, rede, bote, jangada (posições absolutas)."
+   "nota": "Ficha: cenas/destrocos.md. pranchas = convés quebrado, pedaço do convés, tábuas, contêiner içado, rede, bote, jangada (posições absolutas).",
+   "agua": {
+    "nota": "M4: o mar dos Destroços sobe até a linha da maré alta (o topo da zona é mexido pelo mecanismo 'mare').",
+    "zonas": [
+     [
+      0,
+      12,
+      30,
+      4
+     ]
+    ]
+   }
   }
  ]
 }

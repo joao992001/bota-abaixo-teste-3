@@ -8,6 +8,7 @@ extends Node2D
 ## agua (alagamento; registro drena), vagonete (passa varrendo o piso), gerador (faísca; com água dá choque).
 
 const T := 64.0
+const Kit := preload("res://ui/kit.gd")
 const INK := Color("#2a1a2e")
 var main: Node
 var frente: Node2D            # desenho por cima do palco (onda M3)
@@ -160,6 +161,7 @@ func update(dt: float) -> void:
 			"conteiner_cai": _conteiner_cai(inst, dt)
 			"gancho_balanca": _gancho(inst, dt)
 			"onda_balsa": _onda_balsa(inst, dt)
+			"mare": _mare(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -699,6 +701,78 @@ func _draw_onda(inst: Dictionary, ci: CanvasItem) -> void:
 		for k2 in 6:
 			ci.draw_circle(crista + Vector2(lado * (10.0 + k2 * 18.0), -14.0 - (k2 % 3) * 14.0 + k * 20.0), 8.0 - k2, espuma)
 
+## M4 Maré (Fase 2, Destroços): baixa → SETA + som (aviso_s) → sobe (sobe_s) até a linha da maré alta e fica (alta_s) →
+## desce. Mexe no `topo` da zona de água da cena (agua.gd: quem fica abaixo dela está ALAGADO); bote e jangada (peças
+## `boiam`, índices das pranchas da cena) sobem junto.
+func _mare_zona(inst: Dictionary) -> Variant:
+	var ag = main.demo.agua
+	if ag == null or not is_instance_valid(ag):
+		return null
+	var n := 0
+	for z in ag.zonas:
+		if int(z["cena"]) == int(inst["etapa"]):
+			if n == int(inst["d"].get("zona", 0)):
+				return z
+			n += 1
+	return null
+
+func _mare(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	var baixa := o.y + float(d["baixa_px"])
+	var alta := o.y + float(d["alta_px"])
+	var cyc := float(d["ciclo_s"])
+	var av := float(d["aviso_s"])
+	var sob := float(d["sobe_s"])
+	var al := float(d["alta_s"])
+	var k := fmod(float(s["t"]), cyc)
+	var t_aviso := cyc - av - sob - al - sob
+	var nivel := baixa
+	var fase := "baixa"
+	if k >= t_aviso and k < t_aviso + av:
+		fase = "aviso"
+	elif k >= t_aviso + av and k < t_aviso + av + sob:
+		fase = "sobe"
+		nivel = lerpf(baixa, alta, smoothstep(0.0, 1.0, (k - t_aviso - av) / sob))
+	elif k >= t_aviso + av + sob and k < t_aviso + av + sob + al:
+		fase = "alta"
+		nivel = alta
+	elif k >= t_aviso + av + sob + al:
+		fase = "desce"
+		nivel = lerpf(alta, baixa, smoothstep(0.0, 1.0, (k - t_aviso - av - sob - al) / sob))
+	if fase == "aviso" and s.get("fase", "") != "aviso":
+		Audio.play("alarme", 0.7, -4.0)
+	s["fase"] = fase
+	s["nivel"] = nivel
+	var z = _mare_zona(inst)
+	if z != null:
+		z["topo"] = nivel
+	var ct = main.demo.canteiro   # o que boia sobe com a maré
+	if ct != null and is_instance_valid(ct):
+		var sobe := maxf(float(d["baixa_px"]) - (nivel - o.y), 0.0)   # boiam: sobem o mesmo que a água
+		for p in ct.parts:
+			if p["kind"] == "prancha" and int(p["etapa"]) == int(inst["etapa"]) and float(p["idx"]) in d.get("boiam", []):   # JSON dá 7.0
+				ct.move_part(p, float(p["y0"]) - sobe)
+
+func _draw_mare(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	if s.get("fase", "") != "aviso" and s.get("fase", "") != "sobe":
+		return
+	var d: Dictionary = inst["d"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	var alta := o.y + float(d["alta_px"])
+	var a := 0.6 + 0.4 * sin(t * 12.0)
+	# linha da maré alta (tracejada) e setas subindo nas pontas: "a água vai chegar até aqui"
+	var x := o.x
+	while x < o.x + 30.0 * T:
+		draw_line(Vector2(x, alta), Vector2(x + 26.0, alta), Color(1, 1, 1, a), 5.0)
+		x += 44.0
+	for cx in [o.x + 2.5 * T, o.x + 15.0 * T, o.x + 27.5 * T]:
+		var b := Vector2(cx, alta + 150.0 - fmod(t * 120.0, 60.0))
+		draw_colored_polygon(PackedVector2Array([b + Vector2(0, -60), b + Vector2(-30, -20), b + Vector2(-12, -20), b + Vector2(-12, 20), b + Vector2(12, 20), b + Vector2(12, -20), b + Vector2(30, -20)]), Color(0.2, 0.75, 0.95, a))
+	Kit.text(self, Vector2(o.x + 15.0 * T - 90.0, alta - 20.0), "MARÉ ALTA!", 28, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 180, 6)
+
 ## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
 func _chao_em(r: Rect2, limite: float) -> float:
 	var y := r.position.y
@@ -863,6 +937,8 @@ func _draw_perf() -> void:
 				_draw_conteiner(s, d)
 			"gancho_balanca":
 				_draw_gancho(inst)
+			"mare":
+				_draw_mare(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":

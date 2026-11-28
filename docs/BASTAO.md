@@ -46,12 +46,11 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** passo 3 — perigos dos Destroços (cena 3 no .lvl): **M4 maré** (`mare` em `mecanismos.gd`: muda o
-  `topo` de uma zona de `agua.gd` — criar zona no manifesto `cenas[destrocos].agua.zonas` cobrindo a largura até a linha da
-  maré alta; seta + som de aviso; ~8 s alta a cada ~25 s), **M5 contêiner boiando vira**, **M6 rede de carga rasga** (a rede
-  já é a peça `p3_prancha_6`), **M10 tubarão**. Depois Atlântida: M7 racha da cúpula (zona já existe; crescer o `topo`),
-  M8 lustre despenca (peça `p2_prancha_7`), M9 concha-trampolim (hoje desenhada no palco fixo `e2_palco`).
-  Pequenos das fotos: bote salva-vidas (Alto-Mar), mastro-ponte e pneus (Destroços).
+- **Próximo passo exato:** M4 maré FEITO (`mare`, `--so=m4`; zona de água dos Destroços + bote/jangada boiam). Próximo:
+  **M5 contêiner boiando vira** (Destroços; `perigos_mecanismos.md`): 2+ robôs em cima → range e afunda um lado → em 1 s
+  vira e joga na água; volta em ~4 s. Sugestão: tipo `conteiner_boia` em `mecanismos.gd` com corpo próprio (como o gancho,
+  `_body(..., animated)`), no mar entre a rocha-arco e a balsa (rel col ~20–22, linha 13); arte `cont_*`. Depois M6 rede
+  rasga (peça `p3_prancha_6`, marretada pesada → caixas caem), M10 tubarão; Atlântida M7/M8/M9.
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

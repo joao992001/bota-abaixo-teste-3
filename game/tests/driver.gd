@@ -580,6 +580,7 @@ func demolicao_test() -> void:
 	await m1_test()
 	await m2_test()
 	await m3_test()
+	await m4_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6712,6 +6713,56 @@ func m3_test() -> void:
 	check(r0.dmg == dmg0, "a onda não dá dano (só empurra e molha)")
 	main.go_menu()
 
+## M4 Maré (Destroços): baixa → aviso (linha + setas) → sobe até a maré alta: quem está no convés da balsa fica alagado,
+## bote e jangada boiam e sobem; depois desce. --so=m4
+func m4_test() -> void:
+	print("== Fase 2 · M4 maré")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "mare":
+			inst = i
+	check(inst != null and main.demo.agua != null, "M4 está nos Destroços, com a zona de água")
+	if inst == null:
+		return
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(3).position
+	var r0 = main.robots[0]
+	r0.invuln = 99.0
+	put(r0, Vector2(o.x + 29.0 * 64.0 + 24.0, o.y + 13.0 * 64.0))   # no convés livre da balsa (ponta, depois dos contêineres)
+	r0.active = true
+	var ct = main.demo.canteiro
+	var bote = null
+	for p in ct.parts:
+		if p["kind"] == "prancha" and int(p["etapa"]) == 3 and int(p["idx"]) == 7:
+			bote = p
+	await frames(5)
+	check(s["fase"] == "baixa" and not main.demo.agua.alagado(r0.position + Vector2(0, -36)), "maré baixa: o convés da balsa está seco")
+	var cyc := float(d["ciclo_s"])
+	var t_aviso := cyc - float(d["aviso_s"]) - 2.0 * float(d["sobe_s"]) - float(d["alta_s"])
+	s["t"] = t_aviso + 0.05
+	await frames(3)
+	check(s["fase"] == "aviso", "aviso: linha da maré alta + setas + alarme (%.0f s antes)" % float(d["aviso_s"]))
+	s["t"] = t_aviso + float(d["aviso_s"]) + float(d["sobe_s"]) + 0.2
+	await frames(5)
+	check(s["fase"] == "alta" and is_equal_approx(r0.agua_grav, float(main.demo.agua.cfg["gravidade"])), "maré alta: quem está no convés da balsa fica ALAGADO (pulo flutua)")
+	check(bote != null and (bote["rect"] as Rect2).position.y < float(bote["y0"]) - 100.0, "o bote boia e sobe com a água")
+	s["t"] = cyc - 0.01
+	await frames(10)
+	check(s["fase"] == "baixa" and r0.agua_grav == 1.0 and is_equal_approx((bote["rect"] as Rect2).position.y, float(bote["y0"])), "a maré desce: seca e o bote volta")
+	main.go_menu()
+
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
 func cargueiro_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -6756,6 +6807,16 @@ func cargueiro_frames(dir: String) -> void:
 			w += 1
 		await frames(60)
 		await snap(dir, par[2])
+		if par[1] == 3:   # M4 maré nos Destroços: aviso e maré alta
+			for i in main.demo.mecs.list:
+				if i["tipo"] == "mare":
+					var dd: Dictionary = i["d"]
+					var ta := float(dd["ciclo_s"]) - float(dd["aviso_s"]) - 2.0 * float(dd["sobe_s"]) - float(dd["alta_s"])
+					i["s"]["t"] = ta + 1.0
+					await frames(10)
+					await snap(dir, "f2_3b_m4_aviso")
+					await frames(int((float(dd["aviso_s"]) - 1.0 + float(dd["sobe_s"])) * 60.0) + 30)
+					await snap(dir, "f2_3c_m4_alta")
 	main.hud.visible = true
 
 ## ESTUDO DO EQUILÍBRIO DA DESTRUIÇÃO (--estudo-destruicao=N): N partidas de 4 bots no Canteiro, configuração PADRÃO

@@ -220,7 +220,8 @@ func _peca_mar(p: Dictionary, o: Vector2, tilt := 0.0) -> bool:
 		return false
 	var q: Array = pecas_mar[nome]
 	var org: Vector2 = main.level.etapa_rect(int(p["etapa"])).position
-	var rr := Rect2(org + Vector2(float(q[0]), float(q[1])) + o, Vector2(float(q[2]), float(q[3])))
+	var dy: float = (p["rect"] as Rect2).position.y - float(p["y0"])   # peça que se move (maré, G12): a arte vai junto
+	var rr := Rect2(org + Vector2(float(q[0]), float(q[1]) + dy) + o, Vector2(float(q[2]), float(q[3])))
 	if tilt != 0.0:
 		var piv: Vector2 = (p["rect"] as Rect2).get_center() + o
 		draw_set_transform(piv, tilt, Vector2.ONE)
