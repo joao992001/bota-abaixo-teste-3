@@ -49,8 +49,9 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] 5. Controle principal (`PlayerInput.principal/manda_no_menu`, `menus.dono`) + teste `--so=principal`
   - [ ] 6. Medir a regra com a transição ligada (várias partidas), registrar A56 em reformulacao_derruba.md, manual de
         desempenho §4/§5, bateria completa, .exe, relatório
-- **Próximo passo exato:** passo 6 — estudo com `etapas.ativo=true` (tempo e rota de virada), depois A56 no
-  `docs/revisoes/reformulacao_derruba.md`, linha nova no `docs/manuais/desempenho.md` §4, bateria `--autotest`, .exe.
+- **Próximo passo exato:** passo 6 — feito: estudo com a transição ligada (8/8 viram na verificação; 3 total, 5 moderada),
+  1ª verificação aos 90 s com o padrão de 4 vidas, A56 registrado, manual de desempenho e ESTADO. Falta: conferir a bateria
+  (`godot --headless --path game --fixed-fps 60 -- --autotest`), gerar o .exe (`tools/exportar.sh`) e relatar ao usuário.
 - Decisões pendentes do usuário: nenhuma (o estudo decide os números; reportar).
 
 

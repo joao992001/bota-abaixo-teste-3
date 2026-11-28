@@ -566,12 +566,12 @@
         },
         "nota_classes": "3 classes (2026-11-27): ataque, controle, transformação (mechas); a classe engenharia saiu — E01 Andaime Relâmpago e E03 Controle Remoto REMOVIDOS do jogo, E02 Carga Remota virou ataque. Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
         "destruicao": {
-          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. A56 (2026-11-28, estudo com bots `--estudo-destruicao`: com o A53b (65% a qualquer momento) a cena virava em ~20 s): SÓ a verificação de tempo decide (total_imediato false); aos 90 s bots médios ficam em 64–67% (moderada) e bots difíceis/caos em 67–86% (total em metade). O platô natural de ~67% (a parte de cima cai) separa as rotas: total exige derrubar também a base. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
+          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. A56 (2026-11-28, estudo com bots `--estudo-destruicao`: com o A53b (65% a qualquer momento) a cena virava em ~20 s): SÓ a verificação de tempo decide (total_imediato false), 1ª aos 90 s com o padrão de 4 vidas (75 s com 3, 120 s com 6); aos 90 s bots médios ficam em 64–67% (moderada) e bots difíceis/caos em 67–86% (total em metade). O platô natural de ~67% (a parte de cima cai) separa as rotas: total exige derrubar também a base. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
           "limiar_moderada": 0.35,
           "limiar_total": 0.7,
           "total_imediato": false,
           "verificacao": {
-            "vidas_base": 3,
+            "vidas_base": 4,
             "primeira_base_s": 90,
             "por_vida_s": 15,
             "intervalo_frac": 0.3334,

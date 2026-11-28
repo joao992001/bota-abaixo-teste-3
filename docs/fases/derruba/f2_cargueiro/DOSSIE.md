@@ -9,7 +9,7 @@ blocos A–F) em andamento — ver `docs/BASTAO.md`. Bastão: `docs/BASTAO.md`.
 |---|---|---|
 | Tema "fundo do mar descendo, da superfície até Atlântida" | `README.md` | **APROVADO** (2026-11-28) |
 | Nome "Cargueiro Perdido" · topologia de 3 cenas | `README.md` | **APROVADO** |
-| Gatilhos: 40% no tempo → Destroços · 65% a qualquer momento → Atlântida | `README.md` | **APROVADO** |
+| Gatilhos (A56): na verificação de tempo (~90 s), 35–70% → Destroços · ≥ 70% → Atlântida | `README.md` | **APROVADO** |
 | Princípio de palco: estrutura grande = moldura; luta em plataformas abertas | `decisoes_testes.md` | **APROVADO** |
 | KO por cena (mar, mar fundo, Fenda Abissal) | `decisoes_testes.md` | **APROVADO** |
 | Fotografia da cena 1 (Cargueiro no Alto-Mar) | `art/out/fase2/cena1_conves.png` | **APROVADO** (v3) |

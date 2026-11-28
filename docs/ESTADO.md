@@ -11,6 +11,13 @@ bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visu
 
 **Ideia em espera (2026-11-28):** online via **Steam Remote Play Together** (sem netcode; anfitrião no PC, convidados em
 PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for para a Steam. Netcode próprio: não agora.
+**▶ CORREÇÕES URGENTES DO CANTEIRO (2026-11-28) — A56:** (1) **regra dos 90 s**: só a verificação de tempo decide a rota
+(90 s com 4 vidas, ±15 s por vida; < 35% fica · 35–70% Fachada · ≥ 70% subterrâneo; o A53b virava em ~20 s) — estudo
+`--estudo-destruicao=N [--estudo-nivel=2 --estudo-eventos=3 --estudo-regra]`; (2) **caixas de engenhoca no subterrâneo**
+(`spells.spawn_points` usa o chão firme quando faltam peças); (3) **FPS da G03** (porcas em atlas + teto 24; `--perf-cena=2
+--perf-evento=G03`); (4) **controle principal**: só o 1º controle conectado (e o teclado) mexe nos menus, quem pausou mexe na
+pausa, em MAPEAR/TESTAR o controle escolhido assume até voltar (`PlayerInput.principal`, `menus.dono`, etiqueta PRINCIPAL no hub).
+Testes `--so=caixas_subsolo,principal,verificacao,etapas`. Falta o usuário jogar para confirmar os números.
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
@@ -25,7 +32,7 @@ engenhocas na água + A09/D07, skins K16–K20, storyboard das 2 transições `a
 Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
 PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`. Fotografias `art/out/fase2/cena*.png` (fonte `f2_prancha.py`): cena 1 APROVADA (v3, navio = moldura,
 luta em plataformas); 2a/2b refeitas no mesmo princípio, aguardando aprovação. Depois: manifesto + .lvl + arte (blocos A–F).
-**▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
+**▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b (substituído pelo A56)** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
 reação em cadeia). Falta o usuário jogar para confirmar. Também: menus com segurar-repete e o fluxo configurar/selecionar mapa termina
 na escolha dos personagens.
 **▶ PROJETOS DE DEMOLIÇÃO v2 FEITO — A53** (prancha `art/out/ui/projetos_v2.png`, vídeo `out/videos/projetos_v2.mp4`, vitrine

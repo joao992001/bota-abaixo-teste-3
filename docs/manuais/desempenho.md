@@ -26,7 +26,7 @@ engenhocas, eventos, mecanismos, cena, HUD (cartões, manômetro, avisos, textos
 xvfb-run -a -s "-screen 0 1920x1080x24" godot --path game --rendering-driver opengl3 --fixed-fps 60 -- \
   --perf-derruba=DIR [--perf-dur=S] [--perf-rota=total|moderada] [--perf-normal] [--perf-partidas=N]
 ```
-Partida de 4 bots no Canteiro, eventos em ALTA, todas as engenhocas, caixas frequentes (pior caso; `--perf-normal` =
+Partida de 4 bots no Canteiro (`--perf-cena=2` mede já na cena 2; `--perf-evento=G03` mantém um evento ligado), eventos em ALTA, todas as engenhocas, caixas frequentes (pior caso; `--perf-normal` =
 configuração padrão), virada de cena no meio. `--perf-partidas=N` = sessão longa (N partidas seguidas: acha vazamento).
 A simulação é **repetível** (mesma semente): o mesmo pico no mesmo quadro em duas rodadas = problema real; pico que muda de
 lugar = engasgo da máquina. Grava `DIR/relatorio.md` (médias, p95/p99, ranking por sistema e por contexto, os 15 piores
@@ -73,6 +73,7 @@ quadros com o que estava acontecendo, tabela por partida) e `DIR/quadros.json` (
 | 11-28 | Renascimento varrendo o mapa inteiro (cenas empilhadas) | 6–8 ms por volta | só a área de jogo |
 | 11-28 | **Vazamento**: cache de estilos (`Kit._sb`, `Obra._sb`) com a cor EXATA na chave — cada transparência de animação virava um estilo novo guardado para sempre | +3 mil objetos e ~13 MB **por partida** (a sessão piorava) | cor arredondada (transparência em 32 níveis) + teto de 1500 estilos |
 | 11-28 | **Vazamento**: nível criava uma forma de colisão antes do `if` e a dos trechos de parede ficava órfã | +13 nós órfãos por partida | forma criada só onde é usada |
+| 11-28 | G03 Gravidade: ~45 porcas no ar, cada uma polígono + contorno suavizado + 2 círculos (Fundação "travando") | +1,3 ms/quadro, +210 chamadas, picos 0,6 %→3,8 % | atlas de 6 giros desenhado 1× (1 retângulo por porca, em lote) + teto de 24 → 6,9 ms (igual sem evento), 763 chamadas, 0,7 % |
 
 ## 5. Histórico de medições (pior caso, 4 bots, Canteiro, esta máquina)
 | Data | Estado | CPU média | p99 | quadros > 12 ms | maiores picos de lógica |

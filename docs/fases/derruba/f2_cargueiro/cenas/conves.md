@@ -33,4 +33,4 @@ M2 gancho balança (preso na torre da grua), M3 onda estoura na balsa (só as ba
 | Rota | Gatilho | Cinematografia (storyboard em `art/out/fase2/transicoes.png`) |
 |---|---|---|
 | **Moderada → 2a Destroços** | verificação no tempo com **≥ 40%** | sirene do navio + faixa "O NAVIO VAI ENCALHAR!" → o navio é arrastado pela corrente e bate nas rochas → tranco: todos são lançados num arco **para a direita** (deslize, como a Fachada) e pousam nos destroços; a câmera acompanha de lado |
-| **Total → 2b Atlântida** | **65% a qualquer momento** | rachadura corre pelo casco + faixa "O NAVIO VAI AFUNDAR!" → o navio parte ao meio e afunda → **queda lenta pelo porão aberto** descendo o mar (bolhas, peixes, luz escurecendo) com a câmera descendo junto → pousam em Atlântida; contêineres afundando viram pedaços do navio lá embaixo |
+| **Total → 2b Atlântida** | **≥ 70% na verificação (A56)** | rachadura corre pelo casco + faixa "O NAVIO VAI AFUNDAR!" → o navio parte ao meio e afunda → **queda lenta pelo porão aberto** descendo o mar (bolhas, peixes, luz escurecendo) com a câmera descendo junto → pousam em Atlântida; contêineres afundando viram pedaços do navio lá embaixo |

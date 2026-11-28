@@ -2159,7 +2159,7 @@ func verificacao_test() -> void:
 	var et = main.demo.etapas
 	var ct = main.demo.canteiro
 	var vcf: Dictionary = et.dcfg["verificacao"]
-	var t3 := float(vcf["primeira_base_s"])
+	var t3 := float(vcf["primeira_base_s"]) + float(vcf["por_vida_s"]) * (3 - int(vcf["vidas_base"]))
 	var t6 := t3 + 3.0 * float(vcf["por_vida_s"])
 	check(is_equal_approx(et.tempos()[0], t3) and absf(et.tempos()[1] - t3 * float(vcf["intervalo_frac"])) < 0.1, "3 vidas: %.0f s / %.0f s (lido de modos.json)" % [et.tempos()[0], et.tempos()[1]])
 	main.demo.lives_setting = 6
@@ -6547,6 +6547,7 @@ func estudo_destruicao(n: int) -> void:
 			nivel = int(a.substr(15))
 		elif a.begins_with("--estudo-eventos="):
 			ev_nivel = int(a.substr(17))
+	var regra := "--estudo-regra" in OS.get_cmdline_user_args()   # transição LIGADA: mede quando e para onde vira
 	for i in n:
 		seed(100 + i)
 		main.rng.seed = 100 + i
@@ -6565,9 +6566,20 @@ func estudo_destruicao(n: int) -> void:
 		for r in main.robots:
 			r.active = true
 		var et = main.demo.etapas
-		et.ativo = false
+		et.ativo = regra
 		var ct = main.demo.canteiro
 		var cur := []
+		if regra:
+			var q := 0
+			while et.state == "etapa" and q < 60 * 200:
+				for j in main.players.size():
+					main.demo.lives[j] = 9
+				await frames(1)
+				q += 1
+			print("ESTUDO regra partida %d: virou aos %.0f s → rota %s com %.0f%%" % [i + 1, q / 60.0, et.rota, et.progresso * 100.0])
+			main.go_menu()
+			await frames(3)
+			continue
 		for s in 151:
 			for j in main.players.size():
 				main.demo.lives[j] = 9
@@ -6577,6 +6589,9 @@ func estudo_destruicao(n: int) -> void:
 		curvas.append(cur)
 		print("ESTUDO partida %d: %s" % [i + 1, str(cur)])
 	var med := []
+	if curvas.is_empty():
+		main.go_menu()
+		return
 	for k in curvas[0].size():
 		var v := curvas.map(func(c): return float(c[k]))
 		med.append(snappedf(v.reduce(func(a, b): return a + b, 0.0) / v.size(), 0.1))
