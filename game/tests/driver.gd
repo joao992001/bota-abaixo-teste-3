@@ -2143,20 +2143,24 @@ func verificacao_test() -> void:
 	main.demo.spells.spawn_t = 999.0
 	var et = main.demo.etapas
 	var ct = main.demo.canteiro
-	check(et.tempos()[0] == 30.0 and absf(et.tempos()[1] - 10.0) < 0.1, "3 vidas: 30 s / 10 s (%s)" % str(et.tempos()))
+	var vcf: Dictionary = et.dcfg["verificacao"]
+	var t3 := float(vcf["primeira_base_s"])
+	var t6 := t3 + 3.0 * float(vcf["por_vida_s"])
+	check(is_equal_approx(et.tempos()[0], t3) and absf(et.tempos()[1] - t3 * float(vcf["intervalo_frac"])) < 0.1, "3 vidas: %.0f s / %.0f s (lido de modos.json)" % [et.tempos()[0], et.tempos()[1]])
 	main.demo.lives_setting = 6
-	check(et.tempos()[0] == 90.0 and absf(et.tempos()[1] - 30.0) < 0.1, "6 vidas: 90 s / 30 s (%s)" % str(et.tempos()))
+	check(is_equal_approx(et.tempos()[0], t6) and absf(et.tempos()[1] - t6 * float(vcf["intervalo_frac"])) < 0.1, "6 vidas: %.0f s / %.0f s" % [et.tempos()[0], et.tempos()[1]])
 	main.demo.lives_setting = 3
 	et.prox_verif = et.tempos()[0]
 	for r in main.robots:
 		put(r, Vector2(2 * 64.0 + r.pid * 40.0, 17 * 64.0))   # parados no térreo, longe da laje
 		r.active = false
 	et.ativo = true
-	for k in 60 * 45:
+	var espera := float(et.tempos()[0]) + float(et.tempos()[1]) + 1.0
+	for k in int(60 * espera):
 		await frames(1)
 	var caidas: int = ct.parts.filter(func(p): return int(p["etapa"]) == 1 and p["fallen"]).size()
-	check(caidas == 0 and ct.progresso(1) == 0.0, "sem diretor: 45 s parados e nada caiu sozinho (%d peças, %.0f%%)" % [caidas, ct.progresso(1) * 100.0])
-	check(et.state == "etapa" and et.verificacoes >= 2, "verificou aos 30 s e de novo aos 40 s, e ficou na cena (%d verificações)" % et.verificacoes)
+	check(caidas == 0 and ct.progresso(1) == 0.0, "sem diretor: %.0f s parados e nada caiu sozinho (%d peças, %.0f%%)" % [espera, caidas, ct.progresso(1) * 100.0])
+	check(et.state == "etapa" and et.verificacoes >= 2, "verificou na 1ª hora e de novo depois, e ficou na cena (%d verificações)" % et.verificacoes)
 	check("G01" in MapaReg.eventos("derruba", "canteiro_obras", 1) and "G01" in MapaReg.eventos("derruba", "canteiro_obras", 2), "G01 Sirene volta como evento do Canteiro (nas 2 cenas)")
 	for r in main.robots:
 		r.active = true
