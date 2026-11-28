@@ -49,7 +49,11 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
     - [x] M3 onda procedural `game/modes/mec_onda.gd` (sai do mar, encurva, bate, lâmina varre, escoa; robô arremessado) → `out/videos/cargueiro_onda_v2(_lento).mp4` ENVIADO, aguardando opinião
     - [ ] M1 contêiner (sai do navio/gancho, cai acelerando, achata, quica, poeira/lascas, robô esmagado/arremessado)
     - [ ] M2 gancho (pêndulo com cabo, antecipação puxando, pancada com hitstop)
-    - [ ] perguntar ao usuário o que não agrada nas plataformas (tábuas/contêineres do palco)
+    - [x] plataformas: usuário respondeu "composição boa, mas o contexto visual não se encaixa no tema" → prancha
+      `art/out/fase2/plataformas_cena1.png` (fonte `art/src/cenarios/f2_plataformas.py`, `--prancha`): andaime→mastro de carga,
+      tábua→passarela de aço, pilar→boia-torre, viga→bote salva-vidas — ENVIADA, aguardando aprovação
+    - [ ] aprovada → levar ao jogo: `f2_jogo.py` (e1_palco ← `f2_plataformas.e1_palco_mar`, _pecas_e1 ← `pecas_mar`), regenerar,
+      copiar para `game/assets/cargueiro/`, `--import`, captura; depois ver se Destroços/Atlântida têm o mesmo problema
   - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
   - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
 - **Próximo passo exato:** passo 2c — M1 contêiner no padrão novo (`game/modes/mec_conteiner.gd`): sai da PILHA do navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata+quica, poeira/lascas, robô esmagado/arremessado; vídeo `--video-so=conteiner_cai --video-passo=1`. Depois M2. (Antigo: passo 3 — prancha da cena 2a (`art/src/cenarios/f2_lapida2.py` → `art/out/fase2/lapida_cena2a.png`):
