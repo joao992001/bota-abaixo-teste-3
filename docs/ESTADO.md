@@ -13,6 +13,9 @@ PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for 
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
+**▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas
+Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
+PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`; esquema `art/out/fase2/esquema.png`. Próximo: aprovação → fotografia de cada cena.
 **▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
 reação em cadeia). Falta o usuário jogar para confirmar. Também: menus com segurar-repete e o fluxo configurar/selecionar mapa termina
 na escolha dos personagens.
