@@ -68,6 +68,23 @@
      "vel_queda": 1500,
      "dano_peca": 2,
      "fica_s": 14.0
+    },
+    {
+     "tipo": "gancho_balanca",
+     "nota": "M2: o contêiner pendurado no gancho da grua é plataforma; a grua range + ARCO TRACEJADO (aviso) → ele balança e varre o arco empurrando quem está no caminho (quem está em cima vai junto); marretada nele inverte o balanço.",
+     "pivo": [
+      15.0,
+      1.1
+     ],
+     "comprimento_t": 3.9,
+     "largura_t": 2.7,
+     "ciclo_s": 12.0,
+     "fase_s": 3.0,
+     "aviso_s": 1.2,
+     "balanco_s": 3.4,
+     "amplitude": 0.7,
+     "periodo_s": 1.7,
+     "cor": 4
     }
    ],
    "rota_moderada": "destrocos",

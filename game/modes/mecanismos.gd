@@ -104,6 +104,11 @@ func zonas_perigo() -> Array:
 				out.append(Rect2(float(d["x"]) - 130.0, float(d["topo"]) - 40.0, 260.0, float(d["chao"]) - float(d["topo"]) + 60.0))
 			"vagonete":
 				out.append(Rect2(float(d["x"][0]) - 80.0, float(d["chao"]) - 200.0, float(d["x"][1]) - float(d["x"][0]) + 160.0, 220.0))
+			"gancho_balanca":   # todo o arco que o contêiner varre
+				var g: Dictionary = _gancho_geo(inst)
+				var pv: Vector2 = g["pivo"]
+				var rr: float = g["L"] + 70.0
+				out.append(Rect2(pv.x - rr, pv.y, 2.0 * rr, rr + 40.0))
 			"conteiner_cai":   # sombra no aviso/queda e o contêiner parado (plataforma nova)
 				var s2: Dictionary = inst["s"]
 				if s2.has("alvo"):
@@ -144,6 +149,7 @@ func update(dt: float) -> void:
 			"vagonete": _vagonete(inst, dt)
 			"gerador": _gerador(inst, dt)
 			"conteiner_cai": _conteiner_cai(inst, dt)
+			"gancho_balanca": _gancho(inst, dt)
 	queue_redraw()
 
 # ---------------------------------------------------------------- tipos
@@ -517,6 +523,77 @@ func _conteiner_some(s: Dictionary) -> void:
 	if String(s.get("fase", "espera")) == "espera":
 		s.erase("alvo")
 
+## M2 Gancho balança (Fase 2, Alto-Mar): contêiner pendurado no gancho da grua = plataforma. A cada ciclo a grua range e
+## um ARCO TRACEJADO mostra o caminho (aviso_s); ele balança (balanco_s, amplitude amortecendo) e empurra quem está no
+## caminho (mec_gancho); quem está em cima vai junto. Marretada nele: parado → balança já para o outro lado; balançando → inverte.
+func _gancho_geo(inst: Dictionary) -> Dictionary:
+	var d: Dictionary = inst["d"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	return {"pivo": o + _v(d["pivo"]) * T, "L": float(d["comprimento_t"]) * T, "w": float(d["largura_t"]) * T, "h": T - 8.0}
+
+func _gancho_rect(inst: Dictionary) -> Rect2:
+	var g := _gancho_geo(inst)
+	var th := float(inst["s"].get("ang", 0.0))
+	var topo: Vector2 = g["pivo"] + Vector2(sin(th), cos(th)) * float(g["L"])
+	return Rect2(topo.x - float(g["w"]) / 2.0, topo.y, g["w"], g["h"])
+
+func _gancho(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	if not s.has("plat"):
+		s["ang"] = 0.0
+		s["fase"] = "parado"
+		s["dir"] = 1.0
+		s["r0"] = _gancho_rect(inst)
+		s["plat"] = _body(s["r0"], 2, true, true)   # plataforma de passagem (pisa por cima)
+	var fase := String(s["fase"])
+	if fase == "parado" and float(s["t"]) >= float(d["ciclo_s"]) - float(d["aviso_s"]):
+		s["fase"] = "aviso"
+		s["aviso"] = float(d["aviso_s"])
+		Audio.play("gancho", 0.5, -2.0)   # a grua range
+	elif fase == "aviso":
+		s["aviso"] = float(s["aviso"]) - dt
+		s["ang"] = sin(t * 30.0) * 0.015
+		if float(s["aviso"]) <= 0.0:
+			_gancho_solta(inst)
+	elif fase == "balanca":
+		s["bt"] = float(s["bt"]) + dt
+		var bt := float(s["bt"])
+		var dur := float(d["balanco_s"])
+		var w := TAU / float(d["periodo_s"])
+		var amp := float(d["amplitude"]) * (1.0 - bt / dur)
+		var ang := float(s["dir"]) * amp * sin(w * bt + float(s.get("fi", 0.0)))
+		var vel := ang - float(s["ang"])
+		if signf(vel) != signf(float(s.get("vel", 0.0))):
+			s["hit"] = {}   # nova passada: pode acertar de novo
+		s["vel"] = vel
+		s["ang"] = ang
+		var r := _gancho_rect(inst)
+		for rb in _robots():
+			if s["hit"].has(rb.pid):
+				continue
+			var rr: Rect2 = rb.rect()
+			var em_cima: bool = rr.end.y <= r.position.y + 10.0
+			if rr.intersects(r.grow(4.0)) and not em_cima and absf(vel) > 0.004:
+				s["hit"][rb.pid] = true
+				rb.take_hit(1 if vel > 0.0 else -1, "mec_gancho", -1)
+		if bt >= dur:
+			s["fase"] = "parado"
+			s["ang"] = 0.0
+			s["t"] = 0.0
+	var b = s["plat"]
+	if is_instance_valid(b):
+		b.position = _gancho_rect(inst).position - (s["r0"] as Rect2).position
+
+func _gancho_solta(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	s["fase"] = "balanca"
+	s["bt"] = 0.0
+	s["fi"] = 0.0
+	s["hit"] = {}
+	s["vel"] = 0.0
+	Audio.play("gancho", 0.8, 0.0)
+
 ## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
 func _chao_em(r: Rect2, limite: float) -> float:
 	var y := r.position.y
@@ -536,6 +613,39 @@ func _chao_em(r: Rect2, limite: float) -> float:
 				return minf(best, row * T)
 		row += 1
 	return best
+
+func _draw_gancho(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	if not s.has("plat"):
+		return
+	var g := _gancho_geo(inst)
+	var pv: Vector2 = g["pivo"]
+	var L: float = g["L"]
+	if String(s["fase"]) == "aviso":   # ARCO TRACEJADO: por onde o contêiner vai varrer
+		var amp := float(d["amplitude"])
+		var n := 18
+		for k in n:
+			if k % 2 == 1:
+				continue
+			var a0 := -amp + 2.0 * amp * k / n
+			var a1 := -amp + 2.0 * amp * (k + 1) / n
+			var rr := L + float(g["h"]) * 0.5
+			draw_line(pv + Vector2(sin(a0), cos(a0)) * rr, pv + Vector2(sin(a1), cos(a1)) * rr, Color(1, 1, 1, 0.85), 5.0)
+	var r := _gancho_rect(inst)
+	var gancho := Vector2(r.get_center().x, r.position.y - 46.0)
+	draw_line(pv, gancho, INK, 4.0)   # cabo principal
+	draw_circle(gancho, 7.0, Color("#5a5f6a"))
+	draw_line(gancho + Vector2(0, 10), r.position + Vector2(8, 0), INK, 3.0)   # lingas até as quinas
+	draw_line(gancho + Vector2(0, 10), Vector2(r.end.x - 8.0, r.position.y), INK, 3.0)
+	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % int(d.get("cor", 4)))
+	if ctx != null:
+		draw_texture_rect(ctx, r, false)
+	if String(s["fase"]) == "balanca":   # rastro do movimento
+		var v := float(s.get("vel", 0.0))
+		for k in 3:
+			var x := r.position.x - signf(v) * (20.0 + k * 16.0) if v > 0.0 else r.end.x - signf(v) * (20.0 + k * 16.0)
+			draw_line(Vector2(x, r.position.y + 12.0 + k * 14.0), Vector2(x - signf(v) * 26.0, r.position.y + 12.0 + k * 14.0), Color(1, 1, 1, 0.7), 4.0)
 
 const CONT_CORES := [Color("#d14b4b"), Color("#3f7fd0"), Color("#4fae5b"), Color("#f2a33a"), Color("#8a63d2")]
 
@@ -578,6 +688,17 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 			continue
 		var d: Dictionary = inst["d"]
 		var s: Dictionary = inst["s"]
+		if String(inst["tipo"]) == "gancho_balanca" and s.has("plat") and _gancho_rect(inst).intersects(hit):
+			var lado := 1.0 if hit.get_center().x < _gancho_rect(inst).get_center().x else -1.0   # empurra para longe de quem bateu
+			if String(s["fase"]) == "balanca":
+				s["dir"] = -float(s["dir"])   # inverte o sentido (mesmo ângulo, velocidade ao contrário)
+				s["fi"] = -2.0 * (TAU / float(d["periodo_s"])) * float(s["bt"]) - float(s.get("fi", 0.0))
+			else:
+				_gancho_solta(inst)
+				s["dir"] = lado
+			main.spark(hit.get_center(), 5)
+			Audio.play("chave", 0.9, -2.0)
+			return true
 		if not d.has("alvo"):
 			continue
 		var a: Array = d["alvo"]
@@ -635,6 +756,8 @@ func _draw_perf() -> void:
 		match String(inst["tipo"]):
 			"conteiner_cai":
 				_draw_conteiner(s, d)
+			"gancho_balanca":
+				_draw_gancho(inst)
 			"betoneira":
 				var p := _v(d["pos"])
 				var aviso: bool = float(s["t"]) > float(d["ciclo_s"]) - float(d["aviso_s"])

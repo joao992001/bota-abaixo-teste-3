@@ -578,6 +578,7 @@ func demolicao_test() -> void:
 	await cargueiro_test()
 	await agua_test()
 	await m1_test()
+	await m2_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6619,6 +6620,59 @@ func m1_test() -> void:
 	check(not s.has("plat"), "depois de um tempo some (abre espaço para o próximo)")
 	main.go_menu()
 
+## M2 Gancho balança (Alto-Mar): parado é plataforma; aviso (arco) → balança e empurra quem está no caminho; marretada
+## inverte o balanço. --so=m2
+func m2_test() -> void:
+	print("== Fase 2 · M2 gancho balança")
+	await _cargueiro_partida()
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "gancho_balanca":
+			inst = i
+	check(inst != null, "M2 está no Alto-Mar (manifesto)")
+	if inst == null:
+		return
+	await frames(2)
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	check(s.has("plat") and is_instance_valid(s["plat"]) and s["fase"] == "parado", "parado: o contêiner no gancho é plataforma")
+	var r0 = main.robots[0]
+	for r in main.robots:
+		r.invuln = 99.0
+		r.active = false
+	r0.invuln = 0.0
+	var rc: Rect2 = mc._gancho_rect(inst)
+	s["t"] = float(d["ciclo_s"]) - float(d["aviso_s"]) - 0.02
+	await frames(3)
+	check(s["fase"] == "aviso", "aviso: a grua range e o arco tracejado aparece (%.1f s)" % float(d["aviso_s"]))
+	put(r0, Vector2(rc.end.x + 70.0, rc.end.y + 20.0))   # no caminho, ao lado do contêiner
+	r0.set_meta("grav_cena", 0.0)
+	r0.velocity = Vector2.ZERO
+	var dmg0: float = r0.dmg
+	var w := 0
+	while r0.dmg == dmg0 and w < 300:
+		r0.velocity = Vector2.ZERO
+		await frames(1)
+		w += 1
+	r0.remove_meta("grav_cena")
+	check(r0.dmg > dmg0, "balançando, o contêiner varre e empurra quem está no caminho (%.0f%%)" % (r0.dmg - dmg0))
+	var a0: float = s["ang"]
+	await frames(2)
+	var v0: float = float(s["ang"]) - a0
+	var rr: Rect2 = mc._gancho_rect(inst)
+	mc.hammer_hit(Rect2(rr.position.x - 20.0, rr.position.y, 30.0, 30.0), true, 0)
+	var a1: float = s["ang"]
+	await frames(2)
+	var v1: float = float(s["ang"]) - a1
+	check(signf(v0) != signf(v1) and absf(v1) > 0.0, "marretada inverte o balanço (%.3f → %.3f)" % [v0, v1])
+	var w2 := 0
+	while s["fase"] != "parado" and w2 < 400:
+		await frames(1)
+		w2 += 1
+	check(s["fase"] == "parado" and absf(float(s["ang"])) < 0.001, "depois para e volta a ser plataforma")
+	main.go_menu()
+
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
 func cargueiro_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -6635,6 +6689,13 @@ func cargueiro_frames(dir: String) -> void:
 			await snap(dir, "f2_1b_m1_aviso")
 			await frames(110)
 			await snap(dir, "f2_1c_m1_caiu")
+	for i in main.demo.mecs.list:   # M2: arco do aviso e o contêiner varrendo
+		if i["tipo"] == "gancho_balanca":
+			i["s"]["t"] = float(i["d"]["ciclo_s"]) - float(i["d"]["aviso_s"]) + 0.6
+			await frames(10)
+			await snap(dir, "f2_1d_m2_aviso")
+			await frames(100)
+			await snap(dir, "f2_1e_m2_balanca")
 	for par in [["total", 2, "f2_2_atlantida"], ["moderada", 3, "f2_3_destrocos"]]:
 		if par[0] == "moderada":
 			await _cargueiro_partida()

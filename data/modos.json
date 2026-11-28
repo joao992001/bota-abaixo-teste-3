@@ -504,6 +504,13 @@
         "ky": 420,
         "ky_por": 2.0
       },
+      "mec_gancho": {
+        "dano": 12,
+        "kx": 320,
+        "kx_por": 3.4,
+        "ky": 240,
+        "ky_por": 1.6
+      },
       "mec_conteiner": {
         "dano": 18,
         "kx": 240,

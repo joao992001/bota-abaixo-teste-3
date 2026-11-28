@@ -41,16 +41,17 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Passos:
   - [x] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
         `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
-  - [ ] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste — M1 contêiner despenca FEITO (`conteiner_cai`, `--so=m1`)
+  - [ ] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste — M1 contêiner despenca FEITO (`conteiner_cai`, `--so=m1`); M2 gancho balança FEITO (`gancho_balanca`, `--so=m2`)
   - [ ] 3. M-perigos da cena 2a (M4 maré etc.) e 2b (M7 cúpula etc.) + M10 tubarão
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** usuário reprovou as peças genéricas (2026-11-28) → FEITO: cada peça que quebra é recortada do
-  desenho da fotografia (`f2_jogo.py` PECAS → `game/assets/cargueiro/p<etapa>_<tipo>_<idx>.png` + `pecas.json`;
-  `canteiro._peca_mar`), Atlântida refeita igual à foto 2b (manifesto). Comparação `art/out/fase2/jogo/foto_x_jogo.png`.
-  AGUARDA o usuário aprovar. Faltam (das fotos): contêiner no gancho e bote (Alto-Mar), mastro-ponte e pneus (Destroços).
-  Depois: M2 gancho balança (`gancho_balanca`, no molde do `conteiner_cai`), M3 onda na balsa (`main.demo.agua.molhar(r)`).
+- **Próximo passo exato:** peças com a arte das fotos APROVADAS pelo usuário ("Agora sim", 2026-11-28). M2 feito.
+  Próximo: **M3 onda estoura na balsa** (Alto-Mar; `perigos_mecanismos.md`): tipo `onda_balsa` em `mecanismos.gd` no molde
+  do `gancho_balanca`: água incha na borda da balsa (aviso 1 s) → empurra para dentro e chama `main.demo.agua.molhar(r)` (2 s
+  lento); só nas 2 balsas (colunas 1–6 e 22–28, linha 13 da cena 1), ~15 s alternando; teste `--so=m3` + quadro na vitrine.
+  O Alto-Mar precisa de `agua` (o módulo só existe se o manifesto tiver zonas: criar `Agua.tem_agua` = zonas OU mecanismo
+  onda_balsa). Pequenos que faltam das fotos: bote salva-vidas (Alto-Mar), mastro-ponte e pneus (Destroços).
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO
