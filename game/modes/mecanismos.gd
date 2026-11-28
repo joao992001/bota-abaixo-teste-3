@@ -474,7 +474,7 @@ func _conteiner_cai(inst: Dictionary, dt: float) -> void:
 				s["vy"] = 0.0
 				s["aviso"] = float(d["aviso_s"])
 				s["fase"] = "aviso"
-				s["cor"] = main.rng.randi() % 5
+				s["cor"] = main.rng.randi() % 7
 				s["hit"] = {}
 				Audio.play("gancho", 0.7, -2.0)   # amarras estalando
 		"aviso":
@@ -557,13 +557,12 @@ func _draw_conteiner(s: Dictionary, d: Dictionary) -> void:
 	if fase == "aviso":
 		y = main.view_rect().position.y - alvo.size.y * 0.55 + sin(t * 40.0) * 3.0   # aparece balançando no alto (amarras)
 	var r := Rect2(alvo.position.x, y, alvo.size.x, alvo.size.y)
-	var cor: Color = CONT_CORES[int(s.get("cor", 0)) % CONT_CORES.size()]
-	draw_rect(r, cor)
-	draw_rect(Rect2(r.position, Vector2(r.size.x, 8.0)), cor.darkened(0.3))
-	for k3 in range(1, 6):   # nervuras do contêiner
-		var x := r.position.x + k3 * r.size.x / 6.0
-		draw_line(Vector2(x, r.position.y + 10.0), Vector2(x, r.end.y - 6.0), cor.darkened(0.22), 4.0)
-	draw_rect(r, INK, false, 4.0)
+	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % (int(s.get("cor", 0)) % 7))   # mesma arte dos contêineres do palco
+	if ctx != null:
+		draw_texture_rect(ctx, r, false)
+	else:
+		draw_rect(r, CONT_CORES[int(s.get("cor", 0)) % CONT_CORES.size()])
+		draw_rect(r, INK, false, 4.0)
 
 func _find(tipo: String):
 	for inst in list:

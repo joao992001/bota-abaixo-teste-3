@@ -6476,6 +6476,8 @@ func _cargueiro_rota(tipo: String, n: int) -> void:
 	await _cargueiro_partida()
 	var et = main.demo.etapas
 	et.ativo = true
+	for r in main.robots:
+		r.active = false   # bots parados: o teste é da transição (no aviso um bot podia cair no mar brigando)
 	var lives0 = main.demo.lives.duplicate()
 	et.forcar(tipo)
 	var w := 0
@@ -6485,7 +6487,7 @@ func _cargueiro_rota(tipo: String, n: int) -> void:
 	await frames(40)
 	var a: Rect2 = main.level.etapa_rect(n)
 	check(et.etapa == n and main.level.area == a, "rota %s: chega à cena %d em %.1f s; área e KO passam para ela" % [tipo, n, w / 60.0])
-	check(main.robots.all(func(r): return r.alive and a.has_point(r.position)) and main.demo.lives == lives0, "rota %s: os 4 chegam vivos dentro da cena nova, sem perder vida (%s)" % [tipo, str(main.robots.map(func(r): return [r.pid, Vector2i(r.position / 64.0), r.alive]))])
+	check(main.robots.all(func(r): return r.alive and a.has_point(r.position)) and main.demo.lives == lives0, "rota %s: os 4 chegam vivos dentro da cena nova, sem perder vida (%s vidas %s→%s)" % [tipo, str(main.robots.map(func(r): return [r.pid, Vector2i(r.position / 64.0), r.alive])), str(lives0), str(main.demo.lives)])
 
 func cargueiro_test() -> void:
 	print("== Fase 2 · Cargueiro Perdido (bloco A)")
@@ -6506,7 +6508,7 @@ func cargueiro_test() -> void:
 	var por := {1: 0, 2: 0, 3: 0}
 	for p in ct.parts:
 		por[int(p.get("etapa", 1))] += 1
-	check(por[1] == 5 and por[2] == 7 and por[3] == 9, "estruturas que quebram montadas em cada cena (Alto-Mar %d, Atlântida %d, Destroços %d)" % [por[1], por[2], por[3]])
+	check(por[1] == 12 and por[2] == 7 and por[3] == 14, "estruturas que quebram montadas em cada cena (Alto-Mar %d, Atlântida %d, Destroços %d)" % [por[1], por[2], por[3]])
 	await frames(60)
 	check(main.robots.all(func(r): return r.alive and L.etapa_rect(1).has_point(r.position)), "todos nascem e ficam de pé no Alto-Mar")
 	check(ct.progresso(1) < 0.05, "manômetro começa zerado (%.0f%%)" % (ct.progresso(1) * 100.0))

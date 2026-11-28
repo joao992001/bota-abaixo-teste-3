@@ -20,7 +20,7 @@ func setup(m: Node) -> void:
 	a2 = m.level.etapa_rect(2)
 	if String(m.level.prop("etapa3", "")) != "":
 		a3 = m.level.etapa_rect(3)
-	for n in ["e1_longe", "e2_longe", "e3_longe", "gaivota", "onda_tarde", "onda_manha", "agua_viva", "peixe_a", "peixe_b"]:
+	for n in ["e1_longe", "e2_longe", "e3_longe", "e1_palco", "e2_palco", "e3_palco", "gaivota", "onda_tarde", "onda_manha", "agua_viva", "peixe_a", "peixe_b"]:
 		tex[n] = Data.tex("%s/%s" % [key, n])
 	_rng.seed = 91
 	for i in 7:
@@ -76,15 +76,18 @@ func _draw_perf() -> void:
 	if v.intersects(a1.grow(400)):
 		draw_rect(Rect2(a1.position.x - 900.0, v.position.y, a1.size.x + 1036.0, a1.position.y + 320.0 - v.position.y), Color("#f4ad80"))   # céu além da foto
 		_foto("e1_longe", a1, 0.06, 0.03)
+		_foto("e1_palco", a1, 0.0, 0.0)   # base fixa (balsas, pilar, torres, grua) por cima dos tiles invisíveis
 		_ondas("onda_tarde", a1, 1.0)
 		_gaivotas(1, a1)
 	if a3.size.x > 0.0 and v.intersects(a3.grow(400)):
 		draw_rect(Rect2(a3.position.x - 120.0, v.position.y, a3.size.x + 900.0, a3.position.y + 320.0 - v.position.y), Color("#ffe2b0"))   # não invade o Alto-Mar
 		_foto("e3_longe", a3, 0.06, 0.03)
+		_foto("e3_palco", a3, 0.0, 0.0)
 		_ondas("onda_manha", a3, 0.8)
 		_gaivotas(3, a3)
 	if v.intersects(a2.grow(300)):
 		_foto("e2_longe", a2, 0.05, 0.03)
+		_foto("e2_palco", a2, 0.0, 0.0)
 		_atlantida()
 
 ## Ondas atrás do palco na linha do mar (deslizam e balançam; a da frente fica em _draw_front_perf).

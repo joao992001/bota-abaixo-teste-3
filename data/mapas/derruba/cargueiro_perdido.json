@@ -114,7 +114,51 @@
      ]
     ],
     "pilares": [],
-    "terreos": []
+    "terreos": [],
+    "conteineres": [
+     [
+      1,
+      11,
+      3,
+      1
+     ],
+     [
+      1,
+      12,
+      3,
+      1
+     ],
+     [
+      4,
+      12,
+      3,
+      1
+     ],
+     [
+      13,
+      10,
+      3,
+      1
+     ],
+     [
+      22,
+      12,
+      3,
+      1
+     ],
+     [
+      25,
+      11,
+      3,
+      1
+     ],
+     [
+      25,
+      12,
+      3,
+      1
+     ]
+    ]
    },
    "nota": "Ficha: docs/fases/derruba/f2_cargueiro/cenas/conves.md. andaimes = tábuas dos níveis 9 e 6; viga = viga içada. Contêineres: bloco D."
   },
@@ -242,6 +286,38 @@
       43,
       16,
       3
+     ]
+    ],
+    "conteineres": [
+     [
+      37,
+      12,
+      3,
+      1
+     ],
+     [
+      37,
+      13,
+      3,
+      1
+     ],
+     [
+      57,
+      13,
+      3,
+      1
+     ],
+     [
+      57,
+      14,
+      3,
+      1
+     ],
+     [
+      60,
+      14,
+      3,
+      1
      ]
     ]
    },

@@ -37,6 +37,7 @@ var t := 0.0
 var cycle_state := "calma"
 var target = null
 var tex := {}
+var tema_mar := false          # Fase 2 (cena: cargueiro): tábuas, lajes de mármore e contêineres no tema do mar
 var extras: Array = []        # cenas seguintes do manifesto (estacas, grelhas, piso, entulhos)
 var quiet := false             # virada da fase: desaba tudo sem um texto por peça
 var pillars_down := false
@@ -72,6 +73,14 @@ func setup(m: Node, lv) -> void:
 	for i in ters.size():   # chão do térreo (dos lados): firme; só some na virada da fase (collapse_all)
 		var g: Array = ters[i]
 		_add("terreo", Rect2(g[0] * T, g[1] * T, g[2] * T, g[3] * T), 999, true, false, i, ETAPA_LAJE)
+	var conts: Array = lay.get("conteineres", [])
+	for i in conts.size():   # Fase 2: contêineres (sólidos, empilham; quebram e caem como as outras peças)
+		var c0: Array = conts[i]
+		_add("conteiner", Rect2(c0[0] * T, c0[1] * T, c0[2] * T, c0[3] * T), int(cfg.get("conteiner_hp", 3)), false, false, i, int(c0[4]))
+	tema_mar = String(lv.prop("cena", "")) == "cargueiro"
+	if tema_mar:
+		for k in 7:
+			tex["cont_%d" % k] = Data.tex("cargueiro/cont_%d" % k)
 	extras = lay.get("cenas_extra", [])
 	for c in extras:   # cenas seguintes: plataformas sobre estaca e grelhas de poço
 		var n: int = c["ordem"]
@@ -198,6 +207,52 @@ func damage_perf(p: Dictionary, amount: int, at: Vector2) -> void:
 		p["crit_t"] = float(cfg["aviso_queda_s"])   # aviso final: range, treme forte, pedrinhas caindo
 		Audio.play("terremoto", 1.5, -4.0)
 
+## ---- Fase 2 (tema do mar): desenho das peças que quebram, no traço das fotografias aprovadas
+func _tabua_mar(r: Rect2, o: Vector2, st: int) -> void:
+	var a := Rect2(r.position + o + Vector2(0, -2), Vector2(r.size.x, 20))
+	draw_rect(a, Color("#c98a4b"))
+	draw_rect(Rect2(a.position.x, a.end.y - 5.0, a.size.x, 5.0), Color("#9a6a3a"))
+	var x := a.position.x + 32.0
+	while x < a.end.x - 8.0:
+		draw_line(Vector2(x, a.position.y + 4.0), Vector2(x, a.end.y - 6.0), Color("#9a6a3a"), 3.0)
+		x += 64.0
+	draw_rect(a, Color("#2a1a2e"), false, 3.0)
+	if st >= 1:
+		var c := a.get_center()
+		draw_polyline(PackedVector2Array([c + Vector2(-18, -10), c + Vector2(-4, 0), c + Vector2(-12, 4), c + Vector2(6, 10)]), Color("#2a1a2e"), 3.0)
+
+func _conteiner_mar(p: Dictionary, o: Vector2) -> void:
+	var r: Rect2 = p["rect"]
+	var tx: Texture2D = tex.get("cont_%d" % (int(p["idx"]) % 7))
+	var rr := Rect2(r.position + o, r.size)
+	if tx != null:
+		draw_texture_rect(tx, rr, false)
+	else:
+		draw_rect(rr, Color("#d14b4b"))
+	var st := int(p["state"])
+	var ink := Color("#2a1a2e")
+	if st >= 1:   # rachadura (o mesmo traço das fotografias)
+		var q := rr.position + Vector2(rr.size.x * 0.3, 4)
+		draw_polyline(PackedVector2Array([q, q + Vector2(10, 18), q + Vector2(-2, 28), q + Vector2(12, 44)]), ink, 3.0)
+	if st >= 2:   # amassado: furo escuro e segunda rachadura
+		var q2 := rr.position + Vector2(rr.size.x * 0.7, rr.size.y - 4)
+		draw_polyline(PackedVector2Array([q2, q2 + Vector2(-8, -14), q2 + Vector2(4, -22)]), ink, 3.0)
+		draw_circle(rr.position + Vector2(rr.size.x * 0.55, rr.size.y * 0.5), 9.0, Color(0, 0, 0, 0.45))
+
+func _laje_marmore(lr: Rect2, st: int) -> void:
+	var a := Rect2(lr.position + Vector2(0, -6), Vector2(lr.size.x, 34))
+	draw_rect(a, Color("#f0e6d0"))
+	draw_rect(Rect2(a.position.x, a.end.y - 10.0, a.size.x, 10.0), Color("#cbbd9e"))
+	draw_rect(Rect2(a.position.x, a.position.y + 10.0, a.size.x, 6.0), Color("#e8bc4a"))   # friso de ouro
+	var x := a.position.x + 12.0
+	while x < a.end.x - 16.0:   # greca entalhada
+		draw_polyline(PackedVector2Array([Vector2(x, a.end.y - 12), Vector2(x, a.end.y - 20), Vector2(x + 10, a.end.y - 20), Vector2(x + 10, a.end.y - 14)]), Color("#b58a2a"), 2.0)
+		x += 22.0
+	draw_rect(a, Color("#2a1a2e"), false, 3.0)
+	if st >= 1:
+		var c := a.get_center()
+		draw_polyline(PackedVector2Array([c + Vector2(-16, -16), c + Vector2(-2, -2), c + Vector2(-10, 6), c + Vector2(8, 16)]), Color("#2a1a2e"), 3.0)
+
 ## Layout a partir das cenas do manifesto. Limitação atual (documentada no manual): laje + andaimes + vigas + térreo numa
 ## cena só; estacas/grelhas/entulhos em qualquer cena. Tipo novo de estrutura = código novo aqui.
 func _layout_do_mapa(cs: Array) -> Dictionary:
@@ -212,6 +267,8 @@ func _layout_do_mapa(cs: Array) -> Dictionary:
 			for k in ["andaimes", "vigas", "terreos"]:
 				lay[k] = es.get(k, []).map(func(a): return a.map(func(v): return int(v)))
 			lay["pilares"] = es.get("pilares", []).map(func(v): return int(v))
+		for c0 in es.get("conteineres", []):
+			lay["conteineres"] = lay.get("conteineres", []) + [[int(c0[0]), int(c0[1]), int(c0[2]), int(c0[3]), int(c["ordem"])]]
 		if es.has("estacas") or es.has("grelhas") or es.has("entulhos") or es.has("pranchas"):
 			var ex: Dictionary = es.duplicate()
 			ex["ordem"] = int(c["ordem"])
@@ -307,6 +364,9 @@ func _collapse_perf(p: Dictionary) -> void:
 	var mid: float = r.get_center().x
 	var out := -1.0 if mid < 20 * T else 1.0
 	match p["kind"]:
+		"conteiner":
+			debris.append({"tex": tex.get("cont_%d" % (int(p["idx"]) % 7)), "size": r.size, "pos": r.get_center(), "vel": Vector2(randf_range(-80, 80) + out * 60.0, -60),
+				"rot": 0.0, "spin": randf_range(-1.2, 1.2), "t": 0.0})
 		"prancha":
 			for k in 3:   # a prancha parte em pedaços de madeira
 				debris.append({"tex": null, "size": Vector2(r.size.x / 3.0, 22), "pos": Vector2(r.position.x + (k + 0.5) * r.size.x / 3.0, r.get_center().y),
@@ -468,8 +528,12 @@ func _draw_perf() -> void:
 		if p["fallen"] or p["evt"] == "G13":
 			continue
 		var o := _shake_off(p)
-		if p["kind"] == "andaime":
+		if p["kind"] == "andaime" and tema_mar:
+			_tabua_mar(p["rect"], o, int(p["state"]))   # Alto-Mar: tábua de andaime (as torres são do palco fixo)
+		elif p["kind"] == "andaime":
 			draw_texture_rect(tex["andaime"], Rect2(p["rect"].position + Vector2(-4, -10) + o, Vector2(340, 788)), false)
+		elif p["kind"] == "conteiner":
+			_conteiner_mar(p, o)
 		elif p["kind"] == "viga":
 			var r: Rect2 = p["rect"]
 			for cx in [r.position.x + 40, r.end.x - 40]:
@@ -512,6 +576,10 @@ func _draw_perf() -> void:
 			tilt = 0.1 * (1.0 - p["crit_t"] / maxf(float(cfg["aviso_queda_s"]), 0.01))
 		draw_set_transform(r.get_center() + _shake_off(p), tilt, Vector2.ONE)
 		var lr := Rect2(-r.size.x / 2.0, -r.size.y / 2.0, r.size.x, r.size.y)
+		if tema_mar and int(p["etapa"]) == 2:   # Atlântida: laje de mármore entalhada com friso de ouro
+			_laje_marmore(lr, int(p["state"]))
+			draw_set_transform(Vector2.ZERO)
+			continue
 		draw_rect(lr, Color("#c98a4b"))
 		draw_rect(Rect2(lr.position.x, lr.end.y - 6.0, lr.size.x, 10.0), Color("#8a5a2b"))
 		for k in range(1, int(lr.size.x / 92.0) + 1):

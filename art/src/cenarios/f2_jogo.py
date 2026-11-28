@@ -11,7 +11,8 @@ import sys
 HERE = os.path.dirname(__file__)
 sys.path.insert(0, HERE)
 import f2_prancha as fp  # noqa: E402
-from f2_prancha import E, INK, W, H, fonte, grad, gaivota  # noqa: E402
+import math  # noqa: E402
+from f2_prancha import E, INK, W, H, T, R, PL, CONT, fonte, grad, gaivota, sign, conteiner  # noqa: E402
 from papel import rough  # noqa: E402
 from svg import doc, queue, render_all  # noqa: E402
 
@@ -37,6 +38,66 @@ def e2_longe():
 def e3_longe():
     """Destroços: manhã depois da tempestade, ilha distante, o navio partido ao fundo (moldura)."""
     return fp.c2_ceu() + fp.c2_navio_fundo()
+
+
+# ---------------------------------------------------------------- palco FIXO (o que é tile no .lvl; mundo, sem paralaxe)
+# Só a base que não quebra, nos mesmos lugares das fotografias (que já casam com os tiles do levels/cargueiro_perdido.lvl).
+# O que quebra (contêineres, tábuas, lajes) é peça do canteiro, desenhada pelo jogo.
+def e1_palco():
+    o = fp.balsa(70, 6 * T) + fp.balsa(22 * T, 7 * T)
+    o += R(14 * T, 11 * T + 20, 2 * T, fp.MAR1 - 11 * T, "#9a9488", 4, 2.0, dark="#7a7468")       # pilar de concreto
+    o += R(13 * T - 10, 11 * T, 4 * T + 20, 28, "#b9b2a4", 3, 1.6) + fp.zebra(13 * T - 10, 11 * T - 8, 4 * T + 20, 8)
+    for k in range(3):
+        o += E(13 * T + 20 + k * 100, 11 * T + 40, 16, 10, "#3a3a44", 0.8)   # pneus de atracação
+    o += fp.andaime(7 * T, 4 * T, 13 * T) + fp.andaime(21 * T, 4 * T, 13 * T)
+    o += R(28 * T, 1 * T, 26, 12 * T, "#e0a83a", 3, 1.6, dark="#b07a1e")                          # torre da grua da balsa
+    for k in range(11):
+        y = T + 20 + k * 64
+        o += f'<path d="M{28 * T},{y} l26,40 M{28 * T + 26},{y} l-26,40" stroke="#b07a1e" stroke-width="3"/>'
+    o += R(9 * T, 1 * T - 14, 20 * T, 20, "#e0a83a", 3, 1.4) + R(28 * T - 30, 1 * T - 60, 80, 46, "#cfd3da", 3, 1.2)
+    o += sign(23 * T, 13 * T - 60, "BOTA-ABAIXO", 170)
+    # escoras laranja das tábuas do nível 9 (sobre o pilar) e mão-francesa da tábua do nível 6
+    o += R(13 * T, 9 * T + 18, 12, 2 * T - 18, "#f08a3d", 2, 1.0, dark="#c06a2a") + R(17 * T - 12, 9 * T + 18, 12, 2 * T - 18, "#f08a3d", 2, 1.0, dark="#c06a2a")
+    o += f'<path d="M{7 * T},{6 * T + 130} L{5 * T + 20},{6 * T + 18}" stroke="#c06a2a" stroke-width="10" stroke-linecap="round"/>'
+    o += R(28 * T - 30, 6 * T + 18, 30, 14, "#b07a1e", 2, 0.8)
+    return o
+
+
+def e3_palco():
+    """Destroços: rochas (topo plano), convés quebrado encravado na rocha-arco, balsa e grua."""
+    o = ""
+    rx0, rx1, ry = fp.R2_ESQ
+    mx0, mx1, my = fp.R2_MEIO
+    bx, bw = fp.BALSA2
+    H2 = fp.MAR2
+    o += fp.rocha2([(rx0 - 40, H), (rx0 - 20, ry + 50), (rx0 + 10, ry), (rx1 - 10, ry), (rx1 + 30, ry + 60), (rx1 + 10, H)], rx0 + 10, rx1 - 10, ry, 3)
+    o += fp.rocha2([(mx0 - 30, H), (mx0 - 10, my + 50), (mx0 + 20, my), (mx1 - 20, my), (mx1 + 20, my + 60), (mx1 + 10, H)], mx0 + 20, mx1 - 20, my, 7)
+    o += f'<path d="M{mx0 + 60},{H} q{(mx1 - mx0 - 120) / 2},-150 {mx1 - mx0 - 120},0" fill="#174a5a"/>'
+    o += fp.balsa(bx, bw)
+    tx = bx + bw - 34
+    o += R(tx, fp.LANCA2, 26, 13 * T - fp.LANCA2, "#e0a83a", 3, 1.6, dark="#b07a1e")
+    for k in range(11):
+        y = fp.LANCA2 + 20 + k * 64
+        o += f'<path d="M{tx},{y} l26,40 M{tx + 26},{y} l-26,40" stroke="#b07a1e" stroke-width="3"/>'
+    o += R(3 * T, fp.LANCA2 - 14, tx - 3 * T + 40, 20, "#e0a83a", 3, 1.4) + R(tx - 30, fp.LANCA2 - 60, 80, 46, "#cfd3da", 3, 1.2)
+    o += f'<path d="M{tx + 13},{fp.LANCA2 - 60} L{3 * T + 20},{fp.LANCA2 - 14}" stroke="#b07a1e" stroke-width="3"/>'
+    o += f'<path d="M{rx0 + 24},{ry} q-26,-120 40,-230" stroke="#8a6b4f" stroke-width="16" fill="none"/>'   # coqueiro
+    for a in range(5):
+        ang = -2.7 + a * 0.5
+        o += f'<path d="M{rx0 + 64},{ry - 230} q{math.cos(ang) * 50},{math.sin(ang) * 26 - 26} {math.cos(ang) * 110},{math.sin(ang) * 56 + 20}" stroke="#4f9a52" stroke-width="14" fill="none" stroke-linecap="round"/>'
+    o += fp.caranguejo(mx0 + 120, my)
+    return o
+
+
+def e2_palco():
+    """Atlântida: os três pilares dourados (topo plano) e a grua submarina da equipe."""
+    return fp.pilar_ouro(1 * T, 6 * T, 12 * T) + fp.pilar_ouro(12 * T, 18 * T, 11 * T) + fp.pilar_ouro(24 * T, 29 * T, 12 * T) + fp.c3_grua()
+
+
+def cont(cor):
+    def f():
+        return conteiner(4, 4, 3 * T - 8, T - 8, cor, 0, True)
+    return f
 
 
 DEFS = {
@@ -95,6 +156,7 @@ SPRITES = {
     "agua_viva": (80, 110, agua_viva),
     "peixe_a": (64, 40, peixe("#f2a33a")),
     "peixe_b": (64, 40, peixe("#e8bc4a")),
+    **{f"cont_{i}": (3 * T, T, cont(c)) for i, c in enumerate(CONT)},
 }
 
 
@@ -103,6 +165,8 @@ def main():
     os.makedirs(SRC, exist_ok=True)
     for i, (name, fn) in enumerate([("e1_longe", e1_longe), ("e2_longe", e2_longe), ("e3_longe", e3_longe)]):
         queue(wrap(W, H, fn(), 41 + i, DEFS[name]), f"{SRC}/{name}.svg", f"{OUT}/{name}.png", W, H, 1)
+    for i, (name, fn) in enumerate([("e1_palco", e1_palco), ("e2_palco", e2_palco), ("e3_palco", e3_palco)]):
+        queue(wrap(W, H, fn(), 51 + i), f"{SRC}/{name}.svg", f"{OUT}/{name}.png", W, H, 1)
     for i, (name, (w, h, fn)) in enumerate(SPRITES.items()):
         queue(wrap(w, h, fn(), 61 + i), f"{SRC}/{name}.svg", f"{OUT}/{name}.png", w, h, 2)
     print("fase 2 (jogo):", render_all())

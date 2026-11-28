@@ -696,7 +696,8 @@
       "estaca_hp": 2,
       "grelha_hp": 2,
       "entulho_hp": 2,
-      "prancha_hp": 2
+      "prancha_hp": 2,
+      "conteiner_hp": 3
     },
     "ko_explosao": {
       "nota": "KO pela borda: força do tremor e duração da explosão",

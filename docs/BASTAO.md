@@ -43,11 +43,14 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
         `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
   - [ ] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste — M1 contêiner despenca FEITO (`conteiner_cai`, `--so=m1`)
   - [ ] 3. M-perigos da cena 2a (M4 maré etc.) e 2b (M7 cúpula etc.) + M10 tubarão
-- **Próximo passo exato:** passo 2 — **M2 gancho balança** (Alto-Mar; `perigos_mecanismos.md`): tipo novo `gancho_balanca`
-  em `game/modes/mecanismos.gd` no molde do `conteiner_cai` (manifesto `cenas[alto_mar].mecanismos`, arco tracejado de aviso,
-  contêiner pendurado varre o arco e empurra, marretada inverte o sentido; golpe novo `mec_gancho` em `modos.json`
-  amassometro + nome em `robot.gd` last_cause) + teste `--so=m2` + quadro na vitrine `--cargueiro=DIR`. Depois M3 (onda na
-  balsa: usa `main.demo.agua.molhar(r)`). Pendente pequeno: som "agua" (respingo) não existe (Audio ignora).
+  - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
+        `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
+        e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
+- **Próximo passo exato:** arte que ainda falta no tema (pedido do usuário: "adicionar as texturas de vez"): Destroços — o
+  pedaço do convés (nível 8), bote virado, jangada, rede de carga e contêiner içado das fotos (hoje são tábuas simples,
+  `pranchas` do manifesto); Atlântida — tambores, cabeça de estátua, colunas de mármore embaixo das lajes, concha, lustre.
+  Fonte: `c2_palco`/`c3_palco` em `art/src/cenarios/f2_prancha.py` (seções QUEBRA). Depois: M2 gancho balança (tipo novo
+  `gancho_balanca` no molde do `conteiner_cai`) e M3 onda na balsa (`main.demo.agua.molhar(r)`).
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO
