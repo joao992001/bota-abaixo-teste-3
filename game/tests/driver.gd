@@ -7091,3 +7091,42 @@ func m7_test() -> void:
 	s["volta"] = float(d["volta_s"]) - 0.05
 	await frames(5)
 	check(int(s["degraus"]) == int(d["max_degraus"]) - 1, "sem marretadas a água desce um degrau")
+
+## M11 Gêiser: avisa borbulhando, jorra e empurra para cima quem está na fenda (sem dano).
+func m11_test() -> void:
+	print("== Fase 2 · M11 gêiser")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "geiser":
+			inst = i
+	check(inst != null, "M11 está em Atlântida")
+	if inst == null:
+		return
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var cyc := float(d["ciclo_s"])
+	s["t"] = cyc - float(d["aviso_s"]) - float(d["jorra_s"]) + 0.05
+	await frames(2)
+	check(s["fase"] == "aviso", "aviso: a fenda borbulha antes de jorrar")
+	var jr: Rect2 = mc._geiser_rect(inst, int(s["idx"]))
+	var r0 = main.robots[0]
+	r0.invuln = 0.0
+	var dano0: float = r0.dmg
+	put(r0, Vector2(jr.get_center().x, main.level.etapa_rect(2).end.y - 40.0))
+	r0.active = true
+	s["t"] = cyc - float(d["jorra_s"]) + 0.02
+	var y0: float = r0.position.y
+	await frames(30)
+	check(s["fase"] == "jorra" and r0.alive and r0.position.y < y0 - 150.0, "jorra: quem caiu na fenda sobe de volta (%.0f px)" % (y0 - r0.position.y))
+	check(is_equal_approx(r0.dmg, dano0), "o jato não dá dano")

@@ -228,6 +228,25 @@
       90,
       90
      ]
+    },
+    {
+     "tipo": "geiser",
+     "nota": "M11 Gêiser (aprovado 2026-11-28, prancha perigo_geiser.png): fendas entre os pilares alternam; borbulha 1,5 s → jorra 2,5 s; o jato empurra para cima (elevador; quem cai na fenda volta); sem dano; ciclo 10 s.",
+     "fendas": [
+      [
+       6,
+       12
+      ],
+      [
+       18,
+       24
+      ]
+     ],
+     "topo_px": 192,
+     "ciclo_s": 10.0,
+     "aviso_s": 1.5,
+     "jorra_s": 2.5,
+     "jato_vel": 900.0
     }
    ],
    "rota_moderada": null,

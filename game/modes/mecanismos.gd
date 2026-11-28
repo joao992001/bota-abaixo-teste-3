@@ -171,6 +171,7 @@ func update(dt: float) -> void:
 			"rede_rasga": _rede(inst, dt)
 			"tubarao": _tubarao(inst, dt)
 			"cupula_racha": _cupula(inst, dt)
+			"geiser": _geiser(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -794,6 +795,65 @@ func cupula_racha(inst: Dictionary) -> void:
 	s["pulso"] = 1.0
 	Audio.play("caixote_quebra", 1.4, -2.0)
 
+## M11 Gêiser (Atlântida, ideia do usuário): a cada ciclo uma das fendas (alterna) BORBULHA (aviso) e depois JORRA: quem
+## está na coluna do jato é empurrado para cima (elevador até as lajes altas); quem cai na fenda é jogado de volta (sem dano).
+func _geiser_fase(inst: Dictionary) -> Array:
+	var d: Dictionary = inst["d"]
+	var cyc := float(d["ciclo_s"])
+	var k := fmod(float(inst["s"]["t"]), cyc)
+	var idx := int(float(inst["s"]["t"]) / cyc) % (d["fendas"] as Array).size()
+	var fase := "calmo"
+	if k >= cyc - float(d["aviso_s"]) - float(d["jorra_s"]) and k < cyc - float(d["jorra_s"]):
+		fase = "aviso"
+	elif k >= cyc - float(d["jorra_s"]):
+		fase = "jorra"
+	return [fase, idx]
+
+func _geiser_rect(inst: Dictionary, idx: int) -> Rect2:
+	var d: Dictionary = inst["d"]
+	var er: Rect2 = main.level.etapa_rect(inst["etapa"])
+	var f: Array = d["fendas"][idx]
+	var x0 := er.position.x + float(f[0]) * T
+	var x1 := er.position.x + float(f[1]) * T
+	var topo := er.position.y + float(d["topo_px"])
+	return Rect2(x0, topo, x1 - x0, er.end.y + 400.0 - topo)
+
+func _geiser(inst: Dictionary, _dt: float) -> void:
+	var s: Dictionary = inst["s"]
+	var fi: Array = _geiser_fase(inst)
+	if fi[0] == "jorra" and s.get("fase", "") != "jorra":
+		Audio.play("explosao", 1.6, -8.0)
+	s["fase"] = fi[0]
+	s["idx"] = fi[1]
+	if fi[0] != "jorra":
+		return
+	var jr := _geiser_rect(inst, int(fi[1]))
+	var vel := float(inst["d"]["jato_vel"])
+	for r in _robots():
+		if jr.has_point(r.position):
+			r.velocity.y = minf(r.velocity.y, -vel)   # sobe com o jato (não é golpe: sem dano)
+
+func _draw_geiser(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	var fase := String(s.get("fase", "calmo"))
+	if fase == "calmo":
+		return
+	var jr := _geiser_rect(inst, int(s.get("idx", 0)))
+	var fundo := minf(jr.end.y, main.level.etapa_rect(inst["etapa"]).end.y)
+	if fase == "aviso":
+		for k in 10:   # o fundo da fenda borbulha e brilha
+			var x := jr.position.x + fmod(k * 53.0 + t * 40.0, jr.size.x)
+			var y := fundo - fmod(t * 160.0 + k * 37.0, 220.0)
+			draw_arc(Vector2(x, y), 6.0 + float(k % 3) * 4.0, 0, TAU, 12, Color(1, 1, 1, 0.8), 3.0, true)
+		draw_rect(Rect2(jr.position.x, fundo - 40.0, jr.size.x, 40.0), Color(0.75, 0.95, 1.0, 0.25 + 0.2 * sin(t * 14.0)))
+		return
+	var a := 0.5 + 0.1 * sin(t * 20.0)
+	draw_rect(Rect2(jr.position.x + 20.0, jr.position.y, jr.size.x - 40.0, fundo - jr.position.y), Color(0.78, 0.96, 1.0, a))
+	for side in [jr.position.x + 20.0, jr.end.x - 20.0]:
+		draw_line(Vector2(side, jr.position.y), Vector2(side, fundo), Color(1, 1, 1, 0.9), 5.0, true)
+	for k in 8:   # espuma no topo do jato
+		draw_circle(Vector2(jr.position.x + 30.0 + k * (jr.size.x - 60.0) / 7.0, jr.position.y + sin(t * 9.0 + k) * 10.0), 18.0, Color(1, 1, 1, 0.85))
+
 ## Alvo do vidro em px do mundo (o manifesto dá em px relativos à cena).
 func _cup_alvo(inst: Dictionary) -> Rect2:
 	var a: Array = inst["d"]["alvo_rel"]
@@ -1331,6 +1391,8 @@ func _draw_perf() -> void:
 				_draw_tubarao(inst)
 			"cupula_racha":
 				_draw_cupula(inst)
+			"geiser":
+				_draw_geiser(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":
