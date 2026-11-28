@@ -43,6 +43,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Passos:
   - [x] 1. Cena 1: prancha `art/out/fase2/lapida_cena1.png` (fonte `f2_lapida1.py`: onda 5 quadros, contêiner 4, gancho 3, tábua) — ENVIADA, aguardando aprovação
   - [x] 2. Cena 1 no jogo: sprites `onda_0..4`, `cai_0..3`, `alvo_zebra`, `moitao`, tábuas `tabua_boa` (via `f2_jogo.py` ← `f2_lapida1.py`); `_draw_onda/_draw_conteiner/_draw_gancho` trocados; `--so=m1,m2,m3` ok; captura `art/out/fase2/uso/cena1.png`
+  - [x] 2b. Vídeo da cena 1 no jogo: `out/videos/cargueiro_cena1_perigos.mp4` (gravado com `--cargueiro-video=DIR --video-cena=1|2|3`, quadros PNG → ffmpeg 30 fps)
   - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
   - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
 - **Próximo passo exato:** passo 3 — prancha da cena 2a (`art/src/cenarios/f2_lapida2.py` → `art/out/fase2/lapida_cena2a.png`):

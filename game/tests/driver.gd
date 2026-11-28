@@ -110,6 +110,10 @@ func _run() -> void:
 			await estudo_destruicao(int(a.substr(20)))
 			get_tree().quit(0)
 			return
+		if a.begins_with("--cargueiro-video="):   # vídeo dos perigos de uma cena (--video-cena=1|2|3)
+			await cargueiro_video(a.substr(18))
+			get_tree().quit(0)
+			return
 		if a.begins_with("--cargueiro="):
 			await cargueiro_frames(a.substr(12))
 			get_tree().quit(0)
@@ -7255,3 +7259,57 @@ func m9_test() -> void:
 	await frames(20)
 	check(s["fase"] == "fechada" and absf(r0.velocity.x) < 1.0 and r0.stun_t > 0.0, "fechada: prende quem está em cima")
 	check(mc.hammer_hit(cr, false, 1) and s["fase"] == "aberta", "marretada abre a concha")
+
+
+## VÍDEO dos perigos do Cargueiro (--cargueiro-video=DIR [--video-cena=1|2|3]): grava quadros a 30 por segundo (a cada 2
+## quadros de física) de cada perigo da cena, um depois do outro, com legenda no topo. Montar com ffmpeg -framerate 30.
+func cargueiro_video(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	get_window().size = Vector2i(1920, 1080)
+	var cena := 1
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--video-cena="):
+			cena = int(a.substr(13))
+	await _cargueiro_partida()
+	main.hud.visible = false
+	for r in main.robots:
+		r.invuln = 9999.0
+	if cena != 1:
+		var et = main.demo.etapas
+		et.ativo = true
+		et.forcar("total" if cena == 2 else "moderada")
+		var w := 0
+		while (et.etapa != cena or et.state != "etapa") and w < 1500:
+			await frames(1)
+			w += 1
+	var mc = main.demo.mecs
+	for i in mc.list:   # nenhum perigo dispara sozinho durante a gravação
+		i["s"]["t"] = -9999.0
+	var n := [0]
+	var grava := func(seg: float) -> void:
+		for f in int(seg * 30.0):
+			await frames(2)
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(dir + "/%04d.png" % n[0])
+			n[0] += 1
+	await grava.call(1.0)
+	for i in mc.list:
+		var tp := String(i["tipo"])
+		var d: Dictionary = i["d"]
+		match tp:
+			"conteiner_cai":
+				i["s"]["t"] = float(d["ciclo_s"]) - 0.02
+				await grava.call(float(d["aviso_s"]) + 2.2)
+				i["s"]["t"] = -9999.0
+			"gancho_balanca":
+				i["s"]["t"] = float(d["ciclo_s"]) - float(d["aviso_s"]) - 0.02
+				await grava.call(float(d["aviso_s"]) + float(d["balanco_s"]) + 0.6)
+				i["s"]["t"] = -9999.0
+			"onda_balsa":
+				for qual in [1, 0]:
+					i["s"]["qual"] = qual
+					i["s"]["t"] = float(d["ciclo_s"]) - 0.02
+					await grava.call(float(d["aviso_s"]) + float(d["onda_s"]) + 0.8)
+				i["s"]["t"] = -9999.0
+	main.hud.visible = true
+	print("video: ", n[0], " quadros")
