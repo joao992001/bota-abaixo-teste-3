@@ -291,6 +291,7 @@ func _physics_process(dt: float) -> void:
 	_update_music()
 	if _reassign_lost_pads():
 		return   # o START que assumiu o controle não conta como "continuar"
+	menus._repeat_tick(dt)   # segurar direção repete nos menus (1× por quadro)
 	if paused:
 		if sandbox and tester().open:
 			tester().update()

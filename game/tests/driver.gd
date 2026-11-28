@@ -556,6 +556,7 @@ func demolicao_test() -> void:
 	await menus_test()
 	await controles_test()
 	await bots_entrada_test()
+	await seletor_test()
 	await controle_real_test()
 	await robos_test()
 	await combate_test()
@@ -4029,6 +4030,31 @@ func bots_entrada_test() -> void:
 	check(main.players.size() == 4, "Y/△ com a mesa cheia não tira mais todos os bots")
 	main.players.clear()
 	PlayerInput.slots.clear()
+	main.go_menu()
+
+## Seletor das engenhocas: segurar repete e as bordas dão a volta (2026-11-28: estava lento de um em um).
+func seletor_test() -> void:
+	print("== Seletor das grades (segurar repete)")
+	main.go_menu()
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.selecao.abrir_spells()
+	PlayerInput.virtual = {"v0": {}}
+	await frames(3)
+	main.selecao.sel = 0
+	await tap("v0", "left")
+	var n: int = main.selecao.spells_do_mapa().size() + 2
+	check(main.selecao.sel == n - 1, "◄ na 1ª ficha dá a volta para a última")
+	main.selecao.sel = 0
+	vset("v0", "right", true)
+	await frames(60)
+	vset("v0", "right", false)
+	await frames(2)
+	check(main.selecao.sel >= 6, "segurar ► 1 s anda várias fichas (%d)" % main.selecao.sel)
+	var cols: int = main.selecao.grade_spells(n)["cols"]
+	main.selecao.sel = 0
+	await tap("v0", "up")
+	check(main.selecao.sel / cols == int(ceil(n / float(cols))) - 1, "▲ na 1ª linha dá a volta para a última")
 	main.go_menu()
 
 func controles_test() -> void:

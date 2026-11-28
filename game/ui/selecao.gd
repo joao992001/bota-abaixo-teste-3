@@ -117,11 +117,17 @@ func grade_spells(n: int) -> Dictionary:
 	var y0 := GRADE_AREA.get_center().y - (rows * sz.y + (rows - 1) * gap) / 2.0
 	return {"cols": cols, "rows": rows, "size": sz, "gap": gap, "origem": Vector2(x0, y0)}
 
+## ◄► anda e dá a volta (fim da linha → começo da próxima; última → primeira); ▲▼ troca de linha na mesma coluna e
+## dá a volta em cima/embaixo (linha incompleta: vai para a última ficha).
 func _mover(m: Node, n: int, cols: int) -> void:
-	sel = clampi(sel + m.move_h(), 0, n - 1)
+	var h: int = m.move_h()
+	if h != 0:
+		sel = posmod(sel + h, n)
 	var v: int = m.move_v()
 	if v != 0:
-		sel = clampi(sel + v * cols, 0, n - 1)
+		var rows := int(ceil(n / float(cols)))
+		var r := posmod(sel / cols + v, rows)
+		sel = mini(r * cols + sel % cols, n - 1)
 
 ## Etapa 1: ENGENHOCAS (mosaico) + chave "engenhocas nas caixas" (última carta).
 func update_spells(m: Node) -> void:

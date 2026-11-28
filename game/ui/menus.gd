@@ -48,11 +48,43 @@ func confirm() -> bool:
 	return pressed("jump") or pressed("start")
 
 ## Menus andam por nav_* (a direção mapeada OU o analógico/direcional/teclas de fábrica: ninguém fica preso).
+## SEGURAR repete (2026-11-28: grades grandes como a das engenhocas ficavam lentas de um em um): espera REP_ATRASO e
+## depois anda a cada REP_PASSO, acelerando até REP_RAPIDO.
+const REP_ATRASO := 0.3
+const REP_PASSO := 0.11
+const REP_RAPIDO := 0.06
+var _rep_t := {"nav_left": 0.0, "nav_right": 0.0, "nav_up": 0.0, "nav_down": 0.0}
+var _rep_fire := {}
+
+func _held_any(a: String) -> bool:
+	for dev in PlayerInput.all_devices():
+		if not dev.begins_with("bot") and PlayerInput.dev_held(dev, a):
+			return true
+	return false
+
+## Chamado 1× por quadro de física (main._physics_process, antes de qualquer menu/pausa/laboratório): marca quais direções "repetiram" neste quadro.
+func _repeat_tick(dt: float) -> void:
+	_rep_fire.clear()
+	for a in _rep_t:
+		if not _held_any(a):
+			_rep_t[a] = 0.0
+			continue
+		var t0: float = _rep_t[a]
+		var t1 := t0 + dt
+		_rep_t[a] = t1
+		if t1 >= REP_ATRASO:
+			var passo := REP_RAPIDO if t1 > REP_ATRASO + 1.0 else REP_PASSO
+			if t0 < REP_ATRASO or floori((t1 - REP_ATRASO) / passo) != floori((t0 - REP_ATRASO) / passo):
+				_rep_fire[a] = true
+
+func _nav(a: String) -> bool:
+	return pressed(a) or _rep_fire.has(a)
+
 func move_v() -> int:
-	return int(pressed("nav_down")) - int(pressed("nav_up"))
+	return int(_nav("nav_down")) - int(_nav("nav_up"))
 
 func move_h() -> int:
-	return int(pressed("nav_right")) - int(pressed("nav_left"))
+	return int(_nav("nav_right")) - int(_nav("nav_left"))
 
 func update(dt: float) -> void:
 	t += dt
