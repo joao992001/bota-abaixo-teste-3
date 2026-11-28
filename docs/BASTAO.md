@@ -46,12 +46,11 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** M4 maré e M5 contêiner boiando FEITOS (`mare`, `conteiner_boia`; `--so=m4,m5`). Próximo:
-  **M6 rede de carga rasga** (Destroços): a rede é a peça `p3_prancha_6` (canteiro, prancha idx 6 da cena 3). Marretada
-  PESADA nela → rasga: as caixas caem em quem está embaixo (golpe `mec_caixas`, sombra de aviso curta) e a rede vira saco
-  vazio (a peça cai ou fica sem plataforma). Sugestão: tipo `rede_rasga` em `mecanismos.gd` que no `hammer_hit` pesado
-  acha a peça no canteiro (`ct.parts` etapa 3, kind prancha, idx 6), solta 3 caixas (lista de quedas como o `conteiner_cai`)
-  e chama `ct.damage(p, 99, ...)`. Depois **M10 tubarão** e Atlântida (M7/M8/M9).
+- **Próximo passo exato:** M4, M5, M6 FEITOS nos Destroços (`mare`, `conteiner_boia`, `rede_rasga`; `--so=m4,m5,m6`).
+  Próximo: **M10 tubarão** (Destroços; `perigos_mecanismos.md` + prancha `art/out/fase2/perigo_tubarao.png`, fonte
+  `art/src/cenarios/f2_tubarao.py`): barbatana ronda o mar; acelera para a plataforma baixa (bote/jangada/contêiner boiando)
+  + anel vermelho + som (1,5 s) → salta e morde (joga para cima/lado; racha o contêiner boiando); marretada no focinho
+  espanta; KO no mar = abocanhado (só animação). Depois Atlântida: M7 racha da cúpula, M8 lustre, M9 concha.
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

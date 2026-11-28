@@ -582,6 +582,7 @@ func demolicao_test() -> void:
 	await m3_test()
 	await m4_test()
 	await m5_test()
+	await m6_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6817,6 +6818,47 @@ func m5_test() -> void:
 	s["k"] = float(d["virado_s"]) - 0.02
 	await frames(3)
 	check(s["fase"] == "boia", "volta à tona depois de %.0f s" % float(d["virado_s"]))
+	main.go_menu()
+
+## M6 Rede de carga (Destroços): marretada pesada rasga a rede (a peça cai) e as caixas caem em quem está embaixo. --so=m6
+func m6_test() -> void:
+	print("== Fase 2 · M6 rede de carga rasga")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+		r.invuln = 99.0
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "rede_rasga":
+			inst = i
+	check(inst != null, "M6 está nos Destroços")
+	if inst == null:
+		return
+	var rede = mc._rede_peca(inst)
+	check(rede != null and not rede["fallen"], "a rede de carga é uma peça de pé (prancha %d)" % int(inst["d"]["peca"]))
+	var rr: Rect2 = rede["rect"]
+	var r1 = main.robots[1]
+	put(r1, Vector2(rr.get_center().x, main.level.etapa_rect(3).position.y + 8 * 64.0))   # embaixo da rede, no convés (nível 8)
+	r1.invuln = 0.0
+	r1.active = true
+	var dmg0: float = r1.dmg
+	mc.hammer_hit(Rect2(rr.position, Vector2(40, 40)), false, 0)
+	check(int(rede["hp"]) > 0 and not inst["s"].get("rasgou", false), "marretada leve (no mecanismo) não rasga a rede")
+	mc.hammer_hit(Rect2(rr.position, Vector2(40, 40)), true, 0)
+	check(int(rede["hp"]) == 0, "marretada PESADA rasga a rede (HP → 0)")
+	var w2 := 0
+	while r1.dmg == dmg0 and w2 < 120:
+		await frames(1)
+		w2 += 1
+	check(inst["s"].get("rasgou", false) and r1.dmg > dmg0, "as caixas caem em quem está embaixo (%.0f%%)" % (r1.dmg - dmg0))
 	main.go_menu()
 
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).

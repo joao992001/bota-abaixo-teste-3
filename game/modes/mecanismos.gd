@@ -165,6 +165,7 @@ func update(dt: float) -> void:
 			"onda_balsa": _onda_balsa(inst, dt)
 			"mare": _mare(inst, dt)
 			"conteiner_boia": _boia(inst, dt)
+			"rede_rasga": _rede(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -868,6 +869,53 @@ func _draw_boia(inst: Dictionary) -> void:
 	elif String(s.get("fase", "")) == "boia":   # linha d'água batendo no casco
 		draw_line(Vector2(r.position.x - 6.0, r.end.y - 14.0), Vector2(r.end.x + 6.0, r.end.y - 14.0), Color(1, 1, 1, 0.7), 3.0)
 
+## M6 Rede de carga rasga (Fase 2, Destroços): a rede é uma peça do canteiro (prancha `peca` da cena). Marretada PESADA
+## rasga na hora; quebrou de qualquer jeito → as caixas caem em quem está embaixo (mec_caixas) e se espatifam no chão.
+func _rede_peca(inst: Dictionary) -> Variant:
+	var ct = main.demo.canteiro
+	if ct == null or not is_instance_valid(ct):
+		return null
+	for p in ct.parts:
+		if p["kind"] == "prancha" and int(p["etapa"]) == int(inst["etapa"]) and float(p["idx"]) == float(inst["d"]["peca"]):
+			return p
+	return null
+
+func _rede(inst: Dictionary, dt: float) -> void:
+	var s: Dictionary = inst["s"]
+	var p = _rede_peca(inst)
+	if p != null and p["fallen"] and not s.get("rasgou", false):
+		s["rasgou"] = true
+		var r: Rect2 = p["rect"]
+		s["caixas"] = []
+		for k in int(inst["d"]["caixas"]):
+			(s["caixas"] as Array).append({"p": Vector2(r.position.x + (k + 0.5) * r.size.x / float(inst["d"]["caixas"]), r.position.y + 30.0), "vy": -80.0 - k * 40.0, "rot": 0.0, "hit": {}})
+		Audio.play("caixote_quebra", 0.8, 0.0)
+	var vivas := []
+	for cx in s.get("caixas", []):
+		cx["vy"] = float(cx["vy"]) + 2600.0 * dt
+		cx["p"] += Vector2(0, float(cx["vy"]) * dt)
+		cx["rot"] = float(cx["rot"]) + dt * 3.0
+		var br := Rect2(cx["p"] - Vector2(27, 25), Vector2(54, 50))
+		for rb in _robots():
+			if not cx["hit"].has(rb.pid) and rb.rect().intersects(br):
+				cx["hit"][rb.pid] = true
+				rb.take_hit(1 if rb.position.x >= br.get_center().x else -1, "mec_caixas", -1)
+		var chao := _chao_em(Rect2(br.position.x, br.position.y, br.size.x, 1.0), main.level.etapa_rect(inst["etapa"]).end.y + 200.0)
+		if br.end.y >= chao:
+			main.dust(Vector2(br.get_center().x, chao), 0.9)
+			Audio.play("caixote_quebra", 1.1, -4.0)
+		elif br.position.y < main.level.etapa_rect(inst["etapa"]).end.y + 100.0:
+			vivas.append(cx)
+	s["caixas"] = vivas
+
+func _draw_rede(inst: Dictionary) -> void:
+	for cx in inst["s"].get("caixas", []):
+		draw_set_transform(cx["p"], float(cx["rot"]), Vector2.ONE)
+		draw_rect(Rect2(-27, -25, 54, 50), Color("#c98a4b"))
+		draw_rect(Rect2(-27, 17, 54, 8), Color("#9a6a3a"))
+		draw_line(Vector2(-27, -25), Vector2(27, 25), Color("#9a6a3a"), 4.0)
+		draw_set_transform(Vector2.ZERO)
+
 ## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
 func _chao_em(r: Rect2, limite: float) -> float:
 	var y := r.position.y
@@ -962,6 +1010,12 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 			continue
 		var d: Dictionary = inst["d"]
 		var s: Dictionary = inst["s"]
+		if String(inst["tipo"]) == "rede_rasga" and heavy:   # M6: marretada pesada rasga a rede
+			var rp = _rede_peca(inst)
+			if rp != null and not rp["fallen"] and (rp["rect"] as Rect2).grow_individual(0, 0, 0, 60).intersects(hit):
+				main.demo.canteiro.damage(rp, 99, hit.get_center())
+				main.float_text(hit.get_center() + Vector2(0, -60), "RASGOU!", Color("#f2c84b"))
+				return true
 		if String(inst["tipo"]) == "gancho_balanca" and s.has("plat") and _gancho_rect(inst).intersects(hit):
 			var lado := 1.0 if hit.get_center().x < _gancho_rect(inst).get_center().x else -1.0   # empurra para longe de quem bateu
 			if String(s["fase"]) == "balanca":
@@ -1036,6 +1090,8 @@ func _draw_perf() -> void:
 				_draw_mare(inst)
 			"conteiner_boia":
 				_draw_boia(inst)
+			"rede_rasga":
+				_draw_rede(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":

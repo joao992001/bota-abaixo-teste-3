@@ -511,6 +511,13 @@
         "ky": 240,
         "ky_por": 1.6
       },
+      "mec_caixas": {
+        "dano": 10,
+        "kx": 160,
+        "kx_por": 2.6,
+        "ky": 220,
+        "ky_por": 1.4
+      },
       "mec_conteiner": {
         "dano": 18,
         "kx": 240,

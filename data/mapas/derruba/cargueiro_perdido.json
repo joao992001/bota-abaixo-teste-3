@@ -330,6 +330,12 @@
      "range_s": 1.0,
      "virado_s": 4.0,
      "cor": 1
+    },
+    {
+     "tipo": "rede_rasga",
+     "nota": "M6 (aprovado): marretada PESADA na rede de carga (peça prancha 6 da cena) → rasga: as caixas caem em quem está embaixo; a rede vira saco vazio (cai). Se a rede quebrar por outro jeito, as caixas caem do mesmo modo.",
+     "peca": 6,
+     "caixas": 3
     }
    ],
    "rota_moderada": null,
