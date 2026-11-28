@@ -14,6 +14,11 @@ PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for 
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
+**▶ BASTÃO CONTÍNUO (2026-11-28):** quadro `docs/BASTAO.md` + gancho `.claude/hooks/session-start.sh` (mostra o quadro em todo
+chat novo) + regras em `docs/COMO_TRABALHAR.md` §6. Até 3 chats na mesma branch: pegue a tarefa no quadro, envie a cada passo.
+**▶ FASE 2 · DOSSIÊ COMPLETO — aguardando o usuário** (`docs/fases/derruba/f2_cargueiro/DOSSIE.md`: situação, 5 perguntas,
+plano A–F). Novo nesta passada: fichas das 3 cenas iguais às fotos, fundo vivo, regra da água com números, eventos G15–G19,
+engenhocas na água + A09/D07, skins K16–K20, storyboard das 2 transições `art/out/fase2/transicoes.png`.
 **▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas
 Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
 PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`. Fotografias `art/out/fase2/cena*.png` (fonte `f2_prancha.py`): cena 1 APROVADA (v3, navio = moldura,

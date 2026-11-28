@@ -32,6 +32,10 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
+(nenhum)
+
+## AGUARDANDO USUÁRIO
+
 ### Dossiê da Fase 2 · Cargueiro Perdido (completar a biblioteca do mapa)
 - Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
 - Pedido do usuário: "o outro chat chegou até a concluir o dossiê para a criação da segunda fase… se ele não montou,
@@ -50,13 +54,13 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] 4. Prancha do storyboard das 2 transições `art/out/fase2/transicoes.png` (gerador `art/src/cenarios/f2_transicoes.py`)
         (commit "bastão: dossiê F2 passo 4")
   - [x] 5. `docs/fases/derruba/f2_cargueiro/DOSSIE.md` (situação, perguntas, plano A–F, desempenho) (commit "bastão: dossiê F2 passo 5")
-  - [ ] 6. Mandar ao usuário as pranchas pendentes + perguntas; mover o bloco para AGUARDANDO USUÁRIO
-- **Próximo passo exato:** passo 6 — mandar ao usuário `cena2a_destrocos.png`, `cena2b_atlantida.png`, `perigos.png`,
-  `perigo_tubarao.png`, `transicoes.png` com as 5 perguntas do `DOSSIE.md` §2; mover este bloco para AGUARDANDO USUÁRIO.
-- Decisões pendentes do usuário: aprovar fotografias 2a/2b e a prancha de perigos (já enviadas pelo outro chat).
+  - [x] 6. Enviado ao usuário (2026-11-28): cena2a, cena2b, perigos, perigo_tubarao, transicoes + as 5 perguntas
+- **Próximo passo exato:** quando o usuário responder às 5 perguntas do `DOSSIE.md` §2: registrar as respostas
+  (APROVADO/ajuste) nos arquivos da biblioteca e no `DOSSIE.md`; se aprovar, abrir bloco novo "Fase 2 · bloco A"
+  (`levels/cargueiro_perdido.lvl` + manifesto) seguindo `docs/manuais/derruba/mapa.md` §3.
+- Decisões pendentes do usuário (pergunta exata): 1) fotos 2a e 2b? 2) perigos M1–M10? 3) as 2 transições?
+  4) números da água + eventos G15–G19 como proposto? 5) Torpedo/Escafandro e skins K16–K20 agora ou depois da fase jogável?
 
-## AGUARDANDO USUÁRIO
-(nenhum)
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
