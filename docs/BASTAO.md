@@ -32,30 +32,31 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-### Fase 2 · bloco B (arte da cena viva do Cargueiro Perdido)
+### Fase 2 · bloco C (água + perigos M1–M10)
 - Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
-- Pedido do usuário: "pode ir adiantando a criação do mapa 2; quando eu testar o mapa 1 a gente interrompe e corrige a gameplay"
-  (bugs/gameplay relatados pelo usuário passam na FRENTE: devolva este bloco à FILA com o próximo passo e atenda)
-- Arquivos reservados: `art/src/cenarios/f2_jogo.py`, `game/assets/cargueiro/`, `game/modes/cena.gd`, `levels/cargueiro_perdido.lvl`
+- Pedido do usuário: "as fotografias estão muito boas… falta substituir as plataformas pelos elementos do tema (→ bloco D)…
+  já podemos avançar para a próxima parte". Bugs/gameplay do mapa 1 relatados por ele passam na FRENTE.
+- Arquivos reservados: `game/modes/agua.gd` (novo), `game/player/robot.gd` (agua_*), `game/modes/mecanismos.gd`,
+  `data/mapas/derruba/cargueiro_perdido.json`, `data/modos.json` (demolicao.agua)
 - Passos:
-  - [x] 1. Ler `fase1_jogo.py`, `f2_prancha.py` e `cena.gd` (como a fase 1 monta camadas e sprites)
-  - [x] 2. `f2_jogo.py`: camadas e1/e2/e3_longe (1920×1080) + sprites (gaivota, ondas, água-viva, peixes) em `game/assets/cargueiro/`
-  - [x] 3. `cena_cargueiro.gd` (herda `cena.gd`) + `cena: cargueiro` no `.lvl`: fotografias com paralaxe, mar entre as cenas
-  - [x] 4. Ondas (atrás e na frente), gaivotas, peixes, águas-vivas, bolhas; captura `art/out/fase2/jogo/bloco_b_cenas.png`
-- **Próximo passo exato:** bloco B FEITO (falta só medir FPS: `--perf-derruba` ainda só roda no Canteiro; `--perf-mapa` é do
-  bloco F). Próximo: fechar este bloco (1 linha em CONCLUÍDO) e pegar o **bloco C** (zona de ÁGUA primeiro: números em
-  `data/modos.json`, `robot.gd` `env_slow` + gravidade na água; depois perigos M1–M10, um por commit, com teste) — `DOSSIE.md` §3.
-- Decisões pendentes do usuário: nenhuma (tudo aprovado no A55).
+  - [ ] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
+        `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
+  - [ ] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste
+  - [ ] 3. M-perigos da cena 2a (M4 maré etc.) e 2b (M7 cúpula etc.) + M10 tubarão
+- **Próximo passo exato:** passo 1 — escrever `game/modes/agua.gd`; criar em `demolicao.gd` junto do `mecs` (~linha 172,
+  quando o manifesto tiver `agua`), atualizar depois do `mecs.update` (~linha 233).
+- Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO
 
 (nenhum)
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
-- **Fase 2 · bloco C (água + perigos M1–M10)** e **D (contêineres)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
+- **Fase 2 · bloco D (contêineres + ARTE DO PALCO no tema: o usuário pediu trocar caixotes/andaimes do canteiro pelos do mar)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
 ## CONCLUÍDO (últimos; detalhes no "Retomar aqui" do ESTADO)
+- 2026-11-28 · Fase 2 bloco B: cena viva do Cargueiro (`cena_cargueiro.gd`, `f2_jogo.py`); usuário aprovou a composição — sessão 017desNJ…
 - 2026-11-28 · Correções urgentes do Canteiro (A56 regra dos 90 s, caixas no subterrâneo, FPS da G03, controle principal); bateria 623 ok, .exe — sessão 017desNJ…
 - 2026-11-28 · Fase 2 bloco A: `.lvl` + manifesto + teste `--so=cargueiro` (2 rotas de verdade) + vitrine `--cargueiro=DIR` — sessão 017desNJ…
 - 2026-11-28 · Dossiê da Fase 2 completo e APROVADO pelo usuário (A55) — sessão 017desNJ…
