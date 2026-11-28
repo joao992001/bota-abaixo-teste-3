@@ -471,7 +471,34 @@ def c2_palco():
     bx, bw = BALSA2
     # ---- FIXO: rochas com topo plano medido (o que se pisa é o topo)
     o += rocha2([(rx0 - 40, H), (rx0 - 20, ry + 50), (rx0 + 10, ry), (rx1 - 10, ry), (rx1 + 30, ry + 60), (rx1 + 10, H)], rx0 + 10, rx1 - 10, ry, 3)
+    # pedaços de convés quebrados encravados nos DOIS lados da rocha-arco (nível 12): a ponta de dentro some na fenda da rocha,
+    # uma escora torta apoia por baixo na encosta. Desenhados ANTES da rocha para a ponta de dentro ficar escondida nela.
+    for lado in (-1, 1):
+        borda = mx0 - 10 if lado < 0 else mx1 + 20          # encosta da rocha na altura do nível 12
+        x_in = borda + (-lado) * 40                          # ponta de dentro (enfiada na rocha)
+        x_out = borda + lado * 190                           # ponta de fora (quebrada, sobre o mar)
+        xa, xb = min(x_in, x_out), max(x_in, x_out)
+        y = 12 * T + 16
+        ang = 6 * lado                                       # leve caída para fora
+        piv = (x_in, y)
+        o += f'<g transform="rotate({ang} {piv[0]} {piv[1]})">'
+        o += R(xa, y, xb - xa, 22, "#6b6f7a", 2, 1.4, dark="#4a4f5a") + R(xa, y + 22, xb - xa, 22, "#9a4a38", 2, 1.2, dark="#7a3424")
+        o += zebra(xa, y - 6, xb - xa, 7)
+        ex = x_out
+        o += f'<path d="M{ex},{y - 6} l{lado * 14},10 l{-lado * 10},8 l{lado * 16},10 l{-lado * 12},10 l{lado * 8},10" stroke="{INK}" stroke-width="4" fill="none"/>'
+        for k in range(3):
+            xx = x_out - lado * (30 + k * 46)
+            o += f'<path d="M{xx},{y - 6} v-26" stroke="#e9e2d2" stroke-width="4"/>'
+        o += f'<path d="M{x_out - lado * 30},{y - 32} L{x_out - lado * 122},{y - 32}" stroke="#e9e2d2" stroke-width="4"/>'
+        o += "</g>"
+        # escora torta: da parte de baixo do pedaço até a encosta da rocha mais abaixo
+        sx = x_in + lado * 80
+        o += f'<path d="M{sx},{y + 44} Q{sx - lado * 20},{y + 100} {borda - lado * 20},{y + 150}" stroke="#4a2620" stroke-width="14" fill="none" stroke-linecap="round"/>'
     o += rocha2([(mx0 - 30, H), (mx0 - 10, my + 50), (mx0 + 20, my), (mx1 - 20, my), (mx1 + 20, my + 60), (mx1 + 10, H)], mx0 + 20, mx1 - 20, my, 7)
+    for lado in (-1, 1):   # a fenda onde o convés entrou (por cima da rocha)
+        borda = mx0 - 10 if lado < 0 else mx1 + 20
+        o += f'<path d="M{borda - lado * 4},{12 * T + 8} l{-lado * 34},6 l{-lado * 6},40 l{lado * 36},6" stroke="#3a3f48" stroke-width="5" fill="#4a505a"/>'
+
     o += f'<path d="M{mx0 + 60},{H} q{(mx1 - mx0 - 120) / 2},-150 {mx1 - mx0 - 120},0" fill="#174a5a"/>'   # vão do arco
     o += balsa(bx, bw)
     tx = bx + bw - 34                     # torre da grua presa na ponta direita da balsa
@@ -558,8 +585,8 @@ def c2_frente():
     o += f'<path d="M0,{MAR2} ' + "".join("q30,-10 60,0 " for _ in range(33)) + '" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.95"/>'
     o += f'<path d="M0,{13 * T} H{W}" stroke="#ffffff" stroke-width="3" stroke-dasharray="16 12" opacity="0.85"/>'
     o += f'<text x="{W - 30}" y="{13 * T - 10}" font-family="Fredoka" font-weight="700" font-size="18" fill="#ffffff" text-anchor="end">maré alta</text>'
-    o += tag(3 * T + 20, 13 * T + 40, "ROCHA (FIXA)") + tag(15 * T, 12 * T + 40, "ROCHA-ARCO (FIXA)") + tag(26 * T, 14 * T + 10, "BALSA (FIXA)")
-    o += tag(5 * T + 10, 12 * T + 34, "CARGA DERRAMADA") + tag(9 * T + 30, 9 * T + 40, "MASTRO-PONTE") + tag(14 * T + 40, 9 * T + 20, "PEDAÇO DO CONVÉS")
+    o += tag(3 * T + 20, 13 * T + 40, "ROCHA (FIXA)") + tag(15 * T, 12 * T + 80, "ROCHA-ARCO (FIXA)") + tag(26 * T, 14 * T + 10, "BALSA (FIXA)")
+    o += tag(5 * T + 10, 12 * T + 34, "CARGA DERRAMADA") + tag(9 * T + 30, 9 * T + 40, "MASTRO-PONTE") + tag(14 * T + 40, 9 * T + 20, "PEDAÇO DO CONVÉS") + tag(11 * T + 20, 13 * T + 26, "CONVÉS QUEBRADO") + tag(19 * T, 13 * T + 26, "CONVÉS QUEBRADO")
     o += tag(8 * T, MAR2 - 90, "BOTE VIRADO") + tag(10 * T + 30, MAR2 + 50, "JANGADA") + tag(13 * T + 32, 6 * T + 30, "REDE DE CARGA")
     o += tag(5 * T + 32, 6 * T + 20, "CONTÊINER IÇADO") + tag(20 * T + 40, 9 * T + 50, "TÁBUA") + tag(24 * T + 20, 5 * T + 50, "TÁBUA ALTA")
     o += tag(5 * T, H - 34, "MAR FUNDO = KO") + tag(20 * T, H - 34, "MAR FUNDO = KO") + tag(940, 186, "NAVIO PARTIDO = FUNDO")
