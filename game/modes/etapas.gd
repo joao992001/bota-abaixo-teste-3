@@ -1,8 +1,8 @@
 extends Node2D
 ## CENAS DO MAPA (modo Derruba v2; docs/manuais/derruba/README.md). Um mapa é uma árvore de cenas por nível (3 = 1→2,
 ## 7 = 1→2→4; geometria etapaN no .lvl; conteúdo e rotas no manifesto data/mapas/<modo>/<mapa>.json).
-## O TEMPO decide QUANDO verificar; a DESTRUIÇÃO decide PARA ONDE (aprovado A3): na verificação, < 50% fica e verifica de
-## novo depois; 50–90% → rota moderada; ≥ 90% → rota total. Chegar a 90% antes não antecipa. Sem cronômetro no HUD.
+## A DESTRUIÇÃO decide PARA ONDE (A3, revisto em A53b 2026-11-28): bater o limiar total (70%) a qualquer momento → rota
+## total na hora; na verificação de TEMPO, < 40% fica e verifica de novo depois, 40–70% → rota moderada. Sem cronômetro no HUD.
 ## 1ª verificação e intervalo vêm das VIDAS (modos[derruba].destruicao.verificacao; a cena pode sobrescrever).
 ## Transição: AVISO (texto da rota, tudo treme) → DESABA → QUEDA (sem KO, sem controle, lenta) → CENA DE DESTINO.
 ## SEM diretor (A5): nada cai sozinho; destruição fora dos jogadores só por evento escolhido (ex.: G01 Sirene).
@@ -95,7 +95,9 @@ func update(dt: float) -> void:
 			if not ativo:
 				return
 			t_cena += dt
-			if tem_proxima() and t_cena >= prox_verif:
+			if progresso >= limiar_total() and destino_de("total") > 0:
+				_aviso("total")   # A53b: bateu a meta, desaba JÁ (destruir é objetivo durante a luta)
+			elif tem_proxima() and t_cena >= prox_verif:
 				verificar()
 		"aviso":
 			st_t -= dt

@@ -465,7 +465,7 @@ func luta_quebra(r, pt: Vector2, forca: int) -> void:
 		if p["fallen"] or p["nucleo"]:
 			continue
 		if canteiro.hit_rect(p).grow(10).has_point(pt):
-			canteiro.damage(p, forca, pt)
+			canteiro.damage(p, forca * int(canteiro.cfg.get("luta_mult", 1)), pt)   # A53b: a luta conta o dobro
 			main.spark(pt, 6)
 			main.dust(pt, 1.0)
 			main.shake(4.0 + 3.0 * forca)

@@ -270,8 +270,27 @@ func _collapse(p: Dictionary) -> void:
 	_collapse_perf(p)
 	Perf.add("sub_canteiro_desaba", _pf)
 
+## A53b (2026-11-28): REAÇÃO EM CADEIA — a peça que desaba racha as que estavam logo acima dela (perdem o apoio); as
+## que já estavam fracas caem também (com o aviso de queda normal, então a cadeia é legível). Sem isso as vigas altas e
+## os andaimes das pontas quase nunca eram quebrados e a destruição empacava em ~60%.
+func _cascata(p: Dictionary) -> void:
+	var dano := int(cfg.get("cascata_dano", 0))
+	if dano <= 0 or p["nucleo"]:
+		return
+	var r: Rect2 = p["rect"]
+	var alcance := float(cfg.get("cascata_alcance_tiles", 6)) * T
+	for q in parts:
+		if q == p or q["fallen"] or q["nucleo"] or q["kind"] in ["terreo", "entulho"] or int(q["etapa"]) != int(p["etapa"]):
+			continue
+		var qr: Rect2 = q["rect"]
+		var acima := qr.end.y <= r.position.y + 8.0 and r.position.y - qr.end.y <= alcance
+		var cobre := minf(qr.end.x, r.end.x) - maxf(qr.position.x, r.position.x) >= T * 0.5
+		if acima and cobre:
+			damage(q, dano, Vector2(clampf(r.get_center().x, qr.position.x, qr.end.x), qr.end.y))
+
 func _collapse_perf(p: Dictionary) -> void:
 	p["fallen"] = true
+	_cascata(p)
 	if is_instance_valid(p["body"]):
 		p["body"].queue_free()   # a colisão some agora, junto com o começo da queda
 	for c in owner_of.keys():

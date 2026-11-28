@@ -1896,7 +1896,9 @@ func etapas_test() -> void:
 	var ct = main.demo.canteiro
 	et.ativo = true
 	var tp: Array = et.tempos()
-	check(is_equal_approx(tp[0], 70.0) and absf(tp[1] - 23.3) < 0.1, "5 vidas: 1ª verificação aos 70 s, depois a cada ~23 s (%s)" % str(tp))
+	var vcf: Dictionary = et.dcfg["verificacao"]
+	var p1e := float(vcf["primeira_base_s"]) + float(vcf["por_vida_s"]) * (5 - int(vcf["vidas_base"]))
+	check(is_equal_approx(tp[0], p1e) and absf(tp[1] - p1e * float(vcf["intervalo_frac"])) < 0.1, "5 vidas: 1ª verificação aos %.0f s, depois a cada ~%.0f s (lido de modos.json)" % [tp[0], tp[1]])
 	check(ct.progresso(1) == 0.0, "obra intacta: 0%")
 	for p in ct.parts:
 		if p["nucleo"] or p["kind"] == "terreo":
@@ -1904,7 +1906,7 @@ func etapas_test() -> void:
 	check(ct.progresso(1) == 0.0, "base fixa (núcleo e térreo) não leva dano e não conta na destruição")
 	et.t_cena = et.prox_verif - 0.05   # chega a hora da 1ª verificação, sem destruição
 	await frames(10)
-	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "< 50%% na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
+	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "< 40%% na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
 	var vig: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and int(p["etapa"]) == 1)
 	ct.damage(vig[0], 1, vig[0]["rect"].get_center())   # dano parcial (caminho de spells/eventos/mecanismos/ciclo)
 	var pp: float = ct.progresso(1)
@@ -1917,7 +1919,7 @@ func etapas_test() -> void:
 	check(ct.progresso(1) > pp, "marretada do jogador também conta (%.1f%%)" % (ct.progresso(1) * 100.0))
 	et.progresso = 0.62
 	et.verificar()
-	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "50–90% na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
+	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "40–70% na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
 	et.state = "etapa"   # cancela (a transição moderada inteira tem teste próprio) e segue para provar a rota total
 	et.destino = -1
 	main.demo.banner = ""
@@ -1930,17 +1932,10 @@ func etapas_test() -> void:
 			ct.damage(p, 99, p["rect"].get_center())
 	et.prox_verif = et.t_cena + 999.0
 	var w0 := 0
-	while ct.progresso(1) < 0.9 and w0 < 600:   # as peças caem aos poucos
+	while et.state == "etapa" and w0 < 600:   # as peças caem aos poucos
 		await frames(1)
 		w0 += 1
-	await frames(30)
-	check(et.state == "etapa" and ct.progresso(1) >= 0.9, "90%% antes da verificação NÃO antecipa (%.0f%%, ainda na cena)" % (ct.progresso(1) * 100.0))
-	et.prox_verif = et.t_cena + 1.0
-	var w := 0
-	while et.state == "etapa" and w < 400:
-		await frames(1)
-		w += 1
-	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "na verificação, ≥ 90%% → rota TOTAL: \"A OBRA VAI CEDER!\" (%.1f s depois)" % (w / 60.0))
+	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "bateu %.0f%% a qualquer momento → rota TOTAL na hora: \"A OBRA VAI CEDER!\" (sem esperar a verificação)" % (et.limiar_total() * 100.0))
 	sp.equip(r1, "T04")   # jetpack ligado bem na virada (bug: voava para fora da queda)
 	sp.use(r1)
 	await frames(int(float(et.cfg["aviso_s"]) * 60.0) + 4)
@@ -2497,7 +2492,7 @@ func moderada_test() -> void:
 	et.ativo = true
 	et.prox_verif = et.t_cena + 0.1
 	await frames(10)
-	check(prog >= 0.5 and prog < 0.9 and et.rota == "moderada" and main.demo.banner.begins_with("A LAJE"), "%.0f%% na verificação → \"A LAJE VAI ESCORREGAR!\"" % (prog * 100.0))
+	check(prog >= et.limiar_moderada() and prog < et.limiar_total() and et.rota == "moderada" and main.demo.banner.begins_with("A LAJE"), "%.0f%% na verificação → \"A LAJE VAI ESCORREGAR!\"" % (prog * 100.0))
 	var w := 0
 	while et.state != "queda" and w < 400:
 		await frames(1)

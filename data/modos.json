@@ -560,20 +560,20 @@
         },
         "nota_classes": "3 classes (2026-11-27): ataque, controle, transformação (mechas); a classe engenharia saiu — E01 Andaime Relâmpago e E03 Controle Remoto REMOVIDOS do jogo, E02 Carga Remota virou ataque. Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
         "destruicao": {
-          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. Chegar a 90% antes da verificação não antecipa. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
-          "limiar_moderada": 0.5,
-          "limiar_total": 0.9,
+          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. A53b (2026-11-28, medido com bots: 90% era inalcançável e os 50% roubavam a rota): bater o limiar_total A QUALQUER MOMENTO já leva à rota_total; a verificação de tempo só decide a moderada. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
+          "limiar_moderada": 0.4,
+          "limiar_total": 0.65,
           "verificacao": {
             "vidas_base": 3,
-            "primeira_base_s": 30,
-            "por_vida_s": 20,
+            "primeira_base_s": 45,
+            "por_vida_s": 15,
             "intervalo_frac": 0.3334,
             "vidas_min": 3,
             "vidas_max": 6
           },
           "mostrador": [
             0.1,
-            0.9
+            0.65
           ],
           "zonas": [
             "#2e9e4f",
@@ -668,11 +668,14 @@
       "laje_hp": 4,
       "andaime_hp": 3,
       "viga_hp": 2,
-      "dano_pesada": 1,
-      "impacto_vel": 950,
-      "dano_impacto": 1,
-      "impacto_forte_vel": 1500,
-      "dano_impacto_forte": 2,
+      "dano_pesada": 2,
+      "impacto_vel": 700,
+      "dano_impacto": 2,
+      "impacto_forte_vel": 1150,
+      "dano_impacto_forte": 3,
+      "luta_mult": 2,
+      "cascata_dano": 1,
+      "cascata_alcance_tiles": 6,
       "aviso_queda_s": 1.1,
       "ciclo_dano": 99,
       "escora_hp": 2,
