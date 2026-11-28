@@ -16,7 +16,9 @@ etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capa
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
 **▶ BASTÃO CONTÍNUO (2026-11-28):** quadro `docs/BASTAO.md` + gancho `.claude/hooks/session-start.sh` (mostra o quadro em todo
 chat novo) + regras em `docs/COMO_TRABALHAR.md` §6. Até 3 chats na mesma branch: pegue a tarefa no quadro, envie a cada passo.
-**▶ FASE 2 · DOSSIÊ COMPLETO — aguardando o usuário** (`docs/fases/derruba/f2_cargueiro/DOSSIE.md`: situação, 5 perguntas,
+**▶ FASE 2 · DOSSIÊ APROVADO (A55) + BLOCO A FEITO** (`levels/cargueiro_perdido.lvl`, manifesto, `--so=cargueiro` verde com as 2 rotas,
+vitrine `--cargueiro=DIR`; fase escondida do menu até ficar jogável). Próximo: bloco B (arte) — ver FILA do `docs/BASTAO.md`.
+**▶ (anterior) FASE 2 · DOSSIÊ COMPLETO** (`docs/fases/derruba/f2_cargueiro/DOSSIE.md`: situação, 5 perguntas,
 plano A–F). Novo nesta passada: fichas das 3 cenas iguais às fotos, fundo vivo, regra da água com números, eventos G15–G19,
 engenhocas na água + A09/D07, skins K16–K20, storyboard das 2 transições `art/out/fase2/transicoes.png`.
 **▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas

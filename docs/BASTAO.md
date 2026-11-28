@@ -32,34 +32,23 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-### Fase 2 · Cargueiro Perdido — bloco A (cenas: .lvl + manifesto)
-- Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
-- Pedido do usuário: "Aprovo tudo" (dossiê `docs/fases/derruba/f2_cargueiro/DOSSIE.md`) → construir a fase (método
-  `docs/manuais/derruba/mapa.md` §3, blocos A–F; este bloco = A)
-- Arquivos reservados: `levels/cargueiro_perdido.lvl`, `data/mapas/derruba/cargueiro_perdido.json`,
-  `docs/fases/derruba/f2_cargueiro/`, `art/src/cenarios/f2_*.py`, `art/out/fase2/`
-- Passos:
-  - [x] 1. Geometria tirada das 3 fotografias (64 px = 1 casa; medidas anotadas no passo 2)
-  - [x] 2. `levels/cargueiro_perdido.lvl` FEITO (commit "bastão: F2 bloco A passos 1–2"): etapa1 (Alto-Mar, em cima), etapa2 (Atlântida, EMBAIXO = rota total, queda),
-        etapa3 (Destroços, À DIREITA = rota moderada, deslize); ko1..3, buraco1 (porão), nascimentos 1–12, `canteiro: 1`
-  - [x] 3. FEITO: manifesto `data/mapas/derruba/cargueiro_perdido.json` (cenas com rotas e avisos, estruturas com os tipos que já
-        existem: pranchas/vigas/lajes/pilares; spells e eventos que já existem); fase escondida dos menus até ficar jogável
-  - [~] 4. Teste `--so=cargueiro` FEITO e verde (manifesto, 12 nascimentos, 21 estruturas, rota total 4,8 s, rota
-        moderada 7,1 s, todos vivos); falta olhar a captura `--cargueiro=DIR` (vitrine nova)
-- **Próximo passo exato:** rodar `xvfb-run -a -s "-screen 0 1920x1080x24" godot --path game --rendering-driver opengl3
-  --fixed-fps 60 -- --cargueiro=DIR` (demora ~10 min), olhar as 3 capturas (base fixa e estruturas no lugar da foto),
-  commit; depois abrir o bloco B (arte: `art/src/cenarios/f2_jogo.py`) ou C (água + perigos) — perguntar não precisa.
-- Decisões pendentes do usuário: nenhuma.
-
+(nenhum)
 
 ## AGUARDANDO USUÁRIO
 
 (nenhum)
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
+- **Fase 2 · bloco B (arte da cena viva)** — próximo da fase (usuário aprovou tudo, A55). Método `docs/manuais/derruba/mapa.md`
+  §3 B: copiar `art/src/cenarios/fase1_jogo.py` → `f2_jogo.py`, tirar as camadas PARADAS das fotografias
+  (`art/src/cenarios/f2_prancha.py`: c1_ceu/c1_longe/c1_navio_fundo, c2_ceu/c2_navio_fundo, c3_agua/c3_cidade_fundo/c3_cupula)
+  para `game/assets/cargueiro/`, `--import`, props `cena: cargueiro` no `.lvl`; generalizar `game/modes/cena.gd` (as listas da
+  fase 1). Conferir com `--cargueiro=DIR` (captura atual, arte provisória: `art/out/fase2/jogo/bloco_a_cenas.png`).
+- **Fase 2 · bloco C (água + perigos M1–M10)** e **D (contêineres)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
 ## CONCLUÍDO (últimos; detalhes no "Retomar aqui" do ESTADO)
+- 2026-11-28 · Fase 2 bloco A: `.lvl` + manifesto + teste `--so=cargueiro` (2 rotas de verdade) + vitrine `--cargueiro=DIR` — sessão 017desNJ…
 - 2026-11-28 · Dossiê da Fase 2 completo e APROVADO pelo usuário (A55) — sessão 017desNJ…
 - 2026-11-28 · Protocolo de desempenho (2ª passada) + 2 vazamentos — sessão 017desNJ…
 - 2026-11-28 · Projetos de Demolição v2 (A53), Controles (A51), Bots editáveis (A52), HUD vivo (A50) — outro chat
