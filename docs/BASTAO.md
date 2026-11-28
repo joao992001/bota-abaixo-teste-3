@@ -26,7 +26,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Passos:
   - [x] 1. ... (commit abc1234)
   - [ ] 2. ...
-- **Próximo passo exato:** passo 2b: gravar a onda atual (`--video-so=onda_balsa --video-passo=1`), folha de quadros, diagnosticar as paradas e a cobertura; storyboard da proposta para o usuário.
+- **Próximo passo exato:** passo 2b: reescrever as poses/tempo de `game/modes/mec_onda.gd` para A58 (frente da onda viaja: entra da borda → quebra na quina → espuma corre pelo convés até a ponta de dentro → escoa); regra de empurrão acompanha a frente; `--so=m3` + vídeo normal/lento.
 - Decisões pendentes do usuário: <ou "nenhuma">
 ```
 
@@ -54,7 +54,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] 2. (commit c194334; **APROVADO** pelo usuário 2026-11-28: "ficou muito bom"; vídeo `out/videos/cargueiro_conteiner_v2(_lento).mp4`) M1 contêiner no padrão `animacao.md` (`game/modes/mec_conteiner.gd`, como `mec_onda.gd`): sai da PILHA de carga do
     navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata e quica, poeira/lascas, robô
     esmagado/arremessado (hitstop + `vis.hurt`); vídeo `--video-so=conteiner_cai --video-passo=1` + folha de quadros → usuário.
-  - [ ] 2b. **Onda (M3): melhorar a COMPOSIÇÃO** (usuário 2026-11-28: "a física está muito boa, mas a animação está meio estranha: ela sobe, aí para… vem de um lado, ou só pega nos cantos — vamos melhorar a composição"). Vídeo/folha do atual → proposta (storyboard) → aprovação → código → vídeo.
+  - [ ] 2b. **Onda (M3): melhorar a COMPOSIÇÃO** (usuário 2026-11-28: "a física está muito boa, mas a animação está meio estranha: ela sobe, aí para… vem de um lado, ou só pega nos cantos — vamos melhorar a composição"). Diagnóstico: nasce no canto, cresce PARADA (parede), tomba só no canto. Usuário escolheu **A58 "vem e varre"** → código em `mec_onda.gd` → vídeo.
   - [ ] 3. M2 gancho no mesmo padrão (pêndulo com cabo que verga, antecipação puxando, pancada com hitstop) → vídeo → usuário.
   - [ ] 4. Aplicar A57 nas cenas Destroços e Atlântida (prancha antes × depois, mais plataformas) → aprovação → jogo.
   - [ ] 5. Depois: perigos da cena 2 (M4 maré, M5 boia, M6 rede, M10 tubarão) e 3 (M7, M8, M9, M11) no padrão de animação.
