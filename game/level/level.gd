@@ -293,8 +293,6 @@ func _build_colliders() -> void:
 			var x0 := x
 			while x < cols and (ch_at(Vector2i(x, y)) == ch or (ch == "#" and ch_at(Vector2i(x, y)) in FIXED_SOLID)):
 				x += 1
-			var cs := CollisionShape2D.new()
-			var r := RectangleShape2D.new()
 			if ch == "#":
 				# trecho sólido fixo: junta com o trecho igual da linha de cima (paredes viram um bloco só,
 				# sem emendas onde o robô tropeçava ao escorregar)
@@ -307,6 +305,9 @@ func _build_colliders() -> void:
 					open_runs[key] = {"x0": x0, "x1": x, "y0": y, "y1": y + 1}
 				continue
 			else:
+				# a forma só é criada aqui (antes nascia antes do "if" e a do trecho "#" ficava órfã: vazamento por partida)
+				var cs := CollisionShape2D.new()
+				var r := RectangleShape2D.new()
 				r.size = Vector2((x - x0) * T, 16)
 				cs.position = Vector2(x0 * T + r.size.x / 2.0, y * T + 8)
 				cs.shape = r

@@ -102,6 +102,10 @@ func _run() -> void:
 			await robos_sheet(a.trim_prefix("--robos="))
 			get_tree().quit()
 			return
+		if a == "--perf-vaza":
+			await perf_vaza()
+			get_tree().quit(0)
+			return
 		if a.begins_with("--perf-derruba="):
 			await perf_derruba(a.substr(15))
 			get_tree().quit(0)
@@ -566,6 +570,7 @@ func demolicao_test() -> void:
 	await verificacao_test()
 	await resultados_test()
 	await selecao_test()
+	await desempenho_test()
 	await perfil_test()
 	await eventos_cenas_test()
 	await fachada_test()
@@ -6001,6 +6006,10 @@ func perf_derruba(dir: String) -> void:
 		if a.begins_with("--perf-rota="):
 			rota = a.substr(12)
 	var pior: bool = not "--perf-normal" in args
+	var partidas := 1
+	for a in args:
+		if a.begins_with("--perf-partidas="):
+			partidas = int(a.substr(16))
 	get_window().size = Vector2i(1920, 1080)
 	seed(11)
 	main.rng.seed = 11
@@ -6023,40 +6032,42 @@ func perf_derruba(dir: String) -> void:
 	if pior:
 		main.demo.cfg["spells"]["caixa"]["intervalo_s"] = [1.5, 2.5]
 		main.demo.cfg["spells"]["caixa"]["max_mapa"] = 4
-	main.start_match()
-	await frames(5)
-	main.countdown = 0.0
-	for r in main.robots:
-		r.active = true
-	var et = main.demo.etapas
-	if et != null:
-		et.ativo = true
 	var vp := get_viewport().get_viewport_rid()
 	RenderingServer.viewport_set_measure_render_time(vp, true)
 	Perf.on = true
 	Perf.take()
 	var quadros := []
 	var n := int(dur * 60.0)
-	var last := Time.get_ticks_usec()
-	for f in n:
-		if f == n / 2 and et != null and is_instance_valid(et):
-			et.forcar(rota)
-		for i in main.players.size():
-			main.demo.lives[i] = 9
-		await get_tree().process_frame
-		var now := Time.get_ticks_usec()
-		var sis: Dictionary = Perf.take()
-		var cpu := 0.0
-		for k in sis:
-			if not _perf_filho(k):
-				cpu += float(sis[k])
-		var rcpu := RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
-		quadros.append({"f": f, "real": (now - last) / 1000.0, "cpu": cpu, "render": rcpu, "sis": sis,
-			"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
-			"nos": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)), "objetos": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
-			"coisas": _perf_coisas(main.demo.spells) + _perf_coisas(main.events) + _perf_coisas(main.demo.mecs) + _perf_coisas(main.demo.fx),
-			"tags": _perf_tags(), "estado": int(main.state)})
-		last = now
+	for pi in partidas:   # --perf-partidas=N: sessão longa (vazamento/acúmulo entre partidas)
+		var last := Time.get_ticks_usec()
+		main.start_match()
+		await frames(5)
+		main.countdown = 0.0
+		for r in main.robots:
+			r.active = true
+		var et = main.demo.etapas
+		if et != null:
+			et.ativo = true
+		for f in n:
+			if f == n / 2 and et != null and is_instance_valid(et):
+				et.forcar(rota)
+			for i in main.players.size():
+				main.demo.lives[i] = 9
+			await get_tree().process_frame
+			var now := Time.get_ticks_usec()
+			var sis: Dictionary = Perf.take()
+			var cpu := 0.0
+			for k in sis:
+				if not _perf_filho(k):
+					cpu += float(sis[k])
+			var rcpu := RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
+			quadros.append({"f": f, "real": (now - last) / 1000.0, "cpu": cpu, "render": rcpu, "sis": sis,
+				"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+				"nos": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)), "objetos": int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+				"coisas": _perf_coisas(main.demo.spells) + _perf_coisas(main.events) + _perf_coisas(main.demo.mecs) + _perf_coisas(main.demo.fx),
+				"tags": _perf_tags(), "estado": int(main.state), "partida": pi,
+				"vram_mb": Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, "mem_mb": Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0})
+			last = now
 	Perf.on = false
 	RenderingServer.viewport_set_measure_render_time(vp, false)
 	var fj := FileAccess.open(dir.path_join("quadros.json"), FileAccess.WRITE)
@@ -6094,6 +6105,13 @@ func _perf_relatorio(q: Array, modo: String, rota: String) -> String:
 	var co := q.map(func(x): return float(x["coisas"]))
 	o += "| chamadas de desenho | %.0f | %.0f | %.0f | %.0f |\n" % [media.call(dc), _pct(dc, 0.95), _pct(dc, 0.99), _pct(dc, 1.0)]
 	o += "| nós | %.0f | | | %.0f |\n| coisas vivas (listas de engenhocas/eventos/mecanismos) | %.0f | | | %.0f |\n\n" % [media.call(nos), _pct(nos, 1.0), media.call(co), _pct(co, 1.0)]
+	var np := int(q[-1].get("partida", 0)) + 1 if not q.is_empty() else 1
+	if np > 1:
+		o += "## Por partida (sessão longa)\n| partida | CPU média | render média | nós (fim) | objetos (fim) | coisas (fim) | memória MB | vídeo MB |\n|---|---|---|---|---|---|---|---|\n"
+		for pi in np:
+			var qq := q.filter(func(x): return int(x.get("partida", 0)) == pi)
+			o += "| %d | %.2f | %.2f | %d | %d | %d | %.0f | %.0f |\n" % [pi + 1, media.call(qq.map(func(x): return float(x["cpu"]))), media.call(qq.map(func(x): return float(x["render"]))), int(qq[-1]["nos"]), int(qq[-1]["objetos"]), int(qq[-1]["coisas"]), float(qq[-1]["mem_mb"]), float(qq[-1]["vram_mb"])]
+		o += "\n"
 	var acima := q.filter(func(x): return float(x["cpu"]) > limite).size()
 	o += "**Quadros acima do pico tolerado: %d (%.1f%%)**\n\n" % [acima, 100.0 * acima / maxf(q.size(), 1)]
 	# por sistema
@@ -6132,3 +6150,111 @@ func _perf_relatorio(q: Array, modo: String, rota: String) -> String:
 		var top := ", ".join(ks.slice(0, 3).map(func(k): return "%s %.1f" % [k, float(x["sis"][k])]))
 		o += "| %d | %.1f | %.2f | %s | %s |\n" % [int(x["f"]), int(x["f"]) / 60.0, float(x["cpu"]), top, " ".join(x["tags"])]
 	return o
+
+
+## PROTOCOLO DE DESEMPENHO (docs/manuais/desempenho.md): guarda as correções contra regressão. Limites generosos (a
+## máquina de teste é lenta e oscila): pegam o erro de volta (ex.: reler JSON por chamada, busca do mapa inteiro num
+## quadro), não variações pequenas. --so=desempenho
+func desempenho_test() -> void:
+	print("== Desempenho (protocolo)")
+	var t0 := Time.get_ticks_usec()
+	for k in 2000:
+		MapaReg.modo_cfg("derruba")
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	check(ms < 60.0, "modos.json não é relido a cada chamada (2000× modo_cfg = %.1f ms)" % ms)
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {}
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.bot_level = 2
+	for k in 4:
+		main.add_bot()
+	main.event_level = 3
+	main.demo.lives_setting = 9
+	main.start_match()
+	await frames(5)
+	main.countdown = 0.0
+	for r in main.robots:
+		r.active = true
+	var L = main.level
+	t0 = Time.get_ticks_usec()
+	var n := 0
+	for y in L.rows:
+		for x in L.cols:
+			if L.is_solid(Vector2i(x, y)):
+				n += 1
+	ms = (Time.get_ticks_usec() - t0) / 1000.0
+	check(ms < 40.0, "is_solid no mapa inteiro é barato (%d células, %.1f ms)" % [L.rows * L.cols, ms])
+	# a busca de caminho dos bots respeita a fatia de tempo (nunca o mapa inteiro num quadro)
+	var bt = main.bots
+	bt._busca = bt._nova_busca(L, Vector2i(int(L.cols / 2), int(L.area.end.y / 64.0) - 1))
+	var pior := 0.0
+	var quadros := 0
+	while bt._busca != null and quadros < 600:
+		bt._nav_quadro = -1
+		var q0 := Time.get_ticks_usec()
+		bt._avanca_busca()
+		pior = maxf(pior, (Time.get_ticks_usec() - q0) / 1000.0)
+		quadros += 1
+	check(bt._busca == null and pior < float(bt.NAV_FATIA_MS) * 4.0 + 2.0, "busca dos bots fatiada: termina em %d quadros, pior fatia %.1f ms (limite %.1f)" % [quadros, pior, bt.NAV_FATIA_MS])
+	# sorteio de evento: no máximo SORTEIO_POR_QUADRO testes por quadro
+	check(int(main.events.SORTEIO_POR_QUADRO) <= 3, "sorteio de evento espalhado (%d testes por quadro)" % main.events.SORTEIO_POR_QUADRO)
+	# partida curta com a sonda ligada: nenhum sistema de LÓGICA com pico absurdo (o desenho não roda sem tela)
+	Perf.on = true
+	Perf.take()
+	var picos := {}
+	for f in 600:
+		for i in main.players.size():
+			main.demo.lives[i] = 9
+		await frames(1)
+		var sis: Dictionary = Perf.take()
+		for k in ["bots", "demo_total", "fisica_robos", "canteiro"]:
+			var v := float(sis.get(k, 0.0))
+			if v > 15.0:
+				picos[k] = int(picos.get(k, 0)) + 1
+	Perf.on = false
+	var tot := 0
+	for k in picos:
+		tot += int(picos[k])
+	check(tot <= 3, "10 s de partida com 4 bots e eventos em ALTA: picos de lógica > 15 ms = %d %s" % [tot, str(picos)])
+	# vazamento entre partidas: nenhum nó órfão e objetos estáveis (antes: formas de colisão órfãs e estilos sem fim)
+	var obj0 := 0
+	for k in 3:
+		main.start_match()
+		await frames(5)
+		main.countdown = 0.0
+		for r in main.robots:
+			r.active = true
+		await frames(90)
+		if k == 0:
+			obj0 = int(Performance.get_monitor(Performance.OBJECT_COUNT))
+	var obj1 := int(Performance.get_monitor(Performance.OBJECT_COUNT))
+	var orf := int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
+	check(orf == 0 and obj1 - obj0 < 300, "3 partidas seguidas sem vazamento: órfãos %d, objetos %d → %d" % [orf, obj0, obj1])
+	var KitS = load("res://ui/kit.gd")
+	check(KitS.cor_cache(Color(0.5, 0.5, 0.5, 0.501)) == KitS.cor_cache(Color(0.5, 0.5, 0.5, 0.499)), "cache de estilos arredonda a transparência (não cresce com animação)")
+	main.go_menu()
+
+## Vazamento entre partidas (--perf-vaza): objetos, recursos e nós órfãos depois de cada partida.
+func perf_vaza() -> void:
+	PlayerInput.virtual = {}
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.go_join()
+	await frames(2)
+	for k in 4:
+		main.add_bot()
+	main.event_level = 3
+	for i in 4:
+		main.start_match()
+		await frames(5)
+		main.countdown = 0.0
+		for r in main.robots:
+			r.active = true
+		for f in 600:
+			for j in main.players.size():
+				main.demo.lives[j] = 9
+			await frames(1)
+		print("VAZA partida %d: objetos %d  recursos %d  nós %d  órfãos %d" % [i + 1, Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT), Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
+	Node.print_orphan_nodes()

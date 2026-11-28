@@ -26,6 +26,12 @@ Arte em papel e giz `art/src/ui/controles_arte.py` + `controles_export.py` → `
 (`Kit.pad_btn`). Bateria 573/573. Falta testar com controles REAIS (só simulados aqui). Próximo: perguntar ao usuário.
 **▶ SESSÃO 7 (cont. 4): HUD DE CIMA VIVO FEITO — A50** (retrato animado, número que pula, maleta da engenhoca com/usando,
 perigo e fora; vídeo `out/videos/hud_vivo.mp4`, vitrine `--hud=DIR`). Próximo: perguntar ao usuário.
+**▶ SESSÃO 7 (cont. 4): DESEMPENHO — 2ª passada FEITA** (protocolo completo em `docs/manuais/desempenho.md`: orçamento,
+sonda `Perf` com marcadores por subsistema, cenário `--perf-derruba` (+ `--perf-partidas=N` sessão longa, `--perf-vaza`),
+regras de ouro, teste `--so=desempenho` na bateria). Corrigido: busca dos bots fatiada, sorteio de eventos espalhado,
+`modos.json` relido a cada chamada (picos de 10 ms em caixa/eliminação), `is_solid` com lista por chamada, renascimento no
+mapa todo, e 2 VAZAMENTOS entre partidas (cache de estilos e formas de colisão órfãs). Quadros acima do pico: 2,2% → 0,3%.
+Próximo alvo de desempenho: cartões do HUD (~1,2 ms/quadro, constante).
 **▶ SESSÃO 7 (cont. 3): DESEMPENHO — 1ª passada FEITA** (protocolo `docs/manuais/desempenho.md`, sonda `Perf` +
 `--perf-derruba=DIR`). Corrigido: corações do placar (triangulação falhando a cada quadro, ~7 ms), chave do cache de estilos
 (`Kit._sb`) e rota dos bots (1 cache para 4 bots → picos de 16–30 ms; agora rota por alvo). Pior caso: CPU 41,8 → 28 ms em

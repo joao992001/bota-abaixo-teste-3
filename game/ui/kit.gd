@@ -23,9 +23,21 @@ static func font() -> Font:
 			_font = ThemeDB.fallback_font
 	return _font
 
+## Cor arredondada para o cache de estilos: transparência em 32 níveis (invisível na tela). Sem isso cada valor de uma
+## animação de transparência (cartão que some, aviso que desbota) virava um estilo novo guardado PARA SEMPRE: o cache
+## crescia ~3 mil objetos por partida (vazamento medido na sessão longa, 2026-11-28).
+static func cor_cache(c: Color) -> Color:
+	return Color(roundf(c.r * 255.0) / 255.0, roundf(c.g * 255.0) / 255.0, roundf(c.b * 255.0) / 255.0, roundf(c.a * 32.0) / 32.0)
+
+const SB_MAX := 1500
+
 static func _sb(fill: Color, radius: int, border: int, bcol: Color) -> StyleBoxFlat:
-	var key := [fill, radius, border, bcol]   # desempenho: chave direta (antes montava texto com to_html a cada quadro)
+	fill = cor_cache(fill)
+	bcol = cor_cache(bcol)
+	var key := [fill.to_rgba32(), radius, border, bcol.to_rgba32()]   # desempenho: chave direta (antes montava texto com to_html a cada quadro)
 	if not _flat.has(key):
+		if _flat.size() >= SB_MAX:
+			_flat.clear()   # teto: nunca cresce sem limite
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = fill
 		sb.set_corner_radius_all(radius)

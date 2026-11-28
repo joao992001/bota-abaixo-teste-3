@@ -7,6 +7,7 @@ Plataforma competitivo, **multiplayer local 2–4**, Godot 4. Party game de rob�
 2. **Visual muito próximo das referências** — personagens e cenário são a vitrine do jogo. Compare sempre lado a lado com `docs/referencias/`.
 3. **Controle responsivo** — nunca sacrifique resposta do controle por animação.
 4. **Caos legível** — cada jogador entende em 1 s o que é perigoso para ele.
+5. **Sem queda de FPS** — protocolo `docs/manuais/desempenho.md`: todo elemento novo é medido (`--perf-derruba`) e a bateria inclui `--so=desempenho`. Nunca ler arquivo, varrer o mapa inteiro ou criar sem liberar no meio da partida.
 
 ## Economia de uso (obrigatório)
 - **A sessão principal faz tudo** (código, mapas, regras e arte ligada ao código). Subagentes só para lotes grandes de arte em paralelo (`artista-personagens`, `artista-cenarios`) e `revisor` no fim de uma etapa grande. Máximo 3 ao mesmo tempo.

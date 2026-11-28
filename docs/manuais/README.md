@@ -15,6 +15,7 @@ Antes de criar qualquer coisa, leia [`sistema_criacao.md`](sistema_criacao.md) (
 | **Robô** (personagem) | [`personagem.md`](personagem.md) — global, não pertence a modo nem mapa | `art/src/robos/elenco.py`, `modelos.json` | `--so=robos` + `--equipa=DIR` |
 | **Skin** | [`skins.md`](skins.md) — origem no MAPA; **ainda não implementar** | `docs/fases/<modo>/<mapa>/skins.md` | — |
 | **Som** | [`audio.md`](audio.md) | packs aprovados em `audio/pack_*` | `--so=som` |
+| **Desempenho** (queda de FPS, ou TODO elemento novo antes de entregar) | [`desempenho.md`](desempenho.md) — protocolo corretivo + preventivo | orçamento `data/desempenho.json` | `--so=desempenho` + `--perf-derruba=DIR` |
 | Mexer numa fase **existente** | a biblioteca do mapa (`docs/fases/<modo>/<mapa>/README.md`) + o manual do tipo de elemento | manifesto do mapa | regressão da fase |
 
 ## 2. Mapa dos documentos
@@ -30,9 +31,11 @@ Antes de criar qualquer coisa, leia [`sistema_criacao.md`](sistema_criacao.md) (
 2. **Números no `data/`**, nunca fixos no código. Conteúdo de mapa no **manifesto** (fonte única).
 3. **Arte em papel e giz** gerada por Python/SVG (`art/src/…`), sem IA de imagem. Gere, **abra a imagem e olhe**.
 4. **Teste só a parte mexida** (`--autotest --so=<nome>`); bateria completa 1× no fim.
-5. **Entrega:** GIF/vídeo curto + `.exe` (`GODOT=… tools/exportar.sh`) + relatório de até 15 linhas.
-6. **Commit e push** por etapa; atualize "Retomar aqui" em `docs/ESTADO.md`.
-7. **Manual é vivo:** aprovou/reprovou algo → atualize o manual certo E a biblioteca do mapa no mesmo commit, com o estado.
+5. **Desempenho:** todo elemento novo passa pelo protocolo de [`desempenho.md`](desempenho.md) (medir com
+   `--perf-derruba`, sem pico > 2 ms do elemento, `--so=desempenho` verde) antes de ser entregue.
+6. **Entrega:** GIF/vídeo curto + `.exe` (`GODOT=… tools/exportar.sh`) + relatório de até 15 linhas.
+7. **Commit e push** por etapa; atualize "Retomar aqui" em `docs/ESTADO.md`.
+8. **Manual é vivo:** aprovou/reprovou algo → atualize o manual certo E a biblioteca do mapa no mesmo commit, com o estado.
 
 ## 4. Comandos
 ```

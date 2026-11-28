@@ -26,6 +26,7 @@ por isso a passagem de bastão (§6) é obrigatória.
 - Godot 4.7.1 (`godot`). Máquina nova: `godot --headless --path game --import` antes de tudo.
 - GDScript: tipar variáveis vindas de Dictionary/Array (`var x: float = …`), senão o parse quebra o jogo inteiro.
 - Testes: `godot --headless --path game --fixed-fps 60 -- --autotest --so=a,b` durante; **bateria completa 1×** no fim
+- **Desempenho:** elemento novo (engenhoca, evento, mecanismo, cena, efeito) → `--perf-derruba=DIR --perf-dur=45` antes de entregar e anote em `docs/manuais/desempenho.md` (seção 5); a bateria inclui `--so=desempenho`. Queda de FPS relatada → seção 4 do mesmo manual.
   (~20 min, rode em segundo plano; referência atual: ~443 verificações, 0 falhas). Teste novo para cada coisa nova.
 - Testes não podem depender da ordem: quem cria bots/estado volta ao menu no fim (`main.go_menu()`).
 - **Arte nova copiada para `game/assets/` SÓ vale depois de `godot --headless --path game --import`** (sem isso o jogo
