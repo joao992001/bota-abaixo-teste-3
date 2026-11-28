@@ -10,6 +10,7 @@ extends Node2D
 const T := 64.0
 const INK := Color("#2a1a2e")
 var main: Node
+var frente: Node2D            # desenho por cima do palco (onda M3)
 var list: Array = []          # instâncias {tipo, etapa, d (dados do data), s (estado)}
 var tex := {}
 var t := 0.0
@@ -21,6 +22,10 @@ func setup(m: Node) -> void:
 		var inst := {"tipo": d["tipo"], "etapa": int(d.get("etapa", 1)), "d": d, "s": {}}
 		list.append(inst)
 		_prepara(inst)
+	frente = Node2D.new()   # camada da frente (por cima do palco e das peças): a onda do M3
+	frente.z_index = 2
+	frente.draw.connect(_draw_frente)
+	add_child(frente)
 	for n in ["m_betoneira", "m_esteira", "m_tubo", "m_serra", "m_bancada", "m_martelo", "m_vagonete", "m_gerador", "m_bate_torre"]:
 		tex[n] = Data.tex("%s/%s" % [key, n])
 
@@ -104,6 +109,10 @@ func zonas_perigo() -> Array:
 				out.append(Rect2(float(d["x"]) - 130.0, float(d["topo"]) - 40.0, 260.0, float(d["chao"]) - float(d["topo"]) + 60.0))
 			"vagonete":
 				out.append(Rect2(float(d["x"][0]) - 80.0, float(d["chao"]) - 200.0, float(d["x"][1]) - float(d["x"][0]) + 160.0, 220.0))
+			"onda_balsa":   # a balsa da vez durante o aviso e a onda
+				var s3: Dictionary = inst["s"]
+				if String(s3.get("fase", "")) != "":
+					out.append(_onda_area(inst, int(s3["qual"])))
 			"gancho_balanca":   # todo o arco que o contêiner varre
 				var g: Dictionary = _gancho_geo(inst)
 				var pv: Vector2 = g["pivo"]
@@ -150,7 +159,10 @@ func update(dt: float) -> void:
 			"gerador": _gerador(inst, dt)
 			"conteiner_cai": _conteiner_cai(inst, dt)
 			"gancho_balanca": _gancho(inst, dt)
+			"onda_balsa": _onda_balsa(inst, dt)
 	queue_redraw()
+	if frente != null:
+		frente.queue_redraw()
 
 # ---------------------------------------------------------------- tipos
 func _betoneira(inst: Dictionary, dt: float) -> void:
@@ -594,6 +606,99 @@ func _gancho_solta(inst: Dictionary) -> void:
 	s["vel"] = 0.0
 	Audio.play("gancho", 0.8, 0.0)
 
+## M3 Onda estoura na balsa (Fase 2, Alto-Mar): alterna entre as balsas; a água INCHA na borda de fora (aviso_s) → a onda
+## varre o convés (onda_s): empurra para dentro e deixa MOLHADO (agua.molhar: lento por uns segundos). Sem dano.
+func _onda_area(inst: Dictionary, qual: int) -> Rect2:
+	var b: Array = inst["d"]["balsas"][qual]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	var alt := float(inst["d"]["altura_t"]) * T
+	return Rect2(o.x + float(b[0]) * T, o.y + float(b[2]) * T - alt, (float(b[1]) - float(b[0])) * T, alt)
+
+func _onda_balsa(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var fase := String(s.get("fase", ""))
+	if fase == "" and float(s["t"]) >= float(d["ciclo_s"]):
+		s["t"] = 0.0
+		s["qual"] = (int(s.get("qual", 1)) + 1) % (d["balsas"] as Array).size()
+		s["fase"] = "aviso"
+		s["k"] = 0.0
+		s["hit"] = {}
+		Audio.play("soprador", 0.6, -6.0)   # o mar puxando
+	elif fase == "aviso":
+		s["k"] = float(s["k"]) + dt / float(d["aviso_s"])
+		if float(s["k"]) >= 1.0:
+			s["fase"] = "onda"
+			s["k"] = 0.0
+			Audio.play("explosao", 1.6, -10.0)   # estouro da onda
+			main.shake(3.0)
+	elif fase == "onda":
+		s["k"] = float(s["k"]) + dt / float(d["onda_s"])
+		var a := _onda_area(inst, int(s["qual"]))
+		var lado := float((d["balsas"] as Array)[int(s["qual"])][3])
+		var frente := a.position.x + a.size.x * float(s["k"]) if lado < 0.0 else a.end.x - a.size.x * float(s["k"])
+		var varrida := Rect2(minf(frente, a.position.x if lado < 0.0 else a.end.x), a.position.y, absf(frente - (a.position.x if lado < 0.0 else a.end.x)), a.size.y)
+		for r in _robots():
+			if s["hit"].has(r.pid) or not r.rect().intersects(varrida):
+				continue
+			s["hit"][r.pid] = true
+			var e: Array = d["empurrao"]
+			r.knock(int(-lado), float(e[0]), float(e[1]), 0.15)   # para dentro da balsa (longe do mar)
+			var ag = main.demo.agua
+			if ag != null and is_instance_valid(ag):
+				ag.molhar(r)
+		if float(s["k"]) >= 1.0:
+			s["fase"] = ""
+
+func _draw_frente() -> void:
+	for inst in list:
+		if _on(inst) and String(inst["tipo"]) == "onda_balsa":
+			_draw_onda(inst, frente)
+
+func _draw_onda(inst: Dictionary, ci: CanvasItem) -> void:
+	var s: Dictionary = inst["s"]
+	var fase := String(s.get("fase", ""))
+	if fase == "":
+		return
+	var d: Dictionary = inst["d"]
+	var a := _onda_area(inst, int(s["qual"]))
+	var lado := float((d["balsas"] as Array)[int(s["qual"])][3])
+	var borda := a.position.x if lado < 0.0 else a.end.x
+	var base_y := a.end.y + 30.0
+	var agua := Color(0.36, 0.62, 0.82, 0.9)
+	var espuma := Color(0.92, 0.97, 1.0, 0.95)
+	if fase == "aviso":   # a água INCHA na borda de fora, cada vez mais alta (e treme no fim)
+		var k := float(s["k"])
+		var h := 30.0 + 90.0 * k + (sin(t * 40.0) * 6.0 if k > 0.6 else 0.0)
+		var pts := PackedVector2Array()
+		for i in 13:
+			var u := float(i) / 12.0
+			pts.append(Vector2(borda + lado * (u * 150.0 - 30.0), base_y - h * sin(u * PI)))
+		pts.append(Vector2(borda + lado * 120.0, base_y + 30.0))
+		pts.append(Vector2(borda - lado * 30.0, base_y + 30.0))
+		ci.draw_colored_polygon(pts, agua)
+		ci.draw_polyline(pts.slice(0, 13), espuma, 5.0)
+		for k2 in 3:   # gotas subindo
+			ci.draw_circle(Vector2(borda + lado * (40.0 + k2 * 30.0), base_y - h - 14.0 - k2 * 8.0 * k), 5.0, espuma)
+	else:   # a onda varre o convés (crista de espuma na frente, respingos)
+		var k := float(s["k"])
+		var frente := a.position.x + a.size.x * k if lado < 0.0 else a.end.x - a.size.x * k
+		var x0 := borda
+		var hh := a.size.y * (1.0 - 0.45 * k) + 30.0
+		var pts := PackedVector2Array([Vector2(x0, base_y + 20.0)])   # corpo da onda: alto na frente, baixando para trás
+		for i in 9:
+			var u := float(i) / 8.0
+			var x := lerpf(x0, frente, u)
+			pts.append(Vector2(x, base_y - hh * (0.35 + 0.65 * u * u) + sin(t * 9.0 + u * 6.0) * 5.0))
+		pts.append(Vector2(frente, base_y + 20.0))
+		ci.draw_colored_polygon(pts, Color(0.30, 0.58, 0.82, 0.85 * (1.0 - 0.4 * k)))
+		ci.draw_polyline(pts.slice(1, 10), espuma, 6.0)
+		var crista := Vector2(frente, base_y - hh)
+		ci.draw_circle(crista + Vector2(-lado * 6.0, 14.0), 26.0, espuma)   # crista enrolando
+		ci.draw_circle(crista + Vector2(lado * 18.0, 30.0), 16.0, Color(0.30, 0.58, 0.82, 0.9))
+		for k2 in 6:
+			ci.draw_circle(crista + Vector2(lado * (10.0 + k2 * 18.0), -14.0 - (k2 % 3) * 14.0 + k * 20.0), 8.0 - k2, espuma)
+
 ## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
 func _chao_em(r: Rect2, limite: float) -> float:
 	var y := r.position.y
@@ -758,6 +863,8 @@ func _draw_perf() -> void:
 				_draw_conteiner(s, d)
 			"gancho_balanca":
 				_draw_gancho(inst)
+			"onda_balsa":
+				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":
 				var p := _v(d["pos"])
 				var aviso: bool = float(s["t"]) > float(d["ciclo_s"]) - float(d["aviso_s"])

@@ -579,6 +579,7 @@ func demolicao_test() -> void:
 	await agua_test()
 	await m1_test()
 	await m2_test()
+	await m3_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6673,6 +6674,44 @@ func m2_test() -> void:
 	check(s["fase"] == "parado" and absf(float(s["ang"])) < 0.001, "depois para e volta a ser plataforma")
 	main.go_menu()
 
+## M3 Onda estoura na balsa (Alto-Mar): aviso (a água incha) → a onda varre o convés: empurra para dentro e deixa
+## molhado (lento); sem dano. --so=m3
+func m3_test() -> void:
+	print("== Fase 2 · M3 onda na balsa")
+	await _cargueiro_partida()
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "onda_balsa":
+			inst = i
+	check(inst != null and main.demo.agua != null, "M3 está no Alto-Mar e a água (molhado) está ligada")
+	if inst == null:
+		return
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	var r0 = main.robots[0]
+	for r in main.robots:
+		r.invuln = 99.0
+		r.active = false
+	s["qual"] = 1   # o próximo é a balsa 0 (esquerda)
+	s["t"] = float(d["ciclo_s"]) - 0.02
+	await frames(3)
+	check(s.get("fase", "") == "aviso" and int(s["qual"]) == 0, "aviso: a água incha na borda da balsa da esquerda")
+	var a: Rect2 = mc._onda_area(inst, 0)
+	put(r0, Vector2(5 * 64.0 + 20.0, 12 * 64.0))   # em cima do contêiner baixo da balsa (a onda chega até ali)
+	r0.invuln = 0.0
+	r0.active = true   # sem comando (ninguém apertando nada): só a onda mexe nele
+	var dmg0: float = r0.dmg
+	var x0: float = r0.position.x
+	var w := 0
+	while s.get("fase", "") != "" and w < 200:
+		await frames(1)
+		w += 1
+	check(main.demo.agua.molhado.has(r0) and float(main.demo.agua.molhado[r0]) > 0.0, "a onda deixa molhado (lento)")
+	check(r0.position.x > x0 + 20.0, "a onda empurra para dentro da balsa (longe do mar: %.0f px)" % (r0.position.x - x0))
+	check(r0.dmg == dmg0, "a onda não dá dano (só empurra e molha)")
+	main.go_menu()
+
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
 func cargueiro_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -6696,6 +6735,14 @@ func cargueiro_frames(dir: String) -> void:
 			await snap(dir, "f2_1d_m2_aviso")
 			await frames(100)
 			await snap(dir, "f2_1e_m2_balanca")
+	for i in main.demo.mecs.list:   # M3: a água inchando e a onda varrendo
+		if i["tipo"] == "onda_balsa":
+			i["s"]["qual"] = 1
+			i["s"]["t"] = float(i["d"]["ciclo_s"]) - 0.02
+			await frames(45)
+			await snap(dir, "f2_1f_m3_aviso")
+			await frames(35)
+			await snap(dir, "f2_1g_m3_onda")
 	for par in [["total", 2, "f2_2_atlantida"], ["moderada", 3, "f2_3_destrocos"]]:
 		if par[0] == "moderada":
 			await _cargueiro_partida()

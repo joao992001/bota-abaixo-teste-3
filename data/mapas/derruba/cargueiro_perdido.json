@@ -85,6 +85,33 @@
      "amplitude": 0.7,
      "periodo_s": 1.7,
      "cor": 4
+    },
+    {
+     "tipo": "onda_balsa",
+     "nota": "M3: a água incha na borda de fora da balsa (aviso) → a onda estoura e varre o convés: empurra para dentro e deixa MOLHADO (lento 2 s). Só nas balsas; alterna entre as duas.",
+     "balsas": [
+      [
+       1,
+       7,
+       13,
+       -1
+      ],
+      [
+       22,
+       29,
+       13,
+       1
+      ]
+     ],
+     "ciclo_s": 7.5,
+     "fase_s": 5.0,
+     "aviso_s": 1.0,
+     "onda_s": 0.7,
+     "altura_t": 2.2,
+     "empurrao": [
+      420,
+      260
+     ]
     }
    ],
    "rota_moderada": "destrocos",

@@ -33,6 +33,9 @@ static func tem_agua(m: Node) -> bool:
 	for c in MapaReg.manifesto(m.game_mode, m.level.id).get("cenas", []):
 		if not c.get("agua", {}).get("zonas", []).is_empty():
 			return true
+		for mc in c.get("mecanismos", []):   # onda que molha (M3) precisa do "molhado" mesmo sem zona alagada
+			if String(mc.get("tipo", "")) == "onda_balsa":
+				return true
 	return false
 
 ## O ponto está debaixo d'água (alguma zona, abaixo da superfície atual)?
