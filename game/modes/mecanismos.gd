@@ -535,6 +535,7 @@ func _conteiner_cai(inst: Dictionary, dt: float) -> void:
 						if not p["fallen"] and (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, w, 12.0)):
 							ct.damage(p, int(d.get("dano_peca", 2)), Vector2(alvo.get_center().x, alvo.end.y))
 				s["plat"] = _body(alvo)   # fica como plataforma nova
+				s["impacto"] = 0.45   # quadro de impacto (poeira e lascas)
 				s["parado"] = float(d.get("fica_s", 14.0))
 			elif s["mar"] and float(s["y"]) >= alvo.position.y + 400.0:
 				s["fase"] = "espera"   # afundou no mar
@@ -671,6 +672,8 @@ func _draw_frente() -> void:
 		elif _on(inst) and String(inst["tipo"]) == "tubarao":
 			_draw_tub_frente(inst, frente)
 
+## Onda lapidada (prancha `art/out/fase2/lapida_cena1.png`): 5 quadros em papel e giz — 0 incha · 1 cresce (aviso) ·
+## 2 quebra · 3 varre · 4 recua (onda). O sprite vem do mar pela DIREITA; espelha quando o mar está à esquerda.
 func _draw_onda(inst: Dictionary, ci: CanvasItem) -> void:
 	var s: Dictionary = inst["s"]
 	var fase := String(s.get("fase", ""))
@@ -679,41 +682,26 @@ func _draw_onda(inst: Dictionary, ci: CanvasItem) -> void:
 	var d: Dictionary = inst["d"]
 	var a := _onda_area(inst, int(s["qual"]))
 	var lado := float((d["balsas"] as Array)[int(s["qual"])][3])
-	var borda := a.position.x if lado < 0.0 else a.end.x
-	var base_y := a.end.y + 30.0
-	var agua := Color(0.36, 0.62, 0.82, 0.9)
-	var espuma := Color(0.92, 0.97, 1.0, 0.95)
-	if fase == "aviso":   # a água INCHA na borda de fora, cada vez mais alta (e treme no fim)
-		var k := float(s["k"])
-		var h := 30.0 + 90.0 * k + (sin(t * 40.0) * 6.0 if k > 0.6 else 0.0)
-		var pts := PackedVector2Array()
-		for i in 13:
-			var u := float(i) / 12.0
-			pts.append(Vector2(borda + lado * (u * 150.0 - 30.0), base_y - h * sin(u * PI)))
-		pts.append(Vector2(borda + lado * 120.0, base_y + 30.0))
-		pts.append(Vector2(borda - lado * 30.0, base_y + 30.0))
-		ci.draw_colored_polygon(pts, agua)
-		ci.draw_polyline(pts.slice(0, 13), espuma, 5.0)
-		for k2 in 3:   # gotas subindo
-			ci.draw_circle(Vector2(borda + lado * (40.0 + k2 * 30.0), base_y - h - 14.0 - k2 * 8.0 * k), 5.0, espuma)
-	else:   # a onda varre o convés (crista de espuma na frente, respingos)
-		var k := float(s["k"])
-		var frente := a.position.x + a.size.x * k if lado < 0.0 else a.end.x - a.size.x * k
-		var x0 := borda
-		var hh := a.size.y * (1.0 - 0.45 * k) + 30.0
-		var pts := PackedVector2Array([Vector2(x0, base_y + 20.0)])   # corpo da onda: alto na frente, baixando para trás
-		for i in 9:
-			var u := float(i) / 8.0
-			var x := lerpf(x0, frente, u)
-			pts.append(Vector2(x, base_y - hh * (0.35 + 0.65 * u * u) + sin(t * 9.0 + u * 6.0) * 5.0))
-		pts.append(Vector2(frente, base_y + 20.0))
-		ci.draw_colored_polygon(pts, Color(0.30, 0.58, 0.82, 0.85 * (1.0 - 0.4 * k)))
-		ci.draw_polyline(pts.slice(1, 10), espuma, 6.0)
-		var crista := Vector2(frente, base_y - hh)
-		ci.draw_circle(crista + Vector2(-lado * 6.0, 14.0), 26.0, espuma)   # crista enrolando
-		ci.draw_circle(crista + Vector2(lado * 18.0, 30.0), 16.0, Color(0.30, 0.58, 0.82, 0.9))
-		for k2 in 6:
-			ci.draw_circle(crista + Vector2(lado * (10.0 + k2 * 18.0), -14.0 - (k2 % 3) * 14.0 + k * 20.0), 8.0 - k2, espuma)
+	var k := float(s["k"])
+	var q := 0
+	if fase == "aviso":
+		q = 0 if k < 0.55 else 1
+	else:
+		q = 2 if k < 0.3 else (3 if k < 0.78 else 4)
+	var tx: Texture2D = Data.tex("cargueiro/onda_%d" % q)
+	if tx == null:
+		return
+	var sc := a.size.x / 448.0
+	var base := a.end.y + 40.0 if q <= 2 else a.end.y + 12.0   # quadros 0–2 nascem no mar; 3–4 correm no convés
+	var hy := 300.0 * sc * (0.78 if q <= 2 else 0.8)
+	var r := Rect2(a.position.x, base - hy, a.size.x, hy)
+	var treme := sin(t * 40.0) * 3.0 if fase == "aviso" and k > 0.8 else 0.0
+	if lado < 0.0:   # mar à esquerda: espelha
+		ci.draw_set_transform(Vector2(r.position.x + r.size.x + treme, r.position.y), 0.0, Vector2(-1, 1))
+		ci.draw_texture_rect(tx, Rect2(Vector2.ZERO, r.size), false)
+		ci.draw_set_transform(Vector2.ZERO)
+	else:
+		ci.draw_texture_rect(tx, Rect2(r.position + Vector2(treme, 0), r.size), false)
 
 ## M4 Maré (Fase 2, Destroços): baixa → SETA + som (aviso_s) → sobe (sobe_s) até a linha da maré alta e fica (alta_s) →
 ## desce. Mexe no `topo` da zona de água da cena (agua.gd: quem fica abaixo dela está ALAGADO); bote e jangada (peças
@@ -1365,13 +1353,23 @@ func _draw_gancho(inst: Dictionary) -> void:
 			var a0 := -amp + 2.0 * amp * k / n
 			var a1 := -amp + 2.0 * amp * (k + 1) / n
 			var rr := L + float(g["h"]) * 0.5
-			draw_line(pv + Vector2(sin(a0), cos(a0)) * rr, pv + Vector2(sin(a1), cos(a1)) * rr, Color(1, 1, 1, 0.85), 5.0)
+			draw_circle(pv + Vector2(sin(a0), cos(a0)) * rr, 7.0, Color(0.83, 0.13, 0.21, 0.5 + 0.5 * float(k % 4 == 0)))
 	var r := _gancho_rect(inst)
-	var gancho := Vector2(r.get_center().x, r.position.y - 46.0)
-	draw_line(pv, gancho, INK, 4.0)   # cabo principal
-	draw_circle(gancho, 7.0, Color("#5a5f6a"))
-	draw_line(gancho + Vector2(0, 10), r.position + Vector2(8, 0), INK, 3.0)   # lingas até as quinas
-	draw_line(gancho + Vector2(0, 10), Vector2(r.end.x - 8.0, r.position.y), INK, 3.0)
+	var th := float(s.get("ang", 0.0))
+	var mt := Vector2(r.get_center().x, r.position.y) - Vector2(sin(th), cos(th)) * 96.0   # topo do moitão (lapidado)
+	_cabo_aco(pv, mt)
+	var mx: Texture2D = Data.tex("cargueiro/moitao")
+	if mx != null:   # moitão amarelo/preto + gancho (sprite 100×110, topo em (56,4)), gira com o cabo
+		draw_set_transform(mt, -th, Vector2(0.8, 0.8))
+		draw_texture_rect(mx, Rect2(Vector2(-56, -4), Vector2(100, 110)), false)
+		draw_set_transform(Vector2.ZERO)
+	var olho := mt + Vector2(sin(th), cos(th)) * 72.0
+	draw_line(olho, r.position + Vector2(8, 0), INK, 4.0)   # lingas do gancho às quinas
+	draw_line(olho, Vector2(r.end.x - 8.0, r.position.y), INK, 4.0)
+	if String(s["fase"]) == "aviso":   # a roldana range: estalos vermelhos no pivô
+		for k in 3:
+			var a := -0.6 + k * 0.6
+			draw_line(pv + Vector2.from_angle(a - PI / 2.0) * 14.0, pv + Vector2.from_angle(a - PI / 2.0) * 28.0, Color("#d42035"), 4.0, true)
 	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % int(d.get("cor", 4)))
 	if ctx != null:
 		draw_texture_rect(ctx, r, false)
@@ -1383,25 +1381,44 @@ func _draw_gancho(inst: Dictionary) -> void:
 
 const CONT_CORES := [Color("#d14b4b"), Color("#3f7fd0"), Color("#4fae5b"), Color("#f2a33a"), Color("#8a63d2")]
 
+## Cabo de aço (lapidado): contorno escuro + aço + brilho tracejado.
+func _cabo_aco(a: Vector2, b: Vector2) -> void:
+	draw_line(a, b, INK, 8.0, true)
+	draw_line(a, b, Color("#8a909c"), 4.0, true)
+	draw_dashed_line(a, b, Color("#d9dce4"), 1.5, 8.0)
+
+## Contêiner lapidado (prancha `lapida_cena1.png`): no aviso aparece preso por cintas (quadro 0) e uma cinta ESTALA (1) +
+## ALVO zebrado com seta que cresce no chão; cai com traços de velocidade (2); no impacto, poeira e lascas (3, ~0,45 s).
 func _draw_conteiner(s: Dictionary, d: Dictionary) -> void:
 	if not s.has("alvo"):
 		return
 	var alvo: Rect2 = s["alvo"]
 	var fase := String(s.get("fase", "espera"))
-	if fase == "aviso" or fase == "cai":   # SOMBRA VERMELHA onde vai cair (cresce e pisca no fim do aviso)
+	var sc := alvo.size.x / 192.0
+	if fase == "aviso" or fase == "cai":   # ALVO zebrado no chão (cresce e pisca no fim do aviso)
 		var k := 1.0 - clampf(float(s.get("aviso", 0.0)) / float(d["aviso_s"]), 0.0, 1.0)
-		var a := 0.35 + 0.35 * k + (0.2 * sin(t * 30.0) if k > 0.6 else 0.0)
-		var cx := alvo.get_center().x
-		draw_set_transform(Vector2(cx, alvo.end.y), 0.0, Vector2(1.0, 0.22))
-		draw_circle(Vector2.ZERO, alvo.size.x * (0.45 + 0.25 * k), Color(0.85, 0.1, 0.1, a))
-		draw_set_transform(Vector2.ZERO)
-		for k2 in 2:   # faixas de perigo descendo até a sombra
-			draw_line(Vector2(alvo.position.x + 10.0 + k2 * (alvo.size.x - 20.0), main.view_rect().position.y), Vector2(alvo.position.x + 10.0 + k2 * (alvo.size.x - 20.0), alvo.end.y), Color(0.85, 0.1, 0.1, 0.25 * a), 4.0)
+		var az: Texture2D = Data.tex("cargueiro/alvo_zebra")
+		if az != null and not s.get("mar", false):
+			var ww := 240.0 * sc * (0.55 + 0.45 * k)
+			var pisca := 1.0 if k < 0.7 else 0.6 + 0.4 * sin(t * 30.0)
+			draw_texture_rect(az, Rect2(alvo.get_center().x - ww / 2.0, alvo.end.y - 100.0 * sc, ww, 110.0 * sc), false, Color(1, 1, 1, pisca))
 	var y := float(s.get("y", alvo.position.y)) if fase != "espera" else alvo.position.y
+	var q := -1
 	if fase == "aviso":
-		y = main.view_rect().position.y - alvo.size.y * 0.55 + sin(t * 40.0) * 3.0   # aparece balançando no alto (amarras)
+		y = main.view_rect().position.y - alvo.size.y * 0.55 + sin(t * 40.0) * 3.0   # balançando lá no alto, preso pelas cintas
+		q = 0 if float(s.get("aviso", 0.0)) > float(d["aviso_s"]) * 0.45 else 1
+	elif fase == "cai":
+		q = 2
+	elif float(s.get("impacto", 0.0)) > 0.0:
+		q = 3
+		s["impacto"] = float(s["impacto"]) - get_physics_process_delta_time()
 	var r := Rect2(alvo.position.x, y, alvo.size.x, alvo.size.y)
-	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % (int(s.get("cor", 0)) % 7))   # mesma arte dos contêineres do palco
+	if q >= 0:
+		var tq: Texture2D = Data.tex("cargueiro/cai_%d" % q)
+		if tq != null:   # sprite 360×300 com o contêiner (192×64) na origem (84,150)
+			draw_texture_rect(tq, Rect2(r.position - Vector2(84, 150) * sc, Vector2(360, 300) * sc), false)
+			return
+	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % (int(s.get("cor", 0)) % 7))   # parado: mesma arte dos contêineres do palco
 	if ctx != null:
 		draw_texture_rect(ctx, r, false)
 	else:

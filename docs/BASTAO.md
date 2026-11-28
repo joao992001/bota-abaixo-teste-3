@@ -42,10 +42,12 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Método (igual ao outro chat): por cena, PRANCHA com quadro a quadro da animação → aprovação → arte+código → captura no jogo (após `--import`).
 - Passos:
   - [x] 1. Cena 1: prancha `art/out/fase2/lapida_cena1.png` (fonte `f2_lapida1.py`: onda 5 quadros, contêiner 4, gancho 3, tábua) — ENVIADA, aguardando aprovação
-  - [ ] 2. Cena 1 no jogo (sprites + animação) + capturas
+  - [x] 2. Cena 1 no jogo: sprites `onda_0..4`, `cai_0..3`, `alvo_zebra`, `moitao`, tábuas `tabua_boa` (via `f2_jogo.py` ← `f2_lapida1.py`); `_draw_onda/_draw_conteiner/_draw_gancho` trocados; `--so=m1,m2,m3` ok; captura `art/out/fase2/uso/cena1.png`
   - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
   - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
-- **Próximo passo exato:** aprovada a prancha da cena 1 → passo 2: exportar os quadros como sprites (`onda_0..4`, `conteiner_cai_0..3`, `poeira`, `gancho`, `tabua_boa`) pelo `f2_jogo.py` (SPRITES, importando de `f2_lapida1`), copiar para `game/assets/cargueiro/`, `--import`, e trocar os `_draw_*` de M1/M2/M3 em `mecanismos.gd` (+ tábuas do canteiro) para usar os quadros; testes `--so=m1,m2,m3`; capturas.
+- **Próximo passo exato:** passo 3 — prancha da cena 2a (`art/src/cenarios/f2_lapida2.py` → `art/out/fase2/lapida_cena2a.png`):
+  M4 maré (subida com espuma na linha, setas), M5 boia (rangendo/virando, respingo), M6 rede (rasgando, caixas caindo), M10 tubarão
+  (redesenho completo: corpo, barbatana na água, salto, mordida, tonto). Mesmo método: quadros desenhados em funções reaproveitáveis.
 - Decisões pendentes do usuário: aprovar cada prancha.
 
 ## AGUARDANDO USUÁRIO

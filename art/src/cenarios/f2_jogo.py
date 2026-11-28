@@ -12,6 +12,7 @@ HERE = os.path.dirname(__file__)
 sys.path.insert(0, HERE)
 import f2_prancha as fp  # noqa: E402
 import f2_tubarao as ft  # noqa: E402
+import f2_lapida1 as fl  # noqa: E402   (lapidação aprovada 2026-11-28: onda, contêiner caindo, gancho, tábuas)
 import math  # noqa: E402
 from f2_prancha import E, INK, W, H, T, R, PL, CONT, fonte, grad, gaivota, sign, conteiner  # noqa: E402
 from papel import rough  # noqa: E402
@@ -108,10 +109,10 @@ TT = T
 def _pecas_e1():
     """Alto-Mar: tábuas dos níveis 9 e 6 (andaimes do manifesto) e a viga içada (viga)."""
     return {
-        "p1_andaime_0": fp.tabua(8 * TT - 6, 9 * TT, 5 * TT + 12),
-        "p1_andaime_1": fp.tabua(17 * TT - 6, 9 * TT, 4 * TT + 12),
-        "p1_andaime_2": fp.tabua(5 * TT - 6, 6 * TT, 3 * TT + 12),
-        "p1_andaime_3": fp.tabua(22 * TT - 6, 6 * TT, 6 * TT + 12),
+        "p1_andaime_0": fl.tabua_boa(8 * TT - 6, 9 * TT - 4, 5 * TT + 12),
+        "p1_andaime_1": fl.tabua_boa(17 * TT - 6, 9 * TT - 4, 4 * TT + 12),
+        "p1_andaime_2": fl.tabua_boa(5 * TT - 6, 6 * TT - 4, 3 * TT + 12),
+        "p1_andaime_3": fl.tabua_boa(22 * TT - 6, 6 * TT - 4, 6 * TT + 12),
         "p1_viga_0": fp.pendurada(20 * TT, 25 * TT, 3 * TT, 1 * TT + 6, 1 * TT + 6) + R(20 * TT - 10, 3 * TT, 5 * TT + 20, 26, "#7a808c", 2, 1.4, dark="#5a606c"),
     }
 
@@ -279,6 +280,10 @@ SPRITES = {
     "tubarao": (300, 160, lambda: ft.tubarao(170, 90, 0, 0.0)),
     "tubarao_boca": (300, 160, lambda: ft.tubarao(170, 90, 0, 1.0)),
     "barbatana": (120, 70, lambda: ft.barbatana(60, 60, 1.0)),
+    **{f"onda_{k}": (448, 300, (lambda k=k: fl.onda(k))) for k in range(5)},
+    **{f"cai_{k}": (360, 300, (lambda k=k: f'<g transform="translate(84,150)">{fl.conteiner_cai(k)}</g>')) for k in range(4)},
+    "alvo_zebra": (240, 110, lambda: fl.sombra_alvo(120, 100, 200, 1.0)),
+    "moitao": (100, 110, lambda: fl.gancho(56, 4, 1.0)),
     "concha_aberta": (140, 110, lambda: _concha(True)),
     "concha_fechada": (140, 110, lambda: _concha(False)),
 }
