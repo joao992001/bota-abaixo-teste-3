@@ -10,5 +10,6 @@
 | M6 | Rede de carga rasga | 2a | mecanismo perigoso | marretada pesada → rasga, caixas caem em quem está embaixo; vira saco vazio | PROPOSTO |
 | M7 | Racha da cúpula alaga | 2b | perigo | racha pinga/brilha → lado direito alagado; marretada no vidro faz crescer; evento Bolhão de Ar baixa | PROPOSTO |
 | M8 | Lustre despenca | 2b | mecanismo perigoso | marretada na corrente → estala + SOMBRA VERMELHA (1 s) → esmaga e racha a plataforma; some | PROPOSTO |
+| M10 | Tubarão | 2a | perigo | barbatana ronda o mar fundo; acelera para a plataforma baixa + anel vermelho + som (1,5 s) → salta e morde (joga para cima/lado; racha contêiner boiando); marretada no focinho espanta; só plataformas rentes à água; KO no mar = abocanhado (só animação) | PROPOSTO (ideia do usuário, prancha `perigo_tubarao.png`) |
 | M9 | Concha-trampolim | 2b | mecanismo | pisou: lança alto; depois FECHA 2 s e prende (marretada abre) | PROPOSTO |
-Perigo estrutural (KO): mar embaixo (1, 2a) e Fenda Abissal (2b); bordas abertas. Tubarão: ideia guardada para evento.
+Perigo estrutural (KO): mar embaixo (1, 2a) e Fenda Abissal (2b); bordas abertas. 

@@ -585,11 +585,16 @@ def c2_frente():
     o += f'<path d="M0,{MAR2} ' + "".join("q30,-10 60,0 " for _ in range(33)) + '" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.95"/>'
     o += f'<path d="M0,{13 * T} H{W}" stroke="#ffffff" stroke-width="3" stroke-dasharray="16 12" opacity="0.85"/>'
     o += f'<text x="{W - 30}" y="{13 * T - 10}" font-family="Fredoka" font-weight="700" font-size="18" fill="#ffffff" text-anchor="end">maré alta</text>'
+    # M10 tubarão: a barbatana ronda o mar fundo entre a rocha-arco e a balsa
+    fx, fy = 20 * T + 20, MAR2 + 6
+    o += PL([(fx - 26, fy), (fx + 4, fy - 52), (fx + 24, fy)], "#5a6878", 1.2)
+    o += f'<path d="M{fx - 70},{fy + 6} q20,-8 40,0 t40,0 M{fx + 40},{fy + 10} h50 M{fx + 46},{fy + 20} h36" stroke="#ffffff" stroke-width="3" fill="none"/>'
+    o += tag(fx, fy + 50, "TUBARÃO")
     o += tag(3 * T + 20, 13 * T + 40, "ROCHA (FIXA)") + tag(15 * T, 12 * T + 80, "ROCHA-ARCO (FIXA)") + tag(26 * T, 14 * T + 10, "BALSA (FIXA)")
     o += tag(5 * T + 10, 12 * T + 34, "CARGA DERRAMADA") + tag(9 * T + 30, 9 * T + 40, "MASTRO-PONTE") + tag(14 * T + 40, 9 * T + 20, "PEDAÇO DO CONVÉS") + tag(11 * T + 20, 13 * T + 26, "CONVÉS QUEBRADO") + tag(19 * T, 13 * T + 26, "CONVÉS QUEBRADO")
     o += tag(8 * T, MAR2 - 90, "BOTE VIRADO") + tag(10 * T + 30, MAR2 + 50, "JANGADA") + tag(13 * T + 32, 6 * T + 30, "REDE DE CARGA")
     o += tag(5 * T + 32, 6 * T + 20, "CONTÊINER IÇADO") + tag(20 * T + 40, 9 * T + 50, "TÁBUA") + tag(24 * T + 20, 5 * T + 50, "TÁBUA ALTA")
-    o += tag(5 * T, H - 34, "MAR FUNDO = KO") + tag(20 * T, H - 34, "MAR FUNDO = KO") + tag(940, 186, "NAVIO PARTIDO = FUNDO")
+    o += tag(5 * T, H - 34, "MAR FUNDO = KO") + tag(24 * T, H - 34, "MAR FUNDO = KO") + tag(940, 186, "NAVIO PARTIDO = FUNDO")
     return o
 
 
