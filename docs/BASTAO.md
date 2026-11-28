@@ -46,11 +46,12 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** M4 maré FEITO (`mare`, `--so=m4`; zona de água dos Destroços + bote/jangada boiam). Próximo:
-  **M5 contêiner boiando vira** (Destroços; `perigos_mecanismos.md`): 2+ robôs em cima → range e afunda um lado → em 1 s
-  vira e joga na água; volta em ~4 s. Sugestão: tipo `conteiner_boia` em `mecanismos.gd` com corpo próprio (como o gancho,
-  `_body(..., animated)`), no mar entre a rocha-arco e a balsa (rel col ~20–22, linha 13); arte `cont_*`. Depois M6 rede
-  rasga (peça `p3_prancha_6`, marretada pesada → caixas caem), M10 tubarão; Atlântida M7/M8/M9.
+- **Próximo passo exato:** M4 maré e M5 contêiner boiando FEITOS (`mare`, `conteiner_boia`; `--so=m4,m5`). Próximo:
+  **M6 rede de carga rasga** (Destroços): a rede é a peça `p3_prancha_6` (canteiro, prancha idx 6 da cena 3). Marretada
+  PESADA nela → rasga: as caixas caem em quem está embaixo (golpe `mec_caixas`, sombra de aviso curta) e a rede vira saco
+  vazio (a peça cai ou fica sem plataforma). Sugestão: tipo `rede_rasga` em `mecanismos.gd` que no `hammer_hit` pesado
+  acha a peça no canteiro (`ct.parts` etapa 3, kind prancha, idx 6), solta 3 caixas (lista de quedas como o `conteiner_cai`)
+  e chama `ct.damage(p, 99, ...)`. Depois **M10 tubarão** e Atlântida (M7/M8/M9).
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

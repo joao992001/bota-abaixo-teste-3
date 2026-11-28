@@ -581,6 +581,7 @@ func demolicao_test() -> void:
 	await m2_test()
 	await m3_test()
 	await m4_test()
+	await m5_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6763,6 +6764,61 @@ func m4_test() -> void:
 	check(s["fase"] == "baixa" and r0.agua_grav == 1.0 and is_equal_approx((bote["rect"] as Rect2).position.y, float(bote["y0"])), "a maré desce: seca e o bote volta")
 	main.go_menu()
 
+## M5 Contêiner boiando (Destroços): 1 robô em cima não vira; 2 viram: range (inclina) → vira e os dois caem na água;
+## volta à tona depois. --so=m5
+func m5_test() -> void:
+	print("== Fase 2 · M5 contêiner boiando vira")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+		r.invuln = 99.0
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "conteiner_boia":
+			inst = i
+	check(inst != null, "M5 está nos Destroços")
+	if inst == null:
+		return
+	await frames(3)
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	var r: Rect2 = mc._boia_rect(inst)
+	var r0 = main.robots[0]
+	var r1 = main.robots[1]
+	put(r0, Vector2(r.position.x + 40.0, r.position.y))
+	r0.active = true
+	await frames(int(float(d["pesa_s"]) * 60.0) + 30)
+	check(s["fase"] == "boia" and r0.is_on_floor(), "um robô sozinho fica em pé no contêiner boiando")
+	put(r1, Vector2(r.end.x - 40.0, r.position.y))
+	r1.active = true
+	var w2 := 0
+	while s["fase"] == "boia" and w2 < 120:
+		await frames(1)
+		w2 += 1
+	check(s["fase"] == "range", "dois em cima: o contêiner range e inclina")
+	var y0: float = r0.position.y
+	var v0: int = int(main.demo.lives[0])
+	while s["fase"] == "range" and w2 < 400:
+		await frames(1)
+		w2 += 1
+	var caiu := false
+	for k in 40:
+		await frames(1)
+		caiu = caiu or r0.position.y > y0 + 30.0 or int(main.demo.lives[0]) < v0
+	check(s["fase"] == "virado" and caiu, "vira e joga quem estava em cima na água (o mar fundo é KO)")
+	s["k"] = float(d["virado_s"]) - 0.02
+	await frames(3)
+	check(s["fase"] == "boia", "volta à tona depois de %.0f s" % float(d["virado_s"]))
+	main.go_menu()
+
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
 func cargueiro_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -6817,6 +6873,13 @@ func cargueiro_frames(dir: String) -> void:
 					await snap(dir, "f2_3b_m4_aviso")
 					await frames(int((float(dd["aviso_s"]) - 1.0 + float(dd["sobe_s"])) * 60.0) + 30)
 					await snap(dir, "f2_3c_m4_alta")
+			for i in main.demo.mecs.list:   # M5: o contêiner boiando rangendo (inclinado)
+				if i["tipo"] == "conteiner_boia":
+					i["s"]["fase"] = "range"
+					i["s"]["k"] = 0.0
+					i["s"]["lado"] = 1.0
+					await frames(40)
+					await snap(dir, "f2_3d_m5_range")
 	main.hud.visible = true
 
 ## ESTUDO DO EQUILÍBRIO DA DESTRUIÇÃO (--estudo-destruicao=N): N partidas de 4 bots no Canteiro, configuração PADRÃO

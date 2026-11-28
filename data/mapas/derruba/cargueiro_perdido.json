@@ -318,6 +318,18 @@
       7,
       8
      ]
+    },
+    {
+     "tipo": "conteiner_boia",
+     "nota": "M5 (aprovado): contêiner boiando no mar entre a rocha-arco e a balsa (sobe com a maré). 2+ robôs em cima → range e afunda o lado mais pesado → em 1 s vira e joga todos na água; volta em ~4 s.",
+     "x_t": 21.0,
+     "largura_t": 2,
+     "topo_px": 908,
+     "min_robos": 2,
+     "pesa_s": 0.4,
+     "range_s": 1.0,
+     "virado_s": 4.0,
+     "cor": 1
     }
    ],
    "rota_moderada": null,

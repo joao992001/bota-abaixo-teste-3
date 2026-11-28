@@ -110,6 +110,8 @@ func zonas_perigo() -> Array:
 				out.append(Rect2(float(d["x"]) - 130.0, float(d["topo"]) - 40.0, 260.0, float(d["chao"]) - float(d["topo"]) + 60.0))
 			"vagonete":
 				out.append(Rect2(float(d["x"][0]) - 80.0, float(d["chao"]) - 200.0, float(d["x"][1]) - float(d["x"][0]) + 160.0, 220.0))
+			"conteiner_boia":
+				out.append(_boia_rect(inst).grow(64.0))
 			"onda_balsa":   # a balsa da vez durante o aviso e a onda
 				var s3: Dictionary = inst["s"]
 				if String(s3.get("fase", "")) != "":
@@ -162,6 +164,7 @@ func update(dt: float) -> void:
 			"gancho_balanca": _gancho(inst, dt)
 			"onda_balsa": _onda_balsa(inst, dt)
 			"mare": _mare(inst, dt)
+			"conteiner_boia": _boia(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -773,6 +776,98 @@ func _draw_mare(inst: Dictionary) -> void:
 		draw_colored_polygon(PackedVector2Array([b + Vector2(0, -60), b + Vector2(-30, -20), b + Vector2(-12, -20), b + Vector2(-12, 20), b + Vector2(12, 20), b + Vector2(12, -20), b + Vector2(30, -20)]), Color(0.2, 0.75, 0.95, a))
 	Kit.text(self, Vector2(o.x + 15.0 * T - 90.0, alta - 20.0), "MARÉ ALTA!", 28, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 180, 6)
 
+## M5 Contêiner boiando vira (Fase 2, Destroços): plataforma que boia (balança de leve e sobe com a maré). Com min_robos
+## ou mais em cima por pesa_s, RANGE e afunda o lado mais pesado (range_s, inclinando) → VIRA: some a plataforma e todos
+## caem na água; volta à tona em virado_s.
+func _boia_rect(inst: Dictionary) -> Rect2:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	var topo := o.y + float(d["topo_px"])
+	var mar := o.y + 960.0
+	var z = _mare_zona(inst) if main.demo.agua != null else null
+	if z != null and float(z["topo"]) < mar:   # maré alta: boia mais alto
+		topo -= mar - float(z["topo"])
+	topo += sin(t * 1.6) * 4.0 + float(s.get("afunda", 0.0))
+	return Rect2(o.x + float(d["x_t"]) * T, topo, float(d["largura_t"]) * T, T)
+
+func _boia(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	if not s.has("plat"):
+		s["fase"] = "boia"
+		s["pesa"] = 0.0
+		s["ang"] = 0.0
+		s["r0"] = _boia_rect(inst)
+		s["plat"] = _body(s["r0"], 2, true, true)
+	var r := _boia_rect(inst)
+	var fase := String(s["fase"])
+	match fase:
+		"boia":
+			var em_cima := []
+			for rb in _robots():
+				var rr: Rect2 = rb.rect()
+				if rb.is_on_floor() and absf(rr.end.y - r.position.y) < 12.0 and rr.end.x > r.position.x and rr.position.x < r.end.x:
+					em_cima.append(rb)
+			s["pesa"] = float(s["pesa"]) + dt if em_cima.size() >= int(d["min_robos"]) else 0.0
+			if float(s["pesa"]) >= float(d["pesa_s"]):
+				var mx := 0.0
+				for rb in em_cima:
+					mx += rb.position.x
+				s["lado"] = 1.0 if mx / em_cima.size() >= r.get_center().x else -1.0
+				s["fase"] = "range"
+				s["k"] = 0.0
+				Audio.play("gancho", 0.45, 0.0)   # o contêiner range
+		"range":
+			s["k"] = float(s["k"]) + dt / float(d["range_s"])
+			s["ang"] = float(s["lado"]) * 0.35 * float(s["k"]) + sin(t * 40.0) * 0.02
+			s["afunda"] = 18.0 * float(s["k"])
+			if float(s["k"]) >= 1.0:
+				s["fase"] = "virado"
+				s["k"] = 0.0
+				Audio.play("explosao", 1.5, -8.0)   # tchibum
+				main.dust(r.get_center(), 1.2)
+				var ag = main.demo.agua
+				for rb in _robots():   # quem estava em cima vai para a água (empurrado para o lado que afundou)
+					var rr: Rect2 = rb.rect()
+					if absf(rr.end.y - r.position.y) < 40.0 and rr.end.x > r.position.x - 10.0 and rr.position.x < r.end.x + 10.0:
+						rb.velocity.y = 120.0
+						rb.own_vx = float(s["lado"]) * 160.0
+						if ag != null and is_instance_valid(ag):
+							ag.molhar(rb)
+		"virado":
+			s["k"] = float(s["k"]) + dt
+			s["ang"] = float(s["lado"]) * PI * 0.5
+			s["afunda"] = 70.0
+			if float(s["k"]) >= float(d["virado_s"]):
+				s["fase"] = "boia"
+				s["ang"] = 0.0
+				s["afunda"] = 0.0
+				s["pesa"] = 0.0
+				main.dust(r.get_center(), 1.0)
+	var b = s["plat"]
+	if is_instance_valid(b):   # virado: sem plataforma (todos caem na água)
+		b.position = r.position - (s["r0"] as Rect2).position + (Vector2(0, 4000) if String(s["fase"]) == "virado" else Vector2.ZERO)
+
+func _draw_boia(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	if not s.has("plat"):
+		return
+	var r := _boia_rect(inst)
+	var tx: Texture2D = Data.tex("cargueiro/cont_%d" % int(inst["d"].get("cor", 1)))
+	var piv := r.get_center()
+	draw_set_transform(piv, float(s.get("ang", 0.0)), Vector2.ONE)
+	var a := 0.55 if String(s.get("fase", "")) == "virado" else 1.0
+	if tx != null:
+		draw_texture_rect(tx, Rect2(-r.size / 2.0, r.size), false, Color(1, 1, 1, a))
+	draw_set_transform(Vector2.ZERO)
+	if String(s.get("fase", "")) == "range":   # rangendo: bolhas e respingos no lado que afunda
+		var lx := piv.x + float(s["lado"]) * r.size.x * 0.45
+		for k in 4:
+			draw_arc(Vector2(lx + sin(t * 9.0 + k) * 12.0, r.end.y + 10.0 - fmod(t * 80.0 + k * 20.0, 60.0)), 5.0, 0, TAU, 8, Color(1, 1, 1, 0.8), 2.0)
+	elif String(s.get("fase", "")) == "boia":   # linha d'água batendo no casco
+		draw_line(Vector2(r.position.x - 6.0, r.end.y - 14.0), Vector2(r.end.x + 6.0, r.end.y - 14.0), Color(1, 1, 1, 0.7), 3.0)
+
 ## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
 func _chao_em(r: Rect2, limite: float) -> float:
 	var y := r.position.y
@@ -939,6 +1034,8 @@ func _draw_perf() -> void:
 				_draw_gancho(inst)
 			"mare":
 				_draw_mare(inst)
+			"conteiner_boia":
+				_draw_boia(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":
