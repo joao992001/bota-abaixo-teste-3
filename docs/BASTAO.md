@@ -58,6 +58,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 ## AGUARDANDO USUÁRIO
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
+- **Lapidar o visual dos perigos M1–M11 no jogo** (usuário 2026-11-28, vendo `art/out/fase2/uso/*.png`: "os perigos existem, mas pelas fotos faltam muitos ajustes visuais, estão bem ruins — pode continuar o fluxo, depois a gente lapida"). Fazer depois de M8/M9: prancha de cada perigo no tema (como a do tubarão) → arte no jogo.
 - **Fase 2 · bloco D (contêineres + ARTE DO PALCO no tema: o usuário pediu trocar caixotes/andaimes do canteiro pelos do mar)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
