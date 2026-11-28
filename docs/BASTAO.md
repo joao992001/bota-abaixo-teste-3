@@ -38,11 +38,14 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   (bugs/gameplay relatados pelo usuário passam na FRENTE: devolva este bloco à FILA com o próximo passo e atenda)
 - Arquivos reservados: `art/src/cenarios/f2_jogo.py`, `game/assets/cargueiro/`, `game/modes/cena.gd`, `levels/cargueiro_perdido.lvl`
 - Passos:
-  - [ ] 1. Ler `fase1_jogo.py`, `f2_prancha.py` e `cena.gd` (como a fase 1 monta camadas e sprites)
-  - [ ] 2. `f2_jogo.py`: exportar as camadas PARADAS das 3 cenas para `game/assets/cargueiro/` + `--import`
+  - [x] 1. Ler `fase1_jogo.py`, `f2_prancha.py` e `cena.gd` (como a fase 1 monta camadas e sprites)
+  - [x] 2. `f2_jogo.py`: camadas e1/e2/e3_longe (1920×1080) + sprites (gaivota, ondas, água-viva, peixes) em `game/assets/cargueiro/`
   - [ ] 3. `cena.gd`: generalizar as listas da fase 1 por tema (`cena: cargueiro` no `.lvl`) e mostrar os fundos
   - [ ] 4. Sprites que mexem (ondas, gaivotas, bolhas, águas-vivas) + captura `--cargueiro=DIR` comparando com as fotografias
-- **Próximo passo exato:** passo 1 — ler `art/src/cenarios/fase1_jogo.py` (export) e `game/modes/cena.gd` (listas da fase 1).
+- **Próximo passo exato:** passo 3 — criar `game/modes/cena_cargueiro.gd` (`extends "res://modes/cena.gd"`, reaproveita
+  `_layer/_par/_view`; sobrescreve setup/_process_perf/_draw_perf/_draw_front), escolher o script pela prop `cena` em
+  `demolicao.gd` (~linha 166: `cargueiro` → CenaCargueiro), pôr `cena: cargueiro` no `.lvl`. Mapa das cenas: etapa1 = e1_longe
+  (Alto-Mar), etapa2 = e2_longe (Atlântida, embaixo), etapa3 = e3_longe (Destroços, à direita). Conferir com `--cargueiro=DIR`.
 - Decisões pendentes do usuário: nenhuma (tudo aprovado no A55).
 
 ## AGUARDANDO USUÁRIO
