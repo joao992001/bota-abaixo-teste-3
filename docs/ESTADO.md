@@ -10,7 +10,10 @@ bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visu
 
 **Ideia em espera (2026-11-28):** online via **Steam Remote Play Together** (sem netcode; anfitrião no PC, convidados em
 PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for para a Steam. Netcode próprio: não agora.
-**▶ Em andamento:** bots editáveis na tela QUEM VAI JOGAR? — prancha `art/out/ui/jogadores_bots.png` aguardando aprovação.
+**▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
+etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
+cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
+**▶ Próximo:** refazer a tela PROJETOS DE DEMOLIÇÃO (o usuário não gostou; `game/ui/fim.gd` `_projetos`) — prancha primeiro.
 **▶ SESSÃO 7 (cont. 5): CONTROLES PROFISSIONAIS FEITO — A51** (prancha `art/out/ui/controles_v2.png`, aprovada 2026-11-28).
 Modelo pelo fabricante/produto (DualSense, DualShock 4, Xbox Series/One/360, Switch Pro, genérico); OPÇÕES ▸ CONTROLES =
 central com um cartão por aparelho (pisca "é este!" ao apertar) → MAPEAR só aquele aparelho (principal + alternativo, troca

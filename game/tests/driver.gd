@@ -535,6 +535,7 @@ func demolicao_test() -> void:
 	await submodos_test()
 	await menus_test()
 	await controles_test()
+	await bots_entrada_test()
 	await controle_real_test()
 	await robos_test()
 	await combate_test()
@@ -3968,6 +3969,47 @@ func mapeamento_test() -> void:
 	PI_.fake_joys = []
 	main.go_menu()
 
+## BOTS na entrada (2026-11-28): R1/RB edita o bot; ◄► muda robô/visual/cor/dificuldade; TIRAR BOT tira só ele.
+func bots_entrada_test() -> void:
+	print("== Bots na entrada")
+	main.go_menu()
+	main.mode = "demolicao"
+	main.state = S.JOIN
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v0", "heavy")
+	await tap("v0", "heavy")
+	check(main.players.size() == 3 and main.players[1].get("bot", false) and main.players[2].get("bot", false), "Y/△ adiciona bots")
+	await tap("v0", "dodge")
+	check(main.bot_editado(0) == 1, "R1/RB passa a editar o 1º bot")
+	var m0: int = main.players[1]["model"]
+	await tap("v0", "right")
+	check(main.players[1]["model"] != m0 and main.players[0]["model"] == 0, "◄► muda o robô DO BOT (não o do jogador)")
+	await tap("v0", "down")
+	await tap("v0", "down")
+	await tap("v0", "down")
+	var nv: int = main.players[1].get("level", 1)
+	await tap("v0", "right")
+	check(int(main.players[1]["level"]) == posmod(nv + 1, 3), "DIFICULDADE do bot muda")
+	await tap("v0", "dodge")
+	check(main.bot_editado(0) == 2, "R1/RB de novo: próximo bot")
+	await tap("v0", "back")
+	check(main.bot_editado(0) == -1 and main.players.size() == 3, "VOLTAR editando: volta ao próprio cartão (ninguém sai)")
+	await tap("v0", "dodge")
+	await tap("v0", "up")   # linha 0 → sobe para TIRAR BOT (última)
+	await tap("v0", "jump")
+	check(main.players.size() == 2 and main.players[1].get("bot", false) and main.bot_editado(0) == -1, "TIRAR BOT tira só aquele bot")
+	await tap("v0", "heavy")
+	await tap("v1", "jump")
+	await tap("v0", "heavy")
+	check(main.players.size() == 4, "mesa cheia")
+	await tap("v0", "heavy")
+	check(main.players.size() == 4, "Y/△ com a mesa cheia não tira mais todos os bots")
+	main.players.clear()
+	PlayerInput.slots.clear()
+	main.go_menu()
+
 func controles_test() -> void:
 	print("== Controles externos")
 	var PI_ = PlayerInput
@@ -5478,6 +5520,13 @@ func menus_frames(dir: String) -> void:
 	main.add_bot()
 	await frames(20)
 	await snap(dir, "m5_entrada")
+	main.add_bot()
+	main.players[0]["edita"] = main.players[2]["dev"]
+	main.players[0]["linha"] = 3
+	await frames(20)
+	await snap(dir, "m5b_entrada_bot_editando")
+	main.players[0]["edita"] = ""
+	main.remove_last_bot()
 	main.start_match()
 	await frames(30)
 	await snap(dir, "m6_contagem")

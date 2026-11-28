@@ -529,11 +529,25 @@ func _join_update() -> void:
 			add_player(dev)
 	for i in range(players.size() - 1, -1, -1):
 		if PlayerInput.pressed(i, "back") and Engine.get_physics_frames() - join_volta_f > 1:
+			if String(players[i].get("edita", "")) != "":
+				players[i]["edita"] = ""   # editando um bot: VOLTAR só volta para o próprio cartão
+				Audio.play("menu_voltar")
+				continue
 			players.remove_at(i)
 			PlayerInput.slots.remove_at(i)
 	if players.is_empty() and menus.pressed("back"):
 		state = S.AJUSTES if selecao.ativo_para(arena_choice) else S.ARENAS   # etapa 4 → volta à etapa 3 (vidas)
 	for i in players.size():
+		if players[i].get("bot", false):
+			continue
+		if PlayerInput.pressed(i, "dodge"):
+			_proximo_bot(i)
+			continue
+		var alvo := bot_editado(i)
+		if alvo >= 0:
+			if _editar_bot(i, alvo):
+				break   # um bot saiu: os índices mudaram
+			continue
 		if PlayerInput.pressed(i, "left"):
 			_cycle_color(i, -1)
 		if PlayerInput.pressed(i, "right"):
@@ -544,13 +558,13 @@ func _join_update() -> void:
 			cycle_robot(i, 1)
 		if PlayerInput.pressed(i, "hammer"):
 			cycle_skin(i)
-		if PlayerInput.pressed(i, "heavy") and not PlayerInput.held(i, "back") and not players[i].get("bot", false):
-			# Y/△ (marretada pesada): adiciona bot; com a mesa cheia, tira os bots
+		if PlayerInput.pressed(i, "heavy") and not PlayerInput.held(i, "back"):
+			# Y/△ (marretada pesada): adiciona um bot na próxima vaga (tirar = editar o bot ▸ TIRAR BOT)
 			if players.size() < 4:
 				add_bot()
+				Audio.play("menu_ok")
 			else:
-				while players.size() > 0 and players[-1].get("bot", false):
-					remove_last_bot()
+				Audio.play("menu_negado")
 			break
 	if players.size() >= 2:
 		for i in players.size():
@@ -584,13 +598,81 @@ func skin_nome(model: int, skin: String) -> String:
 	return ""
 
 ## X/□ (golpe rápido) na entrada: passa pelas skins do mapa para o robô escolhido.
-func cycle_skin(i: int) -> void:
+func cycle_skin(i: int, d := 1) -> void:
 	var ops := skins_do_robo(int(players[i]["model"]))
 	if ops.size() <= 1:
 		Audio.play("menu_negado")
 		return
-	players[i]["skin"] = ops[posmod(ops.find(String(players[i].get("skin", ""))) + 1, ops.size())]
+	players[i]["skin"] = ops[posmod(ops.find(String(players[i].get("skin", ""))) + d, ops.size())]
 	Audio.play("menu_mover")
+
+## BOTS na entrada (prancha jogadores_bots, 2026-11-28): R1/RB passa a editar o próximo bot (e volta para o próprio
+## cartão); editando: ▲▼ linha · ◄► muda (ROBÔ, VISUAL, COR, DIFICULDADE) · PULAR em TIRAR BOT tira só ele · VOLTAR volta.
+const BOT_LINHAS := ["robo", "visual", "cor", "nivel", "tirar"]
+
+## Índice do bot que o jogador i está editando (-1 = o próprio cartão).
+func bot_editado(i: int) -> int:
+	var dev := String(players[i].get("edita", ""))
+	if dev == "":
+		return -1
+	var b: int = PlayerInput.slots.find(dev)
+	if b < 0 or b >= players.size() or not players[b].get("bot", false):
+		players[i]["edita"] = ""
+		return -1
+	return b
+
+func _proximo_bot(i: int) -> void:
+	var bots_i: Array = []
+	for b in players.size():
+		if players[b].get("bot", false):
+			bots_i.append(b)
+	if bots_i.is_empty():
+		Audio.play("menu_negado")
+		return
+	var k := bots_i.find(bot_editado(i))
+	if k == bots_i.size() - 1:
+		players[i]["edita"] = ""   # passou do último: volta para o próprio cartão
+	else:
+		players[i]["edita"] = players[bots_i[k + 1]]["dev"]
+		players[i]["linha"] = 0
+	Audio.play("menu_mover")
+
+## Um aperto do jogador i no bot b. true = o bot saiu.
+func _editar_bot(i: int, b: int) -> bool:
+	var ln := int(players[i].get("linha", 0))
+	var v := int(PlayerInput.pressed(i, "down")) - int(PlayerInput.pressed(i, "up"))
+	if v != 0:
+		players[i]["linha"] = posmod(ln + v, BOT_LINHAS.size())
+		Audio.play("menu_mover")
+		return false
+	var h := int(PlayerInput.pressed(i, "right")) - int(PlayerInput.pressed(i, "left"))
+	match BOT_LINHAS[ln]:
+		"robo":
+			if h != 0:
+				cycle_robot(b, h)
+		"visual":
+			if h != 0:
+				cycle_skin(b, h)
+		"cor":
+			if h != 0:
+				_cycle_color(b, h)
+				Audio.play("menu_mover")
+		"nivel":
+			if h != 0:
+				players[b]["level"] = posmod(int(players[b].get("level", bot_level)) + h, 3)
+				Audio.play("menu_mover")
+		"tirar":
+			if PlayerInput.pressed(i, "jump"):
+				var dev: String = players[b]["dev"]
+				PlayerInput.virtual.erase(dev)
+				players.remove_at(b)
+				PlayerInput.slots.remove_at(b)
+				for p in players:
+					if String(p.get("edita", "")) == dev:
+						p["edita"] = ""
+				Audio.play("menu_voltar")
+				return true
+	return false
 
 func add_player(dev: String) -> void:
 	var used := players.map(func(p): return p["color"])

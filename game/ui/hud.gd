@@ -523,21 +523,29 @@ func _draw_join() -> void:
 		var rot: float = [-0.026, 0.021, -0.017, 0.026][i]
 		draw_set_transform(r.get_center(), rot)
 		var lr := Rect2(-r.size / 2.0, r.size)
-		if i < main.players.size():
+		if i < main.players.size() and main.players[i].get("bot", false):
+			_bot_card(i, lr, r, rot)
+			draw_set_transform(Vector2.ZERO)
+		elif i < main.players.size():
 			var p: Dictionary = main.players[i]
 			var col: Color = Data.COLORS[p["color"]]
 			Kit.chunk(self, lr, Kit.CREAM, 28)
 			draw_circle(Vector2(0, -40), 150, Color("#ffe48a"))
 			Kit.text(self, Vector2(lr.position.x, lr.position.y + 84), "P%d" % (i + 1), 76, col, HORIZONTAL_ALIGNMENT_CENTER, W, 15)
 			var lab: String = PlayerInput.label(p["dev"])
-			if p.get("bot", false):
-				lab = "BOT · %s" % main.bots.LEVEL_NAMES[p.get("level", 1)]
 			fit_text(Vector2(lr.position.x + 20, lr.position.y + 120), lab, 22, Kit.SOFT, W - 40, 0, HORIZONTAL_ALIGNMENT_CENTER)
+			var tem_bot: bool = main.players.any(func(q): return q.get("bot", false))
+			if tem_bot:   # chip: R1/RB edita os bots (ou mostra qual está editando)
+				var cr := Rect2(lr.position.x + 60, lr.position.y + 136, W - 120, 40)
+				var eb: int = main.bot_editado(i)
+				Kit.chunk(self, cr, Color("#f2c84b") if eb >= 0 else Color.WHITE, 14, 4, 0.0)
+				_botao_de(p["dev"], "dodge", "rb", cr.position + Vector2(34, 20), 14.0)
+				Kit.text(self, Vector2(cr.position.x + 60, cr.position.y + 29), ("editando P%d" % (eb + 1)) if eb >= 0 else "editar bots", 21, DARK, HORIZONTAL_ALIGNMENT_CENTER, cr.size.x - 70)
 			var nm: String = Data.MODEL_NAMES[p["model"]]
 			Kit.text(self, Vector2(lr.position.x, lr.end.y - 104), nm, 42, DARK, HORIZONTAL_ALIGNMENT_CENTER, W)
 			var skn: String = main.skin_nome(int(p["model"]), String(p.get("skin", "")))
 			if main.skins_do_robo(int(p["model"])).size() > 1:   # há skin deste mapa para este robô
-				Kit.text(self, Vector2(lr.position.x, lr.position.y + 166), ("✦ " + skn) if skn != "" else "visual padrão", 24, Color("#b85a1e") if skn != "" else Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, W)
+				Kit.text(self, Vector2(lr.position.x, lr.position.y + (206 if tem_bot else 166)), ("✦ " + skn) if skn != "" else "visual padrão", 24, Color("#b85a1e") if skn != "" else Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, W)
 			var pr := Rect2(lr.position.x + 30, lr.end.y - 82, W - 60, 58)
 			Kit.chunk(self, pr, col, 20, 5, 0.0)
 			Kit.text(self, Vector2(pr.position.x, pr.get_center().y + 10), "◄ cor ►   ▲▼ robô", 27, DARK, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
@@ -554,7 +562,100 @@ func _draw_join() -> void:
 	draw_set_transform(Vector2.ZERO)
 	if Input.get_connected_joypads().is_empty():
 		Kit.sticker(self, Vector2(0, 950), "nenhum controle detectado  ·  OPÇÕES ▸ CONTROLES", 26, Color("#ff8a8a"), HORIZONTAL_ALIGNMENT_CENTER, 1920)
-	Kit.pad_hint(self, 960, 1030, [["baixo"], " entrar   ", "◄► cor   ▲▼ robô   ", ["esquerda"], " skin   ", ["cima"], " + bot   ", ["direita"], " sair   ", ["start"], " começar"], 30, Color.WHITE, st, 7)
+	Kit.pad_hint(self, 960, 1030, [["baixo"], " entrar   ", "◄► cor   ▲▼ robô   ", ["esquerda"], " skin   ", ["cima"], " + bot   ", ["rb"], " editar bot   ", ["direita"], " sair   ", ["start"], " começar"], 28, Color.WHITE, st, 7)
+
+const Glifos := preload("res://ui/glifos.gd")
+
+## Ícone do botão de uma ação no aparelho do jogador (tecla no teclado; ícone da marca no controle).
+func _botao_de(dev: String, acao: String, glifo_pad: String, c: Vector2, r: float) -> void:
+	if PlayerInput.is_keyboard(dev):
+		Glifos.key(self, c, PlayerInput.current_map(dev)[acao][0], r)
+	elif dev.begins_with("joy"):
+		var b = PlayerInput.current_map(dev)[acao][0]
+		Glifos.bind(self, c, dev, PlayerInput.pad_model(dev), b, r)
+	else:
+		Kit.pad_btn(self, c, r, glifo_pad, PlayerInput.main_pad_type())
+
+## Capacetes de dificuldade do bot (1 a 3 acesos).
+func _capacetes(c: Vector2, n: int, s := 1.0) -> void:
+	for k in 3:
+		var hc := c + Vector2((k - 1) * 40.0 * s, 0)
+		var col := Color("#f2c84b") if k < n else Color("#d8d0c4")
+		var pts := PackedVector2Array()
+		for q in 13:
+			var a := PI + q * PI / 12.0
+			pts.append(hc + Vector2(cos(a) * 16.0 * s, sin(a) * 15.0 * s))
+		draw_colored_polygon(pts, col)
+		pts.append(pts[0])
+		draw_polyline(pts, Kit.INK, 3.0 * s, true)
+		draw_rect(Rect2(hc + Vector2(-20 * s, -1 * s), Vector2(40 * s, 6 * s)), col)
+		draw_rect(Rect2(hc + Vector2(-20 * s, -1 * s), Vector2(40 * s, 6 * s)), Kit.INK, false, 2.5 * s)
+
+const NIVEL_NOME := ["FÁCIL", "MÉDIO", "DIFÍCIL"]
+
+## Cartão do BOT: parado (dificuldade em capacetes + dica) ou EDITANDO por um jogador (linhas ROBÔ/VISUAL/COR/DIFICULDADE/TIRAR).
+func _bot_card(i: int, lr: Rect2, r: Rect2, rot: float) -> void:
+	var p: Dictionary = main.players[i]
+	var col: Color = Data.COLORS[p["color"]]
+	var W := lr.size.x
+	var nivel := int(p.get("level", main.bot_level))
+	var editor := -1
+	for h in main.players.size():
+		if not main.players[h].get("bot", false) and main.bot_editado(h) == i:
+			editor = h
+			break
+	if editor < 0:
+		Kit.chunk(self, lr, Kit.CREAM, 28)
+		draw_circle(Vector2(0, 10), 125, Color("#e8e2d6"))
+		Kit.text(self, Vector2(lr.position.x, lr.position.y + 84), "P%d" % (i + 1), 76, col, HORIZONTAL_ALIGNMENT_CENTER, W, 15)
+		Kit.text(self, Vector2(lr.position.x, lr.position.y + 124), "BOT", 26, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, W)
+		_capacetes(Vector2(0, lr.position.y + 164), nivel + 1)
+		Kit.text(self, Vector2(lr.position.x, lr.position.y + 200), NIVEL_NOME[nivel], 22, DARK, HORIZONTAL_ALIGNMENT_CENTER, W)
+		Kit.text(self, Vector2(lr.position.x, lr.end.y - 104), Data.MODEL_NAMES[p["model"]], 40, DARK, HORIZONTAL_ALIGNMENT_CENTER, W)
+		var pr := Rect2(lr.position.x + 30, lr.end.y - 82, W - 60, 58)
+		Kit.chunk(self, pr, Color.WHITE, 20, 5, 0.0)
+		Kit.text(self, Vector2(pr.position.x, pr.get_center().y + 9), "um jogador aperta R1 / RB", 23, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+		draw_set_transform(Vector2.ZERO)
+		RobotVis.draw_robot(self, _look(p), RobotVis.idle_pose(t + i * 0.77), Transform2D(rot, Vector2(2.3, 2.3), 0.0, r.get_center() + Vector2(0, 140)))
+		return
+	var ec: Color = Data.COLORS[main.players[editor]["color"]]
+	draw_style_box(Kit._sb(ec, 36, 0, Kit.INK), lr.grow(12))
+	Kit.chunk(self, lr, Kit.CREAM, 28)
+	var tg := Rect2(-120, lr.position.y - 34, 240, 52)
+	Kit.chunk(self, tg, ec, 18, 5, 5.0)
+	Kit.text(self, Vector2(tg.position.x, tg.position.y + 37), "P%d EDITANDO" % (editor + 1), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, tg.size.x, 6)
+	Kit.text(self, Vector2(lr.position.x, lr.position.y + 72), "P%d · BOT" % (i + 1), 50, col, HORIZONTAL_ALIGNMENT_CENTER, W, 11)
+	draw_circle(Vector2(0, lr.position.y + 186), 84, Color("#ffe48a"))
+	var ln := int(main.players[editor].get("linha", 0))
+	var vals := [Data.MODEL_NAMES[p["model"]], "", "", "", ""]
+	var skn: String = main.skin_nome(int(p["model"]), String(p.get("skin", "")))
+	vals[1] = ("✦ " + skn) if skn != "" else ("padrão" if main.skins_do_robo(int(p["model"])).size() > 1 else "—")
+	var nomes := ["ROBÔ", "VISUAL", "COR", "DIFICULDADE", ""]
+	for k in 5:
+		var y := lr.position.y + 300 + k * 56
+		var on := k == ln
+		if k == 4:
+			var tr := Rect2(lr.position.x + 40, y + 4, W - 80, 48)
+			Kit.chunk(self, tr, Color("#e5484d") if on else Color("#f3c9c9"), 14, 4, 4.0)
+			Kit.text(self, Vector2(tr.position.x, tr.position.y + 34), "✖  TIRAR BOT", 24, Color.WHITE if on else Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, tr.size.x, 5 if on else 0)
+			continue
+		if on:
+			Kit.chunk(self, Rect2(lr.position.x + 24, y, W - 48, 54), Color("#f2c84b"), 14, 4, 0.0)
+		Kit.text(self, Vector2(lr.position.x + 40, y + 35), nomes[k], 20, Kit.SOFT)
+		Kit.text(self, Vector2(lr.position.x + 210, y + 35), "◄", 22, DARK)
+		Kit.text(self, Vector2(lr.end.x - 52, y + 35), "►", 22, DARK)
+		var vc := Vector2(lr.position.x + 296, y + 27)
+		match k:
+			2:
+				draw_circle(vc, 17, Kit.INK)
+				draw_circle(vc, 13, col)
+			3:
+				_capacetes(vc + Vector2(0, -6), nivel + 1, 0.5)
+				Kit.text(self, Vector2(vc.x - 60, y + 49), NIVEL_NOME[nivel], 15, DARK, HORIZONTAL_ALIGNMENT_CENTER, 120)
+			_:
+				fit_text(Vector2(vc.x - 64, y + 35), vals[k], 20, DARK, 116, 0, HORIZONTAL_ALIGNMENT_CENTER)
+	draw_set_transform(Vector2.ZERO)
+	RobotVis.draw_robot(self, _look(p), RobotVis.idle_pose(t + i * 0.77), Transform2D(rot, Vector2(1.5, 1.5), 0.0, r.get_center() + Vector2(0, -50).rotated(rot)))
 
 # ---------------------------------------------------------------- corrida / rodada
 func _draw_run() -> void:
