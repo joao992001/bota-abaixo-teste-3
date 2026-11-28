@@ -172,6 +172,7 @@ func update(dt: float) -> void:
 			"tubarao": _tubarao(inst, dt)
 			"cupula_racha": _cupula(inst, dt)
 			"geiser": _geiser(inst, dt)
+			"lustre_cai": _lustre(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -854,6 +855,97 @@ func _draw_geiser(inst: Dictionary) -> void:
 	for k in 8:   # espuma no topo do jato
 		draw_circle(Vector2(jr.position.x + 30.0 + k * (jr.size.x - 60.0) / 7.0, jr.position.y + sin(t * 9.0 + k) * 10.0), 18.0, Color(1, 1, 1, 0.85))
 
+## M8 Lustre (Atlântida): MARRETADA na corrente (acima da peça) → ESTALA (treme + sombra vermelha no chão, aviso_s) → CAI
+## acelerando: acerta quem estiver embaixo e, ao bater, racha a plataforma onde cai; depois o lustre se desfaz (não volta).
+func _lustre_peca(inst: Dictionary) -> Variant:
+	return _rede_peca(inst)
+
+func _lustre_corrente(inst: Dictionary) -> Rect2:
+	var p = _lustre_peca(inst)
+	if p == null:
+		return Rect2()
+	var r: Rect2 = p["rect"]
+	var alt := float(inst["d"]["corrente_px"])
+	return Rect2(r.get_center().x - 40.0, r.position.y - alt, 80.0, alt + 10.0)
+
+func _lustre(inst: Dictionary, dt: float) -> void:
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	var p = _lustre_peca(inst)
+	var fase := String(s.get("fase", "preso"))
+	if p == null or (p["fallen"] and fase != "caiu"):
+		s["fase"] = "caiu"
+		return
+	var r: Rect2 = p["rect"]
+	if fase == "estala":
+		s["k"] = float(s["k"]) + dt
+		p["shake"] = 0.2
+		if float(s["k"]) >= float(d["aviso_s"]):
+			s["fase"] = "cai"
+			s["vy"] = 0.0
+			s["hit"] = {}
+			Audio.play("terremoto", 1.6, -6.0)
+	elif fase == "cai":
+		s["vy"] = float(s["vy"]) + float(d["gravidade"]) * dt
+		var ny := r.position.y + float(s["vy"]) * dt
+		var chao := float(s["chao"])
+		for rb in _robots():
+			if not (s["hit"] as Dictionary).has(rb.pid) and rb.rect().intersects(Rect2(r.position.x, ny, r.size.x, r.size.y + 30.0)):
+				s["hit"][rb.pid] = true
+				rb.take_hit(1 if rb.position.x >= r.get_center().x else -1, "mec_lustre", -1)
+		if ny + r.size.y >= chao:
+			ny = chao - r.size.y
+			s["fase"] = "caiu"
+			var ct = main.demo.canteiro
+			var baixo := Rect2(r.position.x, chao, r.size.x, 8.0)
+			for q in ct.parts:   # racha a plataforma onde cai
+				if q != p and not q["fallen"] and (q["rect"] as Rect2).intersects(baixo):
+					ct.damage(q, int(d["dano_plataforma"]), Vector2(r.get_center().x, chao))
+			main.shake(10.0)
+			main.dust(Vector2(r.get_center().x, chao), 1.6)
+			Audio.play("explosao", 1.2, -4.0)
+			ct.move_part(p, ny)
+			ct.damage(p, 99, Vector2(r.get_center().x, chao))   # o lustre se desfaz
+			return
+		main.demo.canteiro.move_part(p, ny)
+
+func lustre_solta(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	if String(s.get("fase", "preso")) != "preso":
+		return
+	var p = _lustre_peca(inst)
+	var r: Rect2 = p["rect"]
+	s["fase"] = "estala"
+	s["k"] = 0.0
+	var abaixo := (floorf(r.position.y / T) + 1.0) * T   # a partir da linha de baixo (a própria peça ocupa a linha dela)
+	s["chao"] = _chao_em(Rect2(r.position.x + 10.0, abaixo, r.size.x - 20.0, 1.0), main.level.etapa_rect(inst["etapa"]).end.y + 200.0)
+	Audio.play("chave", 0.6, 0.0)
+
+func _draw_lustre(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	var fase := String(s.get("fase", "preso"))
+	var p = _lustre_peca(inst)
+	if p == null or fase == "caiu":
+		return
+	var cr := _lustre_corrente(inst)
+	var top := cr.position.y
+	if fase == "preso":   # corrente inteira; brilha quando alguém chega perto (dá para soltar)
+		for rb in _robots():
+			if rb.position.distance_to(cr.get_center()) < 160.0:
+				draw_arc(Vector2(cr.get_center().x, top + 30.0), 26.0 + 3.0 * sin(t * 8.0), 0, TAU, 20, Color(1, 0.9, 0.4, 0.8), 4.0, true)
+				break
+		return
+	var r: Rect2 = p["rect"]
+	if fase == "estala":   # elo partindo + SOMBRA VERMELHA onde vai cair
+		var a := 0.55 + 0.35 * sin(t * 20.0)
+		var chao := float(s["chao"])
+		draw_rect(Rect2(r.position.x, chao - 8.0, r.size.x, 10.0), Color(0.83, 0.13, 0.21, a))
+		for x in range(int(r.position.x), int(r.end.x), 22):
+			draw_line(Vector2(x, chao - 3.0), Vector2(x + 12, chao - 3.0), Color(1, 1, 1, a), 3.0)
+		draw_circle(Vector2(r.get_center().x, chao - 46.0), 16.0, Color(0.83, 0.13, 0.21, 0.9))
+		draw_string(ThemeDB.fallback_font, Vector2(r.get_center().x - 5.0, chao - 38.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color.WHITE)
+		draw_line(Vector2(cr.get_center().x - 10.0, top + 20.0), Vector2(cr.get_center().x + 10.0, top + 36.0), Color(1, 1, 1, 0.9), 4.0, true)
+
 ## Alvo do vidro em px do mundo (o manifesto dá em px relativos à cena).
 func _cup_alvo(inst: Dictionary) -> Rect2:
 	var a: Array = inst["d"]["alvo_rel"]
@@ -1298,6 +1390,13 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 			main.spark(hit.get_center(), 8)
 			Audio.play("bonk", 0.8, 0.0)
 			return true
+		if String(inst["tipo"]) == "lustre_cai":   # M8: marretada na corrente solta o lustre
+			if String(s.get("fase", "preso")) == "preso" and _lustre_corrente(inst).intersects(hit):
+				lustre_solta(inst)
+				main.spark(hit.get_center(), 6)
+				main.float_text(hit.get_center() + Vector2(0, -60), "ESTALOU!", Color("#f2c84b"))
+				return true
+			continue
 		if String(inst["tipo"]) == "cupula_racha":   # M7: marretada no vidro: a racha cresce e a água sobe um degrau
 			if _cup_alvo(inst).intersects(hit):
 				cupula_racha(inst)
@@ -1393,6 +1492,8 @@ func _draw_perf() -> void:
 				_draw_cupula(inst)
 			"geiser":
 				_draw_geiser(inst)
+			"lustre_cai":
+				_draw_lustre(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":

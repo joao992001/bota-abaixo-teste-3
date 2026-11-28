@@ -6964,6 +6964,13 @@ func cargueiro_frames(dir: String) -> void:
 					mc2.hammer_hit(mc2._cup_alvo(i), false, 0)
 					await frames(150)
 					await snap(dir, "f2_2b_m7_racha")
+			for i in mc2.list:   # M8: a corrente estala (sombra) e o lustre caindo
+				if i["tipo"] == "lustre_cai":
+					mc2.hammer_hit(mc2._lustre_corrente(i), false, 0)
+					await frames(30)
+					await snap(dir, "f2_2e_m8_estala")
+					await frames(int(float(i["d"]["aviso_s"]) * 60.0) - 30 + 14)
+					await snap(dir, "f2_2f_m8_cai")
 			for i in mc2.list:
 				if i["tipo"] == "geiser":
 					var cg := float(i["d"]["ciclo_s"])
@@ -7157,3 +7164,47 @@ func m11_test() -> void:
 	await frames(30)
 	check(s["fase"] == "jorra" and r0.alive and r0.position.y < y0 - 150.0, "jorra: quem caiu na fenda sobe de volta (%.0f px)" % (y0 - r0.position.y))
 	check(is_equal_approx(r0.dmg, dano0), "o jato não dá dano")
+
+## M8 Lustre: marretada na corrente → estala com sombra → cai, acerta quem está embaixo e racha a plataforma.
+func m8_test() -> void:
+	print("== Fase 2 · M8 lustre")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "lustre_cai":
+			inst = i
+	check(inst != null and mc._lustre_peca(inst) != null, "M8 está em Atlântida, com a peça do lustre")
+	if inst == null:
+		return
+	var s: Dictionary = inst["s"]
+	var p = mc._lustre_peca(inst)
+	var r: Rect2 = p["rect"]
+	check(mc.hammer_hit(mc._lustre_corrente(inst), false, 0) and s["fase"] == "estala", "marretada na corrente: estala (aviso)")
+	var chao := float(s["chao"])
+	var r0 = main.robots[0]
+	r0.invuln = 0.0
+	r0.active = true
+	var xs := r.get_center().x
+	for q in main.demo.canteiro.parts:   # fica em cima da plataforma onde o lustre vai bater
+		var qr: Rect2 = q["rect"]
+		if q != p and not q["fallen"] and absf(qr.position.y - chao) < 2.0 and qr.position.x < r.end.x and qr.end.x > r.position.x:
+			xs = (maxf(qr.position.x, r.position.x) + minf(qr.end.x, r.end.x)) / 2.0
+	put(r0, Vector2(xs, chao))
+	var d0: float = r0.dmg
+	var w2 := 0
+	while s["fase"] != "caiu" and w2 < 300:
+		await frames(1)
+		w2 += 1
+	check(s["fase"] == "caiu" and r0.dmg > d0, "caiu e acertou quem estava embaixo (+%.0f%%)" % (r0.dmg - d0))
+	await frames(90)
+	check(p["fallen"], "o lustre se desfaz depois de cair")

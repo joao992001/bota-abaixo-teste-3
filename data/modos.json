@@ -511,6 +511,13 @@
         "ky": 240,
         "ky_por": 1.6
       },
+      "mec_lustre": {
+        "dano": 16,
+        "kx": 200,
+        "kx_por": 2.6,
+        "ky": 320,
+        "ky_por": 1.8
+      },
       "mec_caixas": {
         "dano": 10,
         "kx": 160,

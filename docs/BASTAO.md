@@ -42,17 +42,15 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
         `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
   - [x] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste — M1 contêiner despenca FEITO (`conteiner_cai`, `--so=m1`); M2 gancho balança FEITO (`gancho_balanca`, `--so=m2`); M3 onda na balsa FEITO (`onda_balsa`, `--so=m3`) — cena 1 completa
-  - [ ] 3. M-perigos da cena 2a (M4–M6, M10 FEITOS) e 2b — M7 racha da cúpula FEITO e APROVADO (`--so=m7`); M11 Gêiser FEITO (`geiser`, `--so=m11`); faltam M8, M9
+  - [ ] 3. M-perigos da cena 2a (M4–M6, M10 FEITOS) e 2b — M7 racha da cúpula FEITO e APROVADO (`--so=m7`); M11 Gêiser FEITO (`geiser`, `--so=m11`); M8 lustre FEITO (`lustre_cai`, `--so=m8`); falta M9
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** (M7 e M11 prontos e testados; capturas no jogo `art/out/fase2/uso/{cena1,destrocos,atlantida}.png`
-  enviadas ao usuário para aprovação visual. **Antes de capturar num contêiner novo: `godot --headless --path game --import`**
-  — sem isso a arte do Cargueiro não carrega e as capturas saem com blocos vermelhos.)
-  **M8 lustre despenca** (peça `p2_prancha_7`: marretada na corrente →
-  estala + SOMBRA VERMELHA 1 s → cai, esmaga e racha a plataforma embaixo; tipo novo em `mecanismos.gd` + `--so=m8`), depois
-  **M9 concha-trampolim** (tirar o desenho do `e2_palco`; tipo `concha`: pisou → lança alto; FECHA 2 s e prende; marretada abre;
-  `--so=m9`). M7 pronto: `cupula_racha` (alvo_rel na quina da laje alta direita). Pendente pequeno: "KO no mar = abocanhado" do M10; som de respingo.
+- **Próximo passo exato:** **M9 concha-trampolim** (cena 2 Atlântida): tirar o desenho fixo da concha do `e2_palco`
+  (art/src/cenarios/f2_jogo.py) e criar o tipo `concha` em `mecanismos.gd`: pisou na concha aberta → lança MUITO alto; depois
+  FECHA 2 s e prende quem estiver dentro (marretada abre); `--so=m9` + captura na vitrine `--cargueiro`. **Antes de capturar:
+  `godot --headless --path game --import`.** Feitos: M7 racha, M8 lustre (marretada na corrente → estala+sombra → cai; a
+  corrente ainda fica esticada no desenho = lapidar), M11 gêiser. Depois do M9: lapidação visual (FILA).
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

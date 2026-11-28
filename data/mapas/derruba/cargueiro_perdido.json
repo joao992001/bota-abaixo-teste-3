@@ -247,6 +247,15 @@
      "aviso_s": 1.5,
      "jorra_s": 2.5,
      "jato_vel": 900.0
+    },
+    {
+     "tipo": "lustre_cai",
+     "nota": "M8 (aprovado): marretada na corrente → estala + SOMBRA VERMELHA (1 s) → cai e acerta quem estiver embaixo; racha a plataforma onde bate; o lustre se desfaz (não volta).",
+     "peca": 7,
+     "corrente_px": 180,
+     "aviso_s": 1.0,
+     "gravidade": 2600.0,
+     "dano_plataforma": 2
     }
    ],
    "rota_moderada": null,
