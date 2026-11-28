@@ -5,7 +5,8 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
 ## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-28 (sessão 7, cont. 5)
-**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
+**Comece por `docs/COMO_TRABALHAR.md` e pelo quadro `docs/BASTAO.md` (tarefas em andamento de cada chat, arquivos
+reservados e o próximo passo exato — o gancho de início de sessão já mostra).** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
 **Ideia em espera (2026-11-28):** online via **Steam Remote Play Together** (sem netcode; anfitrião no PC, convidados em
