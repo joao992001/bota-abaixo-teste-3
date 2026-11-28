@@ -117,7 +117,7 @@ func _ready() -> void:
 	PlayerInput.pad_changed.connect(_on_pad_changed)
 	var args := OS.get_cmdline_user_args()
 	for a in args:
-		if a == "--autotest" or a.begins_with("--shot") or a.begins_with("--anim") or a.begins_with("--demo") or a.begins_with("--menus") or a.begins_with("--arenas") or a.begins_with("--video") or a.begins_with("--stats") or a.begins_with("--perf") or a.begins_with("--spells") or a.begins_with("--eventos=") or a.begins_with("--elenco=") or a.begins_with("--fase=") or a.begins_with("--equipa=") or a.begins_with("--mechas=") or a.begins_with("--hud=") or a.begins_with("--projetos=") or a.begins_with("--luta=") or a.begins_with("--parede") or a.begins_with("--intro") or a.begins_with("--maquete") or a.begins_with("--robos") or a.begins_with("--combate") or a.begins_with("--lab") or a.begins_with("--pulo") or a.begins_with("--prancha") or a.begins_with("--canteiro") or a.begins_with("--espiar"):
+		if a == "--autotest" or a.begins_with("--shot") or a.begins_with("--anim") or a.begins_with("--demo") or a.begins_with("--menus") or a.begins_with("--arenas") or a.begins_with("--video") or a.begins_with("--stats") or a.begins_with("--perf") or a.begins_with("--cargueiro") or a.begins_with("--estudo") or a.begins_with("--spells") or a.begins_with("--eventos=") or a.begins_with("--elenco=") or a.begins_with("--fase=") or a.begins_with("--equipa=") or a.begins_with("--mechas=") or a.begins_with("--hud=") or a.begins_with("--projetos=") or a.begins_with("--luta=") or a.begins_with("--parede") or a.begins_with("--intro") or a.begins_with("--maquete") or a.begins_with("--robos") or a.begins_with("--combate") or a.begins_with("--lab") or a.begins_with("--pulo") or a.begins_with("--prancha") or a.begins_with("--canteiro") or a.begins_with("--espiar"):
 			state = S.JOIN   # testes e capturas começam direto na entrada de jogadores
 			var scr: GDScript = load("res://tests/driver.gd")
 			if scr == null or not scr.can_instantiate():
@@ -312,6 +312,7 @@ func _physics_process(dt: float) -> void:
 			var esc_teclado: bool = PlayerInput.is_keyboard(PlayerInput.slots[i]) and PlayerInput.pressed(i, "back") if i < PlayerInput.slots.size() else false
 			if not players[i].get("bot", false) and (PlayerInput.pressed(i, "start") or esc_teclado):
 				paused = true
+				menus.dono_pausa = PlayerInput.slots[i]   # quem pausou também mexe na pausa (além do principal)
 				menus.pause_sel = 0
 				Audio.play("menu_ok")
 				return

@@ -106,6 +106,14 @@ func _run() -> void:
 			await perf_vaza()
 			get_tree().quit(0)
 			return
+		if a.begins_with("--estudo-destruicao="):
+			await estudo_destruicao(int(a.substr(20)))
+			get_tree().quit(0)
+			return
+		if a.begins_with("--cargueiro="):
+			await cargueiro_frames(a.substr(12))
+			get_tree().quit(0)
+			return
 		if a.begins_with("--perf-derruba="):
 			await perf_derruba(a.substr(15))
 			get_tree().quit(0)
@@ -567,9 +575,20 @@ func demolicao_test() -> void:
 	await spells_test()
 	await eventos_test()
 	await mapa_test()
+	await cargueiro_test()
+	await agua_test()
+	await m1_test()
+	await m2_test()
+	await m3_test()
+	await m4_test()
+	await m5_test()
+	await m6_test()
+	await m10_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
+	await caixas_subsolo_test()
+	await principal_test()
 	await resultados_test()
 	await selecao_test()
 	await desempenho_test()
@@ -1906,7 +1925,7 @@ func etapas_test() -> void:
 	check(ct.progresso(1) == 0.0, "base fixa (núcleo e térreo) não leva dano e não conta na destruição")
 	et.t_cena = et.prox_verif - 0.05   # chega a hora da 1ª verificação, sem destruição
 	await frames(10)
-	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "< 40%% na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
+	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "abaixo da faixa na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
 	var vig: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and int(p["etapa"]) == 1)
 	ct.damage(vig[0], 1, vig[0]["rect"].get_center())   # dano parcial (caminho de spells/eventos/mecanismos/ciclo)
 	var pp: float = ct.progresso(1)
@@ -1919,7 +1938,7 @@ func etapas_test() -> void:
 	check(ct.progresso(1) > pp, "marretada do jogador também conta (%.1f%%)" % (ct.progresso(1) * 100.0))
 	et.progresso = 0.62
 	et.verificar()
-	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "40–70% na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
+	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "faixa moderada na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
 	et.state = "etapa"   # cancela (a transição moderada inteira tem teste próprio) e segue para provar a rota total
 	et.destino = -1
 	main.demo.banner = ""
@@ -1932,10 +1951,14 @@ func etapas_test() -> void:
 			ct.damage(p, 99, p["rect"].get_center())
 	et.prox_verif = et.t_cena + 999.0
 	var w0 := 0
-	while et.state == "etapa" and w0 < 600:   # as peças caem aos poucos
+	while et.progresso < et.limiar_total() and w0 < 600:   # as peças caem aos poucos
 		await frames(1)
 		w0 += 1
-	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "bateu %.0f%% a qualquer momento → rota TOTAL na hora: \"A OBRA VAI CEDER!\" (sem esperar a verificação)" % (et.limiar_total() * 100.0))
+	await frames(30)
+	check(et.state == "etapa", "A56: bater %.0f%% ANTES da verificação não vira a cena (quem decide é o tempo, ~90 s)" % (et.limiar_total() * 100.0))
+	et.t_cena = et.prox_verif - 0.05
+	await frames(3)
+	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "≥ %.0f%% na verificação → rota TOTAL: \"A OBRA VAI CEDER!\"" % (et.limiar_total() * 100.0))
 	sp.equip(r1, "T04")   # jetpack ligado bem na virada (bug: voava para fora da queda)
 	sp.use(r1)
 	await frames(int(float(et.cfg["aviso_s"]) * 60.0) + 4)
@@ -2144,7 +2167,7 @@ func verificacao_test() -> void:
 	var et = main.demo.etapas
 	var ct = main.demo.canteiro
 	var vcf: Dictionary = et.dcfg["verificacao"]
-	var t3 := float(vcf["primeira_base_s"])
+	var t3 := float(vcf["primeira_base_s"]) + float(vcf["por_vida_s"]) * (3 - int(vcf["vidas_base"]))
 	var t6 := t3 + 3.0 * float(vcf["por_vida_s"])
 	check(is_equal_approx(et.tempos()[0], t3) and absf(et.tempos()[1] - t3 * float(vcf["intervalo_frac"])) < 0.1, "3 vidas: %.0f s / %.0f s (lido de modos.json)" % [et.tempos()[0], et.tempos()[1]])
 	main.demo.lives_setting = 6
@@ -2164,6 +2187,105 @@ func verificacao_test() -> void:
 	check("G01" in MapaReg.eventos("derruba", "canteiro_obras", 1) and "G01" in MapaReg.eventos("derruba", "canteiro_obras", 2), "G01 Sirene volta como evento do Canteiro (nas 2 cenas)")
 	for r in main.robots:
 		r.active = true
+
+## Correções urgentes 2026-11-28: na Fundação as caixas de engenhoca continuam caindo quando as plataformas já caíram
+## (chão firme do .lvl entra nos pontos); a G03 (gravidade) tem teto de porcas no ar (era a queda de FPS). --so=caixas_subsolo
+func caixas_subsolo_test() -> void:
+	print("== Caixas no subterrâneo + porcas da G03")
+	main.go_menu()
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	main.mode = "demolicao"
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.event_level = 0
+	main.go_join()
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.demo.lives_setting = 3
+	main.event_level = 2
+	main.start_match()
+	main.events.manual = true   # nada sorteado: o teste liga a G03 na mão
+	await demo_round()
+	var et = main.demo.etapas
+	var sp = main.demo.spells
+	sp.spawn_t = 999.0
+	et.ativo = true
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	check(et.etapa == 2, "chegou na Fundação (%.1f s)" % (w / 60.0))
+	var ct = main.demo.canteiro
+	for p in ct.parts:
+		if int(p.get("etapa", 1)) == 2:
+			p["fallen"] = true   # todas as plataformas da cena já caíram
+	sp._pc_f = -999
+	var pr: Rect2 = main.demo.play_rect()
+	var pts: Array = sp.spawn_points()
+	check(pts.size() >= 4 and pts.all(func(q): return pr.has_point(q["pos"])), "sem plataformas, ainda há %d pontos de caixa no chão da Fundação (dentro da cena)" % pts.size())
+	sp.boxes.clear()
+	sp.spawn_box()
+	check(sp.boxes.size() == 1 and pr.grow(64).has_point(sp.boxes[0]["pos"]), "a caixa de engenhoca nasce dentro da Fundação")
+	var ev = main.events
+	ev.trigger(ev.ev("G03"))
+	check(ev.inst("G03") != null, "G03 ligada na Fundação")
+	var mx := 0
+	for k in 360:
+		await frames(1)
+		var n := 0
+		for b in ev.bits:
+			if b["kind"] == "porca":
+				n += 1
+		mx = maxi(mx, n)
+	check(mx >= 5 and mx <= ev.PORCAS_MAX, "G03: porcas no ar com teto (máx %d ≤ %d; eram ~45 e derrubavam o FPS)" % [mx, ev.PORCAS_MAX])
+	ev.manual = false
+	main.go_menu()
+
+## Controle principal (pedido 2026-11-28): só o 1º controle conectado mexe nos menus; em MAPEAR o controle escolhido
+## assume até voltar, e o principal retoma. --so=principal
+func principal_test() -> void:
+	print("== Controle principal")
+	main.go_menu()
+	await frames(2)
+	var virt0: Dictionary = PlayerInput.virtual
+	PlayerInput.virtual = {}
+	PlayerInput.fake_joys = [5, 6]
+	PlayerInput.ordem_con = ["joy6", "joy5"]   # o 6 conectou primeiro
+	PlayerInput._princ_f = -1
+	await frames(3)
+	check(PlayerInput.principal() == "joy6", "principal = o 1º conectado (joy6)")
+	main.menus.sel = 0
+	await joy_tap(5, JOY_BUTTON_DPAD_DOWN)
+	check(main.menus.sel == 0, "outro controle NÃO mexe no menu")
+	await joy_tap(6, JOY_BUTTON_DPAD_DOWN)
+	check(main.menus.sel == 1, "o principal mexe")
+	main.menus.abrir_controles()
+	await frames(2)
+	var devs: Array = main.menus._hub_devs()
+	main.menus.hub_sel = devs.find("joy5")
+	main.menus.hub_btn = 0
+	await joy_tap(6, JOY_BUTTON_A)
+	check(main.state == S.CONFIGPAD and main.menus.map_dev == "joy5", "o principal escolhe MAPEAR o controle do P2")
+	await frames(20)
+	await joy_tap(6, JOY_BUTTON_B)
+	check(main.state == S.CONFIGPAD, "durante o MAPEAR o principal não manda (o P2 assumiu)")
+	await joy_tap(5, JOY_BUTTON_B)
+	check(main.state == S.CONTROLES, "o P2 volta/sai do MAPEAR")
+	var hs: int = main.menus.hub_sel
+	await joy_tap(5, JOY_BUTTON_DPAD_RIGHT)
+	check(main.menus.hub_sel == hs and main.menus.hub_btn == 0, "de volta ao hub, o P2 não manda mais")
+	await joy_tap(6, JOY_BUTTON_DPAD_RIGHT)
+	check(main.menus.hub_btn == 1 or main.menus.hub_sel != hs, "o principal retoma o controle")
+	PlayerInput.fake_joys = [5]
+	await frames(2)
+	check(PlayerInput.principal() == "joy5", "o principal saiu: o próximo conectado assume")
+	PlayerInput.fake_joys = []
+	PlayerInput.ordem_con.clear()
+	PlayerInput._princ_f = -1
+	PlayerInput.virtual = virt0
+	main.go_menu()
 
 ## Derruba v2 (D2): no mapa de verdade a partida é UMA luta (vidas 3–6), resultados com ranking por eliminação, estrela
 ## da sessão e 4 opções; Jogar de novo mantém as estrelas, Menu principal zera. --so=resultados
@@ -6063,6 +6185,13 @@ func perf_derruba(dir: String) -> void:
 		if a.begins_with("--perf-rota="):
 			rota = a.substr(12)
 	var pior: bool = not "--perf-normal" in args
+	var cena_alvo := 1      # --perf-cena=2: mede já na cena 2 (vira antes de medir)
+	var evento := ""        # --perf-evento=G03: mantém esse evento ligado o tempo todo
+	for a in args:
+		if a.begins_with("--perf-cena="):
+			cena_alvo = int(a.substr(12))
+		if a.begins_with("--perf-evento="):
+			evento = a.substr(14)
 	var partidas := 1
 	for a in args:
 		if a.begins_with("--perf-partidas="):
@@ -6105,8 +6234,21 @@ func perf_derruba(dir: String) -> void:
 		var et = main.demo.etapas
 		if et != null:
 			et.ativo = true
+		if cena_alvo > 1 and et != null:
+			et.forcar("total" if cena_alvo == 2 else "moderada")
+			var w := 0
+			while (et.etapa != cena_alvo or et.state != "etapa") and w < 1500:
+				for i in main.players.size():
+					main.demo.lives[i] = 9
+				await frames(1)
+				w += 1
+			Perf.take()
+		if evento != "":
+			main.events.manual = true
 		for f in n:
-			if f == n / 2 and et != null and is_instance_valid(et):
+			if evento != "" and main.events.inst(evento) == null:
+				main.events.trigger(main.events.ev(evento))
+			if f == n / 2 and et != null and is_instance_valid(et) and cena_alvo == 1:
 				et.forcar(rota)
 			for i in main.players.size():
 				main.demo.lives[i] = 9
@@ -6315,3 +6457,599 @@ func perf_vaza() -> void:
 			await frames(1)
 		print("VAZA partida %d: objetos %d  recursos %d  nós %d  órfãos %d" % [i + 1, Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT), Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
 	Node.print_orphan_nodes()
+
+
+## FASE 2 · Cargueiro Perdido — bloco A (cenas + base fixa + estruturas com os tipos atuais): manifesto válido, rotas,
+## nascimentos em chão firme, estruturas montadas e as DUAS transições de verdade (afunda → Atlântida; encalha →
+## Destroços), todos chegando vivos na área certa. --so=cargueiro
+func _cargueiro_partida() -> void:
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.add_bot()
+	main.add_bot()
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 4
+	main.event_level = 0
+	main.arena_choice = "cargueiro_perdido"
+	main.start_match()
+	await demo_round()
+	main.countdown = 0.0
+
+func _cargueiro_rota(tipo: String, n: int) -> void:
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false   # bots parados: o teste é da transição (no aviso um bot podia cair no mar brigando)
+	var lives0 = main.demo.lives.duplicate()
+	et.forcar(tipo)
+	var w := 0
+	while (et.etapa != n or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	await frames(40)
+	var a: Rect2 = main.level.etapa_rect(n)
+	check(et.etapa == n and main.level.area == a, "rota %s: chega à cena %d em %.1f s; área e KO passam para ela" % [tipo, n, w / 60.0])
+	check(main.robots.all(func(r): return r.alive and a.has_point(r.position)) and main.demo.lives == lives0, "rota %s: os 4 chegam vivos dentro da cena nova, sem perder vida (%s vidas %s→%s)" % [tipo, str(main.robots.map(func(r): return [r.pid, Vector2i(r.position / 64.0), r.alive])), str(lives0), str(main.demo.lives)])
+
+func cargueiro_test() -> void:
+	print("== Fase 2 · Cargueiro Perdido (bloco A)")
+	var m := MapaReg.manifesto("derruba", "cargueiro_perdido")
+	check(not m.is_empty() and MapaReg.validar(m).is_empty(), "manifesto do Cargueiro carrega e valida (%s)" % str(MapaReg.validar(m)))
+	check(MapaReg.rota("derruba", "cargueiro_perdido", 1, "total") == 2 and MapaReg.rota("derruba", "cargueiro_perdido", 1, "moderada") == 3 and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 2) and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 3), "Alto-Mar → Atlântida (rota total) ou Destroços (rota moderada); as duas são as últimas")
+	check(not "cargueiro_perdido" in main.demo.find_mode("derruba").get("arenas", []), "ainda escondido do menu do Derruba (em construção)")
+	await _cargueiro_partida()
+	var L = main.level
+	check(L.id == "cargueiro_perdido" and L.etapa_rect(1).has_area() and L.etapa_rect(2).has_area() and L.etapa_rect(3).has_area(), "o .lvl tem as 3 áreas de cena")
+	var ruins := []
+	for k in range(1, 13):
+		var sp: Vector2 = L.spawns.get(k, Vector2.INF)
+		if sp == Vector2.INF or not L.is_solid(Vector2i(int(sp.x / 64.0), int(sp.y / 64.0))):
+			ruins.append(k)
+	check(ruins.is_empty(), "12 nascimentos (4 por cena), todos em chão firme %s" % str(ruins))
+	var ct = main.demo.canteiro
+	var por := {1: 0, 2: 0, 3: 0}
+	for p in ct.parts:
+		por[int(p.get("etapa", 1))] += 1
+	check(por[1] == 12 and por[2] == 11 and por[3] == 14, "estruturas que quebram montadas em cada cena (Alto-Mar %d, Atlântida %d, Destroços %d)" % [por[1], por[2], por[3]])
+	await frames(60)
+	check(main.robots.all(func(r): return r.alive and L.etapa_rect(1).has_point(r.position)), "todos nascem e ficam de pé no Alto-Mar")
+	check(ct.progresso(1) < 0.05, "manômetro começa zerado (%.0f%%)" % (ct.progresso(1) * 100.0))
+	await _cargueiro_rota("total", 2)
+	await _cargueiro_rota("moderada", 3)
+	main.go_menu()
+
+## Fase 2 bloco C: ÁGUA (regra-assinatura). Alagado: lento, pulo flutua, queda lenta, golpe joga longe; ao sair fica
+## molhado (lento por uns segundos) e volta ao normal; respingo ao entrar; mapa sem água não cria nada. --so=agua
+func agua_test() -> void:
+	print("== Fase 2 · ÁGUA (alagado / molhado)")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	var ag = main.demo.agua
+	check(ag != null and ag.zonas.size() >= 1, "o Cargueiro tem zonas de água (%d)" % (ag.zonas.size() if ag != null else 0))
+	et.ativo = true
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	await frames(30)
+	var r0 = main.robots[0]
+	var r1 = main.robots[1]
+	var z: Rect2 = ag.zonas[0]["rect"]
+	var cfg: Dictionary = ag.cfg
+	for r in main.robots:
+		r.invuln = 99.0
+	r1.active = false
+	put(r1, Vector2(main.level.etapa_rect(2).position.x + 300.0, r1.position.y))
+	put(r0, Vector2(z.get_center().x, z.position.y + 64.0))
+	var nb: int = ag.bits.size()
+	await frames(3)
+	check(ag.bits.size() > nb, "entrar na água faz respingo")
+	check(is_equal_approx(r0.agua_grav, float(cfg["gravidade"])) and is_equal_approx(r0.agua_queda, float(cfg["queda_max"])) and r0.env_slow <= float(cfg["corrida"]) + 0.001,
+		"alagado: gravidade ×%.2f (pulo flutua), queda ×%.2f, corrida ×%.2f (lido de modos.json)" % [r0.agua_grav, r0.agua_queda, r0.env_slow])
+	check(r1.agua_grav == 1.0 and r1.env_slow == 1.0, "quem está fora d'água fica normal")
+	r0.invuln = 0.0
+	r0.knock(1, 400.0, 300.0, 0.1)
+	check(is_equal_approx(r0.own_vx, 400.0 * float(cfg["empurrao"])), "golpe recebido na água joga longe (×%.2f)" % float(cfg["empurrao"]))
+	r0.invuln = 99.0
+	await frames(20)
+	put(r0, Vector2(main.level.etapa_rect(2).position.x + 400.0, r1.position.y))
+	await frames(3)
+	check(r0.agua_grav == 1.0 and r0.env_slow <= float(cfg["molhado_corrida"]) + 0.001, "saiu da água: molhado (corrida ×%.2f)" % r0.env_slow)
+	await frames(int(float(cfg["molhado_s"]) * 60.0) + 20)
+	check(r0.env_slow == 1.0, "secou: volta ao normal em %.0f s" % float(cfg["molhado_s"]))
+	main.go_menu()
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.event_level = 0
+	main.start_match()
+	await demo_round()
+	check(main.demo.agua == null and main.robots.all(func(r): return r.agua_grav == 1.0), "mapa sem água (Canteiro): nada muda")
+	main.go_menu()
+
+## M1 Contêiner despenca (Alto-Mar): sombra vermelha antes (aviso), acerta quem está embaixo, racha a peça em que bate
+## e fica como plataforma nova; depois some. --so=m1
+func m1_test() -> void:
+	print("== Fase 2 · M1 contêiner despenca")
+	await _cargueiro_partida()
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "conteiner_cai":
+			inst = i
+	check(inst != null, "M1 está no Alto-Mar (manifesto)")
+	if inst == null:
+		return
+	var d: Dictionary = inst["d"]
+	d["colunas"] = [8]   # coluna do andaime da esquerda (tem peça embaixo)
+	var s: Dictionary = inst["s"]
+	s["t"] = float(d["ciclo_s"]) - 0.02
+	await frames(3)
+	check(s.get("fase", "") == "aviso" and s.has("alvo"), "aviso: a sombra vermelha marca onde vai cair (%.1f s antes)" % float(d["aviso_s"]))
+	var alvo: Rect2 = s["alvo"]
+	check(mc.zonas_perigo().any(func(z): return z.intersects(alvo)), "a sombra entra nas zonas de perigo (ninguém renasce ali)")
+	var r0 = main.robots[0]
+	for r in main.robots:
+		r.invuln = 99.0
+	r0.invuln = 0.0
+	r0.active = false
+	put(r0, Vector2(alvo.get_center().x, alvo.end.y))
+	var ct = main.demo.canteiro
+	var hp0 := 0
+	for p in ct.parts:
+		if (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, alvo.size.x, 12.0)):
+			hp0 += int(p.get("hp", 0))
+	var dmg0: float = r0.dmg
+	var w := 0
+	while s.get("fase", "") != "espera" and w < 400:
+		await frames(1)
+		w += 1
+	check(r0.dmg > dmg0, "quem estava embaixo leva o golpe (%.0f%%)" % (r0.dmg - dmg0))
+	var hp1 := 0
+	for p in ct.parts:
+		if (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, alvo.size.x, 12.0)):
+			hp1 += int(p.get("hp", 0))
+	check(hp1 < hp0, "racha a peça em que bateu (HP %d → %d)" % [hp0, hp1])
+	check(s.has("plat") and is_instance_valid(s["plat"]), "fica como plataforma nova")
+	s["parado"] = 0.01
+	await frames(3)
+	check(not s.has("plat"), "depois de um tempo some (abre espaço para o próximo)")
+	main.go_menu()
+
+## M2 Gancho balança (Alto-Mar): parado é plataforma; aviso (arco) → balança e empurra quem está no caminho; marretada
+## inverte o balanço. --so=m2
+func m2_test() -> void:
+	print("== Fase 2 · M2 gancho balança")
+	await _cargueiro_partida()
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "gancho_balanca":
+			inst = i
+	check(inst != null, "M2 está no Alto-Mar (manifesto)")
+	if inst == null:
+		return
+	await frames(2)
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	check(s.has("plat") and is_instance_valid(s["plat"]) and s["fase"] == "parado", "parado: o contêiner no gancho é plataforma")
+	var r0 = main.robots[0]
+	for r in main.robots:
+		r.invuln = 99.0
+		r.active = false
+	r0.invuln = 0.0
+	var rc: Rect2 = mc._gancho_rect(inst)
+	s["t"] = float(d["ciclo_s"]) - float(d["aviso_s"]) - 0.02
+	await frames(3)
+	check(s["fase"] == "aviso", "aviso: a grua range e o arco tracejado aparece (%.1f s)" % float(d["aviso_s"]))
+	put(r0, Vector2(rc.end.x + 70.0, rc.end.y + 20.0))   # no caminho, ao lado do contêiner
+	r0.set_meta("grav_cena", 0.0)
+	r0.velocity = Vector2.ZERO
+	var dmg0: float = r0.dmg
+	var w := 0
+	while r0.dmg == dmg0 and w < 300:
+		r0.velocity = Vector2.ZERO
+		await frames(1)
+		w += 1
+	r0.remove_meta("grav_cena")
+	check(r0.dmg > dmg0, "balançando, o contêiner varre e empurra quem está no caminho (%.0f%%)" % (r0.dmg - dmg0))
+	var a0: float = s["ang"]
+	await frames(2)
+	var v0: float = float(s["ang"]) - a0
+	var rr: Rect2 = mc._gancho_rect(inst)
+	mc.hammer_hit(Rect2(rr.position.x - 20.0, rr.position.y, 30.0, 30.0), true, 0)
+	var a1: float = s["ang"]
+	await frames(2)
+	var v1: float = float(s["ang"]) - a1
+	check(signf(v0) != signf(v1) and absf(v1) > 0.0, "marretada inverte o balanço (%.3f → %.3f)" % [v0, v1])
+	var w2 := 0
+	while s["fase"] != "parado" and w2 < 400:
+		await frames(1)
+		w2 += 1
+	check(s["fase"] == "parado" and absf(float(s["ang"])) < 0.001, "depois para e volta a ser plataforma")
+	main.go_menu()
+
+## M3 Onda estoura na balsa (Alto-Mar): aviso (a água incha) → a onda varre o convés: empurra para dentro e deixa
+## molhado (lento); sem dano. --so=m3
+func m3_test() -> void:
+	print("== Fase 2 · M3 onda na balsa")
+	await _cargueiro_partida()
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "onda_balsa":
+			inst = i
+	check(inst != null and main.demo.agua != null, "M3 está no Alto-Mar e a água (molhado) está ligada")
+	if inst == null:
+		return
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	var r0 = main.robots[0]
+	for r in main.robots:
+		r.invuln = 99.0
+		r.active = false
+	s["qual"] = 1   # o próximo é a balsa 0 (esquerda)
+	s["t"] = float(d["ciclo_s"]) - 0.02
+	await frames(3)
+	check(s.get("fase", "") == "aviso" and int(s["qual"]) == 0, "aviso: a água incha na borda da balsa da esquerda")
+	var a: Rect2 = mc._onda_area(inst, 0)
+	put(r0, Vector2(5 * 64.0 + 20.0, 12 * 64.0))   # em cima do contêiner baixo da balsa (a onda chega até ali)
+	r0.invuln = 0.0
+	r0.active = true   # sem comando (ninguém apertando nada): só a onda mexe nele
+	var dmg0: float = r0.dmg
+	var x0: float = r0.position.x
+	var w := 0
+	while s.get("fase", "") != "" and w < 200:
+		await frames(1)
+		w += 1
+	check(main.demo.agua.molhado.has(r0) and float(main.demo.agua.molhado[r0]) > 0.0, "a onda deixa molhado (lento)")
+	check(r0.position.x > x0 + 20.0, "a onda empurra para dentro da balsa (longe do mar: %.0f px)" % (r0.position.x - x0))
+	check(r0.dmg == dmg0, "a onda não dá dano (só empurra e molha)")
+	main.go_menu()
+
+## M4 Maré (Destroços): baixa → aviso (linha + setas) → sobe até a maré alta: quem está no convés da balsa fica alagado,
+## bote e jangada boiam e sobem; depois desce. --so=m4
+func m4_test() -> void:
+	print("== Fase 2 · M4 maré")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "mare":
+			inst = i
+	check(inst != null and main.demo.agua != null, "M4 está nos Destroços, com a zona de água")
+	if inst == null:
+		return
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(3).position
+	var r0 = main.robots[0]
+	r0.invuln = 99.0
+	put(r0, Vector2(o.x + 29.0 * 64.0 + 24.0, o.y + 13.0 * 64.0))   # no convés livre da balsa (ponta, depois dos contêineres)
+	r0.active = true
+	var ct = main.demo.canteiro
+	var bote = null
+	for p in ct.parts:
+		if p["kind"] == "prancha" and int(p["etapa"]) == 3 and int(p["idx"]) == 7:
+			bote = p
+	await frames(5)
+	check(s["fase"] == "baixa" and not main.demo.agua.alagado(r0.position + Vector2(0, -36)), "maré baixa: o convés da balsa está seco")
+	var cyc := float(d["ciclo_s"])
+	var t_aviso := cyc - float(d["aviso_s"]) - 2.0 * float(d["sobe_s"]) - float(d["alta_s"])
+	s["t"] = t_aviso + 0.05
+	await frames(3)
+	check(s["fase"] == "aviso", "aviso: linha da maré alta + setas + alarme (%.0f s antes)" % float(d["aviso_s"]))
+	s["t"] = t_aviso + float(d["aviso_s"]) + float(d["sobe_s"]) + 0.2
+	await frames(5)
+	check(s["fase"] == "alta" and is_equal_approx(r0.agua_grav, float(main.demo.agua.cfg["gravidade"])), "maré alta: quem está no convés da balsa fica ALAGADO (pulo flutua)")
+	check(bote != null and (bote["rect"] as Rect2).position.y < float(bote["y0"]) - 100.0, "o bote boia e sobe com a água")
+	s["t"] = cyc - 0.01
+	await frames(10)
+	check(s["fase"] == "baixa" and r0.agua_grav == 1.0 and is_equal_approx((bote["rect"] as Rect2).position.y, float(bote["y0"])), "a maré desce: seca e o bote volta")
+	main.go_menu()
+
+## M5 Contêiner boiando (Destroços): 1 robô em cima não vira; 2 viram: range (inclina) → vira e os dois caem na água;
+## volta à tona depois. --so=m5
+func m5_test() -> void:
+	print("== Fase 2 · M5 contêiner boiando vira")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+		r.invuln = 99.0
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "conteiner_boia":
+			inst = i
+	check(inst != null, "M5 está nos Destroços")
+	if inst == null:
+		return
+	await frames(3)
+	var s: Dictionary = inst["s"]
+	var d: Dictionary = inst["d"]
+	var r: Rect2 = mc._boia_rect(inst)
+	var r0 = main.robots[0]
+	var r1 = main.robots[1]
+	put(r0, Vector2(r.position.x + 40.0, r.position.y))
+	r0.active = true
+	await frames(int(float(d["pesa_s"]) * 60.0) + 30)
+	check(s["fase"] == "boia" and r0.is_on_floor(), "um robô sozinho fica em pé no contêiner boiando")
+	put(r1, Vector2(r.end.x - 40.0, r.position.y))
+	r1.active = true
+	var w2 := 0
+	while s["fase"] == "boia" and w2 < 120:
+		await frames(1)
+		w2 += 1
+	check(s["fase"] == "range", "dois em cima: o contêiner range e inclina")
+	var y0: float = r0.position.y
+	var v0: int = int(main.demo.lives[0])
+	while s["fase"] == "range" and w2 < 400:
+		await frames(1)
+		w2 += 1
+	var caiu := false
+	for k in 40:
+		await frames(1)
+		caiu = caiu or r0.position.y > y0 + 30.0 or int(main.demo.lives[0]) < v0
+	check(s["fase"] == "virado" and caiu, "vira e joga quem estava em cima na água (o mar fundo é KO)")
+	s["k"] = float(d["virado_s"]) - 0.02
+	await frames(3)
+	check(s["fase"] == "boia", "volta à tona depois de %.0f s" % float(d["virado_s"]))
+	main.go_menu()
+
+## M6 Rede de carga (Destroços): marretada pesada rasga a rede (a peça cai) e as caixas caem em quem está embaixo. --so=m6
+func m6_test() -> void:
+	print("== Fase 2 · M6 rede de carga rasga")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+		r.invuln = 99.0
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "rede_rasga":
+			inst = i
+	check(inst != null, "M6 está nos Destroços")
+	if inst == null:
+		return
+	var rede = mc._rede_peca(inst)
+	check(rede != null and not rede["fallen"], "a rede de carga é uma peça de pé (prancha %d)" % int(inst["d"]["peca"]))
+	var rr: Rect2 = rede["rect"]
+	var r1 = main.robots[1]
+	put(r1, Vector2(rr.get_center().x, main.level.etapa_rect(3).position.y + 8 * 64.0))   # embaixo da rede, no convés (nível 8)
+	r1.invuln = 0.0
+	r1.active = true
+	var dmg0: float = r1.dmg
+	mc.hammer_hit(Rect2(rr.position, Vector2(40, 40)), false, 0)
+	check(int(rede["hp"]) > 0 and not inst["s"].get("rasgou", false), "marretada leve (no mecanismo) não rasga a rede")
+	mc.hammer_hit(Rect2(rr.position, Vector2(40, 40)), true, 0)
+	check(int(rede["hp"]) == 0, "marretada PESADA rasga a rede (HP → 0)")
+	var w2 := 0
+	while r1.dmg == dmg0 and w2 < 120:
+		await frames(1)
+		w2 += 1
+	check(inst["s"].get("rasgou", false) and r1.dmg > dmg0, "as caixas caem em quem está embaixo (%.0f%%)" % (r1.dmg - dmg0))
+	main.go_menu()
+
+## M10 Tubarão (Destroços): barbatana ronda; alguém no bote → aviso (anel) → salta e morde; marretada no focinho no
+## salto: tonto e foge. --so=m10
+func m10_test() -> void:
+	print("== Fase 2 · M10 tubarão")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+		r.invuln = 99.0
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "tubarao":
+			inst = i
+	check(inst != null, "M10 está nos Destroços")
+	if inst == null:
+		return
+	await frames(3)
+	var s: Dictionary = inst["s"]
+	check(s["fase"] == "ronda", "a barbatana ronda o mar")
+	var bote = null
+	for p in main.demo.canteiro.parts:
+		if p["kind"] == "prancha" and int(p["etapa"]) == 3 and int(p["idx"]) == 7:
+			bote = p
+	var r0 = main.robots[0]
+	put(r0, Vector2((bote["rect"] as Rect2).get_center().x, (bote["rect"] as Rect2).position.y))
+	r0.active = true
+	r0.invuln = 0.0
+	await frames(10)
+	s["ronda"] = 0.01
+	await frames(3)
+	check(s["fase"] == "aviso", "alguém no bote: o tubarão acelera até lá e o anel vermelho aparece")
+	var dmg0: float = r0.dmg
+	var w2 := 0
+	while r0.dmg == dmg0 and w2 < 200:
+		await frames(1)
+		w2 += 1
+	check(r0.dmg > dmg0 and s["fase"] == "salta", "salta e morde quem está no bote (%.0f%%)" % (r0.dmg - dmg0))
+	mc.hammer_hit(mc._tub_rect(inst), true, 1)
+	check(s["fase"] == "tonto", "marretada no focinho: fica TONTO")
+	await frames(60)
+	check(s["fase"] == "ronda" and s.has("foge"), "e foge por um tempo (%.0f s)" % float(inst["d"]["foge_s"]))
+	main.go_menu()
+
+## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
+func cargueiro_frames(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	get_window().size = Vector2i(1920, 1080)
+	await _cargueiro_partida()
+	main.hud.visible = false
+	await frames(30)
+	await snap(dir, "f2_1_alto_mar")
+	for i in main.demo.mecs.list:   # M1: o aviso (sombra vermelha) e o contêiner caído
+		if i["tipo"] == "conteiner_cai":
+			i["d"]["colunas"] = [8]
+			i["s"]["t"] = float(i["d"]["ciclo_s"]) - 0.02
+			await frames(50)
+			await snap(dir, "f2_1b_m1_aviso")
+			await frames(110)
+			await snap(dir, "f2_1c_m1_caiu")
+	for i in main.demo.mecs.list:   # M2: arco do aviso e o contêiner varrendo
+		if i["tipo"] == "gancho_balanca":
+			i["s"]["t"] = float(i["d"]["ciclo_s"]) - float(i["d"]["aviso_s"]) + 0.6
+			await frames(10)
+			await snap(dir, "f2_1d_m2_aviso")
+			await frames(100)
+			await snap(dir, "f2_1e_m2_balanca")
+	for i in main.demo.mecs.list:   # M3: a água inchando e a onda varrendo
+		if i["tipo"] == "onda_balsa":
+			i["s"]["qual"] = 1
+			i["s"]["t"] = float(i["d"]["ciclo_s"]) - 0.02
+			await frames(45)
+			await snap(dir, "f2_1f_m3_aviso")
+			await frames(35)
+			await snap(dir, "f2_1g_m3_onda")
+	for par in [["total", 2, "f2_2_atlantida"], ["moderada", 3, "f2_3_destrocos"]]:
+		if par[0] == "moderada":
+			await _cargueiro_partida()
+			main.hud.visible = false
+		var et = main.demo.etapas
+		et.ativo = true
+		et.forcar(par[0])
+		var w := 0
+		while (et.etapa != par[1] or et.state != "etapa") and w < 1500:
+			await frames(1)
+			w += 1
+		await frames(60)
+		await snap(dir, par[2])
+		if par[1] == 3:   # M4 maré nos Destroços: aviso e maré alta
+			for i in main.demo.mecs.list:
+				if i["tipo"] == "mare":
+					var dd: Dictionary = i["d"]
+					var ta := float(dd["ciclo_s"]) - float(dd["aviso_s"]) - 2.0 * float(dd["sobe_s"]) - float(dd["alta_s"])
+					i["s"]["t"] = ta + 1.0
+					await frames(10)
+					await snap(dir, "f2_3b_m4_aviso")
+					await frames(int((float(dd["aviso_s"]) - 1.0 + float(dd["sobe_s"])) * 60.0) + 30)
+					await snap(dir, "f2_3c_m4_alta")
+			for i in main.demo.mecs.list:   # M5: o contêiner boiando rangendo (inclinado)
+				if i["tipo"] == "conteiner_boia":
+					i["s"]["fase"] = "range"
+					i["s"]["k"] = 0.0
+					i["s"]["lado"] = 1.0
+					await frames(40)
+					await snap(dir, "f2_3d_m5_range")
+			for i in main.demo.mecs.list:   # M10: aviso (anel) e o salto
+				if i["tipo"] == "tubarao":
+					var bt = null
+					for p in main.demo.canteiro.parts:
+						if p["kind"] == "prancha" and int(p["etapa"]) == 3 and int(p["idx"]) == 7:
+							bt = p
+					if bt != null:
+						var rb0 = main.robots[0]
+						rb0.invuln = 99.0
+						put(rb0, Vector2((bt["rect"] as Rect2).get_center().x, (bt["rect"] as Rect2).position.y))
+						await frames(10)
+						i["s"]["ronda"] = 0.01
+						await frames(50)
+						await snap(dir, "f2_3e_m10_aviso")
+						await frames(int(float(i["d"]["aviso_s"]) * 60.0) - 20)
+						await snap(dir, "f2_3f_m10_salta")
+	main.hud.visible = true
+
+## ESTUDO DO EQUILÍBRIO DA DESTRUIÇÃO (--estudo-destruicao=N): N partidas de 4 bots no Canteiro, configuração PADRÃO
+## (eventos normais, engenhocas ligadas, vidas padrão), SEM virada (o diretor de cenas desligado), 150 s cada. Imprime o
+## % destruído do Térreo a cada 10 s e de onde veio a destruição (para achar a regra da verificação por tempo).
+func estudo_destruicao(n: int) -> void:
+	var curvas := []
+	var nivel := 1       # --estudo-nivel=N (bots 0 fácil · 1 médio · 2 difícil)
+	var ev_nivel := 2    # --estudo-eventos=N
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--estudo-nivel="):
+			nivel = int(a.substr(15))
+		elif a.begins_with("--estudo-eventos="):
+			ev_nivel = int(a.substr(17))
+	var regra := "--estudo-regra" in OS.get_cmdline_user_args()   # transição LIGADA: mede quando e para onde vira
+	for i in n:
+		seed(100 + i)
+		main.rng.seed = 100 + i
+		main.go_join()
+		await frames(2)
+		PlayerInput.virtual = {}
+		main.bot_level = nivel
+		for k in 4:
+			main.add_bot()
+		main.game_mode = "derruba"
+		main.arena_choice = "canteiro_obras"
+		main.event_level = ev_nivel
+		main.start_match()
+		await frames(5)
+		main.countdown = 0.0
+		for r in main.robots:
+			r.active = true
+		var et = main.demo.etapas
+		et.ativo = regra
+		var ct = main.demo.canteiro
+		var cur := []
+		if regra:
+			var q := 0
+			while et.state == "etapa" and q < 60 * 200:
+				for j in main.players.size():
+					main.demo.lives[j] = 9
+				await frames(1)
+				q += 1
+			print("ESTUDO regra partida %d: virou aos %.0f s → rota %s com %.0f%%" % [i + 1, q / 60.0, et.rota, et.progresso * 100.0])
+			main.go_menu()
+			await frames(3)
+			continue
+		for s in 151:
+			for j in main.players.size():
+				main.demo.lives[j] = 9
+			if s % 10 == 0:
+				cur.append(snappedf(ct.progresso(1) * 100.0, 0.1))
+			await frames(60)
+		curvas.append(cur)
+		print("ESTUDO partida %d: %s" % [i + 1, str(cur)])
+	var med := []
+	if curvas.is_empty():
+		main.go_menu()
+		return
+	for k in curvas[0].size():
+		var v := curvas.map(func(c): return float(c[k]))
+		med.append(snappedf(v.reduce(func(a, b): return a + b, 0.0) / v.size(), 0.1))
+	print("ESTUDO média por 10 s: %s" % str(med))
+	main.go_menu()

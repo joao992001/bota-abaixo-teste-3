@@ -5,20 +5,34 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
 ## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-28 (sessão 7, cont. 5)
-**Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
-bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
+**Comece por `docs/COMO_TRABALHAR.md` e pelo quadro `docs/BASTAO.md` (tarefas em andamento de cada chat, arquivos
+reservados e o próximo passo exato — o gancho de início de sessão já mostra).** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
+bateria completa 623 ok, 0 falhas no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
 **Ideia em espera (2026-11-28):** online via **Steam Remote Play Together** (sem netcode; anfitrião no PC, convidados em
 PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for para a Steam. Netcode próprio: não agora.
+**▶ CORREÇÕES URGENTES DO CANTEIRO (2026-11-28) — A56:** (1) **regra dos 90 s**: só a verificação de tempo decide a rota
+(90 s com 4 vidas, ±15 s por vida; < 35% fica · 35–70% Fachada · ≥ 70% subterrâneo; o A53b virava em ~20 s) — estudo
+`--estudo-destruicao=N [--estudo-nivel=2 --estudo-eventos=3 --estudo-regra]`; (2) **caixas de engenhoca no subterrâneo**
+(`spells.spawn_points` usa o chão firme quando faltam peças); (3) **FPS da G03** (porcas em atlas + teto 24; `--perf-cena=2
+--perf-evento=G03`); (4) **controle principal**: só o 1º controle conectado (e o teclado) mexe nos menus, quem pausou mexe na
+pausa, em MAPEAR/TESTAR o controle escolhido assume até voltar (`PlayerInput.principal`, `menus.dono`, etiqueta PRINCIPAL no hub).
+Testes `--so=caixas_subsolo,principal,verificacao,etapas`. Falta o usuário jogar para confirmar os números.
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
-**▶ FASE 2 · CARGUEIRO PERDIDO — PRONTO PARA O 1º PROTÓTIPO: siga `docs/fases/derruba/f2_cargueiro/DOSSIE_PROTOTIPO.md`** (fotografias das 3 cenas e perigos M1–M10 aprovados para protótipo)
+**▶ BASTÃO CONTÍNUO (2026-11-28):** quadro `docs/BASTAO.md` + gancho `.claude/hooks/session-start.sh` (mostra o quadro em todo
+chat novo) + regras em `docs/COMO_TRABALHAR.md` §6. Até 3 chats na mesma branch: pegue a tarefa no quadro, envie a cada passo.
+**▶ FASE 2 · DOSSIÊ APROVADO (A55) + BLOCO A FEITO** (`levels/cargueiro_perdido.lvl`, manifesto, `--so=cargueiro` verde com as 2 rotas,
+vitrine `--cargueiro=DIR`; fase escondida do menu até ficar jogável). Próximo: bloco B (arte) — ver FILA do `docs/BASTAO.md`.
+**▶ (anterior) FASE 2 · DOSSIÊ COMPLETO** (`docs/fases/derruba/f2_cargueiro/DOSSIE.md`: situação, 5 perguntas,
+plano A–F). Novo nesta passada: fichas das 3 cenas iguais às fotos, fundo vivo, regra da água com números, eventos G15–G19,
+engenhocas na água + A09/D07, skins K16–K20, storyboard das 2 transições `art/out/fase2/transicoes.png`.
 **▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas
 Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
 PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`. Fotografias `art/out/fase2/cena*.png` (fonte `f2_prancha.py`): cena 1 APROVADA (v3, navio = moldura,
 luta em plataformas); 2a/2b refeitas no mesmo princípio, aguardando aprovação. Depois: manifesto + .lvl + arte (blocos A–F).
-**▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
+**▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b (substituído pelo A56)** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
 reação em cadeia). Falta o usuário jogar para confirmar. Também: menus com segurar-repete e o fluxo configurar/selecionar mapa termina
 na escolha dos personagens.
 **▶ PROJETOS DE DEMOLIÇÃO v2 FEITO — A53** (prancha `art/out/ui/projetos_v2.png`, vídeo `out/videos/projetos_v2.mp4`, vitrine

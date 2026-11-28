@@ -164,8 +164,47 @@ func raw_now(j: int) -> String:
 			ax.append("%d:%+.1f" % [a, v])
 	return "botões [%s]  eixos [%s]" % [", ".join(bs), ", ".join(ax)]
 
+## CONTROLE PRINCIPAL (pedido 2026-11-28): o 1º controle conectado (ainda ligado) é o único CONTROLE que mexe nos menus
+## e configurações; o teclado do PC e os dispositivos virtuais dos testes também mexem. Saiu o principal → o próximo assume.
+var ordem_con: Array = []      # controles ("joyN") na ordem em que conectaram
+var _princ := ""
+var _princ_f := -1
+
+func principal() -> String:
+	var f := Engine.get_physics_frames()
+	if f == _princ_f:
+		return _princ
+	_princ_f = f
+	var js := _joys()
+	var i := ordem_con.size() - 1
+	while i >= 0:
+		if not int(String(ordem_con[i]).substr(3)) in js:
+			ordem_con.remove_at(i)
+		i -= 1
+	for j in js:
+		var d := "joy%d" % j
+		if not d in ordem_con:
+			ordem_con.append(d)
+	_princ = ordem_con[0] if not ordem_con.is_empty() else ""
+	return _princ
+
+## Este dispositivo pode mexer nos menus? (dono = aparelho que assumiu agora, ex.: o controle sendo configurado)
+func manda_no_menu(dev: String, dono := "") -> bool:
+	if dev.begins_with("bot") or dev.begins_with("boneco"):
+		return false
+	if is_keyboard(dev) or virtual.has(dev):
+		return true
+	if dono != "":
+		return dev == dono
+	return dev == principal()
+
 func _on_joy(j: int, connected: bool) -> void:
 	var dev := "joy%d" % j
+	if connected and not dev in ordem_con:
+		ordem_con.append(dev)
+	elif not connected:
+		ordem_con.erase(dev)
+	_princ_f = -1
 	_log_pad(j, connected)
 	var nm := pad_name(dev) if connected else "controle %d" % (j + 1)
 	toasts.append({"text": ("Conectado: %s" if connected else "Desconectado: %s") % nm, "t": 0.0, "ok": connected, "dev": dev})

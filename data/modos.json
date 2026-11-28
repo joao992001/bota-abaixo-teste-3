@@ -42,6 +42,12 @@
         "dica": "Destrua a obra: a destruição escolhe a próxima cena."
       },
       {
+        "id": "cargueiro_perdido",
+        "musica": "partida",
+        "nome": "Cargueiro Perdido",
+        "dica": "Do alto-mar ao fundo do mar: a destruição escolhe se o navio encalha ou afunda."
+      },
+      {
         "id": "demolicao",
         "musica": "partida",
         "nome": "Canteiro",
@@ -498,6 +504,34 @@
         "ky": 420,
         "ky_por": 2.0
       },
+      "mec_gancho": {
+        "dano": 12,
+        "kx": 320,
+        "kx_por": 3.4,
+        "ky": 240,
+        "ky_por": 1.6
+      },
+      "mec_caixas": {
+        "dano": 10,
+        "kx": 160,
+        "kx_por": 2.6,
+        "ky": 220,
+        "ky_por": 1.4
+      },
+      "mec_tubarao": {
+        "dano": 14,
+        "kx": 260,
+        "kx_por": 3.0,
+        "ky": 520,
+        "ky_por": 2.2
+      },
+      "mec_conteiner": {
+        "dano": 18,
+        "kx": 240,
+        "kx_por": 3.2,
+        "ky": 260,
+        "ky_por": 1.8
+      },
       "mec_estaca": {
         "dano": 16,
         "kx": 220,
@@ -560,12 +594,13 @@
         },
         "nota_classes": "3 classes (2026-11-27): ataque, controle, transformação (mechas); a classe engenharia saiu — E01 Andaime Relâmpago e E03 Controle Remoto REMOVIDOS do jogo, E02 Carga Remota virou ataque. Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
         "destruicao": {
-          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. A53b (2026-11-28, medido com bots: 90% era inalcançável e os 50% roubavam a rota): bater o limiar_total A QUALQUER MOMENTO já leva à rota_total; a verificação de tempo só decide a moderada. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
-          "limiar_moderada": 0.4,
-          "limiar_total": 0.65,
+          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. A56 (2026-11-28, estudo com bots `--estudo-destruicao`: com o A53b (65% a qualquer momento) a cena virava em ~20 s): SÓ a verificação de tempo decide (total_imediato false), 1ª aos 90 s com o padrão de 4 vidas (75 s com 3, 120 s com 6); aos 90 s bots médios ficam em 64–67% (moderada) e bots difíceis/caos em 67–86% (total em metade). O platô natural de ~67% (a parte de cima cai) separa as rotas: total exige derrubar também a base. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
+          "limiar_moderada": 0.35,
+          "limiar_total": 0.7,
+          "total_imediato": false,
           "verificacao": {
-            "vidas_base": 3,
-            "primeira_base_s": 45,
+            "vidas_base": 4,
+            "primeira_base_s": 90,
             "por_vida_s": 15,
             "intervalo_frac": 0.3334,
             "vidas_min": 3,
@@ -573,7 +608,7 @@
           },
           "mostrador": [
             0.1,
-            0.65
+            0.7
           ],
           "zonas": [
             "#2e9e4f",
@@ -682,7 +717,8 @@
       "estaca_hp": 2,
       "grelha_hp": 2,
       "entulho_hp": 2,
-      "prancha_hp": 2
+      "prancha_hp": 2,
+      "conteiner_hp": 3
     },
     "ko_explosao": {
       "nota": "KO pela borda: força do tremor e duração da explosão",
@@ -1319,6 +1355,15 @@
         ]
       ],
       "conflitos_nota": "Pares que nunca rodam juntos (Relatório 04 §6.5 + segurança de geometria). Até max_simultaneos[intensidade] eventos compatíveis ao mesmo tempo."
+    },
+    "agua": {
+      "nota": "Regra-assinatura ÁGUA da Fase 2 (A55, docs/fases/derruba/f2_cargueiro/README.md; modes/agua.gd). Alagado: corrida x corrida, gravidade x gravidade, queda máx x queda_max (pulo flutua), golpe recebido x empurrao. Molhado (onda): corrida x molhado_corrida por molhado_s. Zonas por cena no manifesto (cenas[].agua.zonas, tiles da cena).",
+      "corrida": 0.6,
+      "gravidade": 0.55,
+      "queda_max": 0.5,
+      "empurrao": 1.25,
+      "molhado_corrida": 0.8,
+      "molhado_s": 2.0
     },
     "etapas": {
       "nota": "Cinematografia da transição entre cenas (aviso, desabamento, queda lenta, câmera que desce junto). O GATILHO agora é a destruição (modos[derruba].destruicao), não o tempo. Rota moderada com destino AO LADO (Fachada): todos escorregam num arco em deslize_s até as pranchas de cima.",

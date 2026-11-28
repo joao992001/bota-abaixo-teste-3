@@ -1274,7 +1274,43 @@ func _streak_bit(dir: int) -> void:
 	bits.append({"pos": Vector2(x, randf_range(pr.position.y + 40, pr.end.y - 20)), "vel": Vector2(dir * randf_range(1300, 1900), randf_range(-20, 20)),
 		"t": 0.0, "life": 1.6, "kind": "vento", "rot": 0.0, "size": randf_range(60, 160)})
 
+const PORCAS_MAX := 24        # G03: teto de porcas no ar (eram ~45, cada uma 4 comandos de desenho → +1,3 ms e +210 chamadas)
+const PORCA_PX := 32
+const PORCA_QUADROS := 6       # sextavada: 0–60° bastam; 6 giros pré-desenhados num atlas (1 textura = desenho em lote)
+static var _porca_tex: ImageTexture
+
+## Atlas das porcas (desenhado 1×, por código): corpo cinza, aro escuro, furo.
+static func porca_tex() -> ImageTexture:
+	if _porca_tex != null:
+		return _porca_tex
+	var img := Image.create(PORCA_PX * PORCA_QUADROS, PORCA_PX, false, Image.FORMAT_RGBA8)
+	var c := PORCA_PX / 2.0
+	var ap := (c - 1.5) * cos(PI / 6.0)
+	for f in PORCA_QUADROS:
+		var rot := f * (PI / 3.0) / PORCA_QUADROS
+		for y in PORCA_PX:
+			for x in PORCA_PX:
+				var v := Vector2(x + 0.5 - c, y + 0.5 - c)
+				var m := 0.0
+				for k in 3:
+					m = maxf(m, absf(v.dot(Vector2.from_angle(rot + PI / 6.0 + k * PI / 3.0))))
+				var cor := Color(0.79, 0.82, 0.85)
+				if m > ap - 2.2:
+					cor = Color(0.42, 0.47, 0.51)
+				if v.length() < c * 0.42:
+					cor = Color(0.16, 0.1, 0.18)
+				cor.a = clampf(ap + 0.5 - m, 0.0, 1.0)
+				img.set_pixel(f * PORCA_PX + x, y, cor)
+	_porca_tex = ImageTexture.create_from_image(img)
+	return _porca_tex
+
 func _nut_bit(speed: float) -> void:
+	var n := 0
+	for b in bits:
+		if b["kind"] == "porca":
+			n += 1
+	if n >= PORCAS_MAX:
+		return
 	var g := _ground_spots()
 	var pr := _pr()
 	var p: Vector2 = g[randi() % g.size()] if not g.is_empty() else Vector2(randf_range(pr.position.x, pr.end.x), pr.end.y - 64)
@@ -1701,16 +1737,11 @@ func _draw_front_perf() -> void:
 				var dx := signf(b["vel"].x)
 				fr.draw_line(p, p - Vector2(dx * b["size"], 0), Color(1, 1, 1, 0.35 * minf(k * 3.0, 1.0)), 4.0, true)
 				fr.draw_line(p - Vector2(dx * b["size"] * 0.3, 10), p - Vector2(dx * b["size"] * 0.8, 10), Color(1, 1, 1, 0.2 * minf(k * 3.0, 1.0)), 3.0, true)
-			"porca":
+			"porca":   # 1 retângulo do atlas por porca (mesma textura: a placa desenha todas juntas)
 				var p: Vector2 = b["pos"]
-				var pts := PackedVector2Array()
-				for s in 6:
-					pts.append(p + Vector2.from_angle(b["rot"] + s * TAU / 6.0) * b["size"])
-				var a := minf(k * 3.0, 1.0)
-				fr.draw_colored_polygon(pts, Color(0.79, 0.82, 0.85, a))
-				fr.draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.42, 0.47, 0.51, a), 2.0, true)
-				fr.draw_circle(p, b["size"] * 0.42, Color(0.16, 0.1, 0.18, a))
-				fr.draw_circle(p + Vector2(0, b["size"] + 6.0), 3.0, Color(0.62, 0.89, 0.96, 0.4 * a))
+				var sz: float = b["size"]
+				var f := int(fposmod(b["rot"], PI / 3.0) / (PI / 3.0) * PORCA_QUADROS) % PORCA_QUADROS
+				fr.draw_texture_rect_region(porca_tex(), Rect2(p.x - sz, p.y - sz, sz * 2.0, sz * 2.0), Rect2(f * PORCA_PX, 0, PORCA_PX, PORCA_PX), Color(1, 1, 1, minf(k * 3.0, 1.0)))
 			"faisca":
 				fr.draw_circle(b["pos"], b["size"] * k + 1.0, Color(1.0, 0.85, 0.4, k))
 			"lasca":

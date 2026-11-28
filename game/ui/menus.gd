@@ -37,10 +37,19 @@ const EVENT_LEVELS := ["DESLIGADOS", "BAIXA", "NORMAL", "ALTA"]
 func setup(m: Node) -> void:
 	main = m
 
-## Algum teclado/controle (não bot) apertou a ação?
+## O CONTROLE PRINCIPAL (ou o teclado) apertou a ação? Os outros controles não mexem nos menus (PlayerInput.principal).
+## dono: aparelho que assumiu agora (MAPEAR/TESTAR um controle: só ele, até voltar) · pausa: quem pausou também manda.
+var dono := ""
+var dono_pausa := ""
+
+func _manda(dev: String) -> bool:
+	if dono == "" and dono_pausa != "" and main.paused and dev == dono_pausa:
+		return true
+	return PlayerInput.manda_no_menu(dev, dono)
+
 func pressed(a: String) -> bool:
 	for dev in PlayerInput.all_devices():
-		if not dev.begins_with("bot") and PlayerInput.dev_pressed(dev, a):
+		if _manda(dev) and PlayerInput.dev_pressed(dev, a):
 			return true
 	return false
 
@@ -58,7 +67,7 @@ var _rep_fire := {}
 
 func _held_any(a: String) -> bool:
 	for dev in PlayerInput.all_devices():
-		if not dev.begins_with("bot") and PlayerInput.dev_held(dev, a):
+		if _manda(dev) and PlayerInput.dev_held(dev, a):
 			return true
 	return false
 
@@ -88,6 +97,8 @@ func move_h() -> int:
 
 func update(dt: float) -> void:
 	t += dt
+	# MAPEAR/TESTAR um aparelho: ele assume os menus até voltar/salvar; depois o principal volta (pedido 2026-11-28)
+	dono = map_dev if main.state == main.S.CONFIGPAD else (test_dev if main.state == main.S.TESTPAD else "")
 	if main.state == main.S.INTRO:
 		_update_intro(dt)
 		return
@@ -314,7 +325,7 @@ func draw(ci: CanvasItem) -> void:
 ## Qual dispositivo confirmou agora (vira o P1 do Laboratório).
 func _who_confirmed() -> String:
 	for dev in PlayerInput.all_devices():
-		if PlayerInput.dev_pressed(dev, "jump") or PlayerInput.dev_pressed(dev, "start"):
+		if _manda(dev) and (PlayerInput.dev_pressed(dev, "jump") or PlayerInput.dev_pressed(dev, "start")):
 			return dev
 	return "kb_a"
 
@@ -1073,6 +1084,9 @@ func _draw_hub(ci: CanvasItem) -> void:
 		Kit.text(ci, Vector2(r.position.x, ty + 56), "SUA configuração" if mine else "padrão", 20, Color("#3c9a46") if mine else Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 		if flash > 0.0:
 			Kit.text(ci, Vector2(r.end.x - 150, r.position.y + 44), "é este!", 22, Color("#c0392b"), HORIZONTAL_ALIGNMENT_CENTER, 130)
+		elif dev == PlayerInput.principal():
+			Kit.chunk(ci, Rect2(r.end.x - 168, r.position.y + 14, 154, 38), Color("#f2c84b"), 10, 4, 0.0)
+			Kit.text(ci, Vector2(r.end.x - 168, r.position.y + 42), "PRINCIPAL", 22, dark, HORIZONTAL_ALIGNMENT_CENTER, 154)
 		for b in 2:
 			var bw := (r.size.x - 70.0) / 2.0
 			var br := Rect2(r.position.x + 25 + b * (bw + 20), r.end.y - (76.0 if big else 70.0), bw, 54.0 if big else 50.0)
@@ -1080,7 +1094,7 @@ func _draw_hub(ci: CanvasItem) -> void:
 			Kit.text(ci, Vector2(br.position.x, br.position.y + br.size.y * 0.7), ["MAPEAR", "TESTAR"][b], 25, dark, HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
 	if devs.size() == 2:
 		Kit.sticker(ci, Vector2(0, 820), "nenhum controle detectado: ligue o cabo ou pareie no Bluetooth (PlayStation: CREATE/SHARE + PS · Xbox: botão de parear)", 22, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920)
-	Kit.text(ci, Vector2(0, 1010), "Aperte qualquer botão num controle: o cartão dele pisca", 24, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+	Kit.text(ci, Vector2(0, 1010), "Aperte qualquer botão num controle: o cartão dele pisca  ·  só o PRINCIPAL navega; em MAPEAR/TESTAR o controle escolhido assume", 24, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
 	Kit.text(ci, Vector2(0, 1056), "◄►▲▼ escolhe  ·  PULAR abre  ·  VOLTAR sai", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
 
 ## Desenho do teclado no cartão: as teclas de andar e pular daquele lado.

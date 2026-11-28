@@ -1,7 +1,7 @@
 # Como trabalhar neste projeto (comportamento de TODA sessão do Claude)
 
 Vale para qualquer conta e qualquer conversa nova. Ordem de leitura ao começar: **`CLAUDE.md` → este arquivo →
-"▶ Retomar aqui" do `docs/ESTADO.md`** (e só o que ele mandar abrir). O que não está escrito no repositório se perde:
+`docs/BASTAO.md` (quem está fazendo o quê) → "▶ Retomar aqui" do `docs/ESTADO.md`** (e só o que ele mandar abrir). O que não está escrito no repositório se perde:
 por isso a passagem de bastão (§6) é obrigatória.
 
 ## 1. Conversa com o usuário
@@ -47,12 +47,26 @@ por isso a passagem de bastão (§6) é obrigatória.
 JOGO → MODO → MAPA → NÍVEL → CENA → ELEMENTOS. **Engenhoca** = o que o código chama de *spell* (A20). Evento = do
 mapa, vale em todas as cenas; o que é de uma cena só é **perigo da cena** (A14). Interface = **"Canteiro vivo"** (A21).
 
-## 6. Passagem de bastão (quando o usuário disser "faz a passagem" ou antes de a conversa acabar)
-1. Reescreva o **"▶ Retomar aqui"** do `docs/ESTADO.md`: o que foi feito agora (commits), o que está pela metade,
-   **o próximo passo exato** e as decisões que esperam o usuário. Curto; detalhes nos arquivos apontados.
-2. Registre decisões novas (A##) e avaliações pendentes.
-3. Commit + push. Responda ao usuário com o texto para colar na conversa nova:
-   > Leia o CLAUDE.md, o docs/COMO_TRABALHAR.md e o "Retomar aqui" do docs/ESTADO.md e continue de onde parou.
+## 6. Passagem de bastão CONTÍNUA (vários chats ao mesmo tempo; qualquer um pode parar no meio)
+Até 3 chats trabalham na mesma branch, e o contêiner de cada um some quando ele para (limite de uso, reinício, conversa
+nova). O mecanismo:
+- **Quadro `docs/BASTAO.md`**: um bloco por tarefa em andamento — quem, desde quando, pedido do usuário (a frase dele),
+  **arquivos reservados**, passos com `[x]` + commit, **Próximo passo exato** e decisões pendentes. Seções: EM ANDAMENTO,
+  AGUARDANDO USUÁRIO, FILA, CONCLUÍDO.
+- **Gancho de início de sessão** (`.claude/hooks/session-start.sh`, registrado em `.claude/settings.json`): todo chat novo
+  já começa vendo o quadro e um aviso se o contêiner está atrás do GitHub (outro chat enviou trabalho).
+- **Regras (obrigatórias):**
+  1. Começou: `git pull --rebase origin <branch>` → quadro → bloco da tarefa → os arquivos que ele aponta.
+  2. Pegou tarefa: escreva o bloco e faça commit+push ANTES de trabalhar ("bastão: pega …").
+  3. Não mexa em arquivo reservado por outro bloco sem o usuário mandar.
+  4. Passos de ≤ ~20 min; ao fim de cada um: `[x]` + commit, novo **Próximo passo exato**, commit+push junto com o
+     trabalho. Nunca encerre um turno com trabalho só no contêiner. Sempre `git pull --rebase` antes do push.
+  5. Continuar o trabalho de outro chat: assuma o bloco (troque Quem/Desde) e siga do Próximo passo exato.
+  6. Esperando resposta: bloco vai para AGUARDANDO USUÁRIO com a pergunta exata.
+  7. Terminou: 1 linha em CONCLUÍDO + "Retomar aqui" do `docs/ESTADO.md` atualizado; apague o bloco.
+- **Fim de conversa** (o usuário disse "faz a passagem"): além do quadro, reescreva o "▶ Retomar aqui" do
+  `docs/ESTADO.md`, registre decisões (A##), commit+push e responda com o texto para colar na conversa nova:
+  > Leia o CLAUDE.md, o docs/COMO_TRABALHAR.md, o docs/BASTAO.md e o "Retomar aqui" do docs/ESTADO.md e continue de onde parou.
 
 ## 7. Ambiente na nuvem (conta nova ou máquina nova)
 `tools/setup_nuvem.sh` instala Godot 4.7.1 + RTK (checksums conferidos) e importa o projeto. Se a sessão começar sem

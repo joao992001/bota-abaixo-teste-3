@@ -20,6 +20,8 @@ const ArenaFx := preload("res://modes/arena_fx.gd")
 const Canteiro := preload("res://modes/canteiro.gd")
 const Etapas := preload("res://modes/etapas.gd")
 const Cena := preload("res://modes/cena.gd")
+const CenaCargueiro := preload("res://modes/cena_cargueiro.gd")
+const Agua := preload("res://modes/agua.gd")   # regra-assinatura ÁGUA (Fase 2)   # Fase 2 (cena: cargueiro)
 const Mecanismos := preload("res://modes/mecanismos.gd")
 const Spells := preload("res://modes/spells.gd")
 const Kit := preload("res://ui/kit.gd")
@@ -27,6 +29,7 @@ var fx: Node2D = null        # mecânicas da arena (plataformas, lama, bola, est
 var spells: Node2D = null     # caixas de spell, slots e efeitos (modes/spells.gd)
 var canteiro: Node2D = null  # estrutura destrutível do Canteiro de Obras (Derruba), quando a arena tem "canteiro: 1"
 var etapas: Node2D = null   # cenas do mapa (modes/etapas.gd): transição por destruição (90%) e queda para a próxima cena
+var agua: Node2D = null     # zonas de água da fase (modes/agua.gd), se o manifesto tiver
 var cena: Node2D = null     # cena viva da fase (modes/cena.gd): fundo em camadas animado
 var mecs: Node2D = null     # mecanismos da fase (modes/mecanismos.gd)
 var arena := {}              # {id, nome, dica} da rodada atual
@@ -164,7 +167,7 @@ func start_round() -> void:
 		cena.queue_free()
 	cena = null
 	if String(main.level.prop("cena", "")) != "":
-		cena = Cena.new()
+		cena = CenaCargueiro.new() if String(main.level.prop("cena", "")) == "cargueiro" else Cena.new()
 		main.world.add_child(cena)
 		main.world.move_child(cena, 0)   # atrás de tudo (mapa, estrutura, robôs)
 		cena.setup(main)
@@ -177,6 +180,17 @@ func start_round() -> void:
 		main.world.add_child(mecs)
 		main.world.move_child(mecs, 3)   # no palco, atrás dos robôs
 		mecs.setup(main)
+	if agua != null and is_instance_valid(agua):
+		agua.queue_free()
+	agua = null
+	for r in main.robots:
+		r.agua_grav = 1.0
+		r.agua_queda = 1.0
+		r.agua_empurra = 1.0
+	if Agua.tem_agua(main):
+		agua = Agua.new()
+		main.world.add_child(agua)
+		agua.setup(main)
 	if spells != null and is_instance_valid(spells):
 		spells.queue_free()
 	spells = Spells.new()
@@ -230,6 +244,8 @@ func update(dt: float) -> void:
 		etapas.update(dt)   # depois dos eventos: a queda mexe na gravidade do quadro
 	if mecs != null and is_instance_valid(mecs):
 		mecs.update(dt)
+	if agua != null and is_instance_valid(agua):
+		agua.update(dt)   # depois de eventos/mecanismos: soma na lentidão do quadro
 	Perf.add("etapas_mecanismos", _pf)
 	_pf = Perf.t0()
 	if fx != null and is_instance_valid(fx):

@@ -1,0 +1,459 @@
+{
+ "schema_version": 2,
+ "mode_id": "derruba",
+ "map_id": "cargueiro_perdido",
+ "nome": "Cargueiro Perdido",
+ "estado": "EM_CONSTRUCAO",
+ "nota": "Fase 2 do Derruba (dossiê APROVADO A55, docs/fases/derruba/f2_cargueiro/DOSSIE.md). Bloco A: cenas + base fixa + estruturas com os tipos que já existem. Contêineres (tipo novo), perigos M1–M10, água e eventos G15–G19 entram nos blocos C–E. Escondido dos menus até ficar jogável (não está em modos[derruba].arenas).",
+ "lvl": "cargueiro_perdido",
+ "arte": "",
+ "spells_permitidas": [
+  "A01",
+  "A02",
+  "A03",
+  "A04",
+  "A05",
+  "A06",
+  "A07",
+  "A08",
+  "C01",
+  "C02",
+  "C03",
+  "C04",
+  "C05",
+  "E02",
+  "T01",
+  "T02",
+  "T03",
+  "T04",
+  "T05",
+  "T06",
+  "T07",
+  "D01",
+  "D02",
+  "D03",
+  "D04",
+  "D05",
+  "D06"
+ ],
+ "eventos_permitidos": [
+  "G10"
+ ],
+ "skins_originadas": [],
+ "topologia": 3,
+ "cenas": [
+  {
+   "id": "alto_mar",
+   "ordem": 1,
+   "nome": "Cargueiro no Alto-Mar",
+   "nivel": 1,
+   "eventos": [],
+   "mecanismos": [
+    {
+     "tipo": "conteiner_cai",
+     "etapa": 1,
+     "nota": "M1 (ideia do usuário): amarras estalam + SOMBRA VERMELHA → o contêiner despenca do navio; golpe forte, racha a plataforma embaixo; fica como plataforma nova até o próximo (ou afunda no mar).",
+     "ciclo_s": 20.0,
+     "fase_s": 8.0,
+     "aviso_s": 1.5,
+     "colunas": [
+      3,
+      9,
+      14,
+      19,
+      24
+     ],
+     "largura_t": 2,
+     "altura_t": 1,
+     "vel_queda": 1500,
+     "dano_peca": 2,
+     "fica_s": 14.0
+    },
+    {
+     "tipo": "gancho_balanca",
+     "nota": "M2: o contêiner pendurado no gancho da grua é plataforma; a grua range + ARCO TRACEJADO (aviso) → ele balança e varre o arco empurrando quem está no caminho (quem está em cima vai junto); marretada nele inverte o balanço.",
+     "pivo": [
+      15.0,
+      1.1
+     ],
+     "comprimento_t": 3.9,
+     "largura_t": 2.7,
+     "ciclo_s": 12.0,
+     "fase_s": 3.0,
+     "aviso_s": 1.2,
+     "balanco_s": 3.4,
+     "amplitude": 0.7,
+     "periodo_s": 1.7,
+     "cor": 4
+    },
+    {
+     "tipo": "onda_balsa",
+     "nota": "M3: a água incha na borda de fora da balsa (aviso) → a onda estoura e varre o convés: empurra para dentro e deixa MOLHADO (lento 2 s). Só nas balsas; alterna entre as duas.",
+     "balsas": [
+      [
+       1,
+       7,
+       13,
+       -1
+      ],
+      [
+       22,
+       29,
+       13,
+       1
+      ]
+     ],
+     "ciclo_s": 7.5,
+     "fase_s": 5.0,
+     "aviso_s": 1.0,
+     "onda_s": 0.7,
+     "altura_t": 2.2,
+     "empurrao": [
+      420,
+      260
+     ]
+    }
+   ],
+   "rota_moderada": "destrocos",
+   "rota_total": "atlantida",
+   "aviso_moderada": "O NAVIO VAI ENCALHAR!",
+   "aviso_total": "O NAVIO VAI AFUNDAR!",
+   "base_fixa": [
+    "balsas (tiles linha 13)",
+    "pilar de atracação (tiles)"
+   ],
+   "estruturas": {
+    "lajes": {
+     "seg_x": [],
+     "nucleo": [],
+     "linha": 13
+    },
+    "andaimes": [
+     [
+      8,
+      9,
+      5
+     ],
+     [
+      17,
+      9,
+      4
+     ],
+     [
+      5,
+      6,
+      3
+     ],
+     [
+      22,
+      6,
+      6
+     ]
+    ],
+    "vigas": [
+     [
+      20,
+      3,
+      5
+     ]
+    ],
+    "pilares": [],
+    "terreos": [],
+    "conteineres": [
+     [
+      1,
+      11,
+      3,
+      1
+     ],
+     [
+      1,
+      12,
+      3,
+      1
+     ],
+     [
+      4,
+      12,
+      3,
+      1
+     ],
+     [
+      13,
+      10,
+      3,
+      1
+     ],
+     [
+      22,
+      12,
+      3,
+      1
+     ],
+     [
+      25,
+      11,
+      3,
+      1
+     ],
+     [
+      25,
+      12,
+      3,
+      1
+     ]
+    ]
+   },
+   "nota": "Ficha: docs/fases/derruba/f2_cargueiro/cenas/conves.md. andaimes = tábuas dos níveis 9 e 6; viga = viga içada. Contêineres: bloco D."
+  },
+  {
+   "id": "atlantida",
+   "ordem": 2,
+   "nome": "Atlântida",
+   "nivel": 2,
+   "eventos": [],
+   "mecanismos": [],
+   "rota_moderada": null,
+   "rota_total": null,
+   "base_fixa": [
+    "3 pilares do templo (tiles)"
+   ],
+   "estruturas": {
+    "pranchas": [
+     [
+      5,
+      29,
+      8
+     ],
+     [
+      0,
+      26,
+      6
+     ],
+     [
+      12,
+      24,
+      6
+     ],
+     [
+      11,
+      27,
+      8
+     ],
+     [
+      23,
+      26,
+      7
+     ],
+     [
+      18,
+      23,
+      4
+     ],
+     [
+      21,
+      29,
+      3
+     ],
+     [
+      8,
+      24,
+      4
+     ]
+    ],
+    "conteineres": [
+     [
+      1,
+      30,
+      2,
+      2
+     ],
+     [
+      3,
+      30,
+      2,
+      2
+     ],
+     [
+      25,
+      31,
+      3,
+      1
+     ]
+    ],
+    "nota": "Igual à fotografia 2b (A55): laje-ponte, laje alta esq., laje do topo, laje entalhada, laje alta dir., prancha do navio, bloco na corrente, lustre; tambores, cabeça de estátua, contêiner do navio. Arte de cada peça: art/src/cenarios/f2_jogo.py (PECAS)."
+   },
+   "nota": "Ficha: cenas/atlantida.md. pranchas = lajes de mármore, laje-ponte, laje do topo, prancha do navio, bloco na corrente (posições absolutas do mundo).",
+   "agua": {
+    "nota": "M7: a proa furou a cúpula e o lado direito fica alagado (fotografia 2b: colunas 20-29 abaixo da linha 10).",
+    "zonas": [
+     [
+      20,
+      10,
+      10,
+      6
+     ]
+    ]
+   }
+  },
+  {
+   "id": "destrocos",
+   "ordem": 3,
+   "nome": "Destroços do Cargueiro",
+   "nivel": 2,
+   "eventos": [],
+   "mecanismos": [
+    {
+     "tipo": "mare",
+     "nota": "M4 (aprovado): seta + som → até a linha da maré alta fica ALAGADO (lento, pulo flutua); bote e jangada boiam e sobem; ~8 s alta a cada ~25 s.",
+     "zona": 0,
+     "alta_px": 784,
+     "baixa_px": 960,
+     "ciclo_s": 25.0,
+     "fase_s": 8.0,
+     "aviso_s": 2.0,
+     "sobe_s": 1.6,
+     "alta_s": 8.0,
+     "boiam": [
+      7,
+      8
+     ]
+    },
+    {
+     "tipo": "conteiner_boia",
+     "nota": "M5 (aprovado): contêiner boiando no mar entre a rocha-arco e a balsa (sobe com a maré). 2+ robôs em cima → range e afunda o lado mais pesado → em 1 s vira e joga todos na água; volta em ~4 s.",
+     "x_t": 21.0,
+     "largura_t": 2,
+     "topo_px": 908,
+     "min_robos": 2,
+     "pesa_s": 0.4,
+     "range_s": 1.0,
+     "virado_s": 4.0,
+     "cor": 1
+    },
+    {
+     "tipo": "rede_rasga",
+     "nota": "M6 (aprovado): marretada PESADA na rede de carga (peça prancha 6 da cena) → rasga: as caixas caem em quem está embaixo; a rede vira saco vazio (cai). Se a rede quebrar por outro jeito, as caixas caem do mesmo modo.",
+     "peca": 6,
+     "caixas": 3
+    },
+    {
+     "tipo": "tubarao",
+     "nota": "M10 (ideia do usuário, prancha perigo_tubarao.png): a barbatana ronda o mar; alguém numa plataforma BAIXA (bote, jangada, contêiner boiando) → acelera até lá + ANEL VERMELHO + som (1,5 s) → salta em arco e morde (joga para cima/lado; o contêiner boiando vira); marretada no focinho enquanto salta: fica tonto e foge por um tempo.",
+     "alvos": [
+      7,
+      8
+     ],
+     "ronda_s": [
+      5.0,
+      9.0
+     ],
+     "aviso_s": 1.5,
+     "salto_s": 1.0,
+     "foge_s": 10.0,
+     "vel": 140
+    }
+   ],
+   "rota_moderada": null,
+   "rota_total": null,
+   "base_fixa": [
+    "rocha esquerda",
+    "rocha-arco",
+    "balsa (tiles)"
+   ],
+   "estruturas": {
+    "pranchas": [
+     [
+      43,
+      14,
+      3
+     ],
+     [
+      52,
+      14,
+      3
+     ],
+     [
+      45,
+      10,
+      8
+     ],
+     [
+      52,
+      11,
+      5
+     ],
+     [
+      55,
+      7,
+      8
+     ],
+     [
+      38,
+      7,
+      3
+     ],
+     [
+      46,
+      6,
+      3
+     ],
+     [
+      41,
+      16,
+      2
+     ],
+     [
+      43,
+      16,
+      3
+     ]
+    ],
+    "conteineres": [
+     [
+      37,
+      12,
+      3,
+      1
+     ],
+     [
+      37,
+      13,
+      3,
+      1
+     ],
+     [
+      57,
+      13,
+      3,
+      1
+     ],
+     [
+      57,
+      14,
+      3,
+      1
+     ],
+     [
+      60,
+      14,
+      3,
+      1
+     ]
+    ]
+   },
+   "nota": "Ficha: cenas/destrocos.md. pranchas = convés quebrado, pedaço do convés, tábuas, contêiner içado, rede, bote, jangada (posições absolutas).",
+   "agua": {
+    "nota": "M4: o mar dos Destroços sobe até a linha da maré alta (o topo da zona é mexido pelo mecanismo 'mare').",
+    "zonas": [
+     [
+      0,
+      12,
+      30,
+      4
+     ]
+    ]
+   }
+  }
+ ]
+}

@@ -53,6 +53,9 @@ var spin := 0.0
 var wall_sliding := false
 var stun_t := 0.0            # atordoado: ignora o controle (pisão na cabeça, marretada)
 var spell_speed := 1.0         # multiplicador de corrida de spells/transformações (modes/spells.gd)
+var agua_grav := 1.0           # ÁGUA (modes/agua.gd, Fase 2): alagado = gravidade menor (pulo flutua),
+var agua_queda := 1.0          # queda máxima menor e golpe recebido joga mais longe; 1 fora d'água
+var agua_empurra := 1.0
 var env_slow := 1.0            # mecanismos da fase (concreto fresco, água): corrida e pulo mais fracos; volta a 1 sozinho
 var spell_push := 1.0          # multiplicador de empurrão recebido (armadura resiste)
 var caught := false           # Fuga: foi pego pela tela ou pela lama (esse sai de vez)
@@ -297,12 +300,13 @@ func _physics_process_perf(dt: float) -> void:
 		if main.events != null:
 			g *= main.events.gravity_mult   # evento Gravidade Baixa
 		g *= float(get_meta("grav_cena", 1.0))   # transição de cena: queda lenta e legível só de quem ainda está caindo
+		g *= agua_grav
 		if not spring and _held("jump") and absf(velocity.y) < f("half_grav_threshold"):
 			g *= 0.5
 		velocity.y += g * dt
 	if spring and velocity.y >= 0.0:
 		spring = false
-	var max_fall := f("fast_max_fall") if _held("down") else f("max_fall")
+	var max_fall: float = (f("fast_max_fall") if _held("down") else f("max_fall")) * agua_queda
 	wall_sliding = wall_dir != 0 and int(signf(ix)) == wall_dir and velocity.y > 0.0 and grip > 0.0
 	wall_side = wall_dir if wall_sliding else 0
 	if main.mode == "demolicao":
@@ -609,7 +613,7 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		"spell_mola": "canhão de molas", "spell_gancho": "gancho", "spell_carga": "carga de demolição", "spell_viga": "viga do guindaste",
 		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios", "mecha_leve": "golpe de mecha", "mecha_pesado": "golpe pesado de mecha",
 		"evento_entulho": "entulho", "evento_rebite": "chuva de rebites", "evento_viga": "viga do cabo rompido", "evento_carga": "carga do guindaste",
-		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
+		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_conteiner": "contêiner que despencou", "mec_gancho": "contêiner no gancho", "mec_caixas": "caixas da rede de carga", "mec_tubarao": "tubarão", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
 	last_attacker = by
 	hanging = false
 	var am: Dictionary = main.demo.cfg["amassometro"]
@@ -659,8 +663,8 @@ func knock(dir: int, vx: float, vy: float, stun: float) -> void:
 	_apply_knock(dir, vx, vy, stun)
 
 func _apply_knock(dir: int, vx: float, vy: float, stun: float) -> void:
-	own_vx = dir * vx
-	velocity.y = -vy
+	own_vx = dir * vx * agua_empurra   # alagado: o golpe joga longe
+	velocity.y = -vy * agua_empurra
 	var_jump = 0.0   # sem "ai!" a cada golpe (barulho demais); a pancada já diz que acertou
 	stun_t = maxf(stun_t, stun)
 	recover_len = float(c["arremesso"]["retorno_s"])

@@ -172,17 +172,48 @@ func spawn_points() -> Array:
 			var fixed: bool = p["nucleo"] or p["kind"] == "andaime"
 			out.append({"pos": Vector2(r.get_center().x, r.position.y), "fixo": fixed})
 			out.append({"pos": Vector2(main.rng.randf_range(r.position.x + 40, r.end.x - 40), r.position.y), "fixo": false})
+		# + o CHÃO FIRME (tiles) da cena quando faltam peças: na Fundação o piso é do .lvl e as plataformas vão caindo —
+		# sem isto as caixas paravam de cair no meio da luta (avaliação do usuário, 2026-11-28). Na cena 1 (muitas peças)
+		# a distribuição continua a das peças.
+		if out.size() < PONTOS_MIN:
+			out.append_array(_pontos_chao_cache())
 		return out
+	return _pontos_chao_cache()
+
+const PONTOS_MIN := 8
+var _pc_cache := []
+var _pc_f := -999
+var _pc_area := Rect2()
+
+## Chão firme da cena atual, guardado por 0,5 s (o sorteio de eventos também pergunta; desempenho).
+func _pontos_chao_cache() -> Array:
+	var f := Engine.get_physics_frames()
+	if f - _pc_f > 30 or _pc_area != main.level.area:
+		_pc_cache = _pontos_chao(demo.play_rect().grow(-96))
+		_pc_f = f
+		_pc_area = main.level.area
+	return _pc_cache.duplicate()
+
+## Pontos de chão firme (tiles sólidos com 2 casas livres em cima) dentro de pr.
+func _pontos_chao(pr: Rect2) -> Array:
+	var out := []
 	var lv = main.level
-	var pr: Rect2 = demo.play_rect().grow(-96)
-	for y in range(3, lv.rows - 1):
-		for x in range(1, lv.cols - 1):
+	var y0 := maxi(3, int(pr.position.y / T) - 1)
+	var y1 := mini(lv.rows - 1, int(pr.end.y / T) + 2)
+	for y in range(y0, y1):   # só a área de jogo (desempenho: antes varria o mapa inteiro)
+		for x in range(maxi(1, int(pr.position.x / T) - 1), mini(lv.cols - 1, int(pr.end.x / T) + 2)):
 			var c := Vector2i(x, y)
 			if lv.is_solid(c) and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)) and not (lv.ch_at(c) in ["^", "I"]):
 				var p := Vector2(x * T + 32, y * T)
-				if pr.has_point(p):
+				if pr.has_point(p) and not _ponto_perigoso(p):
 					out.append({"pos": p, "fixo": false})
 	return out
+
+func _ponto_perigoso(p: Vector2) -> bool:
+	for h in main.level.hazard_rects:
+		if h.grow(64).has_point(p):
+			return true
+	return false
 
 func spawn_box(at = null, special := false, classe := "") -> void:
 	var pts := spawn_points()
