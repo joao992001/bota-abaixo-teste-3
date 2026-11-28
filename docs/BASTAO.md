@@ -32,10 +32,26 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
+### Fase 2 · lapidar ARTE e ANIMAÇÃO dos perigos (antes das transições)
+- Quem: sessão 018QUPBQj4sLX3w64QQJCiVt · Desde: 2026-11-28 · Última atualização: 2026-11-28
+- Pedido do usuário: "lapidar as artes e as animações de cada etapa… a onda tá muito feia, o tubarão não tá bonito, os
+  andaimes, os contêineres caindo não tão legal… um trabalho mais minucioso e detalhado das animações e das artes dos perigos,
+  para que a gente avance para as animações de transição de cena".
+- Arquivos reservados: `game/modes/mecanismos.gd` (desenhos `_draw_*`), `art/src/cenarios/f2_jogo.py` (SPRITES), `art/src/cenarios/f2_lapida*.py` (novo),
+  `game/assets/cargueiro/` (sprites novos dos perigos)
+- Método (igual ao outro chat): por cena, PRANCHA com quadro a quadro da animação → aprovação → arte+código → captura no jogo (após `--import`).
+- Passos:
+  - [ ] 1. Cena 1: prancha M1 contêiner caindo, M2 gancho, M3 onda (+ tábuas/andaimes) → aprovação
+  - [ ] 2. Cena 1 no jogo (sprites + animação) + capturas
+  - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
+  - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
+- **Próximo passo exato:** passo 1 — ver capturas atuais `art/out/fase2/uso/cena1.png`, fazer `art/src/cenarios/f2_lapida1.py` → `art/out/fase2/lapida_cena1.png`.
+- Decisões pendentes do usuário: aprovar cada prancha.
+
 ## AGUARDANDO USUÁRIO
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
-- **Lapidar o visual dos perigos M1–M11 no jogo** (usuário 2026-11-28, vendo `art/out/fase2/uso/*.png`: "os perigos existem, mas pelas fotos faltam muitos ajustes visuais, estão bem ruins — pode continuar o fluxo, depois a gente lapida"). Fazer depois de M8/M9: prancha de cada perigo no tema (como a do tubarão) → arte no jogo.
+- (em andamento acima) **Lapidar o visual dos perigos M1–M11 no jogo** (usuário 2026-11-28, vendo `art/out/fase2/uso/*.png`: "os perigos existem, mas pelas fotos faltam muitos ajustes visuais, estão bem ruins — pode continuar o fluxo, depois a gente lapida"). Fazer depois de M8/M9: prancha de cada perigo no tema (como a do tubarão) → arte no jogo.
 - **Fase 2 · bloco D (contêineres + ARTE DO PALCO no tema: o usuário pediu trocar caixotes/andaimes do canteiro pelos do mar)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
