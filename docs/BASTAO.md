@@ -43,7 +43,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   depois") `game/modes/mec_onda.gd` + vídeos `out/videos/cargueiro_onda_v2(_lento).mp4`; prancha das plataformas APROVADA
   `art/out/fase2/plataformas_cena1_novas.png` (fonte `f2_plataformas.py`); contêiner de cima da boia REMOVIDO do manifesto.
 - Passos:
-  - [ ] 1. **Plataformas aprovadas → jogo.** (a) `f2_jogo.py`: `e1_palco()` passa a devolver `f2_plataformas.e1_palco_mar()` e
+  - [x] 1. (commit d1a7adc; `--so=cargueiro,mapa,m1,m2,m3,agua,bots` 0 falhas; captura igual à prancha) **Plataformas aprovadas → jogo.** (a) `f2_jogo.py`: `e1_palco()` passa a devolver `f2_plataformas.e1_palco_mar()` e
     `_pecas_e1()` passa a devolver `f2_plataformas.pecas_mar()` (import `f2_plataformas as fpl`); (b) manifesto, cena `alto_mar`,
     `estruturas` (edição pontual): `andaimes` += `[5, 9, 2]`, `[22, 9, 2]`, `[26, 3, 2]` (viram p1_andaime_4/5/6) e `vigas` +=
     `[2, 3, 4]` (p1_viga_1, o bote nos turcos) — confira em `canteiro.gd` (`_add` de andaime/viga) se o retângulo bate com o desenho
@@ -57,7 +57,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [ ] 3. M2 gancho no mesmo padrão (pêndulo com cabo que verga, antecipação puxando, pancada com hitstop) → vídeo → usuário.
   - [ ] 4. Aplicar A57 nas cenas Destroços e Atlântida (prancha antes × depois, mais plataformas) → aprovação → jogo.
   - [ ] 5. Depois: perigos da cena 2 (M4 maré, M5 boia, M6 rede, M10 tubarão) e 3 (M7, M8, M9, M11) no padrão de animação.
-- **Próximo passo exato:** passo 1: (a)–(c) e (e captura) feitos e enviados (onda corrigida: `mec_onda.gd` lia a passarela nova como piso; M3 verde). Falta conferir `--so=cargueiro,mapa,m1,m2,m3,agua,bots` e marcar [x]; depois passo 2 (M1).
+- **Próximo passo exato:** passo 2 (M1 contêiner): ler `docs/manuais/animacao.md` e `game/modes/mec_onda.gd` (modelo), achar o M1 em `mecanismos.gd` (`grep -n conteiner_cai`), criar `game/modes/mec_conteiner.gd` com as 5 batidas; vídeo `--video-so=conteiner_cai`.
 - Decisões pendentes do usuário: nenhuma (próxima: aprovar o vídeo do M1).
 
 ## AGUARDANDO USUÁRIO
