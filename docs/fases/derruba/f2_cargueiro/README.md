@@ -9,6 +9,7 @@
 | Geometria | `levels/cargueiro_perdido.lvl` (`etapa1..3`, `ko`, `buraco`, nascimentos) |
 | Topologia | **3 cenas** (APROVADO: este mapa fica com 3; a árvore de 7 fica para um mapa futuro que combine melhor) |
 | Esquema | `art/out/fase2/esquema.png` (fonte `art/src/cenarios/f2_catalogo.py`) |
+| Fotografias | `art/out/fase2/cena1_conves.png`, `cena2a_destrocos.png`, `cena2b_atlantida.png` (fonte `art/src/cenarios/f2_prancha.py`) — aguardando aprovação |
 
 **Conceito (APROVADO, 2026-11-28):** tema **fundo do mar** — a viagem é DESCER O MAR, da superfície até Atlântida
 (Atlântida = os últimos momentos). Regra dos temas A54: estrutura + mundo + regra-assinatura. **Toda cena precisa de
