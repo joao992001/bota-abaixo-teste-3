@@ -125,6 +125,7 @@ Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regr
 | Erro | Causa | Regra |
 |---|---|---|
 | Mapa feito direto no código, sem pensar a cena | não havia cartilha nem catálogo | ordem do §1: catálogo → prancha → código |
+| Fase 2 (Cargueiro): fotografias v1 com piso de ponta a ponta — ninguém caía (sem KO) | desenhei o palco antes de decidir por onde se cai | ao montar CADA cena, primeiro marque as saídas para KO (≥ 2 lados, visíveis: mar, fenda, porão) e só depois o resto |
 | 3 rodadas de correção depois do playtest | a composição só foi "lida" pelo usuário | checklist do §5 antes de mandar |
 | Evento da biblioteca inútil e travando na fase (drone G09) | evento entrou na lista sem ser provado na fase | bloco E: provar cada evento na fase; senão sai da lista |
 

@@ -156,24 +156,23 @@ def c1_longe():
 
 def c1_navio():
     o = ""
-    # casco (vai além das bordas: o palco é o navio inteiro)
-    o += PL([(-40, DECK), (1720, DECK), (1720, 11 * T), (1960, 11 * T), (1960, H), (-40, H)], FERR, 2.4, dark=FERR_D)
-    o += f'<rect x="-40" y="{DECK + 150}" width="{W + 80}" height="22" fill="#e9e2d2" opacity="0.9"/>'   # linha d'água pintada
-    for k in range(14):
-        o += E(80 + k * 130, DECK + 80, 14, 14, "#3a3f4a", 1.0) + f'<circle cx="{80 + k * 130 - 4}" cy="{DECK + 76}" r="4" fill="#9fc0dc"/>'
+    # casco: popa (esq.) e proa (dir.) terminam ANTES da borda da tela — dos dois lados é mar aberto (cair = KO)
+    o += PL([(110, DECK), (1730, DECK), (1730, 11 * T), (1870, 11 * T), (1800, H), (190, H), (110, DECK + 80)], FERR, 2.4, dark=FERR_D)
+    o += f'<rect x="150" y="{DECK + 150}" width="1690" height="22" fill="#e9e2d2" opacity="0.9"/>'   # linha d'água pintada
+    for k in range(12):
+        o += E(230 + k * 130, DECK + 80, 14, 14, "#3a3f4a", 1.0) + f'<circle cx="{230 + k * 130 - 4}" cy="{DECK + 76}" r="4" fill="#9fc0dc"/>'
     o += f'<text x="980" y="{DECK + 128}" font-family="Fredoka" font-weight="700" font-size="40" fill="#e9e2d2" text-anchor="middle" opacity="0.85">ESTRELA DO SUL · PORTO LIVRE</text>'
     # convés
-    o += R(-40, DECK - 10, 1760, 20, "#6b6f7a", 2, 1.4) + R(1720, 11 * T - 10, 240, 20, "#6b6f7a", 2, 1.4)
-    for x in range(-40, 1720, 48):   # guarda-corpo
+    o += R(110, DECK - 10, 1630, 20, "#6b6f7a", 2, 1.4) + R(1720, 11 * T - 10, 150, 20, "#6b6f7a", 2, 1.4)
+    for x in list(range(110, 20 * T - 20, 48)) + list(range(23 * T + 30, 1720, 48)):   # guarda-corpo (abre no porão)
         o += f'<path d="M{x},{DECK - 10} v-40" stroke="#e9e2d2" stroke-width="4"/>'
-    o += f'<path d="M-40,{DECK - 50} H1720 M-40,{DECK - 30} H1720" stroke="#e9e2d2" stroke-width="4"/>'
     return o
 
 
 def c1_ponte():
     """Ponte de comando (BASE FIXA): 3 andares com terraços jogáveis nas linhas 10, 7 e 4."""
     o = ""
-    x0, w = T, 6 * T
+    x0, w = 2 * T + 20, 5 * T + 30
     for k, (y, h) in enumerate([(10 * T, 3 * T), (7 * T, 3 * T), (4 * T, 3 * T)]):
         ww = w - k * 30
         xx = x0 + k * 15
@@ -194,17 +193,23 @@ def c1_ponte():
 def c1_carga():
     """Contêineres empilhados sobre as tampas dos porões (QUEBRA). Contêiner = 3×1 tiles."""
     o = ""
-    pilhas = [(8, 3, 0), (11, 2, 1), (17, 4, 0), (20, 2, 2), (24, 3, 1)]
+    pilhas = [(8, 3, 0), (11, 2, 1), (17, 3, 0), (24, 3, 1)]
     for k, (col, n, dano) in enumerate(pilhas):
         x = col * T
         o += R(x - 10, DECK - 22, 3 * T + 20, 18, "#7a7f8a", 2, 1.2)   # tampa do porão
         o += zebra(x - 10, DECK - 26, 3 * T + 20, 6)
         for j in range(n):
             o += conteiner(x, DECK - 22 - (j + 1) * T, 3 * T, T, CONT[(k * 3 + j) % len(CONT)], dano if j == n - 1 else 0, porta=j % 2 == 0)
-    # tampa do porão RACHADA (lugar de abrir o navio)
+    # PORÃO ABERTO (a tampa já caiu): vão no meio do convés — cair aqui = KO
+    o += f'<rect x="{20 * T}" y="{DECK - 10}" width="{3 * T}" height="{H - DECK + 10}" fill="#14141c"/>'
+    o += f'<rect x="{20 * T}" y="{DECK - 10}" width="{3 * T}" height="60" fill="url(#c1poro)"/>'
+    o += zebra(20 * T - 14, DECK - 26, 14, 16) + zebra(23 * T, DECK - 26, 14, 16)
+    o += f'<g transform="rotate(64 {20 * T} {DECK})">' + R(20 * T, DECK - 8, 3 * T, 16, "#7a7f8a", 2, 1.0) + "</g>"
+    for k in range(5):
+        o += f'<circle cx="{20 * T + 30 + k * 34}" cy="{DECK + 60 + k * 30}" r="{4 + k}" fill="#3a3a48"/>'
+    # tampa RACHADA do outro porão
     o += R(14 * T - 10, DECK - 22, 3 * T + 20, 18, "#7a7f8a", 2, 1.2)
     o += f'<path d="M{14 * T + 40},{DECK - 22} l14,10 l-10,8 M{15 * T + 60},{DECK - 20} l-12,14" stroke="{INK}" stroke-width="4" fill="none"/>'
-    o += f'<rect x="{14 * T + 30}" y="{DECK - 6}" width="100" height="8" fill="#1d1d26"/>'
     return o
 
 
@@ -225,9 +230,9 @@ def c1_guindaste():
 
 
 def c1_proa():
-    o = R(27 * T, 11 * T - 40, 3 * T + 40, 40, "#cfd3da", 3, 1.2)
-    o += E(28 * T, 11 * T - 60, 30, 22, "#5a5f6a", 1.2) + f'<path d="M{28 * T},{11 * T - 60} h60" stroke="#8a8f9a" stroke-width="10"/>'
-    o += R(29 * T + 20, 6 * T, 12, 5 * T - 40, "#8a8f9a", 2, 1.0) + f'<circle cx="{29 * T + 26}" cy="{6 * T - 8}" r="10" fill="#fff4c8"/>'
+    o = R(27 * T, 11 * T - 40, 2 * T, 40, "#cfd3da", 3, 1.2)
+    o += E(27 * T + 50, 11 * T - 60, 30, 22, "#5a5f6a", 1.2) + f'<path d="M{27 * T + 50},{11 * T - 60} h50" stroke="#8a8f9a" stroke-width="10"/>'
+    o += R(28 * T + 30, 6 * T, 12, 5 * T - 40, "#8a8f9a", 2, 1.0) + f'<circle cx="{28 * T + 36}" cy="{6 * T - 8}" r="10" fill="#fff4c8"/>'
     # onda batendo por cima da proa
     o += S(f"M{W},{11 * T + 20} C{W - 120},{11 * T - 160} {W - 300},{11 * T - 120} {W - 260},{11 * T - 20} C{W - 230},{11 * T + 30} {W - 120},{11 * T + 40} {W},{11 * T + 60} Z",
            "#d6eef8", (W - 310, 11 * T - 170, W, 11 * T + 60), k=1.6, dark="#9fcfe6")
@@ -242,7 +247,8 @@ def c1_atores():
     o = robot("marretao", "pesado_prep", el.COLORS[0], 9 * T + 40, DECK - 22 - 3 * T)
     o += robot("picareta", "rapido", el.COLORS[1], 12 * T + 70, DECK - 22 - 2 * T, flip=True)
     o += robot("chave", "esquiva", el.COLORS[2], 18 * T + 60, DECK - 22 - 4 * T)
-    o += robot("britadeira", "pesado_golpe", el.COLORS[3], 22 * T, DECK - 22, flip=True)
+    o += robot("britadeira", "esquiva", el.COLORS[3], 21 * T + 30, DECK - 3 * T, flip=True)   # pulando o porão aberto
+    o += f'<path d="M{21 * T + 90},{DECK - 3 * T - 20} q-30,30 -70,40" stroke="#ffffff" stroke-width="4" fill="none" stroke-dasharray="8 8" opacity="0.8"/>'
     o += f'<path d="M{18 * T},{DECK - 22 - 4 * T - 30} h-50 M{18 * T + 6},{DECK - 22 - 4 * T - 16} h-40" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>'
     return o
 
@@ -254,7 +260,8 @@ def c1_frente():
         x = rnd.uniform(1400, W)
         o += f'<path d="M{x},{rnd.uniform(0, H)} l-14,40" stroke="#e6e2f6" stroke-width="2.5" opacity="0.5"/>'
     o += tag(9 * T + 96, DECK - 22 - 3 * T - 130, "CONTÊINERES")
-    o += tag(14 * T + 96, DECK + 20, "TAMPA DO PORÃO")
+    o += tag(14 * T + 96, DECK + 20, "TAMPA DO PORÃO") + tag(21 * T + 32, DECK + 120, "PORÃO ABERTO = KO")
+    o += tag(56, DECK + 190, "MAR = KO") + tag(W - 60, DECK + 190, "MAR = KO")
     o += tag(21 * T + 40, 3 * T + 30, "GANCHO")
     o += tag(W - 200, 11 * T - 200, "ONDA")
     o += tag(7 * T + 80, 8 * T - 40, "BOTE")
@@ -263,7 +270,7 @@ def c1_frente():
 
 
 def cena1():
-    defs = fonte() + rough(seed=31, scale=0.8, freq=0.05) + grad("c1ceu", [(0, "#f7b27a"), (0.45, "#e8988a"), (1, "#6f6aa0")])
+    defs = fonte() + rough(seed=31, scale=0.8, freq=0.05) + grad("c1ceu", [(0, "#f7b27a"), (0.45, "#e8988a"), (1, "#6f6aa0")]) + grad("c1poro", [(0, "#3a3a48"), (1, "#14141c")])
     body = c1_ceu() + c1_longe() + c1_navio() + c1_ponte() + c1_guindaste() + c1_carga() + c1_proa() + c1_atores() + c1_frente()
     return doc(W, H, f'<g filter="url(#rough)">{body}</g>', defs)
 
@@ -308,7 +315,7 @@ def c2_balsa():
 
 def c2_ilheu():
     """Rochas do ilhéu (BASE FIXA) à esquerda e pilar de rocha à direita."""
-    o = PL([(-40, H), (-40, 12 * T), (90, 11 * T + 20), (3 * T, 9 * T), (5 * T, 9 * T - 20), (7 * T, 10 * T + 10), (9 * T, 12 * T), (10 * T, H)],
+    o = PL([(70, H), (120, 12 * T), (160, 11 * T + 20), (3 * T, 9 * T), (5 * T, 9 * T - 20), (7 * T, 10 * T + 10), (9 * T, 12 * T), (10 * T, H)],
            "#8a8f99", 2.6, dark="#6b7079")
     o += PL([(3 * T - 10, 9 * T), (5 * T + 20, 9 * T - 20), (5 * T + 10, 9 * T + 20), (3 * T, 9 * T + 24)], "#a2a7b0", 1.4)   # topo plano jogável
     o += PL([(25 * T, H), (25 * T + 20, 11 * T), (26 * T + 40, 10 * T), (28 * T, 10 * T + 10), (28 * T + 30, H)], "#8a8f99", 2.4, dark="#6b7079")
@@ -360,10 +367,8 @@ def c2_resto():
     o += f'<g transform="rotate(6 {21 * T} {MAR2})">' + conteiner(20 * T, MAR2 - T + 10, 3 * T, T, CONT[1], 1) + "</g>"
     o += f'<g transform="rotate(-8 {23 * T} {MAR2})">' + conteiner(22 * T + 40, MAR2 - T + 20, 2 * T + 20, T, CONT[3], 0, True) + "</g>"
     o += f'<g transform="rotate(12 {27 * T} {10 * T})">' + conteiner(26 * T - 20, 10 * T - T + 6, 3 * T, T, CONT[0], 2) + "</g>"
-    o += conteiner(10, 11 * T + 24 - T, 3 * T, T, CONT[2], 0, True)
-    # popa saindo d'água ao fundo direito (hélice)
-    o += PL([(28 * T + 10, MAR2), (28 * T + 30, 9 * T), (W + 20, 8 * T + 30), (W + 20, MAR2)], FERR_D, 1.8)
-    o += E(29 * T + 40, 11 * T, 26, 46, "#c9a46a", 1.2) + E(29 * T + 40, 11 * T, 8, 8, "#8a6b4f", 0.8)
+    o += conteiner(150, 11 * T + 10 - T, 2 * T + 30, T, CONT[2], 0, True)
+
     # destroços boiando
     for x, cor in [(860, "#c98a4b"), (1500, "#f08a3d"), (1180, "#c98a4b")]:
         o += R(x, MAR2 + 20, 70, 14, cor, 3, 1.0)
@@ -386,6 +391,8 @@ def c2_atores():
 
 def c2_frente():
     o = f'<rect x="0" y="{MAR2}" width="{W}" height="{H - MAR2}" fill="#3fa7a0" opacity="0.88"/>'
+    for x0, x1 in ((0, 110), (19 * T + 40, 25 * T + 10), (28 * T + 40, W)):   # MAR FUNDO (sem chão embaixo) = KO
+        o += f'<rect x="{x0}" y="{MAR2}" width="{x1 - x0}" height="{H - MAR2}" fill="#14506b" opacity="0.55"/>'
     o += f'<path d="M0,{12 * T} H{W}" stroke="#ffffff" stroke-width="3" stroke-dasharray="16 12" opacity="0.8"/>'
     o += f'<text x="{W - 30}" y="{12 * T - 10}" font-family="Fredoka" font-weight="700" font-size="18" fill="#ffffff" text-anchor="end">maré alta</text>'
     rnd = random.Random(6)
@@ -393,8 +400,8 @@ def c2_frente():
         x = rnd.uniform(0, W)
         o += f'<path d="M{x},{MAR2 + 30 + rnd.uniform(0, 120)} q16,-6 32,0" stroke="#bff0ea" stroke-width="4" fill="none" opacity="0.8"/>'
     o += f'<path d="M0,{MAR2} ' + "".join("q30,-10 60,0 " for _ in range(33)) + '" stroke="#ffffff" stroke-width="4" fill="none" opacity="0.9"/>'
-    o += tag(4 * T, 6 * T + 10, "ROCHAS (FIXAS)") + tag(13 * T, 7 * T + 30, "CASCO TOMBADO")
-    o += tag(23 * T, 7 * T + 20, "MASTRO-PONTE") + tag(12 * T + 20, 3 * T + 30, "GÁVEA") + tag(1060, 4 * T - 20, "CONTÊINER NO GANCHO") + tag(21 * T + 60, MAR2 + 70, "CONTÊINER BOIANDO") + tag(W - 160, 12 * T + 40, "MARÉ")
+    o += tag(4 * T, 6 * T + 10, "ROCHAS (FIXAS)") + tag(70, MAR2 + 120, "MAR FUNDO = KO") + tag(22 * T + 30, MAR2 + 150, "MAR FUNDO = KO") + tag(W - 70, MAR2 + 120, "KO") + tag(13 * T, 7 * T + 30, "CASCO TOMBADO")
+    o += tag(23 * T, 7 * T + 20, "MASTRO-PONTE") + tag(12 * T + 20, 3 * T + 30, "GÁVEA") + tag(1060, 4 * T - 20, "CONTÊINER NO GANCHO") + tag(21 * T + 60, MAR2 + 70, "CONTÊINER BOIANDO") + tag(26 * T + 40, 12 * T + 40, "MARÉ")
     return o
 
 
@@ -429,7 +436,10 @@ def c3_agua():
 def c3_templo():
     o = ""
     # ESCADARIAS (BASE FIXA): plataforma de mármore em degraus
-    o += R(-20, CHAO3, W + 40, H - CHAO3, "#d9c48f", 0, 2.4, dark="#b9a46f")
+    o += f'<rect x="0" y="{CHAO3 - 120}" width="{W}" height="{H - CHAO3 + 120}" fill="url(#c3fenda)"/>'   # a Fenda Abissal
+    o += PL([(2 * T - 20, CHAO3), (28 * T + 20, CHAO3), (23 * T, H + 10), (7 * T, H + 10)], "#4a5a6a", 2.4, dark="#34404c")   # pico de rocha
+    for k in range(6):
+        o += f'<path d="M{7 * T + k * 160},{H} l{30 + k * 4},-{60 + k * 12}" stroke="#34404c" stroke-width="5"/>'
     o += R(2 * T, CHAO3 - 30, 26 * T, 30, MARM_D, 2, 1.6) + R(3 * T, CHAO3 - 56, 24 * T, 28, MARM, 2, 1.6)
     # muralhas laterais (FIXAS) com arcos
     for x in (2 * T, 25 * T):
@@ -474,7 +484,7 @@ def c3_navio_caido():
 
 def c3_cupula():
     """Cúpula de AR sobre o templo; o lado direito rachou e está ALAGANDO até a linha 11."""
-    cx, base, rx, ry = 15 * T, CHAO3 - 56, 13 * T + 20, 12 * T + 30
+    cx, base, rx, ry = 15 * T, CHAO3 - 56, 13 * T, 12 * T + 30
     o = f'<path d="M{cx - rx},{base} A{rx},{ry} 0 0 1 {cx + rx},{base} Z" fill="#dff7fb" opacity="0.18"/>'
     o += f'<path d="M{cx - rx},{base} A{rx},{ry} 0 0 1 {cx + rx},{base}" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.85"/>'
     for k in range(1, 6):
@@ -493,16 +503,16 @@ def c3_cupula():
 
 
 def c3_grua():
-    """Grua submarina da equipe (identidade da obra), presa no chão do mar à direita."""
-    x = 28 * T + 20
-    o = R(x - 20, CHAO3 - 30, 70, 30, "#6b5a3a", 3, 1.2)
-    o += R(x, 3 * T, 22, CHAO3 - 30 - 3 * T, "#e0a83a", 3, 1.4, dark="#b07a1e")
-    for k in range(12):
+    """Grua submarina da equipe (identidade da obra), presa no alto da muralha da direita."""
+    x = 26 * T + 30
+    o = R(x - 20, 7 * T - 40, 70, 24, "#6b5a3a", 3, 1.2)
+    o += R(x, 2 * T, 22, 5 * T - 40, "#e0a83a", 3, 1.4, dark="#b07a1e")
+    for k in range(5):
         y = 3 * T + 20 + k * 52
         o += f'<path d="M{x},{y} l22,30 M{x + 22},{y} l-22,30" stroke="#b07a1e" stroke-width="3"/>'
-    o += R(x - 200, 3 * T - 14, 260, 18, "#e0a83a", 3, 1.2) + f'<circle cx="{x + 10}" cy="{3 * T - 30}" r="12" fill="#fff4c8"/>'
-    o += f'<path d="M{x + 10},{3 * T - 30} L{x - 120},{3 * T + 200} L{x + 80},{3 * T + 200} Z" fill="#fff4c8" opacity="0.12"/>'
-    o += f'<rect x="{x - 300}" y="{CHAO3 - 50}" width="180" height="40" rx="6" fill="{YEL}"/><text x="{x - 210}" y="{CHAO3 - 23}" font-family="Fredoka" font-weight="700" font-size="17" fill="{INK}" text-anchor="middle">OBRA SUBMARINA</text>'
+    o += R(x - 200, 2 * T - 14, 300, 18, "#e0a83a", 3, 1.2) + f'<circle cx="{x + 10}" cy="{2 * T - 30}" r="12" fill="#fff4c8"/>'
+    o += f'<path d="M{x + 10},{2 * T - 30} L{x - 120},{2 * T + 200} L{x + 80},{2 * T + 200} Z" fill="#fff4c8" opacity="0.12"/>'
+    o += f'<rect x="{x - 260}" y="{CHAO3 - 50}" width="180" height="40" rx="6" fill="{YEL}"/><text x="{x - 170}" y="{CHAO3 - 23}" font-family="Fredoka" font-weight="700" font-size="17" fill="{INK}" text-anchor="middle">OBRA SUBMARINA</text>'
     return o
 
 
@@ -517,27 +527,25 @@ def c3_atores():
 
 def c3_frente():
     o = ""
-    o += f'<path d="M640,{H - 60} v-90 M600,{H - 120} h80 M610,{H - 60} q30,30 60,0" stroke="#5a5f6a" stroke-width="10" fill="none" stroke-linecap="round"/>'   # âncora do navio
-    for x, cor in [(320, "#e06a8a"), (1300, "#f2a33a"), (1500, "#e06a8a")]:
+    o += f'<path d="M700,{H - 30} v-90 M660,{H - 90} h80 M670,{H - 30} q30,30 60,0" stroke="#5a5f6a" stroke-width="10" fill="none" stroke-linecap="round"/>'   # âncora do navio
+    for x, cor in [(560, "#e06a8a"), (1260, "#f2a33a")]:
         for j in range(3):
-            o += f'<path d="M{x + j * 14},{H - 40} q-6,-40 {6 - j * 4},-70" stroke="{cor}" stroke-width="10" fill="none" stroke-linecap="round"/>'
-    for x in (460, 1100, 1700):
-        o += E(x, H - 50, 40, 18, "#b9a46f", 1.2)
-    o += conteiner(1150, H - 110, 3 * T, T, CONT[1], 1)
+            o += f'<path d="M{x + j * 14},{H - 20} q-6,-40 {6 - j * 4},-70" stroke="{cor}" stroke-width="10" fill="none" stroke-linecap="round"/>'
+    o += conteiner(960, H - 90, 3 * T, T, CONT[1], 1)
     rnd = random.Random(23)
-    for x in (40, 160, 1760, 1860):   # algas no primeiro plano
+    for x in ():   # (sem algas nas bordas: ali é a fenda)
         o += f'<path d="M{x},{H} q-30,-120 10,-240 q30,-90 -10,-180" stroke="#2f8a5a" stroke-width="22" fill="none" stroke-linecap="round" opacity="0.9"/>'
     for _ in range(26):
         o += f'<circle cx="{rnd.uniform(0, W)}" cy="{rnd.uniform(0, H)}" r="{rnd.uniform(3, 10)}" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.6"/>'
     o += tag(15 * T, 3 * T, "FRONTÃO") + tag(9 * T + 20, 12 * T + 10, "COLUNAS")
     o += tag(17 * T + 60, 2 * T - 30, "PEDAÇO DO NAVIO") + tag(6 * T, 2 * T + 60, "MASTRO CAÍDO")
     o += tag(22 * T + 50, 12 * T + 40, "ALAGANDO") + tag(4 * T, CHAO3 - 130, "CONCHA") + tag(15 * T, CHAO3 + 60, "ESCADARIAS (FIXAS)")
-    o += tag(23 * T, 0 * T + 40, "CÚPULA RACHOU")
+    o += tag(23 * T, 0 * T + 40, "CÚPULA RACHOU") + tag(64, CHAO3 + 90, "FENDA = KO") + tag(W - 64, CHAO3 + 90, "FENDA = KO")
     return o
 
 
 def cena2b():
-    defs = fonte() + rough(seed=35, scale=0.8, freq=0.05) + grad("c3agua", [(0, "#4fc0d0"), (0.6, "#1f7f9a"), (1, "#0f4f6f")])
+    defs = fonte() + rough(seed=35, scale=0.8, freq=0.05) + grad("c3agua", [(0, "#4fc0d0"), (0.6, "#1f7f9a"), (1, "#0f4f6f")]) + grad("c3fenda", [(0, "#0f4f6f"), (0.5, "#08283c"), (1, "#02080f")])
     body = c3_agua() + c3_templo() + c3_grua() + c3_cupula() + c3_navio_caido() + c3_atores() + c3_frente()
     return doc(W, H, f'<g filter="url(#rough)">{body}</g>', defs)
 
