@@ -20,6 +20,7 @@ const ArenaFx := preload("res://modes/arena_fx.gd")
 const Canteiro := preload("res://modes/canteiro.gd")
 const Etapas := preload("res://modes/etapas.gd")
 const Cena := preload("res://modes/cena.gd")
+const CenaCargueiro := preload("res://modes/cena_cargueiro.gd")   # Fase 2 (cena: cargueiro)
 const Mecanismos := preload("res://modes/mecanismos.gd")
 const Spells := preload("res://modes/spells.gd")
 const Kit := preload("res://ui/kit.gd")
@@ -164,7 +165,7 @@ func start_round() -> void:
 		cena.queue_free()
 	cena = null
 	if String(main.level.prop("cena", "")) != "":
-		cena = Cena.new()
+		cena = CenaCargueiro.new() if String(main.level.prop("cena", "")) == "cargueiro" else Cena.new()
 		main.world.add_child(cena)
 		main.world.move_child(cena, 0)   # atrás de tudo (mapa, estrutura, robôs)
 		cena.setup(main)

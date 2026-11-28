@@ -40,12 +40,11 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Passos:
   - [x] 1. Ler `fase1_jogo.py`, `f2_prancha.py` e `cena.gd` (como a fase 1 monta camadas e sprites)
   - [x] 2. `f2_jogo.py`: camadas e1/e2/e3_longe (1920×1080) + sprites (gaivota, ondas, água-viva, peixes) em `game/assets/cargueiro/`
-  - [ ] 3. `cena.gd`: generalizar as listas da fase 1 por tema (`cena: cargueiro` no `.lvl`) e mostrar os fundos
-  - [ ] 4. Sprites que mexem (ondas, gaivotas, bolhas, águas-vivas) + captura `--cargueiro=DIR` comparando com as fotografias
-- **Próximo passo exato:** passo 3 — criar `game/modes/cena_cargueiro.gd` (`extends "res://modes/cena.gd"`, reaproveita
-  `_layer/_par/_view`; sobrescreve setup/_process_perf/_draw_perf/_draw_front), escolher o script pela prop `cena` em
-  `demolicao.gd` (~linha 166: `cargueiro` → CenaCargueiro), pôr `cena: cargueiro` no `.lvl`. Mapa das cenas: etapa1 = e1_longe
-  (Alto-Mar), etapa2 = e2_longe (Atlântida, embaixo), etapa3 = e3_longe (Destroços, à direita). Conferir com `--cargueiro=DIR`.
+  - [x] 3. `cena_cargueiro.gd` (herda `cena.gd`) + `cena: cargueiro` no `.lvl`: fotografias com paralaxe, mar entre as cenas
+  - [x] 4. Ondas (atrás e na frente), gaivotas, peixes, águas-vivas, bolhas; captura `art/out/fase2/jogo/bloco_b_cenas.png`
+- **Próximo passo exato:** bloco B FEITO (falta só medir FPS: `--perf-derruba` ainda só roda no Canteiro; `--perf-mapa` é do
+  bloco F). Próximo: fechar este bloco (1 linha em CONCLUÍDO) e pegar o **bloco C** (zona de ÁGUA primeiro: números em
+  `data/modos.json`, `robot.gd` `env_slow` + gravidade na água; depois perigos M1–M10, um por commit, com teste) — `DOSSIE.md` §3.
 - Decisões pendentes do usuário: nenhuma (tudo aprovado no A55).
 
 ## AGUARDANDO USUÁRIO
