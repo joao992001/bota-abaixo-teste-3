@@ -62,6 +62,10 @@ func _run() -> void:
 			await spells_frames(a.trim_prefix("--spells="))
 			get_tree().quit()
 			return
+		if a.begins_with("--hud="):
+			await hud_frames(a.trim_prefix("--hud="))
+			get_tree().quit()
+			return
 		if a.begins_with("--combate="):
 			await combate_frames(a.trim_prefix("--combate="))
 			get_tree().quit()
@@ -4233,6 +4237,58 @@ func grab(dir: String, prefix: String) -> void:
 ## Vitrine das animações de movimento e combate (--combate=DIR): quadros a 30 por segundo para virar GIF.
 ## P1 Lata: corre, derrapa, pulo + pulo duplo (mortal), esquiva no chão e no ar, golpes rápidos, marretada pesada.
 ## P2 Brutamontes (amassado): apanha, é arremessado girando e se recupera no ar. P3 Varapau: erra a marretada (fica cravada).
+## Vitrine do HUD de cima vivo (prancha hud_topo aprovada 2026-11-27): P1 pega a engenhoca (maleta cai) e usa,
+## P2 leva golpes (número pula, cartão pisca), P3 passa de 120% (perigo), P4 é eliminado (FORA). --hud=DIR
+func hud_frames(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	PlayerInput.virtual = {"v0": {}, "v1": {}, "v2": {}, "v3": {}}
+	main.mode = "demolicao"
+	main.go_join()
+	await frames(2)
+	for d in ["v0", "v1", "v2", "v3"]:
+		await tap(d, "jump")
+	for i in 4:
+		main.players[i]["model"] = i
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 4
+	main.event_level = 0
+	main.arena_choice = "canteiro_obras"
+	main.start_match()
+	await demo_round()
+	var sp = main.demo.spells
+	sp.spawn_t = 999.0
+	var rs: Array = main.robots
+	_frame_no = 0
+	main.demo.lives[2] = 1
+	main.demo.lives[3] = 1
+	for f in 330:
+		var a := {"v0": {}, "v1": {}, "v2": {}, "v3": {}}
+		if f == 20:
+			sp.equip(rs[0], "A04")
+		if f == 70:
+			sp.equip(rs[1], "T05")
+		a["v0"]["item"] = f == 110 or f == 111
+		if f == 150:
+			a["v1"]["item"] = true
+		if f in [40, 90, 130, 175]:
+			rs[1].take_hit(-1, "rapido", 2)
+			rs[1].velocity = Vector2.ZERO
+			rs[1].own_vx = 0.0
+		if f == 60:
+			rs[2].dmg = 116.0
+		if f == 100:
+			rs[2].take_hit(1, "rapido", 3)
+			rs[2].own_vx = 0.0
+		if f == 230:
+			main.kill(rs[3], -1, null)
+		for r in rs:
+			r.invuln = 0.0
+		PlayerInput.virtual = a
+		await frames(1)
+		if f % 2 == 0:
+			await grab(dir, "hud")
+	print("quadros: ", _frame_no)
+
 func combate_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	PlayerInput.virtual = {"v0": {}, "v1": {}, "v2": {}}

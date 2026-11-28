@@ -10,6 +10,9 @@ var radius := 50.0
 var ring := Kit.INK
 var bg := Kit.CREAM
 var expr := "normal"
+var dy := 0.0      # HUD vivo (2026-11-27): o robô se mexendo dentro do retrato
+var rot := 0.0
+var olhar := 0.0
 var t := 0.0
 var robo := Node2D.new()
 
@@ -40,7 +43,7 @@ func _draw_robo_perf() -> void:
 	var s := radius / 21.0
 	var pose: Dictionary = RobotVis.idle_pose(t)
 	pose["expr"] = expr if expr != "normal" else pose["expr"]
-	RobotVis.draw_robot(robo, look, pose, Transform2D(0.0, Vector2(s, s), 0.0, -ec * s + Vector2(0, radius * 0.18)))
+	RobotVis.draw_robot(robo, look, pose, Transform2D(rot, Vector2(s, s), 0.0, (-ec * s).rotated(rot) + Vector2(olhar, radius * 0.18 + dy)))
 	robo.draw_set_transform(Vector2.ZERO)
 	var w := maxf(4.0, radius * 0.1)
 	robo.draw_arc(Vector2.ZERO, radius - w / 2.0, 0, TAU, 48, ring, w, true)

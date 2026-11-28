@@ -1418,8 +1418,10 @@ func hud_info(pid: int) -> Dictionary:
 		frac = float(main.robots[pid].capacete_n) / float(sc("D05")["protecoes"])
 	elif s["id"] == "T04":
 		frac = s["energy"] / float(sc("T04")["combustivel_s"])
+	var usando: bool = float(s["prep"]) >= 0.0 or (float(s["fire"]) >= 0.0 and float(s["fire"]) < 0.5) or bool(s["channel"]) or s.has("beam") \
+		or float(s["t"]) > 0.0 or int(s.get("burst", 0)) > 0 or airbags.has(pid)
 	return {"id": s["id"], "fam": s["fam"], "charges": s["charges"] if not s["id"] in ["C01", "C02"] else 0, "frac": clampf(frac, 0.0, 1.0),
-		"nome": NOMES.get(s["id"], s["id"])}
+		"nome": NOMES.get(s["id"], s["id"]), "usando": usando, "icone": String(sc(s["id"]).get("icone", ""))}
 
 # ---------------------------------------------------------------- desenho (mundo)
 const INK := Color("#2a1a2e")

@@ -8,6 +8,8 @@ Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão 
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
+**▶ SESSÃO 7 (cont. 4): HUD DE CIMA VIVO FEITO — A50** (retrato animado, número que pula, maleta da engenhoca com/usando,
+perigo e fora; vídeo `out/videos/hud_vivo.mp4`, vitrine `--hud=DIR`). Próximo: perguntar ao usuário.
 **▶ SESSÃO 7 (cont. 3): DESEMPENHO — 1ª passada FEITA** (protocolo `docs/manuais/desempenho.md`, sonda `Perf` +
 `--perf-derruba=DIR`). Corrigido: corações do placar (triangulação falhando a cada quadro, ~7 ms), chave do cache de estilos
 (`Kit._sb`) e rota dos bots (1 cache para 4 bots → picos de 16–30 ms; agora rota por alvo). Pior caso: CPU 41,8 → 28 ms em

@@ -108,7 +108,7 @@ func pname(i: int) -> String:
 	return "P%d" % (i + 1)
 
 ## Retrato redondo do jogador i centrado em c (desenhado por cima deste quadro).
-func _head(i: int, c: Vector2, r: float, ring := Kit.INK, bg := Kit.CREAM, expr := "normal", alpha := 1.0) -> void:
+func _head(i: int, c: Vector2, r: float, ring := Kit.INK, bg := Kit.CREAM, expr := "normal", alpha := 1.0, mov := Vector3.ZERO) -> void:
 	if _heads_used >= _heads.size():
 		var n := Retrato.new()
 		_heads_root.add_child(n)
@@ -121,6 +121,9 @@ func _head(i: int, c: Vector2, r: float, ring := Kit.INK, bg := Kit.CREAM, expr 
 	h.ring = ring
 	h.bg = bg
 	h.expr = expr
+	h.dy = mov.x
+	h.rot = mov.y
+	h.olhar = mov.z
 	h.modulate = Color(1, 1, 1, alpha)
 	h.visible = true
 
@@ -222,23 +225,88 @@ func card_slots(n: int) -> Array:
 
 ## Cartão compacto de um jogador (topo): retrato, nome, estrelas, vidas, % de dano e item.
 ## Fica translúcido quando um robô passa por trás dele.
+## HUD de cima VIVO (prancha art/out/ui/hud_topo.png, aprovada 2026-11-27): retrato que se mexe e reage, número de
+## dano que pula, cartão que pisca no golpe e racha em perigo, e a MALETA da engenhoca pendurada embaixo (com ela /
+## usando). Estado por jogador em _cs.
+var _cs := {}
+
+func _card_state(i: int, robot) -> Dictionary:
+	if not _cs.has(i):
+		_cs[i] = {"dmg": 0.0, "pop": 0.0, "hurt": 0.0, "ganho": 0, "ganho_t": 9.0, "slot": "", "mal_t": 9.0, "uso_k": 0.0, "lt": t}
+	var st: Dictionary = _cs[i]
+	var dt := clampf(t - float(st["lt"]), 0.0, 0.1)
+	st["lt"] = t
+	st["pop"] = maxf(float(st["pop"]) - dt, 0.0)
+	st["hurt"] = maxf(float(st["hurt"]) - dt, 0.0)
+	st["ganho_t"] = float(st["ganho_t"]) + dt
+	st["mal_t"] = float(st["mal_t"]) + dt
+	var d: float = robot.dmg if robot != null else 0.0
+	if d > float(st["dmg"]) + 0.5:   # levou dano: o número pula, o cartão pisca, o robô leva susto
+		st["ganho"] = int(round(d - float(st["dmg"]))) + (int(st["ganho"]) if float(st["ganho_t"]) < 0.5 else 0)
+		st["ganho_t"] = 0.0
+		st["pop"] = 0.45
+		st["hurt"] = 0.5
+	st["dmg"] = d
+	return st
+
 func _card(i: int, r: Rect2) -> void:
 	var S = main.S
 	var p: Dictionary = main.players[i]
 	var col: Color = Data.COLORS[p["color"]]
 	var robot = main.robots[i] if i < main.robots.size() else null
 	var out: bool = main.state == S.RUN and robot != null and not robot.alive
+	var st := _card_state(i, robot)
 	var a := 1.0
 	for rb in main.robots:
 		if rb.alive and r.grow(26).has_point(main.to_screen(rb.position)):
 			a = 0.35
-	Kit.chunk(self, r, Color(Color("#b8aeb4") if out else col, a * 0.95), 18, 4, 4.0)
-	_head(i, r.position + Vector2(31, r.size.y / 2.0), 24, Kit.INK, Kit.CREAM, "eliminado" if out else "normal", a)
+	var info: Dictionary = main.demo.spells.hud_info(i) if main.mode == "demolicao" and main.demo.spells != null and robot != null and robot.alive and main.state == S.RUN else {}
+	var sid: String = String(info.get("id", ""))
+	if sid != String(st["slot"]):
+		st["slot"] = sid
+		st["mal_t"] = 0.0 if sid != "" else 9.0
+	var usando: bool = bool(info.get("usando", false))
+	st["uso_k"] = move_toward(float(st["uso_k"]), 1.0 if usando else 0.0, 0.12)
+	var uk: float = st["uso_k"]
+	var hk: float = float(st["hurt"]) / 0.5
+	var dmg_v: float = robot.dmg if robot != null else 0.0
+	var perigo: bool = dmg_v >= 120.0 and not out
+	var fam_c: Color = main.demo.spells.FAM_COR[info["fam"]] if sid != "" else col
+	if uk > 0.0:   # USANDO: brilho na cor da família em volta do cartão
+		var pul := 0.75 + 0.25 * sin(t * 9.0)
+		Kit.chunk(self, r.grow(7.0 + 2.0 * pul), Color(fam_c, 0.5 * uk * a * pul), 24, 0, 0.0)
+	var shake := Vector2(sin(t * 70.0), cos(t * 63.0)) * 3.0 * hk
+	var rr := Rect2(r.position + shake, r.size)
+	Kit.chunk(self, rr, Color(Color("#b8aeb4") if out else col, a * 0.95), 18, 4, 4.0)
+	draw_rect(Rect2(rr.position + Vector2(8, 4), Vector2(rr.size.x - 16, 10)), Color(1, 1, 1, 0.18 * a))   # brilho de cima
+	if hk > 0.0:   # LEVOU GOLPE: pisca vermelho
+		Kit.chunk(self, rr, Color(1, 0.3, 0.2, 0.45 * hk * a), 18, 0, 0.0)
+	if perigo:   # EM PERIGO: rachaduras no cartão
+		var cx0 := rr.position.x
+		var cy0 := rr.position.y
+		draw_polyline(PackedVector2Array([Vector2(cx0 + 205, cy0 + 3), Vector2(cx0 + 212, cy0 + 18), Vector2(cx0 + 206, cy0 + 28), Vector2(cx0 + 215, cy0 + 42)]), Color(Kit.INK, 0.55 * a), 2.0, true)
+		draw_polyline(PackedVector2Array([Vector2(cx0 + 268, cy0 + rr.size.y - 3), Vector2(cx0 + 262, cy0 + rr.size.y - 16), Vector2(cx0 + 270, cy0 + rr.size.y - 24)]), Color(Kit.INK, 0.55 * a), 2.0, true)
+	# RETRATO VIVO: respira, olha para a maleta quando ela chega, leva susto no golpe, se mexe usando, desmaia fora
+	var expr := "normal"
+	if out:
+		expr = "eliminado"
+	elif hk > 0.0:
+		expr = "susto"
+	elif uk > 0.5 or perigo:
+		expr = "esforco"
+	var bob := sin(t * 2.4 + i * 1.3) * 1.2
+	var giro := -0.28 * hk + sin(t * 44.0) * 0.06 * hk + sin(t * 9.0) * 0.07 * uk
+	var olha := 3.0 if float(st["mal_t"]) < 1.2 else sin(t * 0.7 + i) * 1.5
+	_head(i, rr.position + Vector2(30, rr.size.y / 2.0), 29, Kit.INK, Color("#ffd9cf") if hk > 0.0 else Kit.CREAM, expr, a, Vector3(bob + 4.0 * hk, giro, olha))
+	if perigo and fmod(t, 0.8) < 0.5:   # suor
+		var sp := rr.position + Vector2(52, 14 + fmod(t, 0.8) * 20.0)
+		draw_circle(sp, 3.0, Color(0.6, 0.85, 1.0, a))
 	var tc := Color(1, 1, 1, a)
 	var oc := Color(Kit.INK, a)
 	var nm := ("P%d  %s" % [i + 1, pname(i)]) if pname(i) != "P%d" % (i + 1) else "P%d" % (i + 1)
-	fit_text(Vector2(r.position.x + 62, r.position.y + 25), nm, 19, tc, 130, 5)
-	var x2 := r.position.x + 68.0
+	fit_text(Vector2(rr.position.x + 66, rr.position.y + 25), nm, 19, tc, 126, 5)
+	var x2 := rr.position.x + 72.0
+	r = rr
 	if main.mode == "demolicao":
 		var goal := int(main.demo.cfg["rounds_to_win"])
 		if main.demo.partida_unica():   # Derruba v2: estrelas = vitórias da sessão (sem meta)
@@ -263,29 +331,22 @@ func _card(i: int, r: Rect2) -> void:
 		if d.rule() == "derruba" and d.lives_setting > 1:
 			var nl: int = int(d.lives.get(i, 0))
 			for k in d.lives_setting:
-				_heart(Vector2(x2 + 4 + k * 15.0, r.position.y + 47), 6.5, k < nl)
+				var blink: bool = (perigo or nl == 1) and k == nl - 1 and fmod(t, 0.5) < 0.25   # o último coração pisca
+				_heart(Vector2(x2 + 4 + k * 15.0, r.position.y + 47), 6.5 * (1.15 if blink else 1.0), k < nl and not blink)
 		if robot != null and robot.alive and not out:
+			# NÚMERO DE DANO: pula (cresce, gira, treme) quando sobe; em perigo pulsa vermelho
 			var dc: Color = main.dmg_color(robot.dmg)
-			Kit.text(self, Vector2(r.position.x, r.position.y + 45), "%d%%" % int(robot.dmg), 32, Color(dc, a), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 12, 8, oc)
-		if robot != null and main.state == S.RUN and robot.alive:
-			var info: Dictionary = main.demo.spells.hud_info(i) if main.demo.spells != null else {}
-			if not info.is_empty():
-				# slot da spell: ícone na cor da família + cargas (pontinhos) ou barra da transformação
-				var hc := r.position + Vector2(50, r.size.y - 10)
-				var fc: Color = main.demo.spells.FAM_COR[info["fam"]]
-				var tex := Data.tex("spells/icone_" + info["fam"])
-				var ch: int = info["charges"]
-				var frac: float = info["frac"]
-				_over_cmds.append(func(ci: CanvasItem):
-					ci.draw_circle(hc, 17, Color(Kit.INK, a))
-					ci.draw_circle(hc, 14.5, Color(fc, a))
-					if frac < 1.0:
-						ci.draw_arc(hc, 17.5, -PI / 2.0, -PI / 2.0 + TAU * frac, 24, Color(1, 1, 1, a), 3.5, true)
-					ci.draw_texture_rect(tex, Rect2(hc - Vector2(11, 11), Vector2(22, 22)), false, Color(1, 1, 1, a))
-					for k in ch:
-						var dp := hc + Vector2(24 + k * 10.0, 8)
-						ci.draw_circle(dp, 4.6, Color(Kit.INK, a))
-						ci.draw_circle(dp, 3.2, Color(fc.lightened(0.3), a)))
+			var pk: float = float(st["pop"]) / 0.45
+			var esc := 1.0 + 0.45 * sin(pk * PI) * (1.0 if pk > 0.0 else 0.0) + (0.07 * sin(t * 10.0) if perigo else 0.0)
+			var anc := Vector2(r.end.x - 12.0, r.position.y + 45.0)
+			draw_set_transform(anc + Vector2(sin(t * 60.0), cos(t * 53.0)) * 2.5 * pk, -0.12 * sin(pk * PI), Vector2(esc, esc))
+			Kit.text(self, Vector2(-r.size.x, 0), "%d%%" % int(robot.dmg), 32, Color(dc, a), HORIZONTAL_ALIGNMENT_RIGHT, r.size.x, 8, oc)
+			draw_set_transform(Vector2.ZERO)
+			if float(st["ganho_t"]) < 0.8 and int(st["ganho"]) > 0:   # +N% subindo do número
+				var gu: float = float(st["ganho_t"]) / 0.8
+				Kit.text(self, Vector2(r.end.x - 110.0, r.end.y + 26.0 - 14.0 * gu), "+%d%%" % int(st["ganho"]), 20, Color(1.0, 0.7, 0.25, a * (1.0 - gu * gu)), HORIZONTAL_ALIGNMENT_RIGHT, 100, 5, Color(Kit.INK, a * (1.0 - gu * gu)))
+		if sid != "":
+			_maleta_cmd(r, info, st, fam_c, a, uk)
 		if main.state in [S.RUN, S.SCORE]:
 			_draw_sub_badge(i, r)
 	if out:
@@ -294,6 +355,56 @@ func _card(i: int, r: Rect2) -> void:
 			ci.draw_set_transform(cc + Vector2(30, 0), -0.1)
 			Kit.sticker(ci, Vector2(-100, 12), "FORA", 32, Color("#ff5a5a"), HORIZONTAL_ALIGNMENT_CENTER, 200)
 			ci.draw_set_transform(Vector2.ZERO))
+
+## MALETA da engenhoca pendurada embaixo do cartão: cai e quica ao pegar; ícone DA engenhoca num círculo creme,
+## cargas em pontinhos; USANDO = abre (mais larga) com o nome e a barra de uso, raios na cor da família.
+func _maleta_cmd(r: Rect2, info: Dictionary, st: Dictionary, fam_c: Color, a: float, uk: float) -> void:
+	var mt: float = st["mal_t"]
+	var d := clampf(mt / 0.3, 0.0, 1.0)
+	var yoff := -34.0 * (1.0 - d) * (1.0 - d)
+	if mt > 0.3 and mt < 0.6:
+		yoff -= 7.0 * sin((mt - 0.3) / 0.3 * PI)   # quique
+	var pul := 0.5 + 0.5 * sin(t * 5.0)
+	var w := lerpf(56.0, 150.0, uk)
+	var h := 40.0
+	var org := Vector2(r.position.x + 44.0, r.end.y + 12.0 + yoff)
+	var tex: Texture2D = Data.tex("spells/" + String(info.get("icone", ""))) if String(info.get("icone", "")) != "" else null
+	if tex == null:
+		tex = Data.tex("spells/icone_" + String(info["fam"]))
+	var ch: int = info["charges"]
+	var frac: float = info["frac"]
+	var nome: String = info["nome"]
+	var tt := t
+	_over_cmds.append(func(ci: CanvasItem):
+		var box := Rect2(org, Vector2(w, h))
+		if uk > 0.0:   # raios na cor da família
+			for k in 10:
+				var an := k * TAU / 10.0 + tt * 1.5
+				var cc := box.get_center()
+				var p0 := cc + Vector2(cos(an) * (w / 2.0 + 4.0), sin(an) * (h / 2.0 + 3.0))
+				ci.draw_line(p0, p0 + Vector2(cos(an), sin(an) * 0.8) * 9.0, Color(fam_c, a * uk), 3.0, true)
+		Kit.chunk(ci, box.grow(4.0 + 2.0 * pul), Color(fam_c, (0.25 + 0.15 * pul) * a), 14, 0, 0.0)
+		ci.draw_polyline(PackedVector2Array([org + Vector2(18, 2), org + Vector2(18, -8), org + Vector2(38, -8), org + Vector2(38, 2)]), Color(Kit.INK, a), 4.0, true)
+		Kit.chunk(ci, box, Color(fam_c, a), 9, 3, 3.0)
+		ci.draw_rect(Rect2(org + Vector2(4, 3), Vector2(w - 8, 6)), Color(1, 1, 1, 0.3 * a))
+		var ic := org + Vector2(28, h / 2.0)
+		ci.draw_circle(ic, 17.0, Color(Kit.INK, a))
+		ci.draw_circle(ic, 15.0, Color(Kit.CREAM, a))
+		if tex != null:
+			var ts := Vector2(tex.get_width(), tex.get_height())
+			var sc := 28.0 / maxf(ts.x, ts.y)
+			ci.draw_set_transform(ic, 0.0, Vector2(sc, sc))
+			ci.draw_texture(tex, -ts / 2.0, Color(1, 1, 1, a))
+			ci.draw_set_transform(Vector2.ZERO)
+		for k in ch:
+			var dp := org + Vector2(10.0 + k * 11.0, h + 8.0)
+			ci.draw_circle(dp, 4.6, Color(Kit.INK, a))
+			ci.draw_circle(dp, 3.2, Color(fam_c.lightened(0.3), a))
+		if uk > 0.3:   # abriu: nome + barra de uso
+			var ua := a * clampf((uk - 0.3) / 0.7, 0.0, 1.0)
+			Kit.text(ci, org + Vector2(48, 17), nome, 11, Color(1, 1, 1, ua), HORIZONTAL_ALIGNMENT_LEFT, w - 52, 3, Color(Kit.INK, ua))
+			ci.draw_rect(Rect2(org + Vector2(48, 24), Vector2(w - 56, 8)), Color(Kit.INK, ua))
+			ci.draw_rect(Rect2(org + Vector2(50, 26), Vector2((w - 60) * frac, 4)), Color(1, 1, 1, ua)))
 
 func _star_pts(c: Vector2, size: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
