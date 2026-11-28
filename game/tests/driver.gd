@@ -106,6 +106,10 @@ func _run() -> void:
 			await perf_vaza()
 			get_tree().quit(0)
 			return
+		if a.begins_with("--estudo-destruicao="):
+			await estudo_destruicao(int(a.substr(20)))
+			get_tree().quit(0)
+			return
 		if a.begins_with("--cargueiro="):
 			await cargueiro_frames(a.substr(12))
 			get_tree().quit(0)
@@ -575,6 +579,8 @@ func demolicao_test() -> void:
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
+	await caixas_subsolo_test()
+	await principal_test()
 	await resultados_test()
 	await selecao_test()
 	await desempenho_test()
@@ -1911,7 +1917,7 @@ func etapas_test() -> void:
 	check(ct.progresso(1) == 0.0, "base fixa (núcleo e térreo) não leva dano e não conta na destruição")
 	et.t_cena = et.prox_verif - 0.05   # chega a hora da 1ª verificação, sem destruição
 	await frames(10)
-	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "< 40%% na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
+	check(et.state == "etapa" and et.verificacoes == 1 and et.prox_verif > et.t_cena + 20.0, "abaixo da faixa na verificação: fica na cena e marca a próxima (+%.0f s)" % (et.prox_verif - et.t_cena))
 	var vig: Array = ct.parts.filter(func(p): return p["kind"] == "viga" and int(p["etapa"]) == 1)
 	ct.damage(vig[0], 1, vig[0]["rect"].get_center())   # dano parcial (caminho de spells/eventos/mecanismos/ciclo)
 	var pp: float = ct.progresso(1)
@@ -1924,7 +1930,7 @@ func etapas_test() -> void:
 	check(ct.progresso(1) > pp, "marretada do jogador também conta (%.1f%%)" % (ct.progresso(1) * 100.0))
 	et.progresso = 0.62
 	et.verificar()
-	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "40–70% na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
+	check(et.state == "aviso" and et.rota == "moderada" and et.destino == 3 and main.demo.banner.begins_with("A LAJE"), "faixa moderada na verificação → rota MODERADA (Fachada): \"A LAJE VAI ESCORREGAR!\"")
 	et.state = "etapa"   # cancela (a transição moderada inteira tem teste próprio) e segue para provar a rota total
 	et.destino = -1
 	main.demo.banner = ""
@@ -1937,10 +1943,14 @@ func etapas_test() -> void:
 			ct.damage(p, 99, p["rect"].get_center())
 	et.prox_verif = et.t_cena + 999.0
 	var w0 := 0
-	while et.state == "etapa" and w0 < 600:   # as peças caem aos poucos
+	while et.progresso < et.limiar_total() and w0 < 600:   # as peças caem aos poucos
 		await frames(1)
 		w0 += 1
-	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "bateu %.0f%% a qualquer momento → rota TOTAL na hora: \"A OBRA VAI CEDER!\" (sem esperar a verificação)" % (et.limiar_total() * 100.0))
+	await frames(30)
+	check(et.state == "etapa", "A56: bater %.0f%% ANTES da verificação não vira a cena (quem decide é o tempo, ~90 s)" % (et.limiar_total() * 100.0))
+	et.t_cena = et.prox_verif - 0.05
+	await frames(3)
+	check(et.state == "aviso" and et.rota == "total" and et.destino == 2 and main.demo.banner.begins_with("A OBRA"), "≥ %.0f%% na verificação → rota TOTAL: \"A OBRA VAI CEDER!\"" % (et.limiar_total() * 100.0))
 	sp.equip(r1, "T04")   # jetpack ligado bem na virada (bug: voava para fora da queda)
 	sp.use(r1)
 	await frames(int(float(et.cfg["aviso_s"]) * 60.0) + 4)
@@ -2169,6 +2179,105 @@ func verificacao_test() -> void:
 	check("G01" in MapaReg.eventos("derruba", "canteiro_obras", 1) and "G01" in MapaReg.eventos("derruba", "canteiro_obras", 2), "G01 Sirene volta como evento do Canteiro (nas 2 cenas)")
 	for r in main.robots:
 		r.active = true
+
+## Correções urgentes 2026-11-28: na Fundação as caixas de engenhoca continuam caindo quando as plataformas já caíram
+## (chão firme do .lvl entra nos pontos); a G03 (gravidade) tem teto de porcas no ar (era a queda de FPS). --so=caixas_subsolo
+func caixas_subsolo_test() -> void:
+	print("== Caixas no subterrâneo + porcas da G03")
+	main.go_menu()
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	main.mode = "demolicao"
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.event_level = 0
+	main.go_join()
+	await frames(2)
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.demo.lives_setting = 3
+	main.event_level = 2
+	main.start_match()
+	main.events.manual = true   # nada sorteado: o teste liga a G03 na mão
+	await demo_round()
+	var et = main.demo.etapas
+	var sp = main.demo.spells
+	sp.spawn_t = 999.0
+	et.ativo = true
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	check(et.etapa == 2, "chegou na Fundação (%.1f s)" % (w / 60.0))
+	var ct = main.demo.canteiro
+	for p in ct.parts:
+		if int(p.get("etapa", 1)) == 2:
+			p["fallen"] = true   # todas as plataformas da cena já caíram
+	sp._pc_f = -999
+	var pr: Rect2 = main.demo.play_rect()
+	var pts: Array = sp.spawn_points()
+	check(pts.size() >= 4 and pts.all(func(q): return pr.has_point(q["pos"])), "sem plataformas, ainda há %d pontos de caixa no chão da Fundação (dentro da cena)" % pts.size())
+	sp.boxes.clear()
+	sp.spawn_box()
+	check(sp.boxes.size() == 1 and pr.grow(64).has_point(sp.boxes[0]["pos"]), "a caixa de engenhoca nasce dentro da Fundação")
+	var ev = main.events
+	ev.trigger(ev.ev("G03"))
+	check(ev.inst("G03") != null, "G03 ligada na Fundação")
+	var mx := 0
+	for k in 360:
+		await frames(1)
+		var n := 0
+		for b in ev.bits:
+			if b["kind"] == "porca":
+				n += 1
+		mx = maxi(mx, n)
+	check(mx >= 5 and mx <= ev.PORCAS_MAX, "G03: porcas no ar com teto (máx %d ≤ %d; eram ~45 e derrubavam o FPS)" % [mx, ev.PORCAS_MAX])
+	ev.manual = false
+	main.go_menu()
+
+## Controle principal (pedido 2026-11-28): só o 1º controle conectado mexe nos menus; em MAPEAR o controle escolhido
+## assume até voltar, e o principal retoma. --so=principal
+func principal_test() -> void:
+	print("== Controle principal")
+	main.go_menu()
+	await frames(2)
+	var virt0: Dictionary = PlayerInput.virtual
+	PlayerInput.virtual = {}
+	PlayerInput.fake_joys = [5, 6]
+	PlayerInput.ordem_con = ["joy6", "joy5"]   # o 6 conectou primeiro
+	PlayerInput._princ_f = -1
+	await frames(3)
+	check(PlayerInput.principal() == "joy6", "principal = o 1º conectado (joy6)")
+	main.menus.sel = 0
+	await joy_tap(5, JOY_BUTTON_DPAD_DOWN)
+	check(main.menus.sel == 0, "outro controle NÃO mexe no menu")
+	await joy_tap(6, JOY_BUTTON_DPAD_DOWN)
+	check(main.menus.sel == 1, "o principal mexe")
+	main.menus.abrir_controles()
+	await frames(2)
+	var devs: Array = main.menus._hub_devs()
+	main.menus.hub_sel = devs.find("joy5")
+	main.menus.hub_btn = 0
+	await joy_tap(6, JOY_BUTTON_A)
+	check(main.state == S.CONFIGPAD and main.menus.map_dev == "joy5", "o principal escolhe MAPEAR o controle do P2")
+	await frames(20)
+	await joy_tap(6, JOY_BUTTON_B)
+	check(main.state == S.CONFIGPAD, "durante o MAPEAR o principal não manda (o P2 assumiu)")
+	await joy_tap(5, JOY_BUTTON_B)
+	check(main.state == S.CONTROLES, "o P2 volta/sai do MAPEAR")
+	var hs: int = main.menus.hub_sel
+	await joy_tap(5, JOY_BUTTON_DPAD_RIGHT)
+	check(main.menus.hub_sel == hs and main.menus.hub_btn == 0, "de volta ao hub, o P2 não manda mais")
+	await joy_tap(6, JOY_BUTTON_DPAD_RIGHT)
+	check(main.menus.hub_btn == 1 or main.menus.hub_sel != hs, "o principal retoma o controle")
+	PlayerInput.fake_joys = [5]
+	await frames(2)
+	check(PlayerInput.principal() == "joy5", "o principal saiu: o próximo conectado assume")
+	PlayerInput.fake_joys = []
+	PlayerInput.ordem_con.clear()
+	PlayerInput._princ_f = -1
+	PlayerInput.virtual = virt0
+	main.go_menu()
 
 ## Derruba v2 (D2): no mapa de verdade a partida é UMA luta (vidas 3–6), resultados com ranking por eliminação, estrela
 ## da sessão e 4 opções; Jogar de novo mantém as estrelas, Menu principal zera. --so=resultados
@@ -6068,6 +6177,13 @@ func perf_derruba(dir: String) -> void:
 		if a.begins_with("--perf-rota="):
 			rota = a.substr(12)
 	var pior: bool = not "--perf-normal" in args
+	var cena_alvo := 1      # --perf-cena=2: mede já na cena 2 (vira antes de medir)
+	var evento := ""        # --perf-evento=G03: mantém esse evento ligado o tempo todo
+	for a in args:
+		if a.begins_with("--perf-cena="):
+			cena_alvo = int(a.substr(12))
+		if a.begins_with("--perf-evento="):
+			evento = a.substr(14)
 	var partidas := 1
 	for a in args:
 		if a.begins_with("--perf-partidas="):
@@ -6110,8 +6226,21 @@ func perf_derruba(dir: String) -> void:
 		var et = main.demo.etapas
 		if et != null:
 			et.ativo = true
+		if cena_alvo > 1 and et != null:
+			et.forcar("total" if cena_alvo == 2 else "moderada")
+			var w := 0
+			while (et.etapa != cena_alvo or et.state != "etapa") and w < 1500:
+				for i in main.players.size():
+					main.demo.lives[i] = 9
+				await frames(1)
+				w += 1
+			Perf.take()
+		if evento != "":
+			main.events.manual = true
 		for f in n:
-			if f == n / 2 and et != null and is_instance_valid(et):
+			if evento != "" and main.events.inst(evento) == null:
+				main.events.trigger(main.events.ev(evento))
+			if f == n / 2 and et != null and is_instance_valid(et) and cena_alvo == 1:
 				et.forcar(rota)
 			for i in main.players.size():
 				main.demo.lives[i] = 9
@@ -6405,3 +6534,51 @@ func cargueiro_frames(dir: String) -> void:
 		await frames(60)
 		await snap(dir, par[2])
 	main.hud.visible = true
+
+## ESTUDO DO EQUILÍBRIO DA DESTRUIÇÃO (--estudo-destruicao=N): N partidas de 4 bots no Canteiro, configuração PADRÃO
+## (eventos normais, engenhocas ligadas, vidas padrão), SEM virada (o diretor de cenas desligado), 150 s cada. Imprime o
+## % destruído do Térreo a cada 10 s e de onde veio a destruição (para achar a regra da verificação por tempo).
+func estudo_destruicao(n: int) -> void:
+	var curvas := []
+	var nivel := 1       # --estudo-nivel=N (bots 0 fácil · 1 médio · 2 difícil)
+	var ev_nivel := 2    # --estudo-eventos=N
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--estudo-nivel="):
+			nivel = int(a.substr(15))
+		elif a.begins_with("--estudo-eventos="):
+			ev_nivel = int(a.substr(17))
+	for i in n:
+		seed(100 + i)
+		main.rng.seed = 100 + i
+		main.go_join()
+		await frames(2)
+		PlayerInput.virtual = {}
+		main.bot_level = nivel
+		for k in 4:
+			main.add_bot()
+		main.game_mode = "derruba"
+		main.arena_choice = "canteiro_obras"
+		main.event_level = ev_nivel
+		main.start_match()
+		await frames(5)
+		main.countdown = 0.0
+		for r in main.robots:
+			r.active = true
+		var et = main.demo.etapas
+		et.ativo = false
+		var ct = main.demo.canteiro
+		var cur := []
+		for s in 151:
+			for j in main.players.size():
+				main.demo.lives[j] = 9
+			if s % 10 == 0:
+				cur.append(snappedf(ct.progresso(1) * 100.0, 0.1))
+			await frames(60)
+		curvas.append(cur)
+		print("ESTUDO partida %d: %s" % [i + 1, str(cur)])
+	var med := []
+	for k in curvas[0].size():
+		var v := curvas.map(func(c): return float(c[k]))
+		med.append(snappedf(v.reduce(func(a, b): return a + b, 0.0) / v.size(), 0.1))
+	print("ESTUDO média por 10 s: %s" % str(med))
+	main.go_menu()

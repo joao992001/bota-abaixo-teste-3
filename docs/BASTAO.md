@@ -40,16 +40,17 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Arquivos reservados: `data/modos.json` (destruicao, canteiro), `game/modes/etapas.gd`, `game/modes/canteiro.gd`,
   `game/modes/spells.gd` (spawn), `game/modes/eventos.gd` (G03), `game/autoload/player_input.gd`, `game/ui/menus.gd` (controles)
 - Passos:
-  - [ ] 1. Estudo da destruição: medir com bots (4 bots, padrão) % destruído × tempo no Canteiro; achar a regra
-        (verificação ~90 s: faixa X–Y → moderada, ≥ Y → total, < X → espera) e por que hoje vira em 20 s
-  - [ ] 2. Aplicar a regra (números em `data/modos.json`), medir de novo (várias partidas), registrar A56
-  - [ ] 3. Engenhocas no subterrâneo: achar por que param de cair (spawn_points da cena) e corrigir + teste
-  - [ ] 4. FPS com a gravidade (G03) na Fundação: medir com a sonda Perf e corrigir + teste
-  - [ ] 5. Controle principal: só o 1º controle navega os menus; Configurar controle → P1 escolhe o aparelho, ele assume
-        até salvar/voltar, e o P1 volta + teste
-  - [ ] 6. Bateria, .exe, relatório
-- **Próximo passo exato:** passo 1 — ler `game/modes/etapas.gd` (verificar/limiares) e `data/modos.json` (destruicao) e
-  rodar partidas de bots medindo o progresso por segundo.
+  - [x] 1. Estudo da destruição (`--estudo-destruicao=N [--estudo-nivel=2 --estudo-eventos=3]`): a cena virava em ~20 s
+        pelo A53b (65% a qualquer momento); platô natural ~67% (parte de cima cai); aos 90 s médios 64–67%, difíceis 67–86%
+  - [x] 2. Regra A56 em `data/modos.json`: só a verificação decide (`total_imediato` false), 1ª aos 90 s (3 vidas),
+        moderada 35%, total 70%, mostrador até 70% + testes etapas/verificacao (commit deste passo)
+  - [x] 3. Engenhocas no subterrâneo: `spells.spawn_points` usa o chão firme da cena quando faltam peças + teste `--so=caixas_subsolo`
+  - [x] 4. FPS G03: porcas viraram atlas (1 textura) + teto 24 → CPU 8,5→6,9 ms, chamadas 991→763, picos 3,8%→0,7%
+  - [x] 5. Controle principal (`PlayerInput.principal/manda_no_menu`, `menus.dono`) + teste `--so=principal`
+  - [ ] 6. Medir a regra com a transição ligada (várias partidas), registrar A56 em reformulacao_derruba.md, manual de
+        desempenho §4/§5, bateria completa, .exe, relatório
+- **Próximo passo exato:** passo 6 — estudo com `etapas.ativo=true` (tempo e rota de virada), depois A56 no
+  `docs/revisoes/reformulacao_derruba.md`, linha nova no `docs/manuais/desempenho.md` §4, bateria `--autotest`, .exe.
 - Decisões pendentes do usuário: nenhuma (o estudo decide os números; reportar).
 
 
