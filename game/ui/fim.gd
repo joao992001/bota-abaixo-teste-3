@@ -27,8 +27,10 @@ const G_ABRE := 1.0      # 4 · treme e abre
 const G_REVELA := 1.6    # 5 · o prêmio
 const G_PREMIO := G_SAI + G_VOA + G_ABRE + G_REVELA   # só se chegar a ±100
 const P_INICIO := 0.6
-const P_LINHA := 0.7
-const P_ANDAR := 0.35
+const P_LINHA := 0.6      # ticket entra
+const P_ANDAR := 0.6      # cada ponto: a bola puxa, bate e o andar cai
+const P_DESABA := 1.0     # projeto completo: poeira grande antes do cartaz
+const P_CARTAZ := 0.8
 
 ## Duração da animação de cada tela (1º PULAR pula a animação; depois disso PULAR segue — nunca sozinha).
 func duracao(fase: String) -> float:
@@ -39,7 +41,9 @@ func duracao(fase: String) -> float:
 				return 1.0
 			return G_BALANCA + (G_PREMIO if String(ri["premio"]) != "" else 0.0)
 		"projetos":
-			return P_INICIO + _linhas().size() * P_LINHA + int(ri.get("pontos", 0)) * P_ANDAR + 0.6
+			var pj := projeto_info()
+			var d := P_INICIO + _linhas().size() * P_LINHA + int(pj["animados"]) * P_ANDAR + 0.4
+			return d + (P_DESABA + P_CARTAZ if pj["completou"] or pj["guardado"] else 0.0)
 	return 0.0
 
 func _linhas() -> Array:
@@ -409,112 +413,252 @@ func _carimbo(ci: CanvasItem, c: Vector2, txt: String) -> void:
 	Kit.text(ci, Vector2(-330, 36), txt, 96, Color("#d42035"), HORIZONTAL_ALIGNMENT_CENTER, 660)
 	ci.draw_set_transform(Vector2.ZERO)
 
-# ---------------------------------------------------------------- 2 PROJETOS DE DEMOLIÇÃO
+# ---------------------------------------------------------------- 2 PROJETOS DE DEMOLIÇÃO (v2, prancha projetos_v2 aprovada 2026-11-28)
+## Uma cena só, papel e giz: tickets dos ganhos à esquerda; o prédio do PROJETO (próximo mapa) de pé; cada ponto = a bola
+## da grua derruba um andar. Projeto completo = o prédio vem abaixo e o cartaz do mapa novo aparece (LIBERADO! ou EM BREVE).
+## Sem mapa novo para liberar, os pontos ficam GUARDADOS (o contador não "come" mais o ponto ganho).
+const PJ_DIR := "res://assets/ui/projetos/"
+const PJ_X := 1000.0       # prédio: canto esquerdo
+const PJ_BASE := 880.0     # chão
+const PJ_W := 460.0
+const PJ_GRUA := Vector2(1450, 182)   # ponta da lança de onde a bola pendura
+var _pj_tex := {}
+
+func _pt(nome: String) -> Texture2D:
+	if not _pj_tex.has(nome):
+		_pj_tex[nome] = load(PJ_DIR + nome + ".png") if ResourceLoader.exists(PJ_DIR + nome + ".png") else null
+	return _pj_tex[nome]
+
+## Contas do projeto desta partida: andares que já estavam no chão, quantos caem agora, se completou ou se é só guardar.
+## Mapas a liberar = progressao.mapas_a_liberar (vazio hoje: todo projeto completo vira "EM BREVE · pontos guardados").
+func projeto_info() -> Dictionary:
+	var ri: Dictionary = main.res_info
+	var pc: Dictionary = MapaReg.modo_cfg("derruba").get("progressao", {})
+	var pm := maxi(int(ri.get("por_mapa", pc.get("pontos_por_mapa", 6))), 1)
+	var total := int(ri.get("total", 0))
+	var ganho := int(ri.get("pontos", 0))
+	var antes := maxi(total - ganho, 0)
+	var lista: Array = pc.get("mapas_a_liberar", [])
+	var feitos := antes / pm               # projetos já completos antes desta partida
+	var sem_mapa := feitos >= lista.size() and antes >= pm   # nada mais para liberar: só guardar
+	var no_chao := pm if sem_mapa else antes % pm
+	var animados := 0 if sem_mapa else mini(ganho, pm - no_chao)
+	var completou := not sem_mapa and no_chao + animados >= pm
+	var mapa := ""
+	if completou and feitos < lista.size():
+		mapa = String(MapaReg.manifesto("derruba", String(lista[feitos])).get("nome", lista[feitos])).to_upper()
+	return {"pm": pm, "total": total, "ganho": ganho, "no_chao": no_chao, "animados": animados, "completou": completou,
+		"guardado": sem_mapa, "mapa": mapa, "projeto": feitos + 1, "sobra": ganho - animados}
+
+## Instante (s) em que cada ponto animado derruba o seu andar, e o ticket dono de cada um.
+func _pj_tempos() -> Array:
+	var out := []
+	var tl := P_INICIO
+	var resto := int(projeto_info()["animados"])
+	for i in _linhas().size():
+		tl += P_LINHA
+		var pts: int = _linhas()[i]["pts"]
+		for b in pts:
+			if resto > 0:
+				out.append([tl + P_ANDAR * 0.55, i])
+				tl += P_ANDAR
+				resto -= 1
+	return out
+
 func _projetos(ci: CanvasItem, k: float) -> void:
 	var t: float = main.hud.t
-	var ri: Dictionary = main.res_info
-	Obra.fundo(ci, t)
-	ci.draw_rect(Rect2(0, 930, 1920, 150), Color("#b9ab8f"))
-	ci.draw_rect(Rect2(0, 930, 1920, 60), Color("#d8ccb6"))
-	for i in 9:   # tapume
-		var x := -40.0 + i * 230.0
-		ci.draw_rect(Rect2(x, 170, 236, 760), Color("#7fae86") if i % 2 == 0 else Color("#86b48c"))
-		ci.draw_rect(Rect2(x, 170, 236, 760), Color("#4d7a56"), false, 3.0)
-	Obra.zebra(ci, Rect2(0, 150, 1920, 26))
-	Obra.zebra(ci, Rect2(0, 920, 1920, 18))
-	_titulo(ci, "PROJETOS DE DEMOLIÇÃO", 860)
-	# prancheta: cada ganho numa linha
-	var folha := Obra.prancheta(ci, Rect2(70, 230, 760, 640), "NESTA PARTIDA", Color("#3f7fb5"))
+	var pj := projeto_info()
+	var pm: int = pj["pm"]
+	_fundo(ci, t)
 	var linhas := _linhas()
-	var y := folha.position.y + 90.0
-	var mostrados := 0   # pontos já entregues (andares que caem)
-	var tl := P_INICIO
-	for ln in linhas:
-		var on := k >= tl
-		var pts: int = ln["pts"]
-		if on:
-			var aceso := k < tl + P_LINHA + pts * P_ANDAR
-			if aceso:
-				ci.draw_style_box(Obra._sb(Color("#fff0b8"), 10, 5), Rect2(100, y - 46, 700, 96))
-			Kit.text(ci, Vector2(116, y + 12), ln["icone"], 40, Color("#3f9e55") if ln["icone"] == "✔" else Color("#e0a21e"))
-			Kit.text(ci, Vector2(170, y + 4), ln["txt"], 32, INK)
-			Kit.text(ci, Vector2(170, y + 34), ln["sub"], 20, Kit.SOFT)
-			for b in pts:
-				var tb := tl + P_LINHA * 0.5 + b * P_ANDAR
-				if k >= tb:
-					ci.draw_style_box(Obra._sb(Color("#d42035"), 3, 3), Rect2(610 + b * 42, y - 20, 34, 20))
-					mostrados += 1
-			Kit.text(ci, Vector2(700, y + 10), "+%d" % pts, 38, INK, HORIZONTAL_ALIGNMENT_RIGHT, 90)
-		y += 110.0
-		tl += P_LINHA + pts * P_ANDAR
-	var fim_linhas := k >= tl
-	var ganho := int(ri.get("pontos", 0))
-	if fim_linhas:
-		for xx in range(110, 790, 20):
-			ci.draw_line(Vector2(xx, y - 40), Vector2(xx + 12, y - 40), INK, 4.0)
-		Kit.text(ci, Vector2(130, y + 14), "TOTAL", 36, INK)
-		Kit.text(ci, Vector2(640, y + 20), "+%d" % ganho, 52, Obra.YEL, HORIZONTAL_ALIGNMENT_RIGHT, 150, 12)
-	Kit.text(ci, Vector2(folha.position.x, folha.end.y - 20), "cena nova só conta 1 vez por mapa · luta curta não conta", 20, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, folha.size.x)
-	# planta azul: prédio de N andares; cada ponto derruba um andar
-	var pm := int(ri.get("por_mapa", 6))
-	var total := int(ri.get("total", 0))
-	var antes := maxi(total - ganho, 0)
-	var caidos := mini(antes + mostrados, pm)
-	var bx := 900.0
-	var by := 220.0
-	var bw := 940.0
-	var bh := 650.0
-	ci.draw_rect(Rect2(bx + 8, by + 12, bw, bh), Color(INK, 0.35))
-	ci.draw_style_box(Obra._sb(Color("#2f6fb0"), 8, 6), Rect2(bx, by, bw, bh))
-	for gx in range(int(bx) + 40, int(bx + bw), 40):
-		ci.draw_line(Vector2(gx, by + 6), Vector2(gx, by + bh - 6), Color(1, 1, 1, 0.16), 1.0)
-	for gy in range(int(by) + 40, int(by + bh), 40):
-		ci.draw_line(Vector2(bx + 6, gy), Vector2(bx + bw - 6, gy), Color(1, 1, 1, 0.16), 1.0)
-	Kit.text(ci, Vector2(bx + 30, by + 58), "PROJETO · PRÓXIMO MAPA", 30, Color.WHITE)
-	var fx := bx + 120.0
-	var fw := 400.0
-	var fh := minf(74.0, 450.0 / pm)
-	var base := by + bh - 70.0
+	var tempos := _pj_tempos()
+	var fim_anim := P_INICIO + linhas.size() * P_LINHA + int(pj["animados"]) * P_ANDAR + 0.4
+	var caidos := 0
+	var ticket_aceso := -1
+	for e in tempos:
+		if k >= float(e[0]):
+			caidos += 1
+		if k >= float(e[0]) - P_ANDAR * 0.55 and k < float(e[0]) + P_ANDAR * 0.45:
+			ticket_aceso = int(e[1])
+	var no_chao := mini(int(pj["no_chao"]) + caidos, pm)
+	var final: bool = pj["completou"] or pj["guardado"]
+	var desaba: float = clampf((k - fim_anim) / P_DESABA, 0.0, 1.0) if final else 0.0
+	if pj["guardado"]:
+		desaba = clampf(k / 0.6, 0.0, 1.0)
+	# grua (atrás do prédio)
+	var gt := _pt("grua")
+	if gt:
+		ci.draw_texture(gt, Vector2(1780 - 520, 160 - 20))
+	# prédio: andares de pé, contorno de giz dos que já caíram, andar caindo agora
+	var fh := minf(84.0, 520.0 / pm)
+	var ent := _pt("entulho")
+	if ent and no_chao > 0:
+		var sk := clampf(0.4 + 0.6 * float(no_chao) / pm, 0.4, 1.0)
+		ci.draw_texture_rect(ent, Rect2(PJ_X - 50, PJ_BASE - 106 * sk + 6, 560, 110 * sk), false)
 	for i in pm:
-		var y0 := base - (i + 1) * fh
-		var r := Rect2(fx, y0, fw, fh)
-		if i < caidos:
-			for xx in range(int(fx), int(fx + fw), 18):   # contorno tracejado (andar que já caiu)
-				ci.draw_line(Vector2(xx, y0), Vector2(xx + 10, y0), Color(1, 1, 1, 0.5), 3.0)
-			var novo := i >= antes
-			ci.draw_set_transform(r.get_center(), -0.1)
-			var sb := Obra._sb(Color(0, 0, 0, 0), 6, 0)
-			sb.border_color = Color("#ff5a5a") if novo else Color(1, 0.55, 0.55, 0.55)
-			sb.set_border_width_all(5)
-			ci.draw_style_box(sb, Rect2(-110, -fh * 0.32, 220, fh * 0.64))
-			Kit.text(ci, Vector2(-110, fh * 0.14), "DEMOLIDO", int(fh * 0.38), sb.border_color, HORIZONTAL_ALIGNMENT_CENTER, 220)
+		var y0 := PJ_BASE - (i + 1) * fh
+		var top := pm - 1 - i   # o de cima cai primeiro
+		if top < no_chao:
+			_tracejado(ci, Rect2(PJ_X, y0, PJ_W, fh - 4))
+		Kit.text(ci, Vector2(PJ_X - 70, y0 + fh * 0.66), str(i + 1), 30, Obra.YEL if top < no_chao else Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 40, 6)
+	var de_pe := pm - no_chao
+	for i in de_pe:
+		var tex := _pt("andar_a" if i % 2 == 0 else "andar_b")
+		var y0 := PJ_BASE - (i + 1) * fh
+		if tex:
+			ci.draw_texture_rect(tex, Rect2(PJ_X - 10, y0 - 6 * fh / 84.0, 480, 100 * fh / 84.0), false)
+	# o andar que acabou de cair: tomba para a esquerda e some na poeira
+	for e in tempos:
+		var u := (k - float(e[0])) / 0.55
+		if u >= 0.0 and u < 1.0:
+			var idx := pm - 1 - (int(pj["no_chao"]) + tempos.find(e))   # andar (de baixo p/ cima) que cai
+			var y0 := PJ_BASE - (idx + 1) * fh
+			var tex := _pt("andar_a" if idx % 2 == 0 else "andar_b")
+			var c := Vector2(PJ_X + PJ_W / 2.0 - u * 160.0, y0 + fh / 2.0 + u * u * (PJ_BASE - y0) * 0.9)
+			ci.draw_set_transform(c, -u * 0.6, Vector2.ONE)
+			if tex:
+				ci.draw_texture_rect(tex, Rect2(-240, -50 * fh / 84.0, 480, 100 * fh / 84.0), false, Color(1, 1, 1, 1.0 - u * 0.8))
 			ci.draw_set_transform(Vector2.ZERO)
-			Kit.text(ci, Vector2(fx - 60, y0 + fh * 0.65), "%d" % (i + 1), 30, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 40)
-		else:
-			ci.draw_rect(r, Color.WHITE, false, 4.0)
-			for wx in 4:
-				ci.draw_rect(Rect2(fx + 40 + wx * 90, y0 + fh * 0.27, 44, fh * 0.46), Color.WHITE, false, 3.0)
-			Kit.text(ci, Vector2(fx - 60, y0 + fh * 0.65), "%d" % (i + 1), 30, Obra.YEL if i == caidos else Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, 40)
-	ci.draw_line(Vector2(fx - 40, base), Vector2(fx + fw + 40, base), Color.WHITE, 6.0)
-	# bola de demolição: balança e bate no próximo andar
-	var gx := fx + fw + 170.0
-	var alvo_y := base - (mini(caidos, pm - 1) + 0.5) * fh
-	var bate := absf(sin(k * 4.0))
-	var bola := Vector2(gx - 10.0 - 90.0 * bate, alvo_y)
-	ci.draw_line(Vector2(gx + 120, by + 80), bola, Color.WHITE, 5.0)
-	ci.draw_circle(bola, 52.0, Color("#4a4f5c"))
-	ci.draw_arc(bola, 52.0, 0.0, TAU, 32, INK, 6.0)
-	if caidos < pm and bate > 0.92:
-		Kit.burst(ci, Vector2(fx + fw + 20, alvo_y), 46.0, t, 4.0)
-	ci.draw_style_box(Obra._sb(Obra.CREAM, 14, 5), Rect2(gx - 130, base - 230, 330, 200))
-	Kit.text(ci, Vector2(gx - 130, base - 180), "ANTES  %d" % mini(antes, pm), 30, INK, HORIZONTAL_ALIGNMENT_CENTER, 330)
-	Kit.text(ci, Vector2(gx - 130, base - 135), "+%d AGORA" % mostrados, 30, Color("#d42035"), HORIZONTAL_ALIGNMENT_CENTER, 330)
-	Kit.text(ci, Vector2(gx - 130, base - 62), "%d / %d" % [caidos, pm], 52, Obra.YEL, HORIZONTAL_ALIGNMENT_CENTER, 330, 12)
-	var falta := pm - mini(total, pm)
-	var msg := ("PROJETO COMPLETO → MAPA NOVO!" if falta <= 0 else "falta %d %s → MAPA NOVO (você escolhe qual)" % [falta, "andar" if falta == 1 else "andares"])
-	ci.draw_style_box(Obra._sb(Obra.YEL, 12, 5), Rect2(bx + 40, by + bh + 20, bw - 80, 56))
-	Kit.text(ci, Vector2(bx + 40, by + bh + 58), msg, 28, INK, HORIZONTAL_ALIGNMENT_CENTER, bw - 80)
-	Obra.dica(ci, ("PULAR  segue para os resultados" if k >= duracao("projetos") else "PULAR  pula a animação"))
+			_poeira(ci, Vector2(PJ_X + PJ_W + 10, y0 + fh * 0.5), u, 1.0)
+			_tijolos(ci, Vector2(PJ_X + PJ_W, y0 + fh * 0.5), u, tempos.find(e))
+	# bola: puxa para a direita antes de cada batida e encosta no andar do topo
+	var alvo_y := PJ_BASE - (maxi(de_pe, 1) - 0.5) * fh
+	var bx := PJ_X + PJ_W + 150.0
+	for e in tempos:
+		var d := float(e[0]) - k
+		if d > 0.0 and d < P_ANDAR * 0.55:
+			var u := 1.0 - d / (P_ANDAR * 0.55)
+			bx = PJ_X + PJ_W + 150.0 + 110.0 * sin(u * PI * 0.5) - (210.0 * pow(maxf(u - 0.7, 0.0) / 0.3, 2.0))
+		elif d <= 0.0 and d > -0.25:
+			bx = PJ_X + PJ_W + 60.0 + 90.0 * (-d / 0.25)
+	if desaba > 0.0:
+		alvo_y = PJ_BASE - 180.0
+	ci.draw_line(PJ_GRUA, Vector2(bx, alvo_y - 50), Kit.INK, 5.0, true)
+	var bt := _pt("bola")
+	if bt:
+		ci.draw_texture(bt, Vector2(bx - 65, alvo_y - 65))
+	# projeto completo: poeira grande e o cartaz
+	if desaba > 0.0:
+		_poeira(ci, Vector2(PJ_X + PJ_W / 2.0, PJ_BASE - 100), minf(desaba * 1.4, 1.0), 3.2)
+		var cu := clampf((k - (fim_anim + P_DESABA * 0.5)) / P_CARTAZ, 0.0, 1.0) if not pj["guardado"] else clampf((k - 0.3) / P_CARTAZ, 0.0, 1.0)
+		if cu > 0.0:
+			_cartaz_projeto(ci, Vector2(1230, 470), _ease_back(cu), pj, t)
+	# tickets dos ganhos
+	var y := 250.0
+	var passo := 130.0 if linhas.size() <= 3 else 104.0
+	var tl := P_INICIO
+	var resto := int(pj["animados"])
+	for i in linhas.size():
+		var ln: Dictionary = linhas[i]
+		var e := clampf((k - tl) / 0.3, 0.0, 1.0)
+		if e > 0.0:
+			_ticket(ci, Vector2(70 - (1.0 - _ease_back(e)) * 700.0, y), ln, i == ticket_aceso, [-1.2, 0.8, -0.6, 1.0][i % 4])
+		y += passo
+		var anim := mini(int(ln["pts"]), resto)
+		resto -= anim
+		tl += P_LINHA + anim * P_ANDAR
+	if k >= P_INICIO + linhas.size() * P_LINHA:
+		for xx in range(90, 690, 28):
+			ci.draw_line(Vector2(xx, y - 10), Vector2(xx + 16, y - 10), Kit.INK, 5.0)
+		Kit.text(ci, Vector2(100, y + 58), "NESTA PARTIDA", 34, Kit.INK)
+		Kit.text(ci, Vector2(500, y + 68), "+%d" % int(pj["ganho"]), 72, Obra.YEL, HORIZONTAL_ALIGNMENT_RIGHT, 190, 12)
+	Kit.text(ci, Vector2(70, 672), "como ganhar: +1 partida válida · +2 cada cena que ninguém viu ainda", 20, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, 640)
+	_contador(ci, Rect2(70, 690, 560, 210), no_chao, pj, final and desaba >= 1.0)
+	_titulo(ci, "PROJETOS DE DEMOLIÇÃO", 860)
+	var dica := "PULAR  pula a animação"
+	if k >= duracao("projetos"):
+		dica = "PULAR  segue para os resultados"
+	Obra.dica(ci, dica)
+
+func _tracejado(ci: CanvasItem, r: Rect2) -> void:
+	var cor := Color(1, 1, 1, 0.85)
+	for x in range(int(r.position.x), int(r.end.x), 24):
+		ci.draw_line(Vector2(x, r.position.y), Vector2(minf(x + 14, r.end.x), r.position.y), cor, 4.0)
+		ci.draw_line(Vector2(x, r.end.y), Vector2(minf(x + 14, r.end.x), r.end.y), cor, 4.0)
+	for yy in range(int(r.position.y), int(r.end.y), 24):
+		ci.draw_line(Vector2(r.position.x, yy), Vector2(r.position.x, minf(yy + 14, r.end.y)), cor, 4.0)
+		ci.draw_line(Vector2(r.end.x, yy), Vector2(r.end.x, minf(yy + 14, r.end.y)), cor, 4.0)
+
+func _poeira(ci: CanvasItem, c: Vector2, u: float, escala: float) -> void:
+	var a := clampf(1.0 - u, 0.0, 1.0)
+	for q in 9:
+		var ang := q * 0.7 + 0.3
+		var d := (20.0 + 70.0 * u) * escala * (0.6 + 0.4 * sin(q * 1.7))
+		var r := (18.0 + 22.0 * u) * escala * (0.7 + 0.3 * cos(q * 2.3))
+		ci.draw_circle(c + Vector2(cos(ang) * d, sin(ang) * d * 0.6 - 20.0 * u * escala), r, Color(0.94, 0.9, 0.84, 0.9 * a))
+
+func _tijolos(ci: CanvasItem, c: Vector2, u: float, semente: int) -> void:
+	for q in 6:
+		var tex := _pt("tijolo_a" if (q + semente) % 2 == 0 else "tijolo_b")
+		if tex == null:
+			return
+		var vx := 120.0 + q * 45.0
+		var p := c + Vector2(vx * u, -160.0 * u + 520.0 * u * u + q * 8.0)
+		if p.y < PJ_BASE:
+			ci.draw_set_transform(p, u * (3.0 + q), Vector2.ONE)
+			ci.draw_texture(tex, Vector2(-20, -14))
+			ci.draw_set_transform(Vector2.ZERO)
+
+func _ticket(ci: CanvasItem, p: Vector2, ln: Dictionary, aceso: bool, rot: float) -> void:
+	var w := 640.0
+	ci.draw_set_transform(p + Vector2(w / 2.0, 50), deg_to_rad(rot), Vector2.ONE)
+	var r := Rect2(-w / 2.0, -50, w, 100)
+	if aceso:
+		ci.draw_style_box(Obra._sb(Color(Obra.YEL, 0.85), 18, 0), r.grow(10))
+	Kit.chunk(ci, r, Obra.CREAM, 12, 5, 6.0)
+	for yy in range(-42, 42, 15):
+		ci.draw_line(Vector2(w / 2.0 - 120, yy), Vector2(w / 2.0 - 120, yy + 8), Kit.INK, 3.0)
+	ci.draw_circle(Vector2(-w / 2.0 + 30, 0), 16, Kit.INK)
+	ci.draw_circle(Vector2(-w / 2.0 + 30, 0), 12, Color("#9fc9d3"))
+	Kit.text(ci, Vector2(-w / 2.0 + 58, -4), String(ln["txt"]).to_upper(), 28, Kit.INK)
+	Kit.text(ci, Vector2(-w / 2.0 + 58, 28), ln["sub"], 19, Kit.SOFT)
+	Kit.text(ci, Vector2(w / 2.0 - 120, 18), "+%d" % int(ln["pts"]), 50, Obra.YEL, HORIZONTAL_ALIGNMENT_CENTER, 120, 8)
+	ci.draw_set_transform(Vector2.ZERO)
+
+func _contador(ci: CanvasItem, r: Rect2, no_chao: int, pj: Dictionary, acabou: bool) -> void:
+	Kit.chunk(ci, r, Obra.CREAM, 18, 6, 8.0)
+	var pm: int = pj["pm"]
+	Kit.text(ci, Vector2(r.position.x, r.position.y + 50), "PROJETO %d · PRÓXIMO MAPA" % int(pj["projeto"]), 26, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	var cw := (r.size.x - 80.0) / pm
+	for q in pm:
+		var cel := Rect2(r.position.x + 40 + q * cw + 4, r.position.y + 72, cw - 8, 54)
+		var on := q < no_chao
+		ci.draw_style_box(Kit._sb(Color("#d42035") if on else Color("#e2d9c6"), 10, 4, Kit.INK), cel)
+		if on:
+			ci.draw_line(cel.position + Vector2(10, 14), cel.end - Vector2(10, 14), Color(1, 1, 1, 0.6), 4.0)
+			ci.draw_line(Vector2(cel.position.x + 10, cel.end.y - 14), Vector2(cel.end.x - 10, cel.position.y + 14), Color(1, 1, 1, 0.6), 4.0)
+	var txt := "faltam %d → MAPA NOVO" % (pm - no_chao)
+	var cor := Kit.INK
+	if pj["guardado"]:
+		txt = "+%d GUARDADOS (total %d)" % [int(pj["ganho"]), int(pj["total"])]
+		cor = Color("#3c9a46")
+	elif acabou:
+		txt = "PROJETO COMPLETO!"
+		cor = Color("#d42035")
+	Kit.text(ci, Vector2(r.position.x, r.position.y + 180), txt, 30, cor, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+
+## Cartaz do fim: mapa novo LIBERADO! ou PRÓXIMO MAPA EM BREVE (pontos guardados).
+func _cartaz_projeto(ci: CanvasItem, c: Vector2, s: float, pj: Dictionary, t: float) -> void:
+	ci.draw_set_transform(c, -0.05 + sin(t * 1.5) * 0.01, Vector2(s, s))
+	var r := Rect2(-260, -200, 520, 380)
+	if pj["mapa"] != "":
+		Kit.chunk(ci, r, Color("#f4ecdc"), 18, 6, 10.0)
+		ci.draw_rect(Rect2(-230, -170, 460, 250), Color("#9fd0dc"))
+		ci.draw_colored_polygon(PackedVector2Array([Vector2(-230, 80), Vector2(-130, -30), Vector2(-60, 40), Vector2(40, -90), Vector2(230, 80)]), Color("#7b8f6a"))
+		Kit.text(ci, Vector2(-260, 140), String(pj["mapa"]), 40, Kit.INK, HORIZONTAL_ALIGNMENT_CENTER, 520)
+		ci.draw_set_transform(c, -0.25, Vector2(s, s))
+		var sb := Obra._sb(Color(0, 0, 0, 0), 12, 0)
+		sb.border_color = Color("#d42035")
+		sb.set_border_width_all(10)
+		ci.draw_style_box(sb, Rect2(-200, -100, 400, 96))
+		Kit.text(ci, Vector2(-200, -28), "LIBERADO!", 66, Color("#d42035"), HORIZONTAL_ALIGNMENT_CENTER, 400)
+	else:
+		Kit.chunk(ci, r, Color("#3f7fb5"), 18, 6, 10.0)
+		Kit.text(ci, Vector2(-260, -60), "PRÓXIMO MAPA", 44, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 520, 6)
+		Kit.text(ci, Vector2(-260, 20), "EM BREVE", 72, Obra.YEL, HORIZONTAL_ALIGNMENT_CENTER, 520, 12)
+		Kit.text(ci, Vector2(-260, 96), "seus pontos ficam guardados:", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 520)
+		Kit.text(ci, Vector2(-260, 134), "ele já chega liberado", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 520)
+	ci.draw_set_transform(Vector2.ZERO)
 
 # ---------------------------------------------------------------- 3 RESULTADOS
 ## Melhor valor de cada coluna (CAIU SOZINHO: o menor). Só destaca se alguém fez algo.

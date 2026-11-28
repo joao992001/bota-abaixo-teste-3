@@ -5571,6 +5571,26 @@ func menus_frames(dir: String) -> void:
 		main.res_crono = 9.0
 		await frames(1)
 		await snap(dir, "m11_fim_" + st[0])
+	# PROJETOS v2: completa o projeto (4 no chão + 3) e o caso "sem mapa novo: guardados"
+	for caso in [["comp", 4, 3, ["terreo"]], ["guarda", 9, 1, []]]:
+		main.res_info = {"valida": true, "zona": 4, "antes": 40, "depois": 75, "delta": 35, "premio": "", "novas": caso[3],
+			"pontos": caso[2], "total": caso[1] + caso[2], "por_mapa": 6}
+		main.res_fase = "projetos"
+		for tt in [2.0, 99.0]:
+			main.res_t = tt
+			await frames(1)
+			await snap(dir, "m11_fim_projetos_%s_%d" % [caso[0], int(tt)])
+	if "--projetos-video" in OS.get_cmdline_user_args():   # quadros para o vídeo (30 por segundo)
+		main.res_info = {"valida": true, "zona": 4, "antes": 40, "depois": 75, "delta": 35, "premio": "", "novas": ["terreo"],
+			"pontos": 3, "total": 7, "por_mapa": 6}
+		main.res_fase = "projetos"
+		var dur: float = main.fim.duracao("projetos") + 1.0
+		DirAccess.make_dir_recursive_absolute(dir + "/projetos_video")
+		for f in int(dur * 30.0):
+			main.res_t = f / 30.0
+			await frames(1)
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(dir + "/projetos_video/%04d.png" % f)
 	main.res_info["valida"] = false
 	main.res_fase = "gangorra"
 	main.res_t = 0.5
