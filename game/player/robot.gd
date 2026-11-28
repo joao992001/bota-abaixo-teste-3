@@ -613,7 +613,7 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		"spell_mola": "canhão de molas", "spell_gancho": "gancho", "spell_carga": "carga de demolição", "spell_viga": "viga do guindaste",
 		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios", "mecha_leve": "golpe de mecha", "mecha_pesado": "golpe pesado de mecha",
 		"evento_entulho": "entulho", "evento_rebite": "chuva de rebites", "evento_viga": "viga do cabo rompido", "evento_carga": "carga do guindaste",
-		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_conteiner": "contêiner que despencou", "mec_gancho": "contêiner no gancho", "mec_caixas": "caixas da rede de carga", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
+		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_conteiner": "contêiner que despencou", "mec_gancho": "contêiner no gancho", "mec_caixas": "caixas da rede de carga", "mec_tubarao": "tubarão", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
 	last_attacker = by
 	hanging = false
 	var am: Dictionary = main.demo.cfg["amassometro"]

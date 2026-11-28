@@ -518,6 +518,13 @@
         "ky": 220,
         "ky_por": 1.4
       },
+      "mec_tubarao": {
+        "dano": 14,
+        "kx": 260,
+        "kx_por": 3.0,
+        "ky": 520,
+        "ky_por": 2.2
+      },
       "mec_conteiner": {
         "dano": 18,
         "kx": 240,

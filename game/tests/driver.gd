@@ -583,6 +583,7 @@ func demolicao_test() -> void:
 	await m4_test()
 	await m5_test()
 	await m6_test()
+	await m10_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6861,6 +6862,56 @@ func m6_test() -> void:
 	check(inst["s"].get("rasgou", false) and r1.dmg > dmg0, "as caixas caem em quem está embaixo (%.0f%%)" % (r1.dmg - dmg0))
 	main.go_menu()
 
+## M10 Tubarão (Destroços): barbatana ronda; alguém no bote → aviso (anel) → salta e morde; marretada no focinho no
+## salto: tonto e foge. --so=m10
+func m10_test() -> void:
+	print("== Fase 2 · M10 tubarão")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+		r.invuln = 99.0
+	et.forcar("moderada")
+	var w := 0
+	while (et.etapa != 3 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "tubarao":
+			inst = i
+	check(inst != null, "M10 está nos Destroços")
+	if inst == null:
+		return
+	await frames(3)
+	var s: Dictionary = inst["s"]
+	check(s["fase"] == "ronda", "a barbatana ronda o mar")
+	var bote = null
+	for p in main.demo.canteiro.parts:
+		if p["kind"] == "prancha" and int(p["etapa"]) == 3 and int(p["idx"]) == 7:
+			bote = p
+	var r0 = main.robots[0]
+	put(r0, Vector2((bote["rect"] as Rect2).get_center().x, (bote["rect"] as Rect2).position.y))
+	r0.active = true
+	r0.invuln = 0.0
+	await frames(10)
+	s["ronda"] = 0.01
+	await frames(3)
+	check(s["fase"] == "aviso", "alguém no bote: o tubarão acelera até lá e o anel vermelho aparece")
+	var dmg0: float = r0.dmg
+	var w2 := 0
+	while r0.dmg == dmg0 and w2 < 200:
+		await frames(1)
+		w2 += 1
+	check(r0.dmg > dmg0 and s["fase"] == "salta", "salta e morde quem está no bote (%.0f%%)" % (r0.dmg - dmg0))
+	mc.hammer_hit(mc._tub_rect(inst), true, 1)
+	check(s["fase"] == "tonto", "marretada no focinho: fica TONTO")
+	await frames(60)
+	check(s["fase"] == "ronda" and s.has("foge"), "e foge por um tempo (%.0f s)" % float(inst["d"]["foge_s"]))
+	main.go_menu()
+
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
 func cargueiro_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -6922,6 +6973,22 @@ func cargueiro_frames(dir: String) -> void:
 					i["s"]["lado"] = 1.0
 					await frames(40)
 					await snap(dir, "f2_3d_m5_range")
+			for i in main.demo.mecs.list:   # M10: aviso (anel) e o salto
+				if i["tipo"] == "tubarao":
+					var bt = null
+					for p in main.demo.canteiro.parts:
+						if p["kind"] == "prancha" and int(p["etapa"]) == 3 and int(p["idx"]) == 7:
+							bt = p
+					if bt != null:
+						var rb0 = main.robots[0]
+						rb0.invuln = 99.0
+						put(rb0, Vector2((bt["rect"] as Rect2).get_center().x, (bt["rect"] as Rect2).position.y))
+						await frames(10)
+						i["s"]["ronda"] = 0.01
+						await frames(50)
+						await snap(dir, "f2_3e_m10_aviso")
+						await frames(int(float(i["d"]["aviso_s"]) * 60.0) - 20)
+						await snap(dir, "f2_3f_m10_salta")
 	main.hud.visible = true
 
 ## ESTUDO DO EQUILÍBRIO DA DESTRUIÇÃO (--estudo-destruicao=N): N partidas de 4 bots no Canteiro, configuração PADRÃO

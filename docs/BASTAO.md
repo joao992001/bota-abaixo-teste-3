@@ -46,11 +46,12 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** M4, M5, M6 FEITOS nos Destroços (`mare`, `conteiner_boia`, `rede_rasga`; `--so=m4,m5,m6`).
-  Próximo: **M10 tubarão** (Destroços; `perigos_mecanismos.md` + prancha `art/out/fase2/perigo_tubarao.png`, fonte
-  `art/src/cenarios/f2_tubarao.py`): barbatana ronda o mar; acelera para a plataforma baixa (bote/jangada/contêiner boiando)
-  + anel vermelho + som (1,5 s) → salta e morde (joga para cima/lado; racha o contêiner boiando); marretada no focinho
-  espanta; KO no mar = abocanhado (só animação). Depois Atlântida: M7 racha da cúpula, M8 lustre, M9 concha.
+- **Próximo passo exato:** Destroços COMPLETOS (M4 maré, M5 boia, M6 rede, M10 tubarão; `--so=m4,m5,m6,m10`). Próximo:
+  Atlântida (cena 2 no .lvl): **M7 racha da cúpula** (zona de água já existe em `cenas[atlantida].agua`: a racha
+  pinga/brilha; marretada no vidro faz a água crescer — mexer no `topo` da zona como o `mare`), **M8 lustre despenca**
+  (peça `p2_prancha_7`: marretada na corrente → estala + SOMBRA VERMELHA 1 s → cai, esmaga e racha a plataforma embaixo),
+  **M9 concha-trampolim** (hoje desenho no `e2_palco`: tirar de lá, tipo `concha` em `mecanismos.gd`: pisou → lança alto;
+  depois FECHA 2 s e prende; marretada abre). Pendente pequeno: "KO no mar = abocanhado" (animação) do M10; som de respingo.
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

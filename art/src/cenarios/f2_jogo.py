@@ -11,6 +11,7 @@ import sys
 HERE = os.path.dirname(__file__)
 sys.path.insert(0, HERE)
 import f2_prancha as fp  # noqa: E402
+import f2_tubarao as ft  # noqa: E402
 import math  # noqa: E402
 from f2_prancha import E, INK, W, H, T, R, PL, CONT, fonte, grad, gaivota, sign, conteiner  # noqa: E402
 from papel import rough  # noqa: E402
@@ -260,6 +261,9 @@ SPRITES = {
     "peixe_a": (64, 40, peixe("#f2a33a")),
     "peixe_b": (64, 40, peixe("#e8bc4a")),
     **{f"cont_{i}": (3 * T, T, cont(c)) for i, c in enumerate(CONT)},
+    "tubarao": (300, 160, lambda: ft.tubarao(170, 90, 0, 0.0)),
+    "tubarao_boca": (300, 160, lambda: ft.tubarao(170, 90, 0, 1.0)),
+    "barbatana": (120, 70, lambda: ft.barbatana(60, 60, 1.0)),
 }
 
 

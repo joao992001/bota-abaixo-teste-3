@@ -112,6 +112,9 @@ func zonas_perigo() -> Array:
 				out.append(Rect2(float(d["x"][0]) - 80.0, float(d["chao"]) - 200.0, float(d["x"][1]) - float(d["x"][0]) + 160.0, 220.0))
 			"conteiner_boia":
 				out.append(_boia_rect(inst).grow(64.0))
+			"tubarao":   # a plataforma-alvo no aviso/salto
+				if inst["s"].has("alvo_r"):
+					out.append((inst["s"]["alvo_r"] as Rect2).grow(96.0))
 			"onda_balsa":   # a balsa da vez durante o aviso e a onda
 				var s3: Dictionary = inst["s"]
 				if String(s3.get("fase", "")) != "":
@@ -166,6 +169,7 @@ func update(dt: float) -> void:
 			"mare": _mare(inst, dt)
 			"conteiner_boia": _boia(inst, dt)
 			"rede_rasga": _rede(inst, dt)
+			"tubarao": _tubarao(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -660,6 +664,8 @@ func _draw_frente() -> void:
 	for inst in list:
 		if _on(inst) and String(inst["tipo"]) == "onda_balsa":
 			_draw_onda(inst, frente)
+		elif _on(inst) and String(inst["tipo"]) == "tubarao":
+			_draw_tub_frente(inst, frente)
 
 func _draw_onda(inst: Dictionary, ci: CanvasItem) -> void:
 	var s: Dictionary = inst["s"]
@@ -916,6 +922,169 @@ func _draw_rede(inst: Dictionary) -> void:
 		draw_line(Vector2(-27, -25), Vector2(27, 25), Color("#9a6a3a"), 4.0)
 		draw_set_transform(Vector2.ZERO)
 
+## M10 Tubarão (Fase 2, Destroços; ideia do usuário): a BARBATANA ronda o mar; alguém numa plataforma BAIXA (peças `alvos`
+## da cena ou o contêiner boiando) → acelera até lá + ANEL VERMELHO + som (aviso_s) → SALTA em arco e morde (mec_tubarao:
+## joga para cima/lado; o contêiner boiando vira). Marretada no focinho no salto: TONTO e foge (foge_s).
+func _mar_y(inst: Dictionary) -> float:
+	var y: float = main.level.etapa_rect(inst["etapa"]).position.y + 960.0
+	var z = _mare_zona(inst)
+	return minf(y, float(z["topo"])) if z != null else y
+
+func _tub_alvos(inst: Dictionary) -> Array:
+	var out := []   # [rect, "peca"|"boia", ref]
+	var ct = main.demo.canteiro
+	if ct != null and is_instance_valid(ct):
+		for p in ct.parts:
+			if p["kind"] == "prancha" and not p["fallen"] and int(p["etapa"]) == int(inst["etapa"]) and float(p["idx"]) in inst["d"]["alvos"]:
+				out.append([p["rect"], "peca", p])
+	for i in list:
+		if String(i["tipo"]) == "conteiner_boia" and int(i["etapa"]) == int(inst["etapa"]) and String(i["s"].get("fase", "")) == "boia":
+			out.append([_boia_rect(i), "boia", i])
+	return out
+
+func _tub_rect(inst: Dictionary) -> Rect2:
+	var p: Vector2 = inst["s"].get("pos", Vector2.ZERO)
+	return Rect2(p - Vector2(110, 40), Vector2(220, 80))
+
+func _tubarao(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var a: Rect2 = main.level.etapa_rect(inst["etapa"])
+	var mar := _mar_y(inst)
+	if not s.has("fase"):
+		s["fase"] = "ronda"
+		s["x"] = a.position.x + a.size.x * 0.5
+		s["vx"] = float(d["vel"])
+		s["ronda"] = main.rng.randf_range(float(d["ronda_s"][0]), float(d["ronda_s"][1]))
+	var fase := String(s["fase"])
+	match fase:
+		"ronda":
+			s["x"] = float(s["x"]) + float(s["vx"]) * dt
+			if float(s["x"]) < a.position.x + 200.0 or float(s["x"]) > a.end.x - 200.0:
+				s["vx"] = -float(s["vx"])
+			s["ronda"] = float(s["ronda"]) - dt
+			if float(s["ronda"]) <= 0.0:
+				s["ronda"] = 1.0   # tenta de novo daqui a 1 s se ninguém estiver numa plataforma baixa
+				for al in _tub_alvos(inst):
+					var ar: Rect2 = al[0]
+					for rb in _robots():
+						var rr: Rect2 = rb.rect()
+						if absf(rr.end.y - ar.position.y) < 14.0 and rr.end.x > ar.position.x and rr.position.x < ar.end.x:
+							s["fase"] = "aviso"
+							s["k"] = 0.0
+							s["alvo"] = al
+							s["alvo_r"] = ar
+							s["lado"] = 1.0 if float(s["x"]) < ar.get_center().x else -1.0
+							Audio.play("pistao_aviso", 0.5, 0.0)   # tã-dã... tã-dã...
+							break
+					if fase != String(s["fase"]):
+						break
+		"aviso":
+			s["k"] = float(s["k"]) + dt / float(d["aviso_s"])
+			var ar: Rect2 = s["alvo_r"]
+			var px := ar.get_center().x - float(s["lado"]) * 260.0   # acelera até o ponto de salto
+			s["x"] = move_toward(float(s["x"]), px, float(d["vel"]) * 3.5 * dt)
+			if fmod(float(s["k"]) * float(d["aviso_s"]), 0.6) < dt:
+				Audio.play("pistao_aviso", 0.5, -2.0)
+			if float(s["k"]) >= 1.0:
+				s["fase"] = "salta"
+				s["k"] = 0.0
+				s["x0"] = float(s["x"])
+				s["hit"] = {}
+				s["pos"] = Vector2(float(s["x"]), mar + 40.0)
+				Audio.play("explosao", 1.6, -8.0)
+		"salta":
+			s["k"] = float(s["k"]) + dt / float(d["salto_s"])
+			var ar: Rect2 = s["alvo_r"]
+			var u := clampf(float(s["k"]), 0.0, 1.0)
+			var x0 := float(s["x0"])
+			var x1 := ar.get_center().x + float(s["lado"]) * 260.0
+			var h := mar + 40.0 - (ar.position.y - 110.0)
+			var p := Vector2(lerpf(x0, x1, u), mar + 40.0 - 4.0 * h * u * (1.0 - u))
+			var prev: Vector2 = s.get("pos", p)
+			s["pos"] = p
+			s["ang"] = (p - prev).angle() if p.distance_to(prev) > 0.5 else float(s.get("ang", 0.0))
+			var tr := _tub_rect(inst)
+			for rb in _robots():
+				if not s["hit"].has(rb.pid) and rb.rect().intersects(tr):
+					s["hit"][rb.pid] = true
+					rb.take_hit(int(s["lado"]), "mec_tubarao", -1)
+			var al: Array = s["alvo"]
+			if u > 0.45 and String(al[1]) == "boia" and String(al[2]["s"].get("fase", "")) == "boia":
+				al[2]["s"]["fase"] = "range"   # mordeu o contêiner boiando: ele vira
+				al[2]["s"]["k"] = 0.6
+				al[2]["s"]["lado"] = float(s["lado"])
+			if u >= 1.0:
+				_tub_volta(inst)
+		"tonto":
+			s["k"] = float(s["k"]) + dt
+			var p: Vector2 = s["pos"]
+			s["pos"] = p + Vector2(0, 600.0 * dt)
+			s["ang"] = float(s.get("ang", 0.0)) + 6.0 * dt
+			if float(s["k"]) >= 0.8:
+				_tub_volta(inst)
+				s["ronda"] = float(d["foge_s"])   # fugiu: some por um tempo
+				s["foge"] = float(d["foge_s"])
+	if s.has("foge"):
+		s["foge"] = float(s["foge"]) - dt
+		if float(s["foge"]) <= 0.0:
+			s.erase("foge")
+
+func _tub_volta(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	s["fase"] = "ronda"
+	s["x"] = (s["pos"] as Vector2).x if s.has("pos") else float(s["x"])
+	s.erase("pos")
+	s.erase("alvo")
+	s.erase("alvo_r")
+	s["ronda"] = main.rng.randf_range(float(inst["d"]["ronda_s"][0]), float(inst["d"]["ronda_s"][1]))
+	main.dust(Vector2(float(s["x"]), _mar_y(inst)), 1.0)
+
+## Barbatana e anel vermelho na camada da frente (por cima da água alagada): leitura do perigo em 1 s.
+func _draw_tub_frente(inst: Dictionary, ci: CanvasItem) -> void:
+	var s: Dictionary = inst["s"]
+	if not s.has("fase"):
+		return
+	var mar := _mar_y(inst)
+	var fase := String(s["fase"])
+	if (fase == "ronda" and not s.has("foge")) or fase == "aviso":   # barbatana cortando a água
+		var bt: Texture2D = Data.tex("cargueiro/barbatana")
+		var x := float(s["x"])
+		var dirx := signf(float(s.get("vx", 1.0))) if fase == "ronda" else float(s["lado"])
+		if bt != null:
+			ci.draw_texture_rect(bt, Rect2(x - 60.0 * dirx, mar - 62.0, 120.0 * dirx, 70.0), false)
+	if fase == "aviso":   # ANEL VERMELHO tracejado embaixo da plataforma-alvo
+		var ar: Rect2 = s["alvo_r"]
+		var c := Vector2(ar.get_center().x, mar + 4.0)
+		var rx := ar.size.x * 0.6 + 30.0
+		var a := 0.6 + 0.4 * sin(t * 16.0)
+		for k in 16:
+			if k % 2 == 1:
+				continue
+			var a0 := TAU * k / 16.0
+			var a1 := TAU * (k + 1) / 16.0
+			ci.draw_line(c + Vector2(cos(a0) * rx, sin(a0) * 18.0), c + Vector2(cos(a1) * rx, sin(a1) * 18.0), Color(0.83, 0.13, 0.21, a), 6.0)
+
+func _draw_tubarao(inst: Dictionary) -> void:
+	var s: Dictionary = inst["s"]
+	if not s.has("fase"):
+		return
+	var mar := _mar_y(inst)
+	var fase := String(s["fase"])
+	if (fase == "salta" or fase == "tonto") and s.has("pos"):
+		var tx: Texture2D = Data.tex("cargueiro/tubarao_boca" if fase == "salta" else "cargueiro/tubarao")
+		var p: Vector2 = s["pos"]
+		var ang := float(s.get("ang", 0.0))
+		var flip := float(s["lado"]) < 0.0
+		draw_set_transform(p, ang if not flip else ang + PI, Vector2(1, -1) if flip else Vector2.ONE)
+		if tx != null:
+			draw_texture_rect(tx, Rect2(Vector2(-170, -90), Vector2(300, 160)), false)
+		draw_set_transform(Vector2.ZERO)
+		if fase == "tonto":
+			for k in 3:
+				var q := p + Vector2(cos(t * 6.0 + k * 2.1) * 50.0, -70.0 + sin(t * 6.0 + k * 2.1) * 12.0)
+				draw_circle(q, 7.0, Color("#f2c84b"))
+
 ## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
 func _chao_em(r: Rect2, limite: float) -> float:
 	var y := r.position.y
@@ -1010,6 +1179,13 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 			continue
 		var d: Dictionary = inst["d"]
 		var s: Dictionary = inst["s"]
+		if String(inst["tipo"]) == "tubarao" and String(s.get("fase", "")) == "salta" and _tub_rect(inst).intersects(hit):
+			s["fase"] = "tonto"   # M10: marretada no focinho: fica tonto e foge
+			s["k"] = 0.0
+			main.float_text(hit.get_center() + Vector2(0, -60), "TONTO!", Color("#f2c84b"))
+			main.spark(hit.get_center(), 8)
+			Audio.play("bonk", 0.8, 0.0)
+			return true
 		if String(inst["tipo"]) == "rede_rasga" and heavy:   # M6: marretada pesada rasga a rede
 			var rp = _rede_peca(inst)
 			if rp != null and not rp["fallen"] and (rp["rect"] as Rect2).grow_individual(0, 0, 0, 60).intersects(hit):
@@ -1092,6 +1268,8 @@ func _draw_perf() -> void:
 				_draw_boia(inst)
 			"rede_rasga":
 				_draw_rede(inst)
+			"tubarao":
+				_draw_tubarao(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":
