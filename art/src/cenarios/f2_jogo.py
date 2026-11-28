@@ -13,6 +13,7 @@ sys.path.insert(0, HERE)
 import f2_prancha as fp  # noqa: E402
 import f2_tubarao as ft  # noqa: E402
 import f2_lapida1 as fl  # noqa: E402   (lapidação aprovada 2026-11-28: onda, contêiner caindo, gancho, tábuas)
+import f2_plataformas as fpl  # noqa: E402   (A57: plataformas no tema do mar, prancha aprovada 2026-11-28)
 import math  # noqa: E402
 from f2_prancha import E, INK, W, H, T, R, PL, CONT, fonte, grad, gaivota, sign, conteiner  # noqa: E402
 from papel import rough  # noqa: E402
@@ -46,6 +47,10 @@ def e3_longe():
 # Só a base que não quebra, nos mesmos lugares das fotografias (que já casam com os tiles do levels/cargueiro_perdido.lvl).
 # O que quebra (contêineres, tábuas, lajes) é peça do canteiro, desenhada pelo jogo.
 def e1_palco():
+    return fpl.e1_palco_mar()   # A57 (a versão de obra abaixo fica só de referência)
+
+
+def _e1_palco_obra():
     o = fp.balsa(70, 6 * T) + fp.balsa(22 * T, 7 * T)
     o += R(14 * T, 11 * T + 20, 2 * T, fp.MAR1 - 11 * T, "#9a9488", 4, 2.0, dark="#7a7468")       # pilar de concreto
     o += R(13 * T - 10, 11 * T, 4 * T + 20, 28, "#b9b2a4", 3, 1.6) + fp.zebra(13 * T - 10, 11 * T - 8, 4 * T + 20, 8)
@@ -107,7 +112,11 @@ TT = T
 
 
 def _pecas_e1():
-    """Alto-Mar: tábuas dos níveis 9 e 6 (andaimes do manifesto) e a viga içada (viga)."""
+    """Alto-Mar: peças no tema do mar (A57) — passarelas de aço, patamar da grua, carga içada, bote nos turcos."""
+    return fpl.pecas_mar()
+
+
+def _pecas_e1_obra():
     return {
         "p1_andaime_0": fl.tabua_boa(8 * TT - 6, 9 * TT - 4, 5 * TT + 12),
         "p1_andaime_1": fl.tabua_boa(17 * TT - 6, 9 * TT - 4, 4 * TT + 12),

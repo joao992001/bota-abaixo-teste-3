@@ -57,7 +57,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [ ] 3. M2 gancho no mesmo padrão (pêndulo com cabo que verga, antecipação puxando, pancada com hitstop) → vídeo → usuário.
   - [ ] 4. Aplicar A57 nas cenas Destroços e Atlântida (prancha antes × depois, mais plataformas) → aprovação → jogo.
   - [ ] 5. Depois: perigos da cena 2 (M4 maré, M5 boia, M6 rede, M10 tubarão) e 3 (M7, M8, M9, M11) no padrão de animação.
-- **Próximo passo exato:** passo 1 (a)–(e) acima.
+- **Próximo passo exato:** passo 1: (a)–(c) e (e captura) feitos e enviados (onda corrigida: `mec_onda.gd` lia a passarela nova como piso; M3 verde). Falta conferir `--so=cargueiro,mapa,m1,m2,m3,agua,bots` e marcar [x]; depois passo 2 (M1).
 - Decisões pendentes do usuário: nenhuma (próxima: aprovar o vídeo do M1).
 
 ## AGUARDANDO USUÁRIO

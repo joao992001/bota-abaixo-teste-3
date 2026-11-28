@@ -152,14 +152,18 @@
       22,
       6,
       6
-     ]
+     ],
+     [5, 9, 2],
+     [22, 9, 2],
+     [26, 3, 2]
     ],
     "vigas": [
      [
       20,
       3,
       5
-     ]
+     ],
+     [2, 3, 4]
     ],
     "pilares": [],
     "terreos": [],
@@ -202,7 +206,7 @@
      ]
     ]
    },
-   "nota": "Ficha: docs/fases/derruba/f2_cargueiro/cenas/conves.md. andaimes = tábuas dos níveis 9 e 6; viga = viga içada. Contêineres: bloco D."
+   "nota": "Ficha: docs/fases/derruba/f2_cargueiro/cenas/conves.md. A57: andaimes = passarelas de aço dos níveis 9 e 6 (+2 degraus do nível 9 e o patamar da grua); vigas = carga içada + bote nos turcos. Contêineres: bloco D."
   },
   {
    "id": "atlantida",

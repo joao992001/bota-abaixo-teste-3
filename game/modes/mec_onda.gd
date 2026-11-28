@@ -58,7 +58,7 @@ func comecar(q: int, o: Vector2) -> void:
 	ys = o.y + float(d.get("mar_px", 990.0))
 	chao = PackedFloat32Array()
 	var n := int(ceil(B / DU))
-	var topo := o.y + float(b[2]) * T - float(d["altura_t"]) * T - 96.0
+	var topo := o.y + float(b[2]) * T - float(d["altura_t"]) * T   # só até onde a onda alcança (A57: passarelas acima da balsa não são piso da onda)
 	var alto := ys
 	for i in n:
 		var x := wx((i + 0.5) * DU)
