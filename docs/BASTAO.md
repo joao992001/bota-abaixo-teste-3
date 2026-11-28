@@ -46,11 +46,11 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** arte que ainda falta no tema (pedido do usuário: "adicionar as texturas de vez"): Destroços — o
-  pedaço do convés (nível 8), bote virado, jangada, rede de carga e contêiner içado das fotos (hoje são tábuas simples,
-  `pranchas` do manifesto); Atlântida — tambores, cabeça de estátua, colunas de mármore embaixo das lajes, concha, lustre.
-  Fonte: `c2_palco`/`c3_palco` em `art/src/cenarios/f2_prancha.py` (seções QUEBRA). Depois: M2 gancho balança (tipo novo
-  `gancho_balanca` no molde do `conteiner_cai`) e M3 onda na balsa (`main.demo.agua.molhar(r)`).
+- **Próximo passo exato:** usuário reprovou as peças genéricas (2026-11-28) → FEITO: cada peça que quebra é recortada do
+  desenho da fotografia (`f2_jogo.py` PECAS → `game/assets/cargueiro/p<etapa>_<tipo>_<idx>.png` + `pecas.json`;
+  `canteiro._peca_mar`), Atlântida refeita igual à foto 2b (manifesto). Comparação `art/out/fase2/jogo/foto_x_jogo.png`.
+  AGUARDA o usuário aprovar. Faltam (das fotos): contêiner no gancho e bote (Alto-Mar), mastro-ponte e pneus (Destroços).
+  Depois: M2 gancho balança (`gancho_balanca`, no molde do `conteiner_cai`), M3 onda na balsa (`main.demo.agua.molhar(r)`).
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

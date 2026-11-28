@@ -91,7 +91,110 @@ def e3_palco():
 
 def e2_palco():
     """Atlântida: os três pilares dourados (topo plano) e a grua submarina da equipe."""
-    return fp.pilar_ouro(1 * T, 6 * T, 12 * T) + fp.pilar_ouro(12 * T, 18 * T, 11 * T) + fp.pilar_ouro(24 * T, 29 * T, 12 * T) + fp.c3_grua()
+    o = fp.pilar_ouro(1 * T, 6 * T, 12 * T) + fp.pilar_ouro(12 * T, 18 * T, 11 * T) + fp.pilar_ouro(24 * T, 29 * T, 12 * T) + fp.c3_grua()
+    # concha-trampolim no pilar do centro (M9 vira mecanismo no bloco C; por enquanto é cenário)
+    o += E(15 * T, 11 * T - 30, 48, 18, "#f2a7c3", 1.2) + f'<path d="M{15 * T - 48},{11 * T - 34} a48,40 0 0 1 96,-28" fill="#f7c6d8" stroke="#d1708f" stroke-width="4"/>'
+    o += E(15 * T, 11 * T - 36, 10, 8, "#ffffff", 0.6)
+    for k in range(9):   # moedas caídas no topo do pilar da direita
+        o += E(28 * T + 10 + k * 10, 12 * T - 4 - (k % 3) * 6, 8, 4, fp.OURO, 0.5)
+    return o
+
+
+# ---------------------------------------------------------------- PEÇAS QUE QUEBRAM, cada uma do desenho da fotografia
+# (com os suportes: colunas, correntes, escoras, cabos). Nome = p<etapa>_<tipo>_<índice no canteiro>; o jogo lê o recorte
+# e a posição (em px da cena) de art/out/game/cargueiro/pecas.json. Coordenadas em px da cena (origem = canto da cena).
+TT = T
+
+
+def _pecas_e1():
+    """Alto-Mar: tábuas dos níveis 9 e 6 (andaimes do manifesto) e a viga içada (viga)."""
+    return {
+        "p1_andaime_0": fp.tabua(8 * TT - 6, 9 * TT, 5 * TT + 12),
+        "p1_andaime_1": fp.tabua(17 * TT - 6, 9 * TT, 4 * TT + 12),
+        "p1_andaime_2": fp.tabua(5 * TT - 6, 6 * TT, 3 * TT + 12),
+        "p1_andaime_3": fp.tabua(22 * TT - 6, 6 * TT, 6 * TT + 12),
+        "p1_viga_0": fp.pendurada(20 * TT, 25 * TT, 3 * TT, 1 * TT + 6, 1 * TT + 6) + R(20 * TT - 10, 3 * TT, 5 * TT + 20, 26, "#7a808c", 2, 1.4, dark="#5a606c"),
+    }
+
+
+def _conves_quebrado(lado, x0, x1):
+    y = 12 * TT
+    o = R(x0, y, x1 - x0, 22, "#6b6f7a", 2, 1.4, dark="#4a4f5a") + R(x0, y + 22, x1 - x0, 22, "#9a4a38", 2, 1.2, dark="#7a3424")
+    o += fp.zebra(x0, y - 6, x1 - x0, 7)
+    ex = x0 if lado < 0 else x1
+    o += f'<path d="M{ex},{y - 6} l{lado * 14},10 l{-lado * 10},8 l{lado * 16},10 l{-lado * 12},10 l{lado * 8},10" stroke="{INK}" stroke-width="4" fill="none"/>'
+    for k in range(3):
+        o += f'<path d="M{ex - lado * (30 + k * 46)},{y - 6} v-26" stroke="#e9e2d2" stroke-width="4"/>'
+    o += f'<path d="M{ex - lado * 30},{y - 32} L{ex - lado * 122},{y - 32}" stroke="#e9e2d2" stroke-width="4"/>'
+    sx = (x1 - 40) if lado < 0 else (x0 + 40)
+    o += f'<path d="M{sx},{y + 44} Q{sx - lado * 20},{y + 100} {sx + lado * 30},{y + 150}" stroke="#4a2620" stroke-width="14" fill="none" stroke-linecap="round"/>'
+    return o
+
+
+def _pecas_e3():
+    """Destroços (ordem das pranchas no manifesto)."""
+    dk0, dk1, dky = 11 * TT + 10, 19 * TT - 10, 8 * TT
+    deck = R(dk0 + 50, dky + 56, 20, 3 * TT - 56, "#4a2620", 2, 1.0) + R(dk1 - 70, dky + 56, 20, 3 * TT - 56, "#4a2620", 2, 1.0)
+    deck += R(dk0, dky, dk1 - dk0, 26, "#6b6f7a", 2, 1.6, dark="#4a4f5a") + R(dk0, dky + 26, dk1 - dk0, 30, "#9a4a38", 2, 1.4, dark="#7a3424")
+    deck += fp.zebra(dk0, dky - 6, dk1 - dk0, 8)
+    for x in range(int(dk0 + 10), int(dk1), 44):
+        deck += f'<path d="M{x},{dky - 6} v-30" stroke="#e9e2d2" stroke-width="4"/>'
+    deck += f'<path d="M{dk0},{dky - 30} H{dk1}" stroke="#e9e2d2" stroke-width="4"/>' + E(16 * TT + 30, dky - 14, 18, 14, "#5a5f6a", 0.8)
+    t1 = fp.pendurada(18 * TT + 10, 23 * TT - 10, 9 * TT, fp.LANCA2 + 6, fp.LANCA2 + 6) + fp.tabua(18 * TT + 10, 9 * TT, 5 * TT - 20)
+    t2 = fp.pendurada(21 * TT + 10, 29 * TT - 10, 5 * TT, fp.LANCA2 + 6, fp.LANCA2 + 6) + fp.tabua(21 * TT + 10, 5 * TT, 8 * TT - 20)
+    ci = fp.icado(5.5 * TT, fp.LANCA2 + 6, 5 * TT - 70, 4 * TT + 10, 7 * TT - 10, 5 * TT) + conteiner(4 * TT + 10, 5 * TT, 3 * TT - 20, TT - 8, CONT[5], 0, True)
+    nx0, nx1, ny = 12 * TT + 10, 15 * TT - 10, 4 * TT
+    rede = f'<path d="M{(nx0 + nx1) / 2},{fp.LANCA2 + 6} V{ny - 50}" stroke="{INK}" stroke-width="4"/>' + fp.gancho((nx0 + nx1) / 2, ny - 50)
+    for k in range(3):
+        rede += R(nx0 + 6 + k * 58, ny, 54, 50, "#c98a4b" if k != 1 else "#b07a3e", 3, 1.0)
+    rede += f'<path d="M{nx0},{ny - 6} Q{(nx0 + nx1) / 2},{ny + 110} {nx1},{ny - 6}" stroke="#5a4a3a" stroke-width="4" fill="none"/>'
+    rede += f'<path d="M{(nx0 + nx1) / 2},{ny - 36} L{nx0},{ny - 6} M{(nx0 + nx1) / 2},{ny - 36} L{nx1},{ny - 6}" stroke="#5a4a3a" stroke-width="3"/>'
+    for k in range(5):
+        rede += f'<path d="M{nx0 + 8 + k * 32},{ny - 4} l18,56" stroke="#5a4a3a" stroke-width="3"/>'
+    y14 = 14 * TT
+    bote = PL([(7 * TT, y14), (9 * TT, y14), (8 * TT + 40, y14 + 50), (7 * TT + 24, y14 + 50)], "#f08a3d", 1.4) + R(7 * TT, y14 - 6, 2 * TT, 10, "#d9dce4", 2, 0.8)
+    jang = "".join(R(9 * TT + 14 + k * 54, y14 + 8, 48, 34, "#c98a4b", 2, 0.8) for k in range(3)) + R(9 * TT + 6, y14, 3 * TT - 12, 12, "#b07a3e", 2, 0.8)
+    return {
+        "p3_prancha_0": _conves_quebrado(-1, 9 * TT + 10, 12 * TT + 40),
+        "p3_prancha_1": _conves_quebrado(1, 17 * TT + 40, 21 * TT - 10),
+        "p3_prancha_2": deck,
+        "p3_prancha_3": t1,
+        "p3_prancha_4": t2,
+        "p3_prancha_5": ci,
+        "p3_prancha_6": rede,
+        "p3_prancha_7": bote,
+        "p3_prancha_8": jang,
+    }
+
+
+def _pecas_e2():
+    """Atlântida (ordem das pranchas e contêineres no manifesto)."""
+    c2, l2, al = fp.coluna2, fp.laje2, fp.alga
+    px = 22 * TT + 43   # ponta da proa
+    return {
+        "p2_prancha_0": c2(6 * TT - 30, 9 * TT + 34, 12 * TT - 14) + c2(12 * TT, 9 * TT + 34, 11 * TT - 14, larg=40) + l2(5 * TT + 10, 9 * TT, 8 * TT - 20) + al(7 * TT, 9 * TT + 34, 2, 110),
+        "p2_prancha_1": c2(1 * TT + 20, 6 * TT + 34, 10 * TT) + l2(10, 6 * TT, 6 * TT - 20) + al(2 * TT, 6 * TT + 34, 2, 90),
+        "p2_prancha_2": c2(13 * TT, 4 * TT + 34, 7 * TT) + c2(16 * TT + 30, 4 * TT + 34, 7 * TT) + l2(12 * TT + 10, 4 * TT, 6 * TT - 20),
+        "p2_prancha_3": c2(12 * TT + 40, 7 * TT + 34, 11 * TT - 14, rachada=True) + c2(17 * TT, 7 * TT + 34, 11 * TT - 14) + l2(11 * TT + 10, 7 * TT, 8 * TT - 20) + al(16 * TT + 20, 7 * TT + 34, 3, 120),
+        "p2_prancha_4": c2(24 * TT + 14, 6 * TT + 34, 12 * TT - 14) + c2(28 * TT + 14, 6 * TT + 34, 12 * TT - 14) + l2(23 * TT + 10, 6 * TT, 7 * TT - 20) + al(25 * TT + 20, 6 * TT + 34, 3, 130),
+        "p2_prancha_5": fp.pendurada(18 * TT + 10, 22 * TT - 10, 3 * TT, 51, 144) + fp.tabua(18 * TT + 10, 3 * TT, 4 * TT - 20),
+        "p2_prancha_6": f'<path d="M{px},136 V{9 * TT - 20}" stroke="#5a5f6a" stroke-width="6" stroke-dasharray="12 6"/>' + fp.gancho(px, 9 * TT - 26)
+            + f'<path d="M{px},{9 * TT - 12} L{21 * TT + 20},{9 * TT} M{px},{9 * TT - 12} L{24 * TT - 20},{9 * TT}" stroke="#5a5f6a" stroke-width="4"/>'
+            + R(21 * TT + 10, 9 * TT, 3 * TT - 20, 40, fp.MARM, 4, 1.6, dark=fp.MARM_D) + R(21 * TT + 10, 9 * TT + 30, 3 * TT - 20, 10, fp.OURO, 2, 0.6),
+        "p2_prancha_7": f'<path d="M660,79 L{10 * TT},{3 * TT + 30}" stroke="{fp.OURO_D}" stroke-width="5" stroke-dasharray="10 6"/>' + f'<circle cx="660" cy="79" r="8" fill="{fp.OURO}"/>'
+            + f'<path d="M{10 * TT},{3 * TT + 30} L{8 * TT + 20},{4 * TT} M{10 * TT},{3 * TT + 30} L{12 * TT - 20},{4 * TT}" stroke="{fp.OURO_D}" stroke-width="4"/>'
+            + R(8 * TT + 10, 4 * TT, 4 * TT - 20, 18, fp.OURO, 3, 1.2, dark=fp.OURO_D)
+            + f'<path d="M{8 * TT + 20},{4 * TT + 18} Q{10 * TT},{5 * TT + 40} {12 * TT - 20},{4 * TT + 18}" stroke="{fp.OURO}" stroke-width="8" fill="none"/>'
+            + "".join(f'<circle cx="{8 * TT + 34 + k * 46}" cy="{4 * TT - 10}" r="8" fill="#fff6c8"/><circle cx="{8 * TT + 34 + k * 46}" cy="{4 * TT - 10}" r="20" fill="#fff6c8" opacity="0.25"/>' for k in range(5)),
+        "p2_conteiner_7": fp.tambores(1 * TT + 16, 12 * TT, 2) + f'<rect x="{TT}" y="{12 * TT - 6}" width="2" height="2" fill="none"/>',
+        "p2_conteiner_8": E(4 * TT, 12 * TT - 50, 58, 50, "#cfc6b0", 1.6, dark="#a89c82") + E(4 * TT + 20, 12 * TT - 60, 10, 6, "#8a826e", 0.6)
+            + PL([(3 * TT + 20, 12 * TT - 86), (3 * TT + 50, 12 * TT - 124), (4 * TT + 10, 12 * TT - 96), (4 * TT + 50, 12 * TT - 128), (4 * TT + 70, 12 * TT - 86)], fp.OURO, 1.0),
+        "p2_conteiner_9": conteiner(25 * TT + 4, 11 * TT, 3 * TT - 8, TT, CONT[3], 0, True)
+            + R(26 * TT, 11 * TT - 40, 70, 40, "#8a5a3a", 4, 1.0) + R(26 * TT, 11 * TT - 40, 70, 12, fp.OURO, 2, 0.6),
+    }
+
+
+PECAS = {1: _pecas_e1, 2: _pecas_e2, 3: _pecas_e3}
 
 
 def cont(cor):
@@ -169,7 +272,31 @@ def main():
         queue(wrap(W, H, fn(), 51 + i), f"{SRC}/{name}.svg", f"{OUT}/{name}.png", W, H, 1)
     for i, (name, (w, h, fn)) in enumerate(SPRITES.items()):
         queue(wrap(w, h, fn(), 61 + i), f"{SRC}/{name}.svg", f"{OUT}/{name}.png", w, h, 2)
+    tmp = os.path.join(OUT, "_pecas")
+    nomes = []
+    for et, fn in PECAS.items():
+        for i, (name, body) in enumerate(fn().items()):
+            queue(wrap(W, H, body, 71 + i + et * 10), f"{SRC}/{name}.svg", f"{tmp}/{name}.png", W, H, 1)
+            nomes.append(name)
     print("fase 2 (jogo):", render_all())
+    _recorta(tmp, nomes)
+
+
+def _recorta(tmp, nomes):
+    """Recorta cada peça (desenhada na tela inteira da cena) no menor retângulo e guarda a posição em pecas.json."""
+    import json
+    from PIL import Image
+    pos = {}
+    for n in nomes:
+        im = Image.open(f"{tmp}/{n}.png")
+        bb = im.getbbox()
+        if bb is None:
+            continue
+        bb = (max(bb[0] - 2, 0), max(bb[1] - 2, 0), min(bb[2] + 2, im.width), min(bb[3] + 2, im.height))
+        im.crop(bb).save(f"{OUT}/{n}.png")
+        pos[n] = [bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]]
+    with open(f"{OUT}/pecas.json", "w") as f:
+        json.dump(pos, f, indent=1)
 
 
 if __name__ == "__main__":

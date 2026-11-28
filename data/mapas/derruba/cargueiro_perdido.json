@@ -177,41 +177,67 @@
    "estruturas": {
     "pranchas": [
      [
-      0,
-      26,
-      5
-     ],
-     [
       5,
       29,
-      7
+      8
      ],
      [
-      11,
-      27,
-      7
+      0,
+      26,
+      6
      ],
      [
       12,
       24,
-      5
+      6
      ],
      [
-      18,
-      23,
-      3
+      11,
+      27,
+      8
      ],
      [
       23,
       26,
-      6
+      7
+     ],
+     [
+      18,
+      23,
+      4
      ],
      [
       21,
       29,
       3
+     ],
+     [
+      8,
+      24,
+      4
      ]
-    ]
+    ],
+    "conteineres": [
+     [
+      1,
+      30,
+      2,
+      2
+     ],
+     [
+      3,
+      30,
+      2,
+      2
+     ],
+     [
+      25,
+      31,
+      3,
+      1
+     ]
+    ],
+    "nota": "Igual à fotografia 2b (A55): laje-ponte, laje alta esq., laje do topo, laje entalhada, laje alta dir., prancha do navio, bloco na corrente, lustre; tambores, cabeça de estátua, contêiner do navio. Arte de cada peça: art/src/cenarios/f2_jogo.py (PECAS)."
    },
    "nota": "Ficha: cenas/atlantida.md. pranchas = lajes de mármore, laje-ponte, laje do topo, prancha do navio, bloco na corrente (posições absolutas do mundo).",
    "agua": {

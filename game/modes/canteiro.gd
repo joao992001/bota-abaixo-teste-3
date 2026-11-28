@@ -37,6 +37,7 @@ var t := 0.0
 var cycle_state := "calma"
 var target = null
 var tex := {}
+var pecas_mar := {}            # Fase 2: nome da peça → [x, y, w, h] (px da cena)
 var tema_mar := false          # Fase 2 (cena: cargueiro): tábuas, lajes de mármore e contêineres no tema do mar
 var extras: Array = []        # cenas seguintes do manifesto (estacas, grelhas, piso, entulhos)
 var quiet := false             # virada da fase: desaba tudo sem um texto por peça
@@ -78,7 +79,9 @@ func setup(m: Node, lv) -> void:
 		var c0: Array = conts[i]
 		_add("conteiner", Rect2(c0[0] * T, c0[1] * T, c0[2] * T, c0[3] * T), int(cfg.get("conteiner_hp", 3)), false, false, i, int(c0[4]))
 	tema_mar = String(lv.prop("cena", "")) == "cargueiro"
-	if tema_mar:
+	if tema_mar:   # arte de cada peça recortada da fotografia (f2_jogo.py → pecas.json: x, y, w, h em px da cena)
+		var js = JSON.parse_string(FileAccess.get_file_as_string("res://assets/cargueiro/pecas.json"))
+		pecas_mar = js if js is Dictionary else {}
 		for k in 7:
 			tex["cont_%d" % k] = Data.tex("cargueiro/cont_%d" % k)
 	extras = lay.get("cenas_extra", [])
@@ -206,6 +209,33 @@ func damage_perf(p: Dictionary, amount: int, at: Vector2) -> void:
 		p["state"] = 2
 		p["crit_t"] = float(cfg["aviso_queda_s"])   # aviso final: range, treme forte, pedrinhas caindo
 		Audio.play("terremoto", 1.5, -4.0)
+
+## Peça com arte própria da fotografia (Fase 2)? Desenha (inclinando junto no aviso) e devolve true.
+func _peca_mar(p: Dictionary, o: Vector2, tilt := 0.0) -> bool:
+	var nome := "p%d_%s_%d" % [int(p["etapa"]), String(p["kind"]), int(p["idx"])]
+	if not pecas_mar.has(nome):
+		return false
+	var tx: Texture2D = Data.tex("cargueiro/" + nome)
+	if tx == null:
+		return false
+	var q: Array = pecas_mar[nome]
+	var org: Vector2 = main.level.etapa_rect(int(p["etapa"])).position
+	var rr := Rect2(org + Vector2(float(q[0]), float(q[1])) + o, Vector2(float(q[2]), float(q[3])))
+	if tilt != 0.0:
+		var piv: Vector2 = (p["rect"] as Rect2).get_center() + o
+		draw_set_transform(piv, tilt, Vector2.ONE)
+		draw_texture_rect(tx, Rect2(rr.position - piv, rr.size), false)
+		draw_set_transform(Vector2.ZERO)
+	else:
+		draw_texture_rect(tx, rr, false)
+	var st := int(p["state"])
+	if st >= 1:   # rachaduras por cima da arte (mesmo traço das fotos)
+		var r: Rect2 = p["rect"]
+		var c := r.get_center() + o
+		draw_polyline(PackedVector2Array([c + Vector2(-20, -8), c + Vector2(-6, 2), c + Vector2(-14, 8), c + Vector2(4, 14)]), Color("#2a1a2e"), 3.0)
+		if st >= 2:
+			draw_polyline(PackedVector2Array([c + Vector2(30, -8), c + Vector2(22, 4), c + Vector2(34, 12)]), Color("#2a1a2e"), 3.0)
+	return true
 
 ## ---- Fase 2 (tema do mar): desenho das peças que quebram, no traço das fotografias aprovadas
 func _tabua_mar(r: Rect2, o: Vector2, st: int) -> void:
@@ -365,7 +395,8 @@ func _collapse_perf(p: Dictionary) -> void:
 	var out := -1.0 if mid < 20 * T else 1.0
 	match p["kind"]:
 		"conteiner":
-			debris.append({"tex": tex.get("cont_%d" % (int(p["idx"]) % 7)), "size": r.size, "pos": r.get_center(), "vel": Vector2(randf_range(-80, 80) + out * 60.0, -60),
+			var pn := "p%d_conteiner_%d" % [int(p["etapa"]), int(p["idx"])]
+			debris.append({"tex": Data.tex("cargueiro/" + pn) if pecas_mar.has(pn) else tex.get("cont_%d" % (int(p["idx"]) % 7)), "size": r.size, "pos": r.get_center(), "vel": Vector2(randf_range(-80, 80) + out * 60.0, -60),
 				"rot": 0.0, "spin": randf_range(-1.2, 1.2), "t": 0.0})
 		"prancha":
 			for k in 3:   # a prancha parte em pedaços de madeira
@@ -528,7 +559,9 @@ func _draw_perf() -> void:
 		if p["fallen"] or p["evt"] == "G13":
 			continue
 		var o := _shake_off(p)
-		if p["kind"] == "andaime" and tema_mar:
+		if tema_mar and p["kind"] in ["andaime", "viga", "conteiner"] and _peca_mar(p, o):
+			pass
+		elif p["kind"] == "andaime" and tema_mar:
 			_tabua_mar(p["rect"], o, int(p["state"]))   # Alto-Mar: tábua de andaime (as torres são do palco fixo)
 		elif p["kind"] == "andaime":
 			draw_texture_rect(tex["andaime"], Rect2(p["rect"].position + Vector2(-4, -10) + o, Vector2(340, 788)), false)
@@ -574,6 +607,8 @@ func _draw_perf() -> void:
 		var tilt := 0.0
 		if p["crit_t"] > 0.0:
 			tilt = 0.1 * (1.0 - p["crit_t"] / maxf(float(cfg["aviso_queda_s"]), 0.01))
+		if tema_mar and _peca_mar(p, _shake_off(p), tilt):
+			continue
 		draw_set_transform(r.get_center() + _shake_off(p), tilt, Vector2.ONE)
 		var lr := Rect2(-r.size.x / 2.0, -r.size.y / 2.0, r.size.x, r.size.y)
 		if tema_mar and int(p["etapa"]) == 2:   # Atlântida: laje de mármore entalhada com friso de ouro

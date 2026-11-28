@@ -6508,7 +6508,7 @@ func cargueiro_test() -> void:
 	var por := {1: 0, 2: 0, 3: 0}
 	for p in ct.parts:
 		por[int(p.get("etapa", 1))] += 1
-	check(por[1] == 12 and por[2] == 7 and por[3] == 14, "estruturas que quebram montadas em cada cena (Alto-Mar %d, Atlântida %d, Destroços %d)" % [por[1], por[2], por[3]])
+	check(por[1] == 12 and por[2] == 11 and por[3] == 14, "estruturas que quebram montadas em cada cena (Alto-Mar %d, Atlântida %d, Destroços %d)" % [por[1], por[2], por[3]])
 	await frames(60)
 	check(main.robots.all(func(r): return r.alive and L.etapa_rect(1).has_point(r.position)), "todos nascem e ficam de pé no Alto-Mar")
 	check(ct.progresso(1) < 0.05, "manômetro começa zerado (%.0f%%)" % (ct.progresso(1) * 100.0))
