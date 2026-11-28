@@ -182,6 +182,67 @@ def bote(x0, x1, y_topo, y_cabo):
     return o
 
 
+def turcos(x0, x1, y_topo):
+    """Par de TURCOS (braços de aço do navio) saindo da borda do convés do cargueiro e curvando por cima das pontas do bote."""
+    o = ""
+    for xa, s_ in ((x0 + 20, -1), (x1 - 20, 1)):
+        base = xa - s_ * 40
+        o += (f'<path d="M{base},298 C{base},200 {base},150 {xa},{y_topo - 70}" stroke="{ACO_D}" stroke-width="16" fill="none" stroke-linecap="round"/>'
+              f'<path d="M{base},298 C{base},200 {base},150 {xa},{y_topo - 70}" stroke="{BRANCO}" stroke-width="9" fill="none" stroke-linecap="round"/>')
+        o += R(base - 16, 284, 32, 18, ACO_D, 3, 0.6)                                    # sapata no convés do navio
+        o += R(xa - 9, y_topo - 70, 18, 16, "#8a909c", 3, 0.6)                          # moitão
+        o += f'<path d="M{xa},{y_topo - 54} V{y_topo}" stroke="{INK}" stroke-width="3"/>'  # tira (cabo) até a ponta do bote
+    return o
+
+
+def bote_turcos(x0, x1, y_topo):
+    """BOTE SALVA-VIDAS nos turcos do navio (QUEBRA; topo plano = plataforma)."""
+    w = x1 - x0
+    o = turcos(x0, x1, y_topo)
+    o += R(x0 + 6, y_topo, w - 12, 12, BRANCO, 4, 1.0, dark=BRANCO_D)
+    casco = f"M{x0},{y_topo + 10} L{x1},{y_topo + 10} C{x1 - 10},{y_topo + 44} {x1 - 36},{y_topo + 54} {x1 - 70},{y_topo + 54} L{x0 + 70},{y_topo + 54} C{x0 + 36},{y_topo + 54} {x0 + 10},{y_topo + 44} {x0},{y_topo + 10} Z"
+    o += fp.S(casco, LARANJA, (x0, y_topo + 8, x1, y_topo + 56), k=1.4, dark=LARANJA_D)
+    o += f'<rect x="{x0 + 6}" y="{y_topo + 14}" width="{w - 12}" height="6" fill="{BRANCO}"/>'
+    for k in range(int((w - 60) / 46)):
+        ax = x0 + 36 + k * 46
+        o += f'<path d="M{ax},{y_topo + 24} q23,14 46,0" stroke="{CORDA_D}" stroke-width="3" fill="none"/>'
+    o += f'<text x="{(x0 + x1) / 2}" y="{y_topo + 44}" font-family="Fredoka" font-weight="700" font-size="15" fill="{BRANCO}" text-anchor="middle">E. DO SUL · 1</text>'
+    return o
+
+
+def carga_icada(x0, x1, y_topo, y_lanca):
+    """CARGA IÇADA pela grua (QUEBRA; no lugar da viga): estrado de madeira com caixas e sacos amarrados, duas lingas até as
+    QUINAS do estrado subindo para UM gancho, e o cabo do gancho até o carrinho da lança. O topo das caixas é plano (pisa-se)."""
+    w = x1 - x0
+    cx = (x0 + x1) / 2
+    gy = y_topo - 70
+    o = f'<path d="M{cx},{y_lanca} V{gy - 18}" stroke="{INK}" stroke-width="4"/>'
+    o += R(cx - 22, y_lanca - 10, 44, 18, "#8a909c", 3, 0.6)                            # carrinho na lança
+    o += f'<path d="M{cx},{gy - 18} q0,22 -12,22 q-12,0 -12,-10" stroke="#5a606c" stroke-width="7" fill="none" stroke-linecap="round"/>'
+    o += f'<path d="M{cx - 6},{gy + 2} L{x0 + 6},{y_topo + 4} M{cx - 6},{gy + 2} L{x1 - 6},{y_topo + 4}" stroke="{INK}" stroke-width="3"/>'
+    rnd = random.Random(12)
+    x = x0
+    cores = ["#c98a4b", "#b5793e", "#d39b5a"]
+    while x < x1 - 30:                                                                   # caixas de madeira (topo alinhado)
+        cw = min(rnd.choice([72, 88, 64]), x1 - x)
+        o += R(x, y_topo, cw - 2, 40, cores[int(x) % 3], 2, 1.0, dark="#8a5a30")
+        o += f'<path d="M{x + 4},{y_topo + 4} L{x + cw - 6},{y_topo + 36} M{x + cw - 6},{y_topo + 4} L{x + 4},{y_topo + 36}" stroke="#8a5a30" stroke-width="3"/>'
+        x += cw
+    o += f'<path d="M{x0},{y_topo + 20} H{x1}" stroke="{CORDA_D}" stroke-width="5"/>'   # cinta de corda
+    o += R(x0 - 6, y_topo + 40, w + 12, 14, "#9a6a3a", 2, 0.8, dark="#6e4a28")          # estrado
+    for k in range(int(w / 40)):
+        o += f'<rect x="{x0 + 10 + k * 40}" y="{y_topo + 54}" width="16" height="8" fill="#6e4a28"/>'
+    return o
+
+
+def plataforma_grua(x0, x1, y):
+    """Patamar de manutenção preso na TORRE da grua (QUEBRA): chapa xadrez com mão-francesa até a torre."""
+    o = passarela(x0, y, x1 - x0, 7)
+    o += f'<path d="M{x1 - 4},{y + 90} L{x0 + 24},{y + 30}" stroke="{ACO_D}" stroke-width="10" stroke-linecap="round"/>'
+    o += f'<path d="M{x1 - 4},{y + 90} L{x0 + 24},{y + 30}" stroke="{ACO}" stroke-width="5" stroke-linecap="round"/>'
+    return o
+
+
 # ---------------------------------------------------------------- palco e peças da cena 1 (mesma composição de hoje)
 def e1_palco_mar():
     """Lógica de sustentação (pedido do usuário: "a composição dos elementos não faz sentido"): TUDO que fica em pé tem
@@ -202,6 +263,7 @@ def e1_palco_mar():
     o += sign(23 * T, 13 * T - 60, "BOTA-ABAIXO", 170)
     o += estai(L, yt - 20, 13 * T, 9 * T) + estai(Rr, yt - 20, 17 * T, 9 * T)            # pontas de dentro do nível 9
     o += estai(L, yt - 20, 5 * T, 6 * T)                                                  # ponta de fora do nível 6 (esq.)
+    o += console(L - 14, 11 * T - 20, 5 * T + 16, 9 * T + 26) + console(Rr + 14, 11 * T - 20, 24 * T - 16, 9 * T + 26)   # degraus novos do nível 9
     o += amarra(L, 13 * T - 46, -1) + amarra(Rr, 13 * T - 46, 1)
     return o
 
@@ -212,19 +274,27 @@ def pecas_mar():
         "p1_andaime_1": passarela(17 * T - 6, 9 * T - 4, 4 * T + 12, 2),
         "p1_andaime_2": passarela(5 * T - 6, 6 * T - 4, 3 * T + 12, 3),
         "p1_andaime_3": passarela(22 * T - 6, 6 * T - 4, 6 * T + 12, 4),
-        "p1_viga_0": bote(20 * T - 10, 25 * T + 10, 3 * T, 1 * T + 6),
+        "p1_andaime_4": passarela(5 * T - 6, 9 * T - 4, 2 * T + 12, 5),     # NOVO: degrau do nível 9 (esq.), console no poste
+        "p1_andaime_5": passarela(22 * T - 6, 9 * T - 4, 2 * T + 12, 6),    # NOVO: degrau do nível 9 (dir.)
+        "p1_andaime_6": plataforma_grua(26 * T - 6, 28 * T, 3 * T - 4),      # NOVO: patamar na torre da grua
+        "p1_viga_0": carga_icada(20 * T - 10, 25 * T + 10, 3 * T, 1 * T - 4),   # a carga que a grua está içando
+        "p1_viga_1": bote_turcos(2 * T - 10, 6 * T + 10, 3 * T),            # NOVO: bote salva-vidas nos turcos do navio
     }
+
+
+NOVAS = [(5 * T - 6, 9 * T - 4, 2 * T + 12, 40), (22 * T - 6, 9 * T - 4, 2 * T + 12, 40), (26 * T - 6, 3 * T - 4, 2 * T + 6, 40),
+         (2 * T - 10, 3 * T, 4 * T + 20, 60)]
 
 
 def conteineres():
     o = ""
-    cores = [0, 1, 2, 3, 4, 5, 6]
+    cores = [0, 1, 2, 4, 5, 6]   # mesmas cores de antes (o laranja era o da boia, removido)
     for i, (cx, cy, cw, chh) in enumerate([[1, 11, 3, 1], [1, 12, 3, 1], [4, 12, 3, 1], [22, 12, 3, 1], [25, 11, 3, 1], [25, 12, 3, 1]]):
         o += conteiner(cx * T, cy * T, cw * T, chh * T, CONT[cores[i] % 7])
     return o
 
 
-def cena_depois():
+def cena_depois(marcar=False):
     defs = fp.fonte() + rough(seed=31, scale=0.8, freq=0.05) + fp.grad("c1ceu", [(0, "#f7b27a"), (0.45, "#e8988a"), (1, "#6f6aa0")])
     body = fp.c1_ceu() + fp.c1_longe() + fp.c1_navio_fundo() + e1_palco_mar() + "".join(pecas_mar().values()) + conteineres()
     body += robot("marretao", "parado", el.COLORS[0], 2 * T + 40, 11 * T, s=0.62)
@@ -232,6 +302,10 @@ def cena_depois():
     body += robot("chave", "parado", el.COLORS[2], 23 * T, 6 * T - 4, s=0.62)
     body += robot("britadeira", "parado", el.COLORS[3], 22 * T + 30, 3 * T, s=0.62, flip=True)
     body += fp.ondas_frente(MAR1, "#2f6f9f", "#9fd0ec", 16, 2)
+    if marcar:
+        for (x, y, w, h) in NOVAS:
+            body += f'<rect x="{x - 8}" y="{y - 10}" width="{w + 16}" height="{h + 20}" rx="10" fill="none" stroke="#3fe07a" stroke-width="5" stroke-dasharray="14 8"/>'
+            body += fp.tag(x + w / 2, y - 28, "NOVA")
     return doc(W, H, f'<g filter="url(#rough)">{body}</g>', defs)
 
 
@@ -239,7 +313,9 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     png = os.path.join(OUT, "plataformas_cena1_depois.png")
     queue(cena_depois(), os.path.join(HERE, "svg/fase2/plataformas_cena1_depois.svg"), png, W, H, 1)
-    print(render_all(), png)
+    png2 = os.path.join(OUT, "plataformas_cena1_novas.png")
+    queue(cena_depois(True), os.path.join(HERE, "svg/fase2/plataformas_cena1_novas.svg"), png2, W, H, 1)
+    print(render_all(), png, png2)
 
 
 if __name__ == "__main__":
