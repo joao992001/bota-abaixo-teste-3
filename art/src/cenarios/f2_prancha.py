@@ -332,40 +332,76 @@ def c2_ceu():
     return o
 
 
+def casco_fundo(pts_alto, pts_baixo, box, seed):
+    """Casco de navio de verdade: obras mortas azul-escuras, faixa branca, obras vivas vermelhas (antiferrugem)."""
+    o = PL(pts_alto, "#34506a", 2.4, dark="#243a50") + PL(pts_baixo, "#b5482f", 2.2, dark="#8a3524")
+    rnd = random.Random(seed)
+    x0, y0, x1, y1 = box
+    for k in range(int((x1 - x0) / 120)):   # chapas
+        x = x0 + 60 + k * 120
+        o += f'<path d="M{x},{y0 + 20} V{y1 - 10}" stroke="#2a4258" stroke-width="3" opacity="0.8"/>'
+    for _ in range(int((x1 - x0) / 60)):   # ferrugem escorrendo
+        x = rnd.uniform(x0 + 20, x1 - 20)
+        y = rnd.uniform(y0 + 30, y0 + 120)
+        o += f'<path d="M{x},{y} q5,30 -2,{rnd.uniform(40, 110)}" stroke="#a5523d" stroke-width="{rnd.uniform(3, 6):.1f}" fill="none" opacity="0.6"/>'
+    return o
+
+
 def c2_navio_fundo():
-    """Moldura: a proa tombada à esquerda (com o corte mostrando os andares) e a popa emborcada à direita."""
-    o = PL([(260, 640), (700, 590), (1200, 600), (1320, 640)], "#e6d6a8", 1.6)   # banco de areia onde encalhou
-    o += f'<g transform="rotate(-11 760 430)">'
-    o += PL([(250, 300), (1120, 300), (1120, 640), (300, 640)], "#b4664f", 2.4, dark="#8a4a38")
-    o += R(250, 288, 870, 16, "#7a7f8a", 2, 1.2)
+    """Moldura (não se pisa), 3 camadas: banco de areia · proa tombada (corte com os andares) · popa emborcada. Pintura de
+    navio de verdade, luz da manhã nas bordas de cima, sombra embaixo e reflexo na água."""
+    o = PL([(220, 640), (640, 584), (1240, 594), (1360, 640)], "#ead8a6", 1.6) + PL([(300, 640), (700, 604), (1200, 612), (1300, 640)], "#d9c38c", 1.2)
+    # ---- proa tombada (esquerda/centro)
+    o += '<g transform="rotate(-11 760 430)">'
+    o += casco_fundo([(250, 300), (1120, 300), (1120, 470), (285, 470)], [(285, 470), (1120, 470), (1120, 640), (320, 640)], (250, 300, 1120, 640), 41)
+    o += f'<rect x="270" y="462" width="850" height="14" fill="#f2efe6"/>'   # faixa branca da linha d'água
+    o += R(250, 288, 870, 16, "#8a909c", 2, 1.2) + f'<rect x="250" y="286" width="870" height="5" fill="#fff2c0" opacity="0.9"/>'   # luz no convés
     for x in range(260, 1110, 44):
-        o += f'<path d="M{x},288 v-30" stroke="#e9e2d2" stroke-width="3"/>'
-    o += f'<path d="M250,262 H1110" stroke="#e9e2d2" stroke-width="3"/>'
+        o += f'<path d="M{x},288 v-30" stroke="#f2efe6" stroke-width="3"/>'
+    o += f'<path d="M250,262 H1110" stroke="#f2efe6" stroke-width="3"/>'
     for k in range(7):
-        o += E(330 + k * 110, 370, 12, 12, "#4a3f44", 0.8)
-    rnd = random.Random(41)
-    for k in range(14):
-        x = rnd.uniform(270, 1080)
-        o += f'<path d="M{x},{rnd.uniform(320, 420)} q4,30 -2,{rnd.uniform(40, 90)}" stroke="#7a3424" stroke-width="4" fill="none" opacity="0.5"/>'
-    # corte aberto na quebra: andares por dentro, canos e cabos pendurados
-    o += R(1000, 310, 120, 320, "#3a2a2e", 2, 1.2)
+        o += E(330 + k * 110, 360, 13, 13, "#1e2c3a", 0.8) + f'<circle cx="{326 + k * 110}" cy="356" r="4" fill="#cfe6f4"/>'
+    o += f'<text x="640" y="430" font-family="Fredoka" font-weight="700" font-size="44" fill="#f2efe6" text-anchor="middle" opacity="0.85">ESTRELA DO SUL</text>'
+    o += E(330, 410, 34, 24, "#1e2c3a", 1.0) + f'<path d="M330,434 v90 M300,500 h60 M305,524 q25,22 50,0" stroke="#5a5f6a" stroke-width="8" fill="none"/>'   # âncora
+    for k, x in enumerate((520, 880)):   # boias penduradas
+        o += f'<circle cx="{x}" cy="320" r="18" fill="none" stroke="#f08a3d" stroke-width="9"/><path d="M{x},302 v-14" stroke="#f2efe6" stroke-width="3"/>'
+    rnd = random.Random(9)
+    for _ in range(28):   # cracas e algas na linha d'água
+        x = rnd.uniform(300, 1100)
+        o += E(x, rnd.uniform(560, 630), 6, 4, "#e8e0cc", 0.5)
+    for k in range(9):
+        x = 340 + k * 90
+        o += f'<path d="M{x},600 q-8,24 4,44" stroke="#3f8a4f" stroke-width="7" fill="none" stroke-linecap="round"/>'
+    # corte aberto na quebra: andares por dentro, canos e cabos pendurados, luz entrando
+    o += R(1000, 306, 120, 330, "#2a1f26", 2, 1.2)
     for k in range(3):
         o += R(1000, 360 + k * 90, 120, 12, "#8a8f9a", 2, 0.8)
         o += f'<path d="M1010,{372 + k * 90} q30,40 60,10" stroke="#c9a46a" stroke-width="3" fill="none"/>'
-    o += f'<path d="M1120,300 l18,26 l-14,18 l20,24 l-16,22 l22,24 l-18,26 l20,22" stroke="{INK}" stroke-width="4" fill="none"/>'
-    # contêineres escorregando pelo convés inclinado
+        o += R(1020 + k * 20, 320 + k * 90, 14, 40, "#5a6f8f", 2, 0.6)
+    o += f'<path d="M1000,306 L1120,306 L1060,640 Z" fill="#fff2c0" opacity="0.08"/>'
+    o += f'<path d="M1120,296 l18,26 l-14,18 l20,24 l-16,22 l22,24 l-18,26 l20,22 l-14,20 l18,24" stroke="{INK}" stroke-width="4" fill="none"/>'
     for k, (x, c) in enumerate([(700, 0), (860, 3)]):
-        o += f'<g transform="rotate({8 - k * 6} {x} 260)">' + R(x, 216, 130, 44, shade(CONT[c], -0.1), 2, 1.0) + "</g>"
-    o += gaivota(620, 210, 1.0, True) + gaivota(880, 212, 1.0, True)
+        o += f'<g transform="rotate({8 - k * 6} {x} 260)">' + R(x, 216, 130, 44, shade(CONT[c], -0.05), 2, 1.0) + "</g>"
+    o += gaivota(620, 262, 1.0, True) + gaivota(980, 262, 1.0, True)
+    o += f'<rect x="250" y="560" width="870" height="80" fill="#1a2f3a" opacity="0.18"/>'   # sombra embaixo
     o += "</g>"
-    # popa emborcada à direita: ponte de comando de lado, chaminé listrada
-    o += f'<g transform="rotate(14 1560 430)">'
-    o += PL([(1260, 320), (1960, 320), (2000, 640), (1290, 640)], "#b4664f", 2.4, dark="#8a4a38")
-    o += R(1500, 170, 240, 150, "#e6e8ee", 4, 1.4) + R(1520, 196, 60, 34, "#6a7a96", 3, 1.0) + R(1620, 196, 60, 34, "#6a7a96", 3, 1.0)
-    o += R(1770, 150, 70, 170, "#2f3f5a", 3, 1.2) + R(1770, 190, 70, 30, "#e0a83a", 2, 1.0)
-    o += R(1610, 120, 10, 50, "#8a8f9a", 2, 0.8) + gaivota(1560, 168, 1.0, True)
+    # ---- popa emborcada à direita (ponte de lado, chaminé listrada, hélice)
+    o += '<g transform="rotate(14 1560 430)">'
+    o += casco_fundo([(1260, 320), (1960, 320), (1975, 470), (1272, 470)], [(1272, 470), (1975, 470), (2000, 640), (1290, 640)], (1260, 320, 1960, 640), 43)
+    o += f'<rect x="1270" y="462" width="710" height="14" fill="#f2efe6"/>'
+    o += R(1500, 170, 240, 150, "#eef0f4", 4, 1.4, dark="#cfd3da") + f'<rect x="1500" y="168" width="240" height="6" fill="#fff2c0"/>'
+    for c in range(3):
+        o += R(1516 + c * 76, 196, 56, 32, "#5a6f8f", 3, 1.0) + R(1516 + c * 76, 248, 56, 32, "#5a6f8f", 3, 1.0)
+    o += R(1770, 140, 76, 180, "#2f3f5a", 3, 1.2) + R(1770, 176, 76, 34, "#e0a83a", 2, 1.0) + R(1770, 220, 76, 12, "#d14b4b", 2, 0.8)
+    o += R(1610, 110, 10, 60, "#8a8f9a", 2, 0.8) + R(1580, 120, 70, 8, "#8a8f9a", 2, 0.6) + gaivota(1560, 168, 1.0, True)
+    o += E(1880, 560, 34, 60, "#d9b46a", 1.2) + E(1880, 560, 10, 10, "#8a6b4f", 0.6)
+    o += f'<rect x="1270" y="560" width="720" height="80" fill="#1a2f3a" opacity="0.18"/>'
     o += "</g>"
-    o += f'<rect x="0" y="0" width="{W}" height="{MAR2}" fill="#fff4dc" opacity="0.38"/>'   # névoa dourada da manhã
+    # reflexos na água calma entre o banco de areia e o palco
+    for k in range(10):
+        x = 300 + k * 160
+        o += f'<path d="M{x},{650 + (k % 3) * 18} h{60 + (k % 4) * 20}" stroke="#ffffff" stroke-width="4" opacity="0.5"/>'
+    o += f'<rect x="0" y="0" width="{W}" height="{MAR2}" fill="#fff4dc" opacity="0.33"/>'   # névoa leve da manhã
     return o
 
 
@@ -426,6 +462,7 @@ def c2_palco():
     # ---- QUEBRA: pedaço do convés (com guarda-corpo) apoiado no arco — nível 8; escoras dobradas
     o += f'<g transform="rotate(-5 {15 * T} {8 * T})">'
     o += R(11 * T + 30, 8 * T, 7 * T, 26, "#6b6f7a", 2, 1.6, dark="#4a4f5a") + R(11 * T + 30, 8 * T + 26, 7 * T, 30, "#9a4a38", 2, 1.4, dark="#7a3424")
+    o += zebra(11 * T + 30, 8 * T - 6, 7 * T, 8)
     for x in range(11 * T + 40, 18 * T + 30, 44):
         o += f'<path d="M{x},{8 * T} v-34" stroke="#e9e2d2" stroke-width="4"/>'
     o += f'<path d="M{11 * T + 30},{8 * T - 30} H{18 * T + 30}" stroke="#e9e2d2" stroke-width="4"/>'
