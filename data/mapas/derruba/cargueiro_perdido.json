@@ -148,7 +148,18 @@
      ]
     ]
    },
-   "nota": "Ficha: cenas/atlantida.md. pranchas = lajes de mármore, laje-ponte, laje do topo, prancha do navio, bloco na corrente (posições absolutas do mundo)."
+   "nota": "Ficha: cenas/atlantida.md. pranchas = lajes de mármore, laje-ponte, laje do topo, prancha do navio, bloco na corrente (posições absolutas do mundo).",
+   "agua": {
+    "nota": "M7: a proa furou a cúpula e o lado direito fica alagado (fotografia 2b: colunas 20-29 abaixo da linha 10).",
+    "zonas": [
+     [
+      20,
+      10,
+      10,
+      6
+     ]
+    ]
+   }
   },
   {
    "id": "destrocos",

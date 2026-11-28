@@ -576,6 +576,7 @@ func demolicao_test() -> void:
 	await eventos_test()
 	await mapa_test()
 	await cargueiro_test()
+	await agua_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6489,7 +6490,7 @@ func cargueiro_test() -> void:
 	print("== Fase 2 · Cargueiro Perdido (bloco A)")
 	var m := MapaReg.manifesto("derruba", "cargueiro_perdido")
 	check(not m.is_empty() and MapaReg.validar(m).is_empty(), "manifesto do Cargueiro carrega e valida (%s)" % str(MapaReg.validar(m)))
-	check(MapaReg.rota("derruba", "cargueiro_perdido", 1, "total") == 2 and MapaReg.rota("derruba", "cargueiro_perdido", 1, "moderada") == 3 and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 2) and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 3), "Alto-Mar → Atlântida (total, 65%) ou Destroços (moderada, 40%); as duas são as últimas")
+	check(MapaReg.rota("derruba", "cargueiro_perdido", 1, "total") == 2 and MapaReg.rota("derruba", "cargueiro_perdido", 1, "moderada") == 3 and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 2) and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 3), "Alto-Mar → Atlântida (rota total) ou Destroços (rota moderada); as duas são as últimas")
 	check(not "cargueiro_perdido" in main.demo.find_mode("derruba").get("arenas", []), "ainda escondido do menu do Derruba (em construção)")
 	await _cargueiro_partida()
 	var L = main.level
@@ -6510,6 +6511,60 @@ func cargueiro_test() -> void:
 	check(ct.progresso(1) < 0.05, "manômetro começa zerado (%.0f%%)" % (ct.progresso(1) * 100.0))
 	await _cargueiro_rota("total", 2)
 	await _cargueiro_rota("moderada", 3)
+	main.go_menu()
+
+## Fase 2 bloco C: ÁGUA (regra-assinatura). Alagado: lento, pulo flutua, queda lenta, golpe joga longe; ao sair fica
+## molhado (lento por uns segundos) e volta ao normal; respingo ao entrar; mapa sem água não cria nada. --so=agua
+func agua_test() -> void:
+	print("== Fase 2 · ÁGUA (alagado / molhado)")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	var ag = main.demo.agua
+	check(ag != null and ag.zonas.size() >= 1, "o Cargueiro tem zonas de água (%d)" % (ag.zonas.size() if ag != null else 0))
+	et.ativo = true
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	await frames(30)
+	var r0 = main.robots[0]
+	var r1 = main.robots[1]
+	var z: Rect2 = ag.zonas[0]["rect"]
+	var cfg: Dictionary = ag.cfg
+	for r in main.robots:
+		r.invuln = 99.0
+	r1.active = false
+	put(r1, Vector2(main.level.etapa_rect(2).position.x + 300.0, r1.position.y))
+	put(r0, Vector2(z.get_center().x, z.position.y + 64.0))
+	var nb: int = ag.bits.size()
+	await frames(3)
+	check(ag.bits.size() > nb, "entrar na água faz respingo")
+	check(is_equal_approx(r0.agua_grav, float(cfg["gravidade"])) and is_equal_approx(r0.agua_queda, float(cfg["queda_max"])) and r0.env_slow <= float(cfg["corrida"]) + 0.001,
+		"alagado: gravidade ×%.2f (pulo flutua), queda ×%.2f, corrida ×%.2f (lido de modos.json)" % [r0.agua_grav, r0.agua_queda, r0.env_slow])
+	check(r1.agua_grav == 1.0 and r1.env_slow == 1.0, "quem está fora d'água fica normal")
+	r0.invuln = 0.0
+	r0.knock(1, 400.0, 300.0, 0.1)
+	check(is_equal_approx(r0.own_vx, 400.0 * float(cfg["empurrao"])), "golpe recebido na água joga longe (×%.2f)" % float(cfg["empurrao"]))
+	r0.invuln = 99.0
+	await frames(20)
+	put(r0, Vector2(main.level.etapa_rect(2).position.x + 400.0, r1.position.y))
+	await frames(3)
+	check(r0.agua_grav == 1.0 and r0.env_slow <= float(cfg["molhado_corrida"]) + 0.001, "saiu da água: molhado (corrida ×%.2f)" % r0.env_slow)
+	await frames(int(float(cfg["molhado_s"]) * 60.0) + 20)
+	check(r0.env_slow == 1.0, "secou: volta ao normal em %.0f s" % float(cfg["molhado_s"]))
+	main.go_menu()
+	main.game_mode = "derruba"
+	main.arena_choice = "canteiro_obras"
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.event_level = 0
+	main.start_match()
+	await demo_round()
+	check(main.demo.agua == null and main.robots.all(func(r): return r.agua_grav == 1.0), "mapa sem água (Canteiro): nada muda")
 	main.go_menu()
 
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).

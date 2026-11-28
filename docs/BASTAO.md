@@ -39,12 +39,14 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Arquivos reservados: `game/modes/agua.gd` (novo), `game/player/robot.gd` (agua_*), `game/modes/mecanismos.gd`,
   `data/mapas/derruba/cargueiro_perdido.json`, `data/modos.json` (demolicao.agua)
 - Passos:
-  - [ ] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
+  - [x] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
         `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
   - [ ] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste
   - [ ] 3. M-perigos da cena 2a (M4 maré etc.) e 2b (M7 cúpula etc.) + M10 tubarão
-- **Próximo passo exato:** passo 1 — escrever `game/modes/agua.gd`; criar em `demolicao.gd` junto do `mecs` (~linha 172,
-  quando o manifesto tiver `agua`), atualizar depois do `mecs.update` (~linha 233).
+- **Próximo passo exato:** passo 2 — ler `docs/fases/derruba/f2_cargueiro/perigos_mecanismos.md` (M1–M3 da cena 1) e o
+  padrão de um mecanismo existente em `game/modes/mecanismos.gd` (tipo, `setup`, `update`, `_draw`, `hammer_hit`, `zonas_perigo`);
+  pôr M1 no manifesto (`cenas[alto_mar].mecanismos`) e no código, com teste. Pendente pequeno: som "agua" (respingo) não
+  existe ainda (Audio ignora em silêncio) — criar com `tools/sfxforge.py`.
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

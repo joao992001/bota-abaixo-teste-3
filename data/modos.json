@@ -1327,6 +1327,15 @@
       ],
       "conflitos_nota": "Pares que nunca rodam juntos (Relatório 04 §6.5 + segurança de geometria). Até max_simultaneos[intensidade] eventos compatíveis ao mesmo tempo."
     },
+    "agua": {
+      "nota": "Regra-assinatura ÁGUA da Fase 2 (A55, docs/fases/derruba/f2_cargueiro/README.md; modes/agua.gd). Alagado: corrida x corrida, gravidade x gravidade, queda máx x queda_max (pulo flutua), golpe recebido x empurrao. Molhado (onda): corrida x molhado_corrida por molhado_s. Zonas por cena no manifesto (cenas[].agua.zonas, tiles da cena).",
+      "corrida": 0.6,
+      "gravidade": 0.55,
+      "queda_max": 0.5,
+      "empurrao": 1.25,
+      "molhado_corrida": 0.8,
+      "molhado_s": 2.0
+    },
     "etapas": {
       "nota": "Cinematografia da transição entre cenas (aviso, desabamento, queda lenta, câmera que desce junto). O GATILHO agora é a destruição (modos[derruba].destruicao), não o tempo. Rota moderada com destino AO LADO (Fachada): todos escorregam num arco em deslize_s até as pranchas de cima.",
       "aviso_s": 3.0,
