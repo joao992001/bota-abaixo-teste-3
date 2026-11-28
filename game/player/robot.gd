@@ -149,11 +149,15 @@ func _physics_process_perf(dt: float) -> void:
 		_dead_fall(dt)
 		return
 	if not active or finished:
+		var _qvisual1 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual1)
 		return
 	if hitstop > 0.0:
 		hitstop -= dt
+		var _qvisual2 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual2)
 		return
 	var ix := _ix()
 	var on_floor := is_on_floor()
@@ -185,33 +189,47 @@ func _physics_process_perf(dt: float) -> void:
 	last_hit += dt
 	if climb_t >= 0.0:
 		_climb_update(dt)
+		var _qvisual3 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual3)
 		return
 	if forced_t > 0.0:
 		forced_t -= dt
 		hanging = false
 		velocity = forced_vel
 		own_vx = forced_vel.x
+		var _qmover1 := Perf.t0()
 		move_and_slide()
+		Perf.add("sub_rob_mover", _qmover1)
 		if forced_t <= 0.0 and forced_vel.y < -100.0:
 			velocity.y = forced_vel.y * 0.4
 		was_on_floor = is_on_floor()
+		var _qcontatos1 := Perf.t0()
 		main.check_contacts(self)
+		Perf.add("sub_rob_contatos", _qcontatos1)
+		var _qvisual4 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual4)
 		return
 	if hanging:
 		_hang_update(dt)
+		var _qvisual5 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual5)
 		return
 	if dodge_t > 0.0:
 		_dodge_update(dt)
+		var _qvisual6 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual6)
 		return
 	if spell_form == "bola":
 		_ball_update(dt, ix, on_floor)
 		return
 	if _pressed("item") and main.demo.spells != null:
-		main.demo.spells.press(self)   # botão de especial (spell equipada / troca segurando sobre a caixa)
+		var _qengenhoca1 := Perf.t0()
+		main.demo.spells.press(self)
+		Perf.add("sub_rob_engenhoca", _qengenhoca1)
 	# timers
 	coyote = maxf(coyote - dt, 0.0)
 	buffer = maxf(buffer - dt, 0.0)
@@ -307,7 +325,9 @@ func _physics_process_perf(dt: float) -> void:
 	# golpes e esquiva
 	if _pressed("dodge") and _can_dodge(on_floor):
 		_start_dodge(on_floor)
+		var _qvisual7 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual7)
 		return
 	if atk == "" and atk_cd <= 0.0 and poeira_t <= 0.0:   # D04: dentro da poeira não ataca
 		if _pressed("heavy"):
@@ -323,7 +343,9 @@ func _physics_process_perf(dt: float) -> void:
 		atk = ""
 		_pick_quick(on_floor)
 	if atk != "":
+		var _qgolpe1 := Perf.t0()
 		_attack_update(dt, on_floor)
+		Perf.add("sub_rob_golpe", _qgolpe1)
 	# mover
 	land_v = velocity.y
 	if ancora_t > 0.0:   # D01: preso ao contrapeso — só o próprio passo (devagar), nada de fora move
@@ -336,7 +358,9 @@ func _physics_process_perf(dt: float) -> void:
 	_corner_correction(dt)
 	var vx_pre := velocity.x
 	crash_cd = maxf(crash_cd - dt, 0.0)
+	var _qmover2 := Perf.t0()
 	move_and_slide()
+	Perf.add("sub_rob_mover", _qmover2)
 	if is_on_wall() and (stun_t > 0.0 or recover_t > 0.0) and absf(vx_pre) > 620.0 and crash_cd <= 0.0 and main.mode == "demolicao":
 		crash_cd = 0.4   # A47: ARREMESSADO contra parede/bloco: racha
 		main.demo.luta_quebra(self, position + Vector2(signf(vx_pre) * 30.0, -36.0), 2 if absf(vx_pre) > 1000.0 else 1)
@@ -361,8 +385,12 @@ func _physics_process_perf(dt: float) -> void:
 		_on_landed()
 	if floor_piece != null and is_instance_valid(floor_piece):
 		floor_piece.on_stand(self)
+	var _qcontatos2 := Perf.t0()
 	main.check_contacts(self)
+	Perf.add("sub_rob_contatos", _qcontatos2)
+	var _qvisual8 := Perf.t0()
 	vis.tick(self, dt)
+	Perf.add("sub_rob_visual", _qvisual8)
 
 func _held(a: String) -> bool:
 	return stun_t <= 0.0 and not spell_lock and PlayerInput.held(pid, a)

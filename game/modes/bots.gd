@@ -412,6 +412,12 @@ func _reach(L, a: Vector2i, b: Vector2i) -> bool:
 ## Sair andando para a coluna c é seguro? Chão na mesma altura (e sem parede) ou um vão cujo primeiro piso embaixo dá para
 ## ficar em pé (nunca espinho, água ou o fundo do mapa).
 func _queda_segura(L, c: int, row: int) -> bool:
+	var _pf := Perf.t0()
+	var _r = _queda_segura_perf(L, c, row)
+	Perf.add("sub_bot_queda", _pf)
+	return _r
+
+func _queda_segura_perf(L, c: int, row: int) -> bool:
 	if L.is_solid(Vector2i(c, row)):
 		return not L.is_solid(Vector2i(c, row - 1))
 	for y in range(row + 1, L.rows):
@@ -437,18 +443,9 @@ var _busca = null   # {g, L, linhas, dist, queue, qi}
 func _nova_busca(L, g: Vector2i) -> Dictionary:
 	var ar: Rect2 = L.area if L.get("area") != null and L.area.size.x > 0.0 else Rect2(0, 0, L.cols * 64.0, L.rows * 64.0)
 	var y0 := maxi(1, int(ar.position.y / 64.0) - 2)
-	var y1 := mini(L.rows, int(ar.end.y / 64.0) + 2)
-	var x0 := maxi(1, int(ar.position.x / 64.0) - 1)
-	var x1 := mini(L.cols - 1, int(ar.end.x / 64.0) + 1)
-	var linhas := {}   # y -> [x...] das células em pé (só elas podem ser origem de um passo)
-	for y in range(y0, y1):
-		var xs := []
-		for x in range(x0, x1):
-			if _standable(L, Vector2i(x, y)):
-				xs.append(x)
-		if not xs.is_empty():
-			linhas[y] = xs
-	return {"g": g, "L": L, "linhas": linhas, "dist": {g: 0}, "queue": [g], "qi": 0}
+	return {"g": g, "L": L, "linhas": {}, "dist": {g: 0}, "queue": [g], "qi": 0,
+		"y": y0, "y1": mini(L.rows, int(ar.end.y / 64.0) + 2),
+		"x0": maxi(1, int(ar.position.x / 64.0) - 1), "x1": mini(L.cols - 1, int(ar.end.x / 64.0) + 1)}
 
 ## Avança a busca em andamento (uma vez por quadro, até NAV_FATIA_MS); quando termina, guarda em _navs.
 func _avanca_busca() -> void:
@@ -463,6 +460,19 @@ func _avanca_busca() -> void:
 	var dist: Dictionary = bz["dist"]
 	var queue: Array = bz["queue"]
 	var qi: int = bz["qi"]
+	# 1º: as células em pé da cena, linha por linha (também dentro da fatia de tempo)
+	while int(bz["y"]) < int(bz["y1"]):
+		var y: int = bz["y"]
+		var xs := []
+		for x in range(int(bz["x0"]), int(bz["x1"])):
+			if _standable(L, Vector2i(x, y)):
+				xs.append(x)
+		if not xs.is_empty():
+			linhas[y] = xs
+		bz["y"] = y + 1
+		if (Time.get_ticks_usec() - t0) / 1000.0 > NAV_FATIA_MS:
+			Perf.add("sub_bot_busca", _pf)
+			return
 	var n := 0
 	while qi < queue.size():
 		var b: Vector2i = queue[qi]
@@ -528,6 +538,12 @@ func _nav_step(from: Vector2i, goal: Vector2) -> Vector2i:
 ## Subir até um objetivo no alto: escolhe um degrau (chão com espaço em cima, 1–3 linhas acima e perto)
 ## que aproxime do objetivo; tábuas dão para atravessar por baixo, blocos sólidos ele pega pela lateral.
 func _climb(r, goal: Vector2, lv: Dictionary) -> Dictionary:
+	var _pf := Perf.t0()
+	var _r = _climb_perf(r, goal, lv)
+	Perf.add("sub_bot_sobe", _pf)
+	return _r
+
+func _climb_perf(r, goal: Vector2, lv: Dictionary) -> Dictionary:
 	var L = main.level
 	var pos: Vector2 = r.position
 	var cmd := {"dir": 0}
@@ -593,6 +609,12 @@ func _climb(r, goal: Vector2, lv: Dictionary) -> Dictionary:
 ## Segurança: olha à frente o quanto o robô anda até a próxima decisão; não entra em buraco sem chão
 ## alcançável do outro lado (pula vãos, inclusive de 1 caixote, e paredes).
 func _safe(r, cmd: Dictionary, lv: Dictionary, may_distract := true) -> Dictionary:
+	var _pf := Perf.t0()
+	var _r = _safe_perf(r, cmd, lv, may_distract)
+	Perf.add("sub_bot_seguro", _pf)
+	return _r
+
+func _safe_perf(r, cmd: Dictionary, lv: Dictionary, may_distract := true) -> Dictionary:
 	var L = main.level
 	var dir: int = cmd.get("dir", 0)
 	if dir == 0 or not r.is_on_floor():

@@ -108,10 +108,15 @@ func ch_at(c: Vector2i) -> String:
 		return "#"
 	return String(grid[c.y])[c.x]
 
+## Caracteres sólidos numa tabela fixa (desempenho, 2026-11-28): is_solid é chamado milhares de vezes por quadro (bots,
+## renascimento, eventos) e montava uma lista nova de 14 textos a cada chamada.
+const SOLIDOS := {"#": true, "o": true, "I": true, "d": true, "T": true, "<": true, ">": true, "F": true, "f": true,
+	"P": true, "B": true, "a": true, "D": true, "J": true}
+
 func is_solid(c: Vector2i) -> bool:
 	if (c.x < 0 or c.y < 0 or c.x >= cols or c.y >= rows) and props.has("ko"):
 		return false   # arena com zona de KO: fora do mapa é vazio (abismo), não parede
-	if ch_at(c) in ["#", "o", "I", "d", "T", "<", ">", "F", "f", "P", "B", "a", "D", "J"]:
+	if SOLIDOS.has(ch_at(c)):
 		return true
 	return extra_solid.is_valid() and extra_solid.call(c)
 
