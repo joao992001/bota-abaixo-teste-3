@@ -32,18 +32,24 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-(nenhum)
+### Fase 2 · bloco B (arte da cena viva do Cargueiro Perdido)
+- Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
+- Pedido do usuário: "pode ir adiantando a criação do mapa 2; quando eu testar o mapa 1 a gente interrompe e corrige a gameplay"
+  (bugs/gameplay relatados pelo usuário passam na FRENTE: devolva este bloco à FILA com o próximo passo e atenda)
+- Arquivos reservados: `art/src/cenarios/f2_jogo.py`, `game/assets/cargueiro/`, `game/modes/cena.gd`, `levels/cargueiro_perdido.lvl`
+- Passos:
+  - [ ] 1. Ler `fase1_jogo.py`, `f2_prancha.py` e `cena.gd` (como a fase 1 monta camadas e sprites)
+  - [ ] 2. `f2_jogo.py`: exportar as camadas PARADAS das 3 cenas para `game/assets/cargueiro/` + `--import`
+  - [ ] 3. `cena.gd`: generalizar as listas da fase 1 por tema (`cena: cargueiro` no `.lvl`) e mostrar os fundos
+  - [ ] 4. Sprites que mexem (ondas, gaivotas, bolhas, águas-vivas) + captura `--cargueiro=DIR` comparando com as fotografias
+- **Próximo passo exato:** passo 1 — ler `art/src/cenarios/fase1_jogo.py` (export) e `game/modes/cena.gd` (listas da fase 1).
+- Decisões pendentes do usuário: nenhuma (tudo aprovado no A55).
 
 ## AGUARDANDO USUÁRIO
 
 (nenhum)
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
-- **Fase 2 · bloco B (arte da cena viva)** — próximo da fase (usuário aprovou tudo, A55). Método `docs/manuais/derruba/mapa.md`
-  §3 B: copiar `art/src/cenarios/fase1_jogo.py` → `f2_jogo.py`, tirar as camadas PARADAS das fotografias
-  (`art/src/cenarios/f2_prancha.py`: c1_ceu/c1_longe/c1_navio_fundo, c2_ceu/c2_navio_fundo, c3_agua/c3_cidade_fundo/c3_cupula)
-  para `game/assets/cargueiro/`, `--import`, props `cena: cargueiro` no `.lvl`; generalizar `game/modes/cena.gd` (as listas da
-  fase 1). Conferir com `--cargueiro=DIR` (captura atual, arte provisória: `art/out/fase2/jogo/bloco_a_cenas.png`).
 - **Fase 2 · bloco C (água + perigos M1–M10)** e **D (contêineres)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
