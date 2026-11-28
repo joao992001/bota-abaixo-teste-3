@@ -136,6 +136,12 @@ func _robot_of(dev: String):
 	return main.robots[i]
 
 func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
+	var _pf := Perf.t0()
+	var _r = _decide_perf(r, lv, st)
+	Perf.add("sub_bot_decide", _pf)
+	return _r
+
+func _decide_perf(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 	if r.drop_t > 0.0 and not r.is_on_floor():
 		return {"dir": 0}   # descendo pendurado no guindaste (renascimento): espera pousar
 	var L = main.level
@@ -367,16 +373,14 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 
 ## Caminho até o objetivo: distância (em pulos) de cada degrau até o degrau do objetivo, calculada de trás
 ## para a frente e guardada enquanto o objetivo não muda de célula. Devolve o próximo degrau (ou -1).
-## Rotas por ALVO (desempenho, sonda Perf 2026-11-27): antes era UM cache para os 4 bots — cada um com alvo diferente
-## refazia a busca no mapa todo a cada 0,5 s (pico de ~20–30 ms) e os outros usavam a rota do alvo errado.
-## Agora: uma rota por célula-alvo (vale nav_ttl s), no máximo UM recálculo por quadro; células "em pé" cacheadas.
-var _navs := {}                # célula-alvo -> {dist, t}
+## Caminhos por DESTINO (desempenho, 2026-11-27): cada destino guarda o seu mapa de distâncias por até NAV_VALIDADE s
+## (antes era um só para os 4 bots: cada destino diferente refazia a busca e vários bots refaziam no mesmo quadro →
+## picos de 7–14 ms). No máximo UMA busca nova por quadro; quem não conseguiu usa a guardada (ou espera 1 quadro).
+const NAV_VALIDADE := 0.6
+const NAV_MAX := 16
+var _navs := {}          # célula-destino -> {dist, t}
 var _nav_lv = null
-var _nav_ok := {}
-var _nav_ok_t := -99.0
-var _nav_frame := -1
-const NAV_TTL := 1.0
-const NAV_OK_TTL := 1.0
+var _nav_quadro := -1
 
 func _standable(L, c: Vector2i) -> bool:
 	var ch: String = L.ch_at(c)
@@ -424,50 +428,88 @@ func _goal_cell(L, goal: Vector2) -> Vector2i:
 			return Vector2i(gx, gy + k)
 	return Vector2i(-1, -1)
 
+## Busca de distâncias (passos) até g, para trás a partir do destino, FATIADA (desempenho, 2026-11-28): uma busca inteira
+## custava 13–16 ms num quadro só. Agora só a cena atual entra (não o mapa todo) e a busca anda no máximo
+## NAV_FATIA_MS por quadro; enquanto não termina, o bot usa a anterior (ou segue o próprio instinto por um instante).
+const NAV_FATIA_MS := 1.2
+var _busca = null   # {g, L, linhas, dist, queue, qi}
+
+func _nova_busca(L, g: Vector2i) -> Dictionary:
+	var ar: Rect2 = L.area if L.get("area") != null and L.area.size.x > 0.0 else Rect2(0, 0, L.cols * 64.0, L.rows * 64.0)
+	var y0 := maxi(1, int(ar.position.y / 64.0) - 2)
+	var y1 := mini(L.rows, int(ar.end.y / 64.0) + 2)
+	var x0 := maxi(1, int(ar.position.x / 64.0) - 1)
+	var x1 := mini(L.cols - 1, int(ar.end.x / 64.0) + 1)
+	var linhas := {}   # y -> [x...] das células em pé (só elas podem ser origem de um passo)
+	for y in range(y0, y1):
+		var xs := []
+		for x in range(x0, x1):
+			if _standable(L, Vector2i(x, y)):
+				xs.append(x)
+		if not xs.is_empty():
+			linhas[y] = xs
+	return {"g": g, "L": L, "linhas": linhas, "dist": {g: 0}, "queue": [g], "qi": 0}
+
+## Avança a busca em andamento (uma vez por quadro, até NAV_FATIA_MS); quando termina, guarda em _navs.
+func _avanca_busca() -> void:
+	if _busca == null or Engine.get_physics_frames() == _nav_quadro:
+		return
+	_nav_quadro = Engine.get_physics_frames()
+	var _pf := Perf.t0()
+	var t0 := Time.get_ticks_usec()
+	var bz: Dictionary = _busca
+	var L = bz["L"]
+	var linhas: Dictionary = bz["linhas"]
+	var dist: Dictionary = bz["dist"]
+	var queue: Array = bz["queue"]
+	var qi: int = bz["qi"]
+	var n := 0
+	while qi < queue.size():
+		var b: Vector2i = queue[qi]
+		qi += 1
+		for y in range(b.y - 8, b.y + 7):   # quem chega em b: até 6 abaixo (trampolim) ou caindo de até 8 acima
+			if not linhas.has(y):
+				continue
+			for x in linhas[y]:
+				if x < b.x - 5 or x > b.x + 5:
+					continue
+				var a := Vector2i(x, y)
+				if not dist.has(a) and _reach(L, a, b):
+					dist[a] = int(dist[b]) + 1
+					queue.append(a)
+		n += 1
+		if n % 6 == 0 and (Time.get_ticks_usec() - t0) / 1000.0 > NAV_FATIA_MS:
+			break
+	bz["qi"] = qi
+	Perf.add("sub_bot_busca", _pf)
+	if qi >= queue.size():
+		_navs[bz["g"]] = {"dist": dist, "t": Time.get_ticks_msec() / 1000.0}
+		_busca = null
+		if _navs.size() > NAV_MAX:   # joga fora o mais velho
+			var velho = null
+			for k in _navs:
+				if velho == null or float(_navs[k]["t"]) < float(_navs[velho]["t"]):
+					velho = k
+			_navs.erase(velho)
+
 func _nav_step(from: Vector2i, goal: Vector2) -> Vector2i:
 	var L = main.level
 	var g := _goal_cell(L, goal)
 	if g.x < 0 or not _standable(L, from):
 		return Vector2i(-1, -1)
 	var now := Time.get_ticks_msec() / 1000.0
-	if _nav_lv != L:
-		_nav_lv = L
+	if _nav_lv != L or (_busca != null and _busca["L"] != L):
 		_navs.clear()
-		_nav_ok_t = -99.0
+		_busca = null
+		_nav_lv = L
 	var e = _navs.get(g)
-	if e == null or now - float(e["t"]) > NAV_TTL:
-		if Engine.get_physics_frames() == _nav_frame and e != null:
-			pass   # já houve um recálculo neste quadro: usa a rota antiga (um pouco velha) e refaz no próximo
-		elif Engine.get_physics_frames() == _nav_frame:
-			return Vector2i(-1, -1)   # sem rota ainda e o quadro já gastou o seu recálculo: decide pelo resto
-		else:
-			_nav_frame = Engine.get_physics_frames()
-			if now - _nav_ok_t > NAV_OK_TTL:   # células onde dá para ficar em pé (o mapa muda devagar: blocos quebram)
-				_nav_ok = {}
-				for y in range(1, L.rows):
-					for x in range(1, L.cols - 1):
-						if _standable(L, Vector2i(x, y)):
-							_nav_ok[Vector2i(x, y)] = true
-				_nav_ok_t = now
-			var ok: Dictionary = _nav_ok
-			var dist := {g: 0}
-			var queue: Array = [g]
-			var qi := 0
-			while qi < queue.size():
-				var b0: Vector2i = queue[qi]
-				qi += 1
-				for y in range(b0.y - 8, b0.y + 7):   # quem chega em b0: até 6 abaixo (trampolim) ou caindo de até 8 acima
-					for x in range(b0.x - 5, b0.x + 6):
-						var a0 := Vector2i(x, y)
-						if ok.has(a0) and not dist.has(a0) and _reach(L, a0, b0):
-							dist[a0] = int(dist[b0]) + 1
-							queue.append(a0)
-			e = {"dist": dist, "t": now}
-			_navs[g] = e
-			if _navs.size() > 12:   # limpa alvos antigos
-				for k in _navs.keys():
-					if now - float(_navs[k]["t"]) > NAV_TTL * 2.0:
-						_navs.erase(k)
+	if e == null or now - float(e["t"]) > NAV_VALIDADE:
+		if _busca == null:
+			_busca = _nova_busca(L, g)
+		_avanca_busca()
+		e = _navs.get(g)
+		if e == null:
+			return Vector2i(-1, -1)   # a busca deste destino ainda está andando: o bot segue o instinto por um instante
 	var d: Dictionary = e["dist"]
 	if not d.has(from) or int(d[from]) == 0:
 		return Vector2i(-1, -1)

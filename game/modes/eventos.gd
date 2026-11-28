@@ -66,6 +66,8 @@ func reset_round() -> void:
 	crates.clear()
 	rivets.clear()
 	bits.clear()
+	_fila.clear()
+	_fila_viva = false
 	gravity_mult = 1.0
 	wind = 0.0
 	var lvl: int = main.event_level
@@ -198,9 +200,13 @@ func update(dt: float) -> void:
 	front.queue_redraw()
 	for r in main.robots:
 		r.env_slow = 1.0   # lentidão do ambiente: eventos e mecanismos somam neste quadro
+	var _pb := Perf.t0()
 	_update_bits(dt)
+	Perf.add("sub_ev_particulas", _pb)
+	_pb = Perf.t0()
 	_update_crates(dt)
 	_update_rivets(dt)
+	Perf.add("sub_ev_caixas_rebites", _pb)
 	wind = 0.0
 	gravity_mult = 1.0
 	if main.event_level <= 0 or main.state != main.S.RUN or main.countdown > 0.0:
@@ -210,17 +216,52 @@ func update(dt: float) -> void:
 	if not manual and not virando and active.size() < max_sim():
 		timer -= dt
 		if timer <= 0.0:
-			var pool: Array = cfg["lista"].filter(func(e): return compatible(e["id"]) and eligible(e))
-			if pool.is_empty():
-				timer = 3.0
-			else:
-				var other := pool.filter(func(e): return fired.is_empty() or e["id"] != fired[-1])
-				var src: Array = other if not other.is_empty() else pool
-				_announce(src[main.rng.randi() % src.size()], -1.0)
-				timer = float(cfg["intervalo_s"][main.event_level]) * main.rng.randf_range(0.8, 1.2)
+			_sorteia_aos_poucos()
 	for a in active.duplicate():
+		var _pe := Perf.t0()
 		_step(a, dt)
+		Perf.add("ev_%s_%s" % [String(a.get("id", "?")), String(a.get("phase", ""))] if Perf.on else "", _pe)
 	wind = clampf(wind, -float(cfg["vento_max"]), float(cfg["vento_max"]))
+
+## Sorteio do próximo evento ESPALHADO EM QUADROS (desempenho, 2026-11-28): testar se cada evento cabe na cena (lugares
+## livres, guindaste, andaimes...) custava 8–19 ms quando os 14 eram testados de uma vez. Agora a fila sai embaralhada e
+## no máximo SORTEIO_POR_QUADRO são testados por quadro; o primeiro que couber é o sorteado (mesma chance para todos os
+## que cabem). O último disparado vai para o fim da fila (só repete se nenhum outro couber).
+const SORTEIO_POR_QUADRO := 2
+var _fila: Array = []
+var _fila_viva := false
+
+func _sorteia_aos_poucos() -> void:
+	if not _fila_viva:
+		var ultimo = null
+		_fila = []
+		for e in cfg["lista"]:
+			if not fired.is_empty() and e["id"] == fired[-1]:
+				ultimo = e
+			else:
+				_fila.append(e)
+		for i in range(_fila.size() - 1, 0, -1):   # embaralha com o rng da partida (repetível)
+			var j: int = main.rng.randi_range(0, i)
+			var tmp = _fila[i]
+			_fila[i] = _fila[j]
+			_fila[j] = tmp
+		if ultimo != null:
+			_fila.append(ultimo)
+		_fila_viva = true
+	var n := 0
+	while not _fila.is_empty() and n < SORTEIO_POR_QUADRO:
+		var e: Dictionary = _fila.pop_front()
+		n += 1
+		if compatible(e["id"]) and eligible(e):
+			var _pa := Perf.t0()
+			_announce(e, -1.0)
+			Perf.add("ev_anuncio", _pa)
+			timer = float(cfg["intervalo_s"][main.event_level]) * main.rng.randf_range(0.8, 1.2)
+			_fila_viva = false
+			return
+	if _fila.is_empty():   # nenhum cabe agora: tenta de novo daqui a pouco
+		_fila_viva = false
+		timer = 3.0
 
 func _step(a: Dictionary, dt: float) -> void:
 	a["age"] += dt

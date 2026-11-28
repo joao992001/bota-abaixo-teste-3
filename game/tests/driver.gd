@@ -5918,6 +5918,9 @@ func stats_run(rounds_per_arena: int) -> void:
 ## Grava DIR/quadros.json e DIR/relatorio.md (picos com o que estava acontecendo + ranking por sistema e por contexto).
 const PERF_FILHOS := ["eventos", "etapas_mecanismos", "arena_fx", "engenhocas"]   # já dentro de demo_total
 
+func _perf_filho(k: String) -> bool:   # medidas que já estão somadas dentro de outra (não somar duas vezes)
+	return k in PERF_FILHOS or k.begins_with("ev_") or k.begins_with("hud_") or k.begins_with("sub_")
+
 func _perf_tags() -> Array:
 	var tags := []
 	for a in main.events.active:
@@ -6006,7 +6009,7 @@ func perf_derruba(dir: String) -> void:
 		var sis: Dictionary = Perf.take()
 		var cpu := 0.0
 		for k in sis:
-			if not k in PERF_FILHOS:
+			if not _perf_filho(k):
 				cpu += float(sis[k])
 		var rcpu := RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu()
 		quadros.append({"f": f, "real": (now - last) / 1000.0, "cpu": cpu, "render": rcpu, "sis": sis,
@@ -6065,7 +6068,7 @@ func _perf_relatorio(q: Array, modo: String, rota: String) -> String:
 	nomes.sort_custom(func(a, b): return media.call(sist[a]) > media.call(sist[b]))
 	o += "## Por sistema (ms por quadro)\n| sistema | média | p99 | máx |\n|---|---|---|---|\n"
 	for k in nomes:
-		o += "| %s%s | %.3f | %.3f | %.3f |\n" % [k, " (dentro de demo_total)" if k in PERF_FILHOS else "", media.call(sist[k]), _pct(sist[k], 0.99), _pct(sist[k], 1.0)]
+		o += "| %s%s | %.3f | %.3f | %.3f |\n" % [k, " (parte de outra)" if _perf_filho(k) else "", media.call(sist[k]), _pct(sist[k], 0.99), _pct(sist[k], 1.0)]
 	# por contexto
 	var base := q.filter(func(x): return x["tags"].is_empty()).map(func(x): return float(x["cpu"]))
 	var mb: float = media.call(base)
