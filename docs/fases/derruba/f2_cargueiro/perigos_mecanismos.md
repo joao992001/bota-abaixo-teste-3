@@ -1,10 +1,14 @@
-# perigos e mecanismos — CARGUEIRO PERDIDO  (cada um com apoio físico)
+# Perigos e mecanismos — CARGUEIRO PERDIDO (instâncias: manifesto → `cenas[].mecanismos`; prancha `art/out/fase2/perigos.png`)
 
-| Id | Elemento | Cena | Apoio físico | Estado |
-|---|---|---|---|---|
-| — | Ondas no convés (empurram de tempos em tempos) | 1 | o mar bate na borda do casco | PROPOSTO |
-| — | Guindaste do navio (gancho balança e derruba contêiner) | 1 | coluna presa no convés | PROPOSTO |
-| — | Maré (sobe e desce, alaga a parte baixa) | 2a | a praia de rochas | PROPOSTO |
-| — | Contêiner boiando (plataforma que balança) | 2a | flutua na água | PROPOSTO |
-| — | Cúpula de vidro (quebrou = alaga aquele lado) | 2b | assenta nas muralhas do templo | PROPOSTO |
-| — | Concha-trampolim (abre e fecha, lança alto) | 2b | presa no chão do templo | PROPOSTO |
+| Id | Elemento | Cena | Classe | Aviso (1 s) → efeito | Estado |
+|---|---|---|---|---|---|
+| M1 | Contêiner despenca do navio | 1 | perigo | amarras estalam + SOMBRA VERMELHA (1,5 s) → golpe forte, racha a plataforma; fica como plataforma nova (ou afunda no mar); ~20 s, lugar sorteado | PROPOSTO (ideia do usuário) |
+| M2 | Gancho balança | 1 | mecanismo perigoso | grua range + arco tracejado → o contêiner varre o arco e empurra; marretada inverte; ~12 s | PROPOSTO |
+| M3 | Onda estoura na balsa | 1 | perigo | água incha na borda (1 s) → empurra + MOLHADO (lento) 2 s; só balsas; ~15 s alternando | PROPOSTO |
+| M4 | Maré sobe e desce | 2a | perigo | seta + som → até a linha da maré alta fica ALAGADO (lento, pulo flutua); o que boia sobe; ~8 s; a cada ~25 s | PROPOSTO |
+| M5 | Contêiner boiando vira | 2a | mecanismo perigoso | 2+ robôs: range e afunda um lado → em 1 s vira e joga na água; volta em ~4 s | PROPOSTO |
+| M6 | Rede de carga rasga | 2a | mecanismo perigoso | marretada pesada → rasga, caixas caem em quem está embaixo; vira saco vazio | PROPOSTO |
+| M7 | Racha da cúpula alaga | 2b | perigo | racha pinga/brilha → lado direito alagado; marretada no vidro faz crescer; evento Bolhão de Ar baixa | PROPOSTO |
+| M8 | Lustre despenca | 2b | mecanismo perigoso | marretada na corrente → estala + SOMBRA VERMELHA (1 s) → esmaga e racha a plataforma; some | PROPOSTO |
+| M9 | Concha-trampolim | 2b | mecanismo | pisou: lança alto; depois FECHA 2 s e prende (marretada abre) | PROPOSTO |
+Perigo estrutural (KO): mar embaixo (1, 2a) e Fenda Abissal (2b); bordas abertas. Tubarão: ideia guardada para evento.
