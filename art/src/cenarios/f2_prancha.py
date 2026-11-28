@@ -354,7 +354,7 @@ def c2_navio_fundo():
         o += f'<path d="M1010,{372 + k * 90} q30,40 60,10" stroke="#c9a46a" stroke-width="3" fill="none"/>'
     o += f'<path d="M1120,300 l18,26 l-14,18 l20,24 l-16,22 l22,24 l-18,26 l20,22" stroke="{INK}" stroke-width="4" fill="none"/>'
     # contêineres escorregando pelo convés inclinado
-    for k, (x, c) in enumerate([(420, 0), (560, 3), (760, 1)]):
+    for k, (x, c) in enumerate([(700, 0), (860, 3)]):
         o += f'<g transform="rotate({8 - k * 6} {x} 260)">' + R(x, 216, 130, 44, shade(CONT[c], -0.1), 2, 1.0) + "</g>"
     o += gaivota(620, 210, 1.0, True) + gaivota(880, 212, 1.0, True)
     o += "</g>"
@@ -397,8 +397,14 @@ def c2_palco():
     for k in range(11):
         y = T + 20 + k * 64
         o += f'<path d="M{28 * T},{y} l26,40 M{28 * T + 26},{y} l-26,40" stroke="#b07a1e" stroke-width="3"/>'
-    o += R(11 * T, 1 * T - 14, 18 * T, 20, "#e0a83a", 3, 1.4) + R(28 * T - 30, 1 * T - 60, 80, 46, "#cfd3da", 3, 1.2)
+    o += R(3 * T, 1 * T - 14, 26 * T, 20, "#e0a83a", 3, 1.4) + R(28 * T - 30, 1 * T - 60, 80, 46, "#cfd3da", 3, 1.2)
     o += sign(23 * T + 30, 13 * T - 60, "BOTA-ABAIXO", 170)
+    # contêiner pendurado na ponta da lança (nível 5, esquerda) — QUEBRA, balança
+    o += f'<path d="M{5 * T},{1 * T + 6} L{4 * T + 40},{4 * T + 20} M{7 * T},{1 * T + 6} L{7 * T + 10},{4 * T + 20}" stroke="{INK}" stroke-width="3"/>'
+    o += f'<g transform="rotate(-4 {6 * T} {5 * T})">' + conteiner(4 * T + 20, 4 * T + 20, 3 * T + 10, T - 8, CONT[5], 0, True) + "</g>"
+    # tábua do meio (nível 9) ligando o arco à balsa, pendurada da lança por dois cabos
+    o += f'<path d="M{18 * T + 30},{1 * T + 6} V{9 * T} M{22 * T + 30},{1 * T + 6} V{9 * T}" stroke="{INK}" stroke-width="3"/>'
+    o += tabua(18 * T, 9 * T, 5 * T)
     # coqueiro torto e boia de sinalização na rocha da esquerda
     o += f'<path d="M{1 * T + 40},{12 * T} q-20,-120 50,-230" stroke="#8a6b4f" stroke-width="16" fill="none"/>'
     for a in range(5):
@@ -429,20 +435,20 @@ def c2_palco():
     # ---- QUEBRA: mastro-ponte (dos contêineres da esquerda até o pedaço do convés)
     o += f'<g transform="rotate(-10 {5 * T} {10 * T})">' + R(5 * T, 10 * T - 40, 7 * T, 18, "#9a9aa8", 3, 1.4, dark="#6b6b7a") + "</g>"
     # ---- QUEBRA: rede de carga no gancho (nível 5): caixas dentro, balança
-    o += f'<path d="M{17 * T},{1 * T + 6} L{17 * T + 10},{4 * T}" stroke="{INK}" stroke-width="4"/>'
-    o += f'<g transform="rotate(6 {17 * T} {5 * T})">'
+    o += f'<path d="M{17 * T - 4 * T},{1 * T + 6} L{17 * T + 10 - 4 * T},{4 * T}" stroke="{INK}" stroke-width="4"/>'
+    o += f'<g transform="translate({-4 * T},0) rotate(6 {17 * T} {5 * T})">'
     for k in range(3):
         o += R(15 * T + 50 + k * 66, 4 * T + 34, 60, 50, "#c98a4b" if k != 1 else "#b07a3e", 3, 1.0)
     o += f'<path d="M{15 * T + 40},{4 * T + 20} Q{17 * T},{5 * T + 70} {18 * T + 50},{4 * T + 20}" stroke="#5a4a3a" stroke-width="4" fill="none"/>'
     for k in range(6):
         o += f'<path d="M{15 * T + 50 + k * 34},{4 * T + 24} l20,56" stroke="#5a4a3a" stroke-width="3"/>'
     o += "</g>"
-    o += f'<path d="M{15 * T + 20},{5 * T + 10} q-16,0 -24,12 M{18 * T + 70},{5 * T} q16,0 24,12" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.9"/>'
-    # ---- QUEBRA: contêineres na balsa + tábuas da torre (nível 6)
+    o += f'<path d="M{11 * T + 20},{5 * T + 10} q-16,0 -24,12 M{14 * T + 70},{5 * T} q16,0 24,12" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.9"/>'
+    # ---- QUEBRA: contêineres na balsa + tábuas da torre (nível 5)
     o += conteiner(23 * T + 30, 12 * T, 3 * T, T, CONT[1], 0, True) + conteiner(26 * T + 20, 12 * T, 2 * T + 20, T, CONT[3], 1)
     o += conteiner(23 * T + 50, 11 * T, 3 * T - 10, T, CONT[6], 2)
-    o += tabua(21 * T, 6 * T, 7 * T - 10)
-    o += f'<path d="M{21 * T + 20},{1 * T + 6} V{6 * T}" stroke="{INK}" stroke-width="3"/>'
+    o += tabua(21 * T, 5 * T, 7 * T - 10)
+    o += f'<path d="M{21 * T + 20},{1 * T + 6} V{5 * T}" stroke="{INK}" stroke-width="3"/>'
     # vida: caranguejos e gaivota pousada
     for x, y in [(3 * T + 40, 10 * T - 4), (14 * T + 20, 11 * T - 10)]:
         o += E(x, y, 12, 8, "#e06a4a", 0.8) + f'<path d="M{x - 12},{y} l-8,-8 M{x + 12},{y} l8,-8" stroke="#e06a4a" stroke-width="3"/>'
@@ -453,9 +459,9 @@ def c2_palco():
 def c2_atores():
     o = robot("pa", "pesado_prep", el.COLORS[4], 3 * T, 10 * T - 4)
     o += robot("marretao", "rapido", el.COLORS[0], 14 * T + 20, 8 * T + 4)
-    o += robot("chave", "esquiva", el.COLORS[2], 17 * T, 4 * T + 30, flip=True)
+    o += robot("chave", "esquiva", el.COLORS[2], 13 * T, 4 * T + 30, flip=True)
     o += robot("britadeira", "pesado_golpe", el.COLORS[3], 7 * T + 60, MAR2 - 46)
-    o += f'<path d="M{16 * T + 20},{4 * T} h-50 M{16 * T + 26},{4 * T + 14} h-40" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>'
+    o += f'<path d="M{12 * T + 20},{4 * T} h-50 M{12 * T + 26},{4 * T + 14} h-40" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>'
     return o
 
 
@@ -470,7 +476,7 @@ def c2_frente():
     o += f'<text x="{W - 30}" y="{13 * T - 10}" font-family="Fredoka" font-weight="700" font-size="18" fill="#ffffff" text-anchor="end">maré alta</text>'
     o += tag(3 * T, 13 * T + 50, "ROCHA (FIXA)") + tag(15 * T, 12 * T + 40, "ROCHA-ARCO (FIXA)") + tag(26 * T, 13 * T + 50, "BALSA (FIXA)")
     o += tag(6 * T, 9 * T - 30, "CONTÊINER ABERTO") + tag(9 * T, 9 * T + 70, "MASTRO-PONTE") + tag(14 * T + 40, 9 * T + 30, "PEDAÇO DO CONVÉS")
-    o += tag(8 * T, MAR2 - 80, "BOTE VIRADO") + tag(10 * T + 60, MAR2 + 50, "JANGADA") + tag(19 * T + 60, 5 * T + 50, "REDE NO GANCHO") + tag(24 * T + 40, 5 * T + 40, "TÁBUAS")
+    o += tag(8 * T, MAR2 - 80, "BOTE VIRADO") + tag(10 * T + 60, MAR2 + 50, "JANGADA") + tag(15 * T + 60, 5 * T + 60, "REDE NO GANCHO") + tag(24 * T + 40, 4 * T + 40, "TÁBUAS") + tag(6 * T, 6 * T + 10, "CONTÊINER PENDURADO") + tag(20 * T + 40, 9 * T + 50, "TÁBUA")
     o += tag(5 * T, H - 34, "MAR FUNDO = KO") + tag(20 * T, H - 34, "MAR FUNDO = KO") + tag(940, 186, "NAVIO PARTIDO = FUNDO")
     return o
 
@@ -601,6 +607,15 @@ def c3_palco():
     o += E(4 * T + 10, 12 * T - 60, 54, 46, "#cfc6b0", 1.6, dark="#a89c82") + E(4 * T + 30, 12 * T - 70, 10, 6, "#8a826e", 0.6)
     o += PL([(3 * T + 30, 12 * T - 96), (3 * T + 60, 12 * T - 130), (4 * T + 20, 12 * T - 106), (4 * T + 60, 12 * T - 138), (4 * T + 80, 12 * T - 96)], OURO, 1.0)   # coroa
     o += coluna2(6 * T - 40, 9 * T + 34, 12 * T - 14) + laje2(5 * T + 10, 9 * T, 6 * T + 30) + alga(7 * T, 9 * T + 34, 2, 110)
+    # ---- QUEBRA (esquerda alta): coluna no pilar segura uma laje no nível 6
+    o += coluna2(1 * T + 30, 6 * T + 34, 12 * T - 14 - 104) + laje2(0 * T + 30, 6 * T, 5 * T) + alga(2 * T, 6 * T + 34, 2, 90)
+    # ---- QUEBRA (centro alto): colunas curtas sobre a laje do centro seguram uma laje no nível 4
+    o += coluna2(13 * T + 10, 4 * T + 34, 7 * T) + coluna2(16 * T + 20, 4 * T + 34, 7 * T) + laje2(12 * T + 30, 4 * T, 5 * T)
+    # ---- QUEBRA (direita, meio): bloco de mármore pendurado na corrente da proa (nível 9) e prancha do navio presa no alto (nível 3)
+    o += f'<path d="M{21 * T + 40},{2 * T + 40} L{21 * T + 30},{9 * T}" stroke="#5a5f6a" stroke-width="6" stroke-dasharray="12 6"/>'
+    o += f'<g transform="rotate(-5 {21 * T + 30} {9 * T})">' + R(20 * T, 9 * T, 3 * T, 40, MARM, 4, 1.6, dark=MARM_D) + R(20 * T, 9 * T + 30, 3 * T, 10, OURO, 2, 0.6) + "</g>"
+    o += f'<path d="M{18 * T + 20},{1 * T + 30} L{18 * T + 30},{3 * T} M{21 * T + 40},{1 * T + 50} L{21 * T + 30},{3 * T}" stroke="#5a5f6a" stroke-width="4"/>'
+    o += f'<g transform="rotate(4 {20 * T} {3 * T})">' + tabua(17 * T + 60, 3 * T, 4 * T + 20) + "</g>"
     # ---- QUEBRA (centro): duas colunas seguram a laje (nível 7); concha-trampolim no pilar
     o += coluna2(12 * T + 40, 7 * T + 34, 11 * T - 14, rachada=True) + coluna2(17 * T - 90, 7 * T + 34, 11 * T - 14)
     o += laje2(11 * T + 20, 7 * T, 7 * T) + alga(16 * T, 7 * T + 34, 3, 120)
@@ -662,9 +677,10 @@ def c3_frente():
         o += f'<circle cx="{rnd.uniform(0, W)}" cy="{rnd.uniform(0, H)}" r="{rnd.uniform(3, 10)}" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.6"/>'
     o += tag(3 * T + 30, 13 * T + 20, "PILAR (FIXO)") + tag(15 * T, 12 * T + 50, "PILAR (FIXO)") + tag(26 * T + 30, 13 * T + 20, "PILAR (FIXO)")
     o += tag(17 * T + 60, 7 * T + 70, "LAJE ENTALHADA") + tag(9 * T, 10 * T + 10, "LAJE-PONTE") + tag(23 * T + 40, 5 * T + 40, "LAJE ALTA")
-    o += tag(10 * T + 20, 5 * T + 50, "LUSTRE DOURADO") + tag(2 * T, 10 * T + 10, "TAMBORES") + tag(4 * T + 40, 12 * T + 40, "CABEÇA DE ESTÁTUA")
-    o += tag(15 * T, 12 * T - 100, "CONCHA") + tag(26 * T + 20, 11 * T + 10, "MOEDAS E BAÚ") + tag(22 * T + 60, 2 * T + 40, "PROA FUROU A CÚPULA")
-    o += tag(21 * T + 40, 9 * T + 40, "ALAGANDO") + tag(9 * T, H - 34, "FENDA = KO") + tag(21 * T, H - 34, "FENDA = KO")
+    o += tag(10 * T + 20, 5 * T + 50, "LUSTRE DOURADO") + tag(2 * T + 40, 5 * T + 30, "LAJE ALTA") + tag(15 * T, 3 * T + 30, "LAJE DO TOPO")
+    o += tag(21 * T + 40, 10 * T - 4, "BLOCO NA CORRENTE") + tag(19 * T + 60, 2 * T + 10, "PRANCHA DO NAVIO") + tag(2 * T, 10 * T + 10, "TAMBORES") + tag(4 * T + 40, 12 * T + 40, "CABEÇA DE ESTÁTUA")
+    o += tag(15 * T, 12 * T - 100, "CONCHA") + tag(26 * T + 20, 11 * T + 10, "MOEDAS E BAÚ") + tag(25 * T + 40, 2 * T + 60, "PROA FUROU A CÚPULA")
+    o += tag(25 * T + 20, 9 * T + 50, "ALAGANDO") + tag(9 * T, H - 34, "FENDA = KO") + tag(21 * T, H - 34, "FENDA = KO")
     return o
 
 
