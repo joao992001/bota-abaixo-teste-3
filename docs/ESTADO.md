@@ -4,10 +4,17 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-27 (fim da sessão 4)
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-28 (sessão 7, cont. 5)
 **Comece por `docs/COMO_TRABALHAR.md`.** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 488/488 OK no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
+**▶ SESSÃO 7 (cont. 5): CONTROLES PROFISSIONAIS FEITO — A51** (prancha `art/out/ui/controles_v2.png`, aprovada 2026-11-28).
+Modelo pelo fabricante/produto (DualSense, DualShock 4, Xbox Series/One/360, Switch Pro, genérico); OPÇÕES ▸ CONTROLES =
+central com um cartão por aparelho (pisca "é este!" ao apertar) → MAPEAR só aquele aparelho (principal + alternativo, troca
+automática, direções aceitam qualquer analógico/botão, Esc/Shift/Ctrl proibidos, salvar/restaurar) → TESTAR ao vivo (teclado:
+os dois lados + teste de fantasma). Teclado novo: A = WASD + G/Espaço H J Y U; B = setas + numérico 1–5 (notebook K L Ç O P).
+Arte em papel e giz `art/src/ui/controles_arte.py` + `controles_export.py` → `game/assets/ui/controles/`; ícones também nas dicas
+(`Kit.pad_btn`). Bateria 573/573. Falta testar com controles REAIS (só simulados aqui). Próximo: perguntar ao usuário.
 **▶ SESSÃO 7 (cont. 4): HUD DE CIMA VIVO FEITO — A50** (retrato animado, número que pula, maleta da engenhoca com/usando,
 perigo e fora; vídeo `out/videos/hud_vivo.mp4`, vitrine `--hud=DIR`). Próximo: perguntar ao usuário.
 **▶ SESSÃO 7 (cont. 3): DESEMPENHO — 1ª passada FEITA** (protocolo `docs/manuais/desempenho.md`, sonda `Perf` +

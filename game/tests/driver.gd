@@ -274,15 +274,18 @@ func autotest() -> void:
 	check(PlayerInput.dev_held("kb_b", "right") and not PlayerInput.dev_held("kb_a", "hammer"), "seta com Shift fantasma não aciona a marreta do teclado A")
 	await key_event(KEY_SHIFT, false, KEY_LOCATION_LEFT)
 	await key_event(KEY_RIGHT, false)
-	await key_event(KEY_CTRL, true, KEY_LOCATION_LEFT)
-	check(not PlayerInput.dev_held("kb_b", "jump"), "Ctrl esquerdo não faz o teclado B pular")
-	await key_event(KEY_CTRL, false, KEY_LOCATION_LEFT)
 	await key_event(KEY_CTRL, true, KEY_LOCATION_RIGHT)
-	check(PlayerInput.dev_held("kb_b", "jump"), "Ctrl direito faz o teclado B pular")
+	check(not PlayerInput.dev_held("kb_b", "jump"), "Ctrl não pula mais (teclado sem Shift/Ctrl)")
 	await key_event(KEY_CTRL, false, KEY_LOCATION_RIGHT)
-	await key_event(KEY_F, true)
-	check(PlayerInput.dev_held("kb_a", "hammer"), "F é o golpe rápido do teclado A")
-	await key_event(KEY_F, false)
+	await key_event(KEY_KP_1, true)
+	check(PlayerInput.dev_held("kb_b", "jump"), "1 do numérico faz o teclado B pular")
+	await key_event(KEY_KP_1, false)
+	await key_event(KEY_K, true)
+	check(PlayerInput.dev_held("kb_b", "jump"), "K (notebook) também pula no teclado B")
+	await key_event(KEY_K, false)
+	await key_event(KEY_H, true)
+	check(PlayerInput.dev_held("kb_a", "hammer") and not PlayerInput.dev_held("kb_b", "hammer"), "H é o golpe rápido do teclado A")
+	await key_event(KEY_H, false)
 	main.players.clear()   # o Ctrl direito simulado fez o teclado B entrar: limpa para o resto do teste
 	PlayerInput.slots.clear()
 
@@ -3876,46 +3879,93 @@ func controle_real_test() -> void:
 	await frames(2)
 	check(PlayerInput.held(0, "dodge"), "gatilho RT é a esquiva")
 	joy_axis(3, JOY_AXIS_TRIGGER_RIGHT, 0.0)
-	# CONFIGURAR CONTROLE: aprende um controle de botões trocados
+	await mapeamento_test()
+
+## CONTROLES (2026-11-28): modelo pelo fabricante/produto, MAPEAR só um aparelho (principal/alternativo, troca), teclado.
+func mapeamento_test() -> void:
+	print("== Controles: modelo e mapeamento por aparelho")
+	var PI_ = PlayerInput
+	check(PI_.model_from(0x054c, 0x0ce6, "") == "ps5" and PI_.model_from(0x054c, 0x05c4, "Wireless Controller") == "ps4"
+		and PI_.model_from(0x045e, 0x0b12, "") == "xbox" and PI_.model_from(0x057e, 0x2009, "") == "switch"
+		and PI_.model_from(0, 0, "DualSense Wireless Controller") == "ps5" and PI_.model_from(0, 0, "Wireless Controller") == "ps4"
+		and PI_.model_from(0, 0, "8BitDo SN30 Pro") == "gen", "reconhece DualSense, DualShock 4, Xbox, Switch Pro e genérico")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PI_.CUSTOM_PATH))
+	var cf := ConfigFile.new()
+	cf.set_value("guidvelho", "jump", ["b", 2, 1])
+	cf.save(PI_.CUSTOM_PATH)
+	PI_.load_custom()
+	check(PI_.custom["guidvelho"]["jump"] == [["b", 2], null], "lê o arquivo antigo (um sinal por ação)")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PI_.CUSTOM_PATH))
+	PI_.custom.clear()
 	main.go_menu()
-	PlayerInput.fake_joys = [3]
-	main.menus.start_config()
-	await frames(25)
-	await joy_tap(3, 9)   # qualquer botão: escolhe o controle
-	check(main.menus.cfg_joy == 3 and main.menus.cfg_step == 0, "configurar: escolheu o controle que apertou")
-	var seq := [["b", 2], ["b", 3], ["b", 4], ["b", 9], ["b", 1], ["b", 7], ["b", 6], ["a", 0, -1.0], ["a", 0, 1.0], ["a", 1, -1.0], ["a", 1, 1.0]]
-	for st in seq:
-		await frames(30)
-		if st[0] == "b":
-			joy_btn(3, st[1], true)
-			await frames(4)
-			joy_btn(3, st[1], false)
-		else:
-			joy_axis(3, st[1], st[2])
-			await frames(4)
-			joy_axis(3, st[1], 0.0)
-		await frames(4)
+	PI_.virtual = {"v0": {}}
+	PI_.fake_joys = [3, 4]
+	await frames(3)
+	main.menus.abrir_controles()
+	await frames(3)
+	check("joy3" in main.menus._hub_devs() and "kb_b" in main.menus._hub_devs(), "CONTROLES: um cartão por aparelho")
+	main.menus._abrir_mapear("joy3")
 	await frames(30)
-	var cm: Dictionary = PlayerInput.custom.get(Input.get_joy_guid(3), {})
-	check(cm.size() == 11 and cm["jump"] == ["b", 2, 1] and cm["dodge"] == ["b", 9, 1] and cm["left"][1] == 0 and cm["left"][2] < 0.0, "configurar: aprendeu as 11 ações (%s)" % str(cm.get("jump")))
-	await frames(90)
-	check(main.state == S.CONTROLES, "configurar: termina e abre o teste dos controles")
-	joy_btn(3, 2, true)
+	main.menus.map_sel = 4   # PULAR, principal
+	main.menus.map_col = 0
+	await tap("v0", "jump")
+	check(main.menus.map_listen > 0.0, "MAPEAR: PULAR começa a escutar o novo botão")
+	await joy_tap(3, JOY_BUTTON_X)
+	var mm: Dictionary = main.menus.map_m
+	check(mm["jump"][0] == ["b", JOY_BUTTON_X] and mm["hammer"][0] == ["b", JOY_BUTTON_A], "botão repetido troca de lugar (X pula, A vira golpe)")
+	await frames(30)
+	main.menus.map_sel = 0   # ANDAR ◄ pelo analógico DIREITO
+	await tap("v0", "jump")
+	joy_axis(3, JOY_AXIS_RIGHT_X, -1.0)
+	await frames(3)
+	joy_axis(3, JOY_AXIS_RIGHT_X, 0.0)
+	check(main.menus.map_m["left"][0] == ["a", JOY_AXIS_RIGHT_X, -1], "direção aceita outro analógico")
+	await frames(30)
+	main.menus.map_sel = 7   # ESQUIVA alternativo: apagar
+	main.menus.map_col = 1
+	await tap("v0", "heavy")
+	check(main.menus.map_m["dodge"][1] == null, "TRIÂNGULO/Y apaga o alternativo")
+	main.menus.map_sel = 11
+	await tap("v0", "jump")
+	await frames(3)
+	check(main.state == S.CONTROLES and PI_.custom.has(PI_.pad_key(3)) and not PI_.custom.has(PI_.pad_key(4)), "SALVAR grava só para ESTE controle")
+	joy_btn(3, JOY_BUTTON_X, true)
+	joy_btn(4, JOY_BUTTON_X, true)
 	await frames(2)
-	var j_on: bool = PlayerInput.dev_held("joy3", "jump")
-	joy_btn(3, 2, false)
-	joy_btn(3, JOY_BUTTON_A, true)
+	var j3_pula: bool = PI_.dev_held("joy3", "jump")
+	var j4_golpe: bool = PI_.dev_held("joy4", "hammer") and not PI_.dev_held("joy4", "jump")
+	joy_btn(3, JOY_BUTTON_X, false)
+	joy_btn(4, JOY_BUTTON_X, false)
+	check(j3_pula and j4_golpe, "o controle mapeado usa o novo, o outro igual continua no padrão")
+	joy_axis(3, JOY_AXIS_LEFT_X, -1.0)
 	await frames(2)
-	var a_on: bool = PlayerInput.dev_held("joy3", "jump")
-	joy_btn(3, JOY_BUTTON_A, false)
-	joy_axis(3, 0, -1.0)
-	await frames(2)
-	var l_on: bool = PlayerInput.dev_held("joy3", "left")
-	joy_axis(3, 0, 0.0)
-	check(j_on and not a_on and l_on, "configurado: botão 2 pula (o A não), eixo 0 anda")
-	PlayerInput.custom.erase(Input.get_joy_guid(3))
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(PlayerInput.CUSTOM_PATH))
-	PlayerInput.fake_joys = []
+	var nav_ok: bool = PI_.dev_held("joy3", "nav_left") and not PI_.dev_held("joy3", "left")
+	joy_axis(3, JOY_AXIS_LEFT_X, 0.0)
+	check(nav_ok, "menus continuam andando pelo analógico esquerdo (ninguém fica preso)")
+	# teclado A: PULAR na tecla T
+	main.menus._abrir_mapear("kb_a")
+	await frames(30)
+	main.menus.map_sel = 4
+	main.menus.map_col = 0
+	await tap("v0", "jump")
+	await key_event(KEY_SHIFT, true, KEY_LOCATION_LEFT)
+	await key_event(KEY_SHIFT, false, KEY_LOCATION_LEFT)
+	check(main.menus.map_listen > 0.0 and main.menus.map_m["jump"][0] == KEY_G, "Shift não pode virar ação")
+	await key_event(KEY_T, true)
+	await key_event(KEY_T, false)
+	main.menus.map_sel = 11
+	await frames(30)
+	await tap("v0", "jump")
+	await key_event(KEY_T, true)
+	var t_pula: bool = PI_.dev_held("kb_a", "jump")
+	await key_event(KEY_T, false)
+	await key_event(KEY_G, true)
+	var g_pula: bool = PI_.dev_held("kb_a", "jump")
+	await key_event(KEY_G, false)
+	check(t_pula and not g_pula, "teclado A remapeado: T pula, G não")
+	PI_.custom.clear()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PI_.CUSTOM_PATH))
+	PI_.fake_joys = []
 	main.go_menu()
 
 func controles_test() -> void:
@@ -3980,7 +4030,12 @@ func controles_test() -> void:
 	await key_event(KEY_ESCAPE, true)
 	await frames(2)
 	await key_event(KEY_ESCAPE, false)
-	check(main.state == S.OPTIONS, "TESTAR CONTROLES abre e ESC volta às opções")
+	check(main.state == S.OPTIONS, "CONTROLES abre e ESC volta às opções")
+	main.menus._abrir_teste("kb_a")
+	await frames(3)
+	await key_event(KEY_ESCAPE, true)
+	await key_event(KEY_ESCAPE, false)
+	check(main.state == S.CONTROLES, "TESTAR: ESC volta à central de controles")
 
 func bots_test() -> void:
 	print("== Bots")
@@ -5361,6 +5416,32 @@ func menus_frames(dir: String) -> void:
 	PlayerInput.toasts.append({"text": "Conectado: Xbox (Xbox Wireless Controller)", "t": 1.0, "ok": true, "dev": ""})
 	await frames(10)
 	await snap(dir, "m4c_controles")
+	PlayerInput.fake_joys = [0, 1, 2]
+	PlayerInput.fake_models = {0: "ps5", 1: "xbox", 2: "ps4"}
+	main.menus.abrir_controles()
+	main.menus.hub_sel = 2
+	await frames(10)
+	await snap(dir, "m4d_controles_cartoes")
+	main.menus._abrir_mapear("joy0")
+	main.menus.map_sel = 5
+	main.menus.map_m["dodge"] = [["b", JOY_BUTTON_RIGHT_SHOULDER], ["a", JOY_AXIS_TRIGGER_RIGHT, 1]]
+	main.menus._map_msg("trocou com GOLPE RÁPIDO", 7)
+	await frames(30)
+	await snap(dir, "m4e_mapear_controle")
+	main.menus._abrir_mapear("kb_b")
+	main.menus.map_sel = 4
+	await frames(30)
+	await snap(dir, "m4f_mapear_teclado")
+	main.menus._abrir_teste("joy1")
+	joy_btn(1, JOY_BUTTON_A, true)
+	await frames(10)
+	await snap(dir, "m4g_testar_controle")
+	joy_btn(1, JOY_BUTTON_A, false)
+	main.menus._abrir_teste("kb_a")
+	await frames(10)
+	await snap(dir, "m4h_testar_teclado")
+	PlayerInput.fake_joys = []
+	PlayerInput.fake_models = {}
 	main.state = S.ARENAS
 	main.menus.arena_sel = 1
 	await frames(10)

@@ -6,7 +6,8 @@ description: "Entrada de 2–4 jogadores locais em Bota-Abaixo na Godot 4: tela 
 # Multiplayer local
 
 - Autoload `PlayerInput`: cada jogador tem um `device` (índice do controle ou `TECLADO_A`/`TECLADO_B`). O jogo pergunta sempre `PlayerInput.pressed(jogador, acao)`; nunca lê o dispositivo direto.
-- Teclado A: WASD + Espaço (pular) + F ou E (marreta). Teclado B: setas + Ctrl dir. (pular) + ponto, / ou Enter do numérico (marreta). **Nunca usar Shift**: no Windows, com NumLock ligado, as setas mandam Shift "fantasma". Teclas lidas por evento, separando esquerda/direita.
+- Teclado A: WASD + G/Espaço pula · H golpe · J pesada · Y esquiva · U especial. Teclado B: setas + numérico 1–5 (notebook: K L Ç O P), Enter do numérico pausa. **Nunca usar Shift/Ctrl**: no Windows, com NumLock ligado, as setas mandam Shift "fantasma". Teclas lidas por evento (código físico = posição, vale para qualquer layout).
+- **Controles (2026-11-28):** modelo reconhecido pelo fabricante/produto (`PlayerInput.pad_model`: ps5/ps4/xbox/switch/gen; fallback pelo nome). Mapeamento **por aparelho** (`dev_key`: GUID#ordem entre controles iguais; "kb_a"/"kb_b"), ação → [principal, alternativo], em `user://controles.cfg`. Telas em OPÇÕES ▸ CONTROLES (central, MAPEAR, TESTAR) em `game/ui/menus.gd`; ícones/controles em papel e giz `game/ui/glifos.gd` (arte: `art/src/ui/controles_export.py`). Menus andam por `nav_*` (mapeado OU analógico/direcional/teclas de fábrica).
 - Ações: `mover_x`, `mover_y`, `pular`, `marreta`, `girar`, `confirmar`, `voltar`, `pausa`.
 - **Entrada:** qualquer botão de um dispositivo livre ocupa o próximo slot; cada jogador escolhe **cor** (4) e **modelo de robô** (8); Start com 2+ começa.
 - **Bots:** na entrada, Y/△ (ITEM) adiciona; nível de dificuldade por bot; código em `game/modes/bots.gd`.

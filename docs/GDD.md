@@ -17,14 +17,18 @@ Robôs de demolição se enfrentam com marretas em obras, fábricas, portos e mi
 4. Visual cartoon de papel e giz, com contorno grosso e cores fortes por cenário.
 
 ## 2. Controles
-| Ação | Controle | Teclado J1 | Teclado J2 |
+| Ação | Controle | Teclado A (esquerda) | Teclado B (direita) |
 |---|---|---|---|
-| Andar | analógico / direcional | A · D | ← · → |
-| Pular (segurar = mais alto) | A | Espaço | Ctrl direito · L · 0 do teclado numérico |
-| Marreta | X · RB · RT | F · E | . · / · K · Enter numérico |
-| Usar item | Y · B · LB · LT | G · Q | , · J · 1 do teclado numérico |
-| Descer de tábua fina; com marreta, quebrar o chão embaixo | ▼ | S | ↓ |
-| Pausa / voltar | START | Enter · Backspace/Esc | Enter · Delete |
+| Andar / subir / descer | analógico esquerdo · direcional | W A S D | setas |
+| Pular (segurar = mais alto) | A / ✕ | G · Espaço | 1 numérico · K |
+| Golpe rápido | X / □ | H | 2 numérico · L |
+| Marretada pesada | Y / △ | J | 3 numérico · Ç (;) |
+| Esquiva | RB / R1 · RT / R2 | Y | 4 numérico · O |
+| Especial (engenhoca) | LB / L1 · LT / L2 | U | 5 numérico · P |
+| Pausa | START / OPTIONS | Enter · Esc | Enter numérico |
+
+Sem Shift/Ctrl (o Windows manda "fantasmas" deles). **Cada aparelho remapeia só ele** em OPÇÕES ▸ CONTROLES
+(principal + alternativo por ação; o jogo reconhece DualSense, DualShock 4, Xbox, Switch Pro e genérico e mostra os ícones de cada um).
 
 Movimento: corrida, pulo variável, tempo de "coiote", buffer de pulo, deslizar e pular na parede (com medidor de aderência), pisão na cabeça.
 

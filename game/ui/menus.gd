@@ -47,11 +47,12 @@ func pressed(a: String) -> bool:
 func confirm() -> bool:
 	return pressed("jump") or pressed("start")
 
+## Menus andam por nav_* (a direção mapeada OU o analógico/direcional/teclas de fábrica: ninguém fica preso).
 func move_v() -> int:
-	return int(pressed("down")) - int(pressed("up"))
+	return int(pressed("nav_down")) - int(pressed("nav_up"))
 
 func move_h() -> int:
-	return int(pressed("right")) - int(pressed("left"))
+	return int(pressed("nav_right")) - int(pressed("nav_left"))
 
 func update(dt: float) -> void:
 	t += dt
@@ -146,9 +147,11 @@ func update(dt: float) -> void:
 		S.EVENTOS:
 			main.events.menu_update(self)
 		S.CONTROLES:
-			_update_pads()
+			_update_hub()
 		S.CONFIGPAD:
-			_update_config(dt)
+			_update_mapear(dt)
+		S.TESTPAD:
+			_update_teste()
 		S.ARENAS:
 			_mover_grade(move_h(), move_v())
 			pag_x = lerpf(pag_x, float(arena_sel / POR_PAG), minf(1.0, dt * 10.0))   # a página desliza
@@ -170,7 +173,7 @@ func update(dt: float) -> void:
 			elif pressed("back"):
 				main.state = S.MENU
 		S.OPTIONS:
-			opt_sel = posmod(opt_sel + move_v(), 9)
+			opt_sel = posmod(opt_sel + move_v(), 8)
 			var h := move_h()
 			var c := confirm()
 			if opt_sel == 0 and (h != 0 or c):
@@ -190,11 +193,8 @@ func update(dt: float) -> void:
 					for j in Input.get_connected_joypads():
 						Input.start_joy_vibration(j, 0.5, 0.5, 0.25)
 			elif opt_sel == 6 and c:
-				main.state = S.CONTROLES
-				pad_prev.clear()
+				abrir_controles()
 			elif opt_sel == 7 and c:
-				start_config()
-			elif opt_sel == 8 and c:
 				main.state = S.MENU
 			if h != 0 or c:
 				main.save_options()
@@ -269,9 +269,10 @@ func draw(ci: CanvasItem) -> void:
 		S.EVENTOS: main.events.menu_draw(ci, self)
 		S.SELSPELLS: main.selecao.draw_spells(ci)
 		S.SELEVENTOS: main.selecao.draw_eventos(ci)
-		S.CONTROLES: _draw_pads(ci)
+		S.CONTROLES: _draw_hub(ci)
 		S.INTRO: _draw_intro(ci)
-		S.CONFIGPAD: _draw_config(ci)
+		S.CONFIGPAD: _draw_mapear(ci)
+		S.TESTPAD: _draw_teste(ci)
 	if main.paused:
 		if main.sandbox and main.tester().open:
 			main.tester().draw(ci)
@@ -675,7 +676,7 @@ func _draw_howto(ci: CanvasItem) -> void:
 		var lines: PackedStringArray = String(tips[i][1]).split("\n")
 		for k in lines.size():
 			Kit.text(ci, Vector2(r.position.x + 260, y + 44 - (lines.size() - 1) * 18 + k * 40), lines[k], 32, Color("#2a1a2e"))
-	Kit.text(ci, Vector2(0, 1050), "Teclado A: WASD · Espaço pula · F golpe · R pesada · Shift esq. esquiva · G especial     Teclado B: setas · Ctrl dir. pula · ponto golpe · / pesada · 0 num. esquiva · vírgula especial", 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+	Kit.text(ci, Vector2(0, 1050), "Teclado A: WASD · G pula · H golpe · J pesada · Y esquiva · U especial     Teclado B: setas · numérico 1 pula · 2 golpe · 3 pesada · 4 esquiva · 5 especial (notebook: K L Ç O P)", 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
 
 func _draw_options(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.45))
@@ -688,8 +689,7 @@ func _draw_options(ci: CanvasItem) -> void:
 		"MÚSICA:  ◄ %s ►" % _bar(Audio.music_vol),
 		"EFEITOS:  ◄ %s ►" % _bar(Audio.sfx_vol),
 		"VIBRAÇÃO:  %s" % ("SIM" if PlayerInput.vibration else "NÃO"),
-		"TESTAR CONTROLES  ▸",
-		"CONFIGURAR CONTROLE  ▸",
+		"CONTROLES  ▸",
 		"VOLTAR",
 	]
 	for i in items.size():
@@ -779,118 +779,6 @@ func _pad_edge(j: int, b: int) -> bool:
 	var was: bool = pad_prev.get(key, false)
 	pad_prev[key] = now
 	return now and not was
-
-func _update_pads() -> void:
-	# sai com Esc/Backspace ou SELECT (B não sai: aqui ele é testado)
-	if PlayerInput.dev_pressed("kb_a", "back") or PlayerInput.dev_pressed("kb_b", "back"):
-		main.state = main.S.OPTIONS
-		Audio.play("menu_voltar")
-		return
-	for j in Input.get_connected_joypads():
-		if _pad_edge(j, JOY_BUTTON_BACK):
-			main.state = main.S.OPTIONS
-			Audio.play("menu_voltar")
-			return
-		if _pad_edge(j, JOY_BUTTON_A):
-			Input.start_joy_vibration(j, 0.6, 0.6, 0.2)   # PULAR vibra: testa o motor
-			Audio.play("pulo")
-		if _pad_edge(j, JOY_BUTTON_X):
-			Audio.play("marreta_vento")
-		if _pad_edge(j, JOY_BUTTON_Y) or _pad_edge(j, JOY_BUTTON_B):
-			Audio.play("item")
-
-func _draw_pads(ci: CanvasItem) -> void:
-	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.5))
-	Kit.ribbon(ci, Rect2(560, 20, 800, 128), "TESTAR CONTROLES", 54)
-	var pads: Array = Input.get_connected_joypads()
-	if pads.is_empty():
-		var r := Rect2(260, 190, 1400, 760)
-		Kit.paper(ci, r)
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 90), "NENHUM CONTROLE DETECTADO", 50, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		var tips := [
-			"USB: ligue o cabo — aparece aqui na hora.",
-			"Xbox (Bluetooth): Windows ▸ Bluetooth ▸ Adicionar dispositivo; segure o botão de parear do controle.",
-			"PlayStation (DualSense/DualShock 4): segure CREATE/SHARE + PS até a luz piscar e pareie no Bluetooth.",
-			"Switch Pro / 8BitDo: modo X-input (Xbox) funciona melhor; pareie pelo Bluetooth do Windows.",
-			"Steam aberta pode esconder ou duplicar o controle (Steam Input): feche a Steam se algo estranho acontecer.",
-			"Rodando dentro do editor: clique na janela do jogo para ela ter o foco.",
-		]
-		for i in tips.size():
-			Kit.text(ci, Vector2(r.position.x + 70, r.position.y + 190 + i * 88), "•  " + tips[i], 27, Color("#3b2b40"))
-	else:
-		var n: int = mini(pads.size(), 4)
-		var cw := 430.0
-		var x0 := 960.0 - (n * cw + (n - 1) * 20.0) / 2.0
-		for k in n:
-			_draw_pad_card(ci, pads[k], Rect2(x0 + k * (cw + 20.0), 180, cw, 780), k)
-	Kit.text(ci, Vector2(0, 990), "Botões trocados ou o robô não responde?  OPÇÕES ▸ CONFIGURAR CONTROLE", 24, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
-	Kit.text(ci, Vector2(0, 1022), "relatório dos controles: " + ProjectSettings.globalize_path("user://controles.txt"), 20, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
-	Kit.text(ci, Vector2(0, 1056), "Aperte os botões para ver acender  ·  PULAR vibra  ·  SELECT ou ESC volta", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
-
-func _draw_pad_card(ci: CanvasItem, j: int, r: Rect2, k: int) -> void:
-	Kit.paper(ci, r)
-	var dev := "joy%d" % j
-	var st: String = PlayerInput.pad_type(dev)
-	var dark := Color("#2a1a2e")
-	Kit.text(ci, Vector2(r.position.x, r.position.y + 60), "CONTROLE %d" % (j + 1), 40, dark, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	var nm := Input.get_joy_name(j)
-	Kit.text(ci, Vector2(r.position.x + 20, r.position.y + 96), nm.substr(0, 30), 22, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 40)
-	var tname := {"xbox": "tipo Xbox", "ps": "tipo PlayStation", "nintendo": "tipo Nintendo", "generico": "genérico (botões como Xbox)"}
-	Kit.text(ci, Vector2(r.position.x, r.position.y + 128), tname.get(st, ""), 22, Color("#3c9a46"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	var used: int = PlayerInput.slots.find(dev)
-	if used >= 0:
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 158), "jogando como P%d" % (used + 1), 22, Data.TEXT_COLORS[main.players[used]["color"]] if used < main.players.size() else dark, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	elif PlayerInput.aliases.has(dev):
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 158), "cópia do mesmo controle (usado junto)", 20, Color("#8a5a10"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	# diagnóstico: mapeamento reconhecido e último sinal cru recebido
-	var known := Input.is_joy_known(j)
-	Kit.text(ci, Vector2(r.position.x, r.end.y - 40), ("mapeamento reconhecido" if known else "mapeamento DESCONHECIDO (botões podem vir trocados)"), 19,
-		Color("#3c9a46") if known else Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	Kit.text(ci, Vector2(r.position.x, r.end.y - 14), "último sinal: %s" % String(PlayerInput.last_raw.get(j, "—")), 19, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	Kit.text(ci, Vector2(r.position.x + 10, r.end.y - 66), PlayerInput.raw_now(j), 18, Color("#2a1a2e"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 20)
-	if PlayerInput.custom.has(Input.get_joy_guid(j)):
-		Kit.text(ci, Vector2(r.position.x, r.end.y - 92), "usando a SUA configuração", 19, Color("#3c9a46"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	# corpo do controle
-	var c := Vector2(r.get_center().x, r.position.y + 360)
-	var body := Rect2(c - Vector2(180, 95), Vector2(360, 190))
-	ci.draw_rect(body, Color("#d5dbe1"))
-	ci.draw_circle(body.position + Vector2(40, 150), 70, Color("#d5dbe1"))
-	ci.draw_circle(body.end - Vector2(40, 40), 70, Color("#d5dbe1"))
-	# gatilhos e ombros
-	var lt := Input.get_joy_axis(j, JOY_AXIS_TRIGGER_LEFT)
-	var rt := Input.get_joy_axis(j, JOY_AXIS_TRIGGER_RIGHT)
-	for side in [-1, 1]:
-		var tr := Rect2(c + Vector2(side * 125 - 40, -165), Vector2(80, 26))
-		ci.draw_rect(tr, Color("#9aa4ae"))
-		var v: float = rt if side > 0 else lt
-		ci.draw_rect(Rect2(tr.position, Vector2(tr.size.x * clampf(v, 0.0, 1.0), tr.size.y)), Color("#f2c84b"))
-		Kit.text(ci, Vector2(tr.position.x, tr.position.y - 6), ("RT" if side > 0 else "LT") if st != "ps" else ("R2" if side > 0 else "L2"), 18, dark, HORIZONTAL_ALIGNMENT_CENTER, tr.size.x)
-		Kit.pad_btn(ci, c + Vector2(side * 125, -112), 18, "rb" if side > 0 else "lb", st, Input.is_joy_button_pressed(j, JOY_BUTTON_RIGHT_SHOULDER if side > 0 else JOY_BUTTON_LEFT_SHOULDER))
-	# analógicos
-	for stick in [[JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y, Vector2(-120, -20), JOY_BUTTON_LEFT_STICK], [JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y, Vector2(60, 50), JOY_BUTTON_RIGHT_STICK]]:
-		var sc: Vector2 = c + stick[2]
-		ci.draw_circle(sc, 36, Color("#5a6370"))
-		var ax := Vector2(Input.get_joy_axis(j, stick[0]), Input.get_joy_axis(j, stick[1]))
-		ci.draw_circle(sc + ax * 22.0, 22, Color("#f2c84b") if Input.is_joy_button_pressed(j, stick[3]) else Color("#2f3640"))
-	# direcional
-	var dc := c + Vector2(-60, 50)
-	for d in [[JOY_BUTTON_DPAD_UP, Vector2(0, -22)], [JOY_BUTTON_DPAD_DOWN, Vector2(0, 22)], [JOY_BUTTON_DPAD_LEFT, Vector2(-22, 0)], [JOY_BUTTON_DPAD_RIGHT, Vector2(22, 0)]]:
-		ci.draw_rect(Rect2(dc + d[1] - Vector2(12, 12), Vector2(24, 24)), Color("#f2c84b") if Input.is_joy_button_pressed(j, d[0]) else Color("#2f3640"))
-	ci.draw_rect(Rect2(dc - Vector2(12, 12), Vector2(24, 24)), Color("#2f3640"))
-	# botões de ação
-	var fc := c + Vector2(120, -20)
-	for b in [["baixo", Vector2(0, 30), JOY_BUTTON_A], ["direita", Vector2(30, 0), JOY_BUTTON_B], ["esquerda", Vector2(-30, 0), JOY_BUTTON_X], ["cima", Vector2(0, -30), JOY_BUTTON_Y]]:
-		Kit.pad_btn(ci, fc + b[1], 16, b[0], st, Input.is_joy_button_pressed(j, b[2]))
-	Kit.pad_btn(ci, c + Vector2(-34, -40), 12, "select", st, Input.is_joy_button_pressed(j, JOY_BUTTON_BACK))
-	Kit.pad_btn(ci, c + Vector2(34, -40), 12, "start", st, Input.is_joy_button_pressed(j, JOY_BUTTON_START))
-	# o que faz cada botão no jogo
-	var y := r.position.y + 500
-	for line in [[["baixo"], " pula"], [["esquerda"], " golpe rápido"], [["cima"], " marretada pesada"], [["rb"], " esquiva"], [["lb"], " especial (engenhoca)"], [["start"], " pausa / começa"], [["direita"], " volta nos menus"]]:
-		var parts: Array = []
-		for e in line:
-			parts.append(e)
-		Kit.pad_hint(ci, r.get_center().x, y, parts, 24, dark, st)
-		y += 38
 
 # ---------------------------------------------------------------- intro animada (abre o jogo)
 ## O logo cai e quica, bate levantando poeira, os robôs entram correndo e acenam, e o logo desliza até o menu.
@@ -1036,152 +924,456 @@ func _draw_intro(ci: CanvasItem) -> void:
 		Kit.chunk(ci, r, Color(0.91, 0.89, 0.82, a), 8, 4, 0.0)
 		Kit.text(ci, Vector2(r.position.x, r.position.y + 36), "aperte qualquer botão", 26, Color(Kit.INK, a), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 
-# ---------------------------------------------------------------- configurar controle (aprende os sinais do controle)
-const LEARN_NAMES := {"jump": "PULAR", "hammer": "GOLPE RÁPIDO", "heavy": "MARRETADA PESADA", "dodge": "ESQUIVA", "item": "ESPECIAL (ENGENHOCA)", "start": "START (começar / pausar)", "back": "VOLTAR (nos menus)",
-	"left": "ESQUERDA (analógico ou direcional)", "right": "DIREITA", "up": "CIMA", "down": "BAIXO"}
-var cfg_step := -1          # -1 = esperando escolher o controle; 0..8 = ação; 9 = pronto
-var cfg_joy := -1
-var cfg_map := {}
-var cfg_base := {}          # estado cru no início do passo (ignora botão/eixo que já estava "preso")
-var cfg_wait := 0.0         # pausa entre passos (e espera soltar)
-var cfg_msg := ""
+# ---------------------------------------------------------------- CONTROLES (prancha controles_v2, 2026-11-28)
+## Central: um cartão por aparelho (teclado A, teclado B, cada controle) com o MODELO reconhecido, MAPEAR e TESTAR.
+## MAPEAR vale só para aquele aparelho (dois DualSense iguais têm mapeamentos separados), com PRINCIPAL e ALTERNATIVO.
+const Glifos := preload("res://ui/glifos.gd")
+const MAP_NAMES := {"left": "ANDAR  ◄", "right": "ANDAR  ►", "up": "CIMA  ▲   (subir / mirar)", "down": "BAIXO  ▼   (descer / pisão)",
+	"jump": "PULAR", "hammer": "GOLPE RÁPIDO", "heavy": "MARRETADA PESADA", "dodge": "ESQUIVA", "item": "ESPECIAL (ENGENHOCA)", "start": "PAUSA"}
+const MAP_ROWS := 12          # 10 ações + RESTAURAR PADRÃO + SALVAR
+const LISTEN_S := 5.0
+## Teclas que não podem virar ação: voltar/cancelar dos menus e Shift/Ctrl (o Windows manda "fantasmas" deles).
+const KEYS_PROIBIDAS := [KEY_ESCAPE, KEY_BACKSPACE, KEY_DELETE, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META, KEY_CAPSLOCK]
+var hub_sel := 0
+var hub_btn := 0              # 0 = MAPEAR · 1 = TESTAR
+var dev_act := {}             # aparelho -> instante do último botão (o cartão dele pisca: "é este")
+var map_dev := ""
+var map_m := {}               # mapeamento em edição (só vai para o disco no SALVAR)
+var map_sel := 0
+var map_col := 0
+var map_listen := -1.0        # > 0: esperando o novo botão (segundos restantes)
+var map_base := {}            # botões/eixos já apertados quando começou a escuta (só valem depois de soltos)
+var map_msg := ""
+var map_msg_t := 0.0
+var map_msg_row := -1
+var map_hold := 0.0
+var test_dev := ""
 
-func start_config() -> void:
+func _hub_devs() -> Array:
+	var l: Array = ["kb_a", "kb_b"]
+	for j in PlayerInput._joys():
+		l.append("joy%d" % j)
+	return l
+
+func abrir_controles() -> void:
+	main.state = main.S.CONTROLES
+	hub_sel = 0
+	hub_btn = 0
+
+func _dev_model(dev: String) -> String:
+	return PlayerInput.pad_model(dev) if dev.begins_with("joy") else ""
+
+func _dev_title(dev: String) -> String:
+	match dev:
+		"kb_a": return "TECLADO A"
+		"kb_b": return "TECLADO B"
+	return PlayerInput.model_title(dev).to_upper()
+
+func _dev_sub(dev: String) -> String:
+	match dev:
+		"kb_a": return "lado esquerdo · WASD"
+		"kb_b": return "lado direito · setas + numérico"
+	var fam: String = PlayerInput.MODEL_FAMILY.get(_dev_model(dev), "")
+	var con: String = PlayerInput.pad_conexao(dev)
+	return "controle %d · %s%s" % [int(dev.substr(3)) + 1, fam, (" · " + con) if con != "" else ""]
+
+func _update_hub() -> void:
+	var devs := _hub_devs()
+	for d in devs:
+		for a in ["jump", "hammer", "heavy", "dodge", "item", "start", "nav_left", "nav_right", "nav_up", "nav_down"]:
+			if PlayerInput.dev_pressed(d, a):
+				dev_act[d] = t
+	hub_sel = clampi(hub_sel, 0, devs.size() - 1)
+	if pressed("back"):
+		main.state = main.S.OPTIONS
+		return
+	var h := move_h()
+	var v := move_v()
+	if h != 0:
+		var k := posmod(hub_sel * 2 + hub_btn + h, devs.size() * 2)
+		hub_sel = k / 2
+		hub_btn = k % 2
+	if v != 0:
+		var cols := 4 if devs.size() <= 4 else 3
+		hub_sel = clampi(hub_sel + v * cols, 0, devs.size() - 1)
+	if confirm():
+		if hub_btn == 0:
+			_abrir_mapear(devs[hub_sel])
+		else:
+			_abrir_teste(devs[hub_sel])
+
+func _hub_rect(k: int, n: int) -> Rect2:
+	var cols := 4 if n <= 4 else 3
+	var cw := 420.0 if cols == 4 else 520.0
+	var ch := 470.0 if n <= 4 else 380.0
+	var x0 := 960.0 - (cols * cw + (cols - 1) * 26.0) / 2.0
+	var y0 := 250.0 if n <= 4 else 168.0
+	return Rect2(x0 + (k % cols) * (cw + 26.0), y0 + (k / cols) * (ch + 26.0), cw, ch)
+
+func _draw_hub(ci: CanvasItem) -> void:
+	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.5))
+	Kit.ribbon(ci, Rect2(610, 20, 700, 128), "CONTROLES", 58)
+	var devs := _hub_devs()
+	var dark := Color("#2a1a2e")
+	for k in devs.size():
+		var dev: String = devs[k]
+		var r := _hub_rect(k, devs.size())
+		var sel := k == hub_sel
+		var flash := clampf(1.0 - (t - float(dev_act.get(dev, -9.0))) / 0.6, 0.0, 1.0)
+		if sel:
+			Kit.chunk(ci, r.grow(10), Color("#f2c84b"), 34, 0, 0.0)
+		Kit.chunk(ci, r, Color("#f4ecdc").lerp(Color("#fff3b0"), flash), 26, 5, 8.0)
+		var used: int = PlayerInput.slots.find(dev)
+		if used >= 0 and used < main.players.size():
+			var pc: Color = Data.TEXT_COLORS[main.players[used]["color"]]
+			Kit.chunk(ci, Rect2(r.position + Vector2(14, 14), Vector2(62, 38)), pc, 10, 4, 0.0)
+			Kit.text(ci, r.position + Vector2(14, 43), "P%d" % (used + 1), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 62, 5)
+		var big := devs.size() <= 4
+		var ac := Vector2(r.get_center().x, r.position.y + (150.0 if big else 104.0))
+		if dev.begins_with("joy"):
+			Glifos.controller(ci, ac, _dev_model(dev), 0.5 if big else 0.36)
+		else:
+			_kb_art(ci, ac, dev, 0.9 if big else 0.72)
+		var ty := r.position.y + (300.0 if big else 214.0)
+		Kit.text(ci, Vector2(r.position.x, ty), _dev_title(dev), 32, dark, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		Kit.text(ci, Vector2(r.position.x + 10, ty + 30), _dev_sub(dev), 19, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 20)
+		var mine := PlayerInput.has_custom(dev)
+		Kit.text(ci, Vector2(r.position.x, ty + 56), "SUA configuração" if mine else "padrão", 20, Color("#3c9a46") if mine else Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+		if flash > 0.0:
+			Kit.text(ci, Vector2(r.end.x - 150, r.position.y + 44), "é este!", 22, Color("#c0392b"), HORIZONTAL_ALIGNMENT_CENTER, 130)
+		for b in 2:
+			var bw := (r.size.x - 70.0) / 2.0
+			var br := Rect2(r.position.x + 25 + b * (bw + 20), r.end.y - (76.0 if big else 70.0), bw, 54.0 if big else 50.0)
+			Kit.chunk(ci, br, Color("#f2c84b") if (sel and hub_btn == b) else Color("#e9e2d2"), 16, 4, 5.0)
+			Kit.text(ci, Vector2(br.position.x, br.position.y + br.size.y * 0.7), ["MAPEAR", "TESTAR"][b], 25, dark, HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
+	if devs.size() == 2:
+		Kit.sticker(ci, Vector2(0, 820), "nenhum controle detectado: ligue o cabo ou pareie no Bluetooth (PlayStation: CREATE/SHARE + PS · Xbox: botão de parear)", 22, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920)
+	Kit.text(ci, Vector2(0, 1010), "Aperte qualquer botão num controle: o cartão dele pisca", 24, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+	Kit.text(ci, Vector2(0, 1056), "◄►▲▼ escolhe  ·  PULAR abre  ·  VOLTAR sai", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
+
+## Desenho do teclado no cartão: as teclas de andar e pular daquele lado.
+func _kb_art(ci: CanvasItem, c: Vector2, dev: String, s: float) -> void:
+	var m := PlayerInput.current_map(dev)
+	var r := 30.0 * s
+	var g := 70.0 * s
+	Glifos.key(ci, c + Vector2(-g * 1.4, -g * 0.55), m["up"][0], r)
+	Glifos.key(ci, c + Vector2(-g * 2.4, g * 0.45), m["left"][0], r)
+	Glifos.key(ci, c + Vector2(-g * 1.4, g * 0.45), m["down"][0], r)
+	Glifos.key(ci, c + Vector2(-g * 0.4, g * 0.45), m["right"][0], r)
+	Glifos.key(ci, c + Vector2(g * 1.3, -g * 0.55), m["jump"][0], r)
+	Glifos.key(ci, c + Vector2(g * 2.3, -g * 0.55), m["hammer"][0], r)
+	Glifos.key(ci, c + Vector2(g * 1.3, g * 0.45), m["heavy"][0], r)
+	Glifos.key(ci, c + Vector2(g * 2.3, g * 0.45), m["dodge"][0], r)
+
+# ---- MAPEAR (só este aparelho)
+func _abrir_mapear(dev: String) -> void:
+	map_dev = dev
+	map_m = PlayerInput.current_map(dev)
+	map_sel = 0
+	map_col = 0
+	map_listen = -1.0
+	map_msg = ""
+	map_msg_row = -1
+	map_hold = 0.25
 	main.state = main.S.CONFIGPAD
-	cfg_step = -1
-	cfg_joy = -1
-	cfg_map = {}
-	cfg_wait = 0.3
-	cfg_msg = ""
-	_cfg_snapshot()
 
-func _cfg_joys() -> Array:
-	var js: Array = Input.get_connected_joypads().duplicate()
-	for j in PlayerInput.fake_joys:
-		if not j in js:
-			js.append(j)
-	return js
+func _map_msg(txt: String, row := -1) -> void:
+	map_msg = txt
+	map_msg_row = row
+	map_msg_t = 2.6
 
-func _cfg_snapshot() -> void:
-	cfg_base = {}
-	for j in _cfg_joys():
-		var st := {}
+func _update_mapear(dt: float) -> void:
+	map_msg_t = maxf(map_msg_t - dt, 0.0)
+	if not map_dev in _hub_devs():
+		main.state = main.S.CONTROLES   # controle desconectou
+		return
+	if map_listen > 0.0:
+		_listen(dt)
+		return
+	if map_hold > 0.0:
+		map_hold -= dt
+		return
+	if pressed("back"):
+		main.state = main.S.CONTROLES   # sai sem salvar
+		return
+	map_sel = posmod(map_sel + move_v(), MAP_ROWS)
+	var h := move_h()
+	if h != 0:
+		if map_sel < 10:
+			map_col = clampi(map_col + h, 0, 1)
+		else:
+			map_sel = 10 if h < 0 else 11
+	if pressed("heavy") and map_sel < 10 and map_col == 1:
+		map_m[PlayerInput.MAP_ACTIONS[map_sel]][1] = null
+		_map_msg("alternativo apagado", map_sel)
+	elif confirm():
+		if map_sel < 10:
+			map_listen = LISTEN_S
+			map_base = _raw_state()
+			PlayerInput.key_hits.clear()
+		elif map_sel == 10:
+			map_m = PlayerInput.default_map(map_dev)
+			_map_msg("padrão de fábrica de volta — SALVAR para manter")
+		else:
+			_salvar_map()
+
+func _raw_state() -> Dictionary:
+	var st := {}
+	if map_dev.begins_with("joy"):
+		var j := int(map_dev.substr(3))
 		for b in 32:
 			st["b%d" % b] = PlayerInput.jbtn(j, b)
-		for a in 10:
-			st["a%d" % a] = PlayerInput.jaxis(j, a)
-		cfg_base[j] = st
+		for a in 6:
+			st["a%d" % a] = absf(PlayerInput.jaxis(j, a)) > 0.4
+	return st
 
-## Primeiro sinal novo (botão apertado ou eixo empurrado) desde o começo do passo: [joy, spec] ou [].
-func _cfg_detect() -> Array:
-	for j in _cfg_joys():
-		if cfg_joy >= 0 and j != cfg_joy:
-			continue
-		var base: Dictionary = cfg_base.get(j, {})
-		for b in 32:
-			if PlayerInput.jbtn(j, b) and not base.get("b%d" % b, false):
-				return [j, ["b", b, 1]]
-		for a in 10:
-			var v := PlayerInput.jaxis(j, a)
-			if absf(v) > 0.7 and absf(float(base.get("a%d" % a, 0.0))) < 0.4:
-				return [j, ["a", a, signf(v)]]
-	return []
-
-func _cfg_idle(j: int) -> bool:
-	var base: Dictionary = cfg_base.get(j, {})
+func _listen(dt: float) -> void:
+	map_listen -= dt
+	if PlayerInput.key_hits.has(KEY_ESCAPE) or map_listen <= 0.0:
+		_map_msg("nada apertado" if map_listen <= 0.0 else "cancelado", map_sel)
+		map_listen = -1.0
+		map_hold = 0.2
+		PlayerInput.key_hits.clear()
+		return
+	if not map_dev.begins_with("joy"):
+		for k in PlayerInput.key_hits:
+			if k in KEYS_PROIBIDAS:
+				_map_msg("essa tecla não pode (Esc, ⌫, Del, Shift, Ctrl, Alt)", map_sel)
+				continue
+			_assign(k)
+			break
+		PlayerInput.key_hits.clear()
+		return
+	var j := int(map_dev.substr(3))
+	for key in map_base.keys():   # o que já estava apertado só conta depois de solto
+		if map_base[key]:
+			var solto: bool = (not PlayerInput.jbtn(j, int(key.substr(1)))) if key[0] == "b" else absf(PlayerInput.jaxis(j, int(key.substr(1)))) < 0.3
+			if solto:
+				map_base[key] = false
 	for b in 32:
-		if PlayerInput.jbtn(j, b) and not base.get("b%d" % b, false):
-			return false
-	for a in 10:
-		if absf(PlayerInput.jaxis(j, a)) > 0.4 and absf(float(base.get("a%d" % a, 0.0))) < 0.4:
-			return false
-	return true
+		if PlayerInput.jbtn(j, b) and not map_base.get("b%d" % b, false):
+			if b in [JOY_BUTTON_BACK, JOY_BUTTON_GUIDE]:
+				_map_msg("esse botão é do sistema / VOLTAR", map_sel)
+				map_base["b%d" % b] = true
+				return
+			_assign(["b", b])
+			return
+	for a in 6:
+		var v := PlayerInput.jaxis(j, a)
+		if absf(v) > 0.7 and not map_base.get("a%d" % a, false):
+			if a >= JOY_AXIS_TRIGGER_LEFT and v < 0.0:
+				continue
+			_assign(["a", a, 1 if v > 0.0 else -1])
+			return
 
-func _update_config(dt: float) -> void:
+## Põe o sinal na célula escolhida; se ele já estava em outra ação deste aparelho, as duas trocam de lugar.
+func _assign(b) -> void:
+	var a: String = PlayerInput.MAP_ACTIONS[map_sel]
+	var old = map_m[a][map_col]
+	var troca := ""
+	for a2 in PlayerInput.MAP_ACTIONS:
+		for c2 in 2:
+			if (a2 != a or c2 != map_col) and map_m[a2][c2] != null and map_m[a2][c2] == b:
+				map_m[a2][c2] = old
+				troca = a2
+	map_m[a][map_col] = b
+	for a2 in PlayerInput.MAP_ACTIONS:   # principal vazio: o alternativo sobe
+		if map_m[a2][0] == null and map_m[a2][1] != null:
+			map_m[a2] = [map_m[a2][1], null]
+	map_listen = -1.0
+	map_hold = 0.3
+	Audio.play("item")
+	if troca != "":
+		_map_msg("trocou com %s" % MAP_NAMES[troca].split("  ")[0], map_sel)
+	else:
+		_map_msg("", -1)
+
+func _salvar_map() -> void:
+	for a in PlayerInput.MAP_ACTIONS:
+		if map_m[a][0] == null:
+			_map_msg("%s ficou sem botão" % MAP_NAMES[a].split("  ")[0], PlayerInput.MAP_ACTIONS.find(a))
+			Audio.play("menu_negado")
+			return
+	var key := PlayerInput.dev_key(map_dev)
+	var legado := map_dev.begins_with("joy") and PlayerInput.custom.has(PlayerInput.joy_guid(int(map_dev.substr(3))))
+	if map_m == PlayerInput.default_map(map_dev) and not legado:
+		PlayerInput.save_custom(key, {})
+	else:
+		PlayerInput.save_custom(key, map_m.duplicate(true))
+	Audio.play("rodada_vence")
+	PlayerInput.toasts.append({"text": "Salvo: %s" % _dev_title(map_dev).capitalize(), "t": 0.0, "ok": true, "dev": map_dev})
+	main.state = main.S.CONTROLES
+
+func _draw_mapear(ci: CanvasItem) -> void:
+	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.55))
+	var dark := Color("#2a1a2e")
+	var joy := map_dev.begins_with("joy")
+	var model := _dev_model(map_dev)
+	Kit.ribbon(ci, Rect2(460, 14, 1000, 116), "MAPEAR — " + _dev_title(map_dev), 50)
+	var quem := _dev_sub(map_dev)
+	var used: int = PlayerInput.slots.find(map_dev)
+	if used >= 0:
+		quem += "  ·  P%d" % (used + 1)
+	Kit.text(ci, Vector2(0, 160), quem, 24, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+	# desenho com o botão da ação escolhida aceso
+	var pr := Rect2(50, 200, 640, 600)
+	Kit.chunk(ci, pr, Color("#f4ecdc"), 26, 5, 8.0)
+	var cur = map_m[PlayerInput.MAP_ACTIONS[map_sel]][map_col] if map_sel < 10 else null
+	var pulse := 1.0 + 0.08 * sin(t * 7.0)
+	if joy:
+		var lit: Array = []
+		if cur != null and Glifos.spec_glyph(cur) != "":
+			lit.append(Glifos.spec_glyph(cur))
+		Glifos.controller(ci, pr.get_center() + Vector2(0, -40), model, 0.92, lit, pulse)
+		Kit.text(ci, Vector2(pr.position.x, pr.end.y - 70), "o botão da ação escolhida", 22, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+		Kit.text(ci, Vector2(pr.position.x, pr.end.y - 40), "acende no desenho", 22, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	else:
+		Glifos.key(ci, pr.get_center() + Vector2(0, -60), cur, 90.0 * pulse, cur != null)
+		Kit.text(ci, Vector2(pr.position.x, pr.end.y - 70), "tecla da ação escolhida", 22, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+		Kit.text(ci, Vector2(pr.position.x, pr.end.y - 40), "(posição da tecla: vale para qualquer layout)", 20, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	# lista: ação · PRINCIPAL · ALTERNATIVO
+	var lx := 730.0
+	var cx1 := lx + 560.0
+	var cx2 := lx + 690.0
+	Kit.text(ci, Vector2(cx1 - 70, 214), "PRINCIPAL", 19, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 140, 5)
+	Kit.text(ci, Vector2(cx2 - 80, 214), "ALTERNATIVO", 19, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 160, 5)
+	for k in 10:
+		var a: String = PlayerInput.MAP_ACTIONS[k]
+		var y := 230.0 + k * 62.0 + (10.0 if k >= 4 else 0.0)
+		var rr := Rect2(lx, y, 780, 54)
+		var ouvindo := map_listen > 0.0 and k == map_sel
+		if k == map_sel and not ouvindo:
+			Kit.chunk(ci, rr.grow(5), Color("#f2c84b"), 18, 0, 0.0)
+		Kit.chunk(ci, rr, Color("#f2c84b") if ouvindo else Color.WHITE, 14, 4, 4.0)
+		Kit.text(ci, Vector2(lx + 22, y + 37), MAP_NAMES[a], 23, dark)
+		if ouvindo:
+			var txt := ("aperte o novo botão…  %d" if joy else "aperte a nova tecla…  %d") % ceili(map_listen)
+			Kit.text(ci, Vector2(lx + 330, y + 37), txt, 22, Color("#a01528"), HORIZONTAL_ALIGNMENT_RIGHT, 430)
+			continue
+		for c in 2:
+			var cc := Vector2(cx1 if c == 0 else cx2, y + 27)
+			if k == map_sel and c == map_col:
+				ci.draw_arc(cc, 31, 0, TAU, 32, dark, 5.0, true)
+			Glifos.bind(ci, cc, map_dev, model, map_m[a][c], 19.0)
+		if map_msg_row == k and map_msg_t > 0.0 and map_msg != "":
+			Kit.text(ci, Vector2(lx + 200, y + 36), map_msg, 18, Color("#8a5a10"), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	# botões e avisos
+	var bx := 1560.0
+	for b in 2:
+		var br := Rect2(bx, 220 + b * 92, 310, 68)
+		if map_sel == 10 + b:
+			Kit.chunk(ci, br.grow(6), Color("#f2c84b"), 22, 0, 0.0)
+		Kit.chunk(ci, br, Color("#e9e2d2") if b == 0 else Color("#5cc45c"), 18, 5, 6.0)
+		Kit.text(ci, Vector2(br.position.x, br.position.y + 44), ["RESTAURAR PADRÃO", "SALVAR"][b], 25, dark, HORIZONTAL_ALIGNMENT_CENTER, br.size.x)
+	var vale: Array = ["vale SÓ para este", "controle — os outros", "%s não mudam" % PlayerInput.MODEL_NAMES.get(model, "")] if joy else ["vale SÓ para o", _dev_title(map_dev), ""]
+	for k in vale.size():
+		Kit.text(ci, Vector2(bx - 20, 450 + k * 30), vale[k], 23, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 350, 6)
+	var dicas: Array = ["botão repetido? troca", "de lugar sozinho", "", "direções aceitam", "analógico, direcional", "ou qualquer botão"] if joy else ["tecla repetida? troca", "de lugar sozinha", "", "Esc cancela a escuta"]
+	for k in dicas.size():
+		Kit.text(ci, Vector2(bx - 20, 570 + k * 28), dicas[k], 20, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 350, 5)
+	if map_msg_row == -1 and map_msg_t > 0.0 and map_msg != "":
+		Kit.sticker(ci, Vector2(0, 900), map_msg, 26, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920)
+	var apaga := "TRIÂNGULO / Y apaga o alternativo" if joy else "a tecla de MARRETADA apaga o alternativo"
+	Kit.text(ci, Vector2(0, 1010), "▲▼ escolhe a ação  ·  ◄► PRINCIPAL / ALTERNATIVO  ·  PULAR muda (5 s)  ·  " + apaga, 22, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+	Kit.text(ci, Vector2(0, 1050), "VOLTAR sai sem salvar  ·  os menus continuam andando pelo analógico/direcional (ninguém fica preso)", 22, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+
+# ---- TESTAR (ao vivo: o que chega do aparelho e o que o jogo entende)
+func _abrir_teste(dev: String) -> void:
+	test_dev = dev
+	pad_prev.clear()
+	main.state = main.S.TESTPAD
+
+func _update_teste() -> void:
 	if PlayerInput.dev_pressed("kb_a", "back") or PlayerInput.dev_pressed("kb_b", "back"):
-		main.state = main.S.OPTIONS   # Esc / Backspace cancela
+		main.state = main.S.CONTROLES
 		Audio.play("menu_voltar")
 		return
-	if cfg_step >= PlayerInput.LEARN_ACTIONS.size():
+	if not test_dev in _hub_devs():
+		main.state = main.S.CONTROLES
 		return
-	if cfg_wait > 0.0:
-		cfg_wait -= dt
-		if cfg_wait <= 0.0 and cfg_joy >= 0 and not _cfg_idle(cfg_joy):
-			cfg_wait = 0.05   # espera soltar antes do próximo passo
-		if cfg_wait <= 0.0:
-			_cfg_snapshot()
-		return
-	if Input.is_key_pressed(KEY_TAB) and cfg_step >= 0:
-		cfg_step += 1   # Tab pula esta ação (fica a padrão)
-		cfg_wait = 0.3
-		_cfg_finish_if_done()
-		return
-	var hit := _cfg_detect()
-	if hit.is_empty():
-		return
-	if cfg_step < 0:
-		cfg_joy = hit[0]   # este é o controle que vai ser configurado
-		cfg_step = 0
-		cfg_msg = "Configurando: %s" % Input.get_joy_name(cfg_joy)
-		Audio.play("menu_ok")
-		cfg_wait = 0.4
-		return
-	var spec: Array = hit[1]
-	cfg_map[PlayerInput.LEARN_ACTIONS[cfg_step]] = spec
-	Audio.play("item", 1.0 + cfg_step * 0.06)
-	cfg_step += 1
-	cfg_wait = 0.35
-	_cfg_finish_if_done()
-
-func _cfg_finish_if_done() -> void:
-	if cfg_step >= PlayerInput.LEARN_ACTIONS.size():
-		if cfg_joy >= 0 and not cfg_map.is_empty():
-			PlayerInput.save_custom(Input.get_joy_guid(cfg_joy), cfg_map)
-		Audio.play("rodada_vence")
-		await get_tree().create_timer(1.2).timeout
-		if main.state == main.S.CONFIGPAD:
+	if test_dev.begins_with("joy"):
+		var j := int(test_dev.substr(3))
+		if _pad_edge(j, JOY_BUTTON_BACK):
 			main.state = main.S.CONTROLES
-			pad_prev.clear()
+			Audio.play("menu_voltar")
+			return
+	for d in ([test_dev] if test_dev.begins_with("joy") else ["kb_a", "kb_b"]):
+		if PlayerInput.dev_pressed(d, "jump"):
+			Audio.play("pulo")
+			if d.begins_with("joy"):
+				Input.start_joy_vibration(int(d.substr(3)), 0.6, 0.6, 0.2)   # PULAR vibra: testa o motor
+		if PlayerInput.dev_pressed(d, "hammer"):
+			Audio.play("marreta_vento")
+		if PlayerInput.dev_pressed(d, "item") or PlayerInput.dev_pressed(d, "heavy"):
+			Audio.play("item")
 
-func _draw_config(ci: CanvasItem) -> void:
-	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.5))
-	Kit.ribbon(ci, Rect2(510, 20, 900, 128), "CONFIGURAR CONTROLE", 54)
-	var r := Rect2(260, 180, 1400, 800)
-	Kit.paper(ci, r)
+const RAW_IDS := {"baixo": JOY_BUTTON_A, "dir": JOY_BUTTON_B, "esq": JOY_BUTTON_X, "cima": JOY_BUTTON_Y, "lb": JOY_BUTTON_LEFT_SHOULDER,
+	"rb": JOY_BUTTON_RIGHT_SHOULDER, "start": JOY_BUTTON_START, "select": JOY_BUTTON_BACK, "ls": JOY_BUTTON_LEFT_STICK, "rs": JOY_BUTTON_RIGHT_STICK,
+	"d-cima": JOY_BUTTON_DPAD_UP, "d-baixo": JOY_BUTTON_DPAD_DOWN, "d-esq": JOY_BUTTON_DPAD_LEFT, "d-dir": JOY_BUTTON_DPAD_RIGHT}
+
+func _draw_acoes(ci: CanvasItem, x: float, y0: float, dev: String, titulo: String) -> void:
 	var dark := Color("#2a1a2e")
-	var acts: Array = PlayerInput.LEARN_ACTIONS
-	if cfg_step < 0:
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 200), "Aperte QUALQUER botão no controle", 54, dark, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 260), "que você quer configurar", 40, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.end.y - 90), "Se NADA acontecer ao apertar: feche a Steam (ou desligue o Steam Input),", 24, Color("#8a5a10"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.end.y - 56), "desconecte e conecte o controle de novo, e abra esta tela outra vez.", 24, Color("#8a5a10"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.end.y - 20), "ESC cancela", 22, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		if _cfg_joys().is_empty():
-			Kit.text(ci, Vector2(r.position.x, r.position.y + 380), "Nenhum controle detectado pelo Windows.", 34, Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		else:
-			var y := r.position.y + 380
-			for j in _cfg_joys():
-				Kit.text(ci, Vector2(r.position.x, y), "controle %d: %s" % [j + 1, Input.get_joy_name(j)], 26, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-				y += 40
-	elif cfg_step < acts.size():
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 70), cfg_msg, 26, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		var a: String = acts[cfg_step]
-		var verb := "Mova para" if a in ["left", "right", "up", "down"] else "Aperte o botão de"
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 230), verb, 40, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		var pulse := 1.0 + 0.05 * sin(t * 6.0)
-		ci.draw_set_transform(Vector2(960, r.position.y + 320), 0.0, Vector2(pulse, pulse))
-		Kit.text(ci, Vector2(-700, 0), LEARN_NAMES[a], 64, Color("#d42035") if cfg_wait <= 0.0 else Color("#3c9a46"), HORIZONTAL_ALIGNMENT_CENTER, 1400)
-		ci.draw_set_transform(Vector2.ZERO)
-		# progresso
-		for i in acts.size():
-			var c := Vector2(960 - (acts.size() - 1) * 40 + i * 80, r.position.y + 470)
-			ci.draw_circle(c, 20, Color("#5cc45c") if i < cfg_step else (Color("#f2c84b") if i == cfg_step else Color(0.8, 0.78, 0.72)))
-		if cfg_joy >= 0:
-			Kit.text(ci, Vector2(r.position.x, r.position.y + 580), "sinais agora: " + PlayerInput.raw_now(cfg_joy), 24, dark, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.end.y - 40), "TAB (teclado) pula esta ação  ·  ESC cancela", 24, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-	else:
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 330), "PRONTO! Controle configurado.", 56, Color("#3c9a46"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
-		Kit.text(ci, Vector2(r.position.x, r.position.y + 400), "Agora teste na tela de TESTAR CONTROLES.", 32, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	var m := PlayerInput.current_map(dev)
+	var model := _dev_model(dev)
+	Kit.text(ci, Vector2(x, y0), titulo, 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 560, 6)
+	for k in 10:
+		var a: String = PlayerInput.MAP_ACTIONS[k]
+		var y := y0 + 22 + k * 58
+		var on := PlayerInput.dev_held(dev, a)
+		Kit.chunk(ci, Rect2(x, y, 560, 50), Color("#f2c84b") if on else Color.WHITE, 14, 4, 4.0)
+		Kit.text(ci, Vector2(x + 18, y + 34), MAP_NAMES[a].split("   ")[0], 21, dark)
+		Glifos.bind(ci, Vector2(x + 430, y + 25), dev, model, m[a][0], 17.0)
+		Glifos.bind(ci, Vector2(x + 510, y + 25), dev, model, m[a][1], 17.0)
+
+func _draw_teste(ci: CanvasItem) -> void:
+	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color(0.16, 0.1, 0.18, 0.55))
+	var dark := Color("#2a1a2e")
+	if not test_dev.begins_with("joy"):
+		# teclado: os dois lados ao mesmo tempo (teste de "fantasma")
+		Kit.ribbon(ci, Rect2(560, 14, 800, 116), "TESTAR TECLADO", 50)
+		_draw_acoes(ci, 300, 190, "kb_a", "TECLADO A")
+		_draw_acoes(ci, 1060, 190, "kb_b", "TECLADO B")
+		var n := 0
+		for k in PlayerInput._keys:
+			if PlayerInput._keys[k]:
+				n += 1
+		Kit.text(ci, Vector2(0, 850), "teclas apertadas agora: %d" % n, 26, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+		Kit.text(ci, Vector2(0, 900), "TESTE DE FANTASMA: os dois apertem andar + pular + golpe juntos. Se alguma linha não acender,", 23, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+		Kit.text(ci, Vector2(0, 934), "este teclado não aguenta essa combinação: troque uma das teclas em MAPEAR (grupos mais afastados funcionam melhor).", 23, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+		Kit.text(ci, Vector2(0, 1050), "Aperte as teclas para ver acender  ·  ESC volta", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
+		return
+	var j := int(test_dev.substr(3))
+	var model := _dev_model(test_dev)
+	Kit.ribbon(ci, Rect2(460, 14, 1000, 116), "TESTAR — " + _dev_title(test_dev), 50)
+	Kit.text(ci, Vector2(0, 160), _dev_sub(test_dev), 24, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 6)
+	var pr := Rect2(60, 200, 760, 560)
+	Kit.chunk(ci, pr, Color("#f4ecdc"), 26, 5, 8.0)
+	var lit: Array = []
+	for id in RAW_IDS:
+		if PlayerInput.jbtn(j, RAW_IDS[id]):
+			lit.append(id)
+	if PlayerInput.jaxis(j, JOY_AXIS_TRIGGER_LEFT) > 0.4:
+		lit.append("lt")
+	if PlayerInput.jaxis(j, JOY_AXIS_TRIGGER_RIGHT) > 0.4:
+		lit.append("rt")
+	if Vector2(PlayerInput.jaxis(j, JOY_AXIS_LEFT_X), PlayerInput.jaxis(j, JOY_AXIS_LEFT_Y)).length() > 0.4:
+		lit.append("ls")
+	if Vector2(PlayerInput.jaxis(j, JOY_AXIS_RIGHT_X), PlayerInput.jaxis(j, JOY_AXIS_RIGHT_Y)).length() > 0.4:
+		lit.append("rs")
+	Glifos.controller(ci, pr.get_center() + Vector2(0, -30), model, 1.05, lit)
+	var ids: Array = PlayerInput.joy_ids(j)
+	var info := "fabricante %04X · produto %04X" % [ids[0], ids[1]] if ids[0] != 0 else "fabricante não informado"
+	Kit.text(ci, Vector2(pr.position.x, pr.end.y - 46), info + "  ·  " + PlayerInput.joy_name(j).substr(0, 28), 18, Color("#6b5a70"), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	var known := Input.get_connected_joypads().has(j) and Input.is_joy_known(j)
+	Kit.text(ci, Vector2(pr.position.x, pr.end.y - 18), "mapeamento reconhecido" if known else "mapeamento DESCONHECIDO: use MAPEAR para acertar os botões", 18,
+		Color("#3c9a46") if known else Color("#a01528"), HORIZONTAL_ALIGNMENT_CENTER, pr.size.x)
+	_draw_acoes(ci, 1000, 190, test_dev, "O QUE O JOGO ENTENDE")
+	Kit.text(ci, Vector2(60, 800), "sinais crus: " + PlayerInput.raw_now(j), 20, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, -1, 5)
+	Kit.text(ci, Vector2(60, 832), "último sinal: %s" % String(PlayerInput.last_raw.get(j, "—")), 20, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, -1, 5)
+	if PlayerInput.aliases.has(test_dev):
+		Kit.text(ci, Vector2(60, 864), "cópia do mesmo controle (o Windows mostrou 2x): usado junto com o original", 20, Color("#ffd27a"), HORIZONTAL_ALIGNMENT_LEFT, -1, 5)
+	Kit.text(ci, Vector2(0, 990), "Steam aberta pode esconder ou duplicar controles (Steam Input) · relatório: " + ProjectSettings.globalize_path("user://controles.txt"), 19, Color("#fff4c8"), HORIZONTAL_ALIGNMENT_CENTER, 1920, 5)
+	Kit.text(ci, Vector2(0, 1050), "Aperte os botões para ver acender  ·  PULAR vibra  ·  SELECT ou ESC volta", 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, 1920, 7)
 
 # ---------------------------------------------------------------- cenário do menu (não depende da fase)
 const SCENE_GROUND := 880.0

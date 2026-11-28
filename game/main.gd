@@ -16,10 +16,10 @@ const Eventos := preload("res://modes/eventos.gd")
 const Laboratorio := preload("res://ui/laboratorio.gd")
 const T := 64
 
-enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS, DETONAR }
+enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS, DETONAR, TESTPAD }
 var state := S.INTRO   # abre com a intro animada (os testes pulam direto para a entrada)
 var paused := false
-const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS, S.DETONAR]
+const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS, S.DETONAR, S.TESTPAD]
 var sandbox := false          # LABORATÓRIO: ambiente de testes (respawn infinito, rodada sem fim)
 var lab: Node = null
 var lab_mode := false        # LABORATÓRIO aberto
@@ -304,7 +304,8 @@ func _physics_process(dt: float) -> void:
 			if sandbox and not players[i].get("bot", false) and PlayerInput.pressed(i, "start"):
 				tester().toggle()   # no Laboratório, START abre o painel de testes
 				return
-			if not players[i].get("bot", false) and PlayerInput.pressed(i, "start"):
+			var esc_teclado: bool = PlayerInput.is_keyboard(PlayerInput.slots[i]) and PlayerInput.pressed(i, "back") if i < PlayerInput.slots.size() else false
+			if not players[i].get("bot", false) and (PlayerInput.pressed(i, "start") or esc_teclado):
 				paused = true
 				menus.pause_sel = 0
 				Audio.play("menu_ok")

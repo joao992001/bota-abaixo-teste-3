@@ -550,10 +550,10 @@ func _draw_join() -> void:
 			draw_set_transform(Vector2.ZERO)
 			Kit.pad_hint(self, r.get_center().x, r.get_center().y + 40, [["baixo"], " entrar"], 36, DARK, st)
 			Kit.pad_hint(self, r.get_center().x, r.get_center().y + 104, [["cima"], " + bot"], 30, DARK, st)
-			Kit.text(self, Vector2(r.position.x, r.get_center().y + 170), "teclado: Espaço / Ctrl dir.", 22, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, W)
+			Kit.text(self, Vector2(r.position.x, r.get_center().y + 170), "teclado: G ou Espaço  /  1 do numérico ou K", 22, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, W)
 	draw_set_transform(Vector2.ZERO)
 	if Input.get_connected_joypads().is_empty():
-		Kit.sticker(self, Vector2(0, 950), "nenhum controle detectado  ·  OPÇÕES ▸ TESTAR CONTROLES", 26, Color("#ff8a8a"), HORIZONTAL_ALIGNMENT_CENTER, 1920)
+		Kit.sticker(self, Vector2(0, 950), "nenhum controle detectado  ·  OPÇÕES ▸ CONTROLES", 26, Color("#ff8a8a"), HORIZONTAL_ALIGNMENT_CENTER, 1920)
 	Kit.pad_hint(self, 960, 1030, [["baixo"], " entrar   ", "◄► cor   ▲▼ robô   ", ["esquerda"], " skin   ", ["cima"], " + bot   ", ["direita"], " sair   ", ["start"], " começar"], 30, Color.WHITE, st, 7)
 
 # ---------------------------------------------------------------- corrida / rodada

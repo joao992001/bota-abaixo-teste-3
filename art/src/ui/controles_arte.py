@@ -250,7 +250,7 @@ def glifo(x, y, modelo, botao, r=22):
         else:
             o += Tx(x, y + r * 0.2, lab, r * 0.75, "#f1f1f4")
         return o
-    if botao.startswith("d-"):
+    if botao == "d" or botao.startswith("d-"):
         dirn = botao[2:]
         if modelo in ("ps5", "ps4"):
             return dpad_ps(x, y, r * 0.55, modelo, dirn)

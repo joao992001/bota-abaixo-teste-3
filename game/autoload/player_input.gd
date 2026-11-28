@@ -9,13 +9,31 @@ extends Node
 ## Conectar/desconectar a qualquer hora: aviso na tela; se cair no meio da partida, o jogo pausa.
 
 ## hammer = golpe rápido · heavy = marretada pesada · dodge = esquiva
-const ACTIONS := ["left", "right", "up", "down", "jump", "hammer", "heavy", "dodge", "item", "start", "back"]
+## Teclado (2026-11-28, prancha controles_v2): andar e PULAR em mãos diferentes, nada de Shift/Ctrl.
+##   A: WASD anda · G pula (ou Espaço) · H golpe · J marretada · Y esquiva · U especial · Enter/Esc pausa.
+##   B: setas · numérico 1 pula · 2 golpe · 3 marretada · 4 esquiva · 5 especial · Enter do numérico pausa;
+##      sem numérico (notebook): K pula · L golpe · Ç marretada · O esquiva · P especial.
+## Cada ação tem PRINCIPAL e ALTERNATIVO; cada controle/lado do teclado pode ser remapeado (só ele) em OPÇÕES ▸ CONTROLES.
+const ACTIONS := ["left", "right", "up", "down", "jump", "hammer", "heavy", "dodge", "item", "start", "back",
+	"nav_left", "nav_right", "nav_up", "nav_down"]
+const MAP_ACTIONS := ["left", "right", "up", "down", "jump", "hammer", "heavy", "dodge", "item", "start"]
 const KEYMAP := {
-	"kb_a": {"left": [KEY_A], "right": [KEY_D], "up": [KEY_W], "down": [KEY_S],
-		"jump": [KEY_SPACE], "hammer": [KEY_F, KEY_E], "heavy": [KEY_R], "dodge": ["shift_l", KEY_C], "item": [KEY_G, KEY_Q], "start": [KEY_ENTER], "back": [KEY_BACKSPACE, KEY_ESCAPE]},
-	"kb_b": {"left": [KEY_LEFT], "right": [KEY_RIGHT], "up": [KEY_UP], "down": [KEY_DOWN],
-		"jump": ["ctrl_r", KEY_L], "hammer": [KEY_PERIOD, KEY_K], "heavy": [KEY_SLASH, KEY_KP_ENTER, KEY_I], "dodge": [KEY_KP_0, KEY_O], "item": [KEY_COMMA, KEY_J, KEY_KP_1], "start": [KEY_ENTER], "back": [KEY_DELETE]},
+	"kb_a": {"left": [KEY_A, null], "right": [KEY_D, null], "up": [KEY_W, null], "down": [KEY_S, null],
+		"jump": [KEY_G, KEY_SPACE], "hammer": [KEY_H, null], "heavy": [KEY_J, null], "dodge": [KEY_Y, null], "item": [KEY_U, null],
+		"start": [KEY_ENTER, null], "back": [KEY_ESCAPE, KEY_BACKSPACE]},
+	"kb_b": {"left": [KEY_LEFT, null], "right": [KEY_RIGHT, null], "up": [KEY_UP, null], "down": [KEY_DOWN, null],
+		"jump": [KEY_KP_1, KEY_K], "hammer": [KEY_KP_2, KEY_L], "heavy": [KEY_KP_3, KEY_SEMICOLON], "dodge": [KEY_KP_4, KEY_O], "item": [KEY_KP_5, KEY_P],
+		"start": [KEY_KP_ENTER, null], "back": [KEY_DELETE, null]},
 }
+## Controle (posições SDL): ["b", botão] ou ["a", eixo, sinal]. Direções: analógico esquerdo + direcional.
+const PAD_DEFAULT := {
+	"left": [["a", JOY_AXIS_LEFT_X, -1], ["b", JOY_BUTTON_DPAD_LEFT]], "right": [["a", JOY_AXIS_LEFT_X, 1], ["b", JOY_BUTTON_DPAD_RIGHT]],
+	"up": [["a", JOY_AXIS_LEFT_Y, -1], ["b", JOY_BUTTON_DPAD_UP]], "down": [["a", JOY_AXIS_LEFT_Y, 1], ["b", JOY_BUTTON_DPAD_DOWN]],
+	"jump": [["b", JOY_BUTTON_A], null], "hammer": [["b", JOY_BUTTON_X], null], "heavy": [["b", JOY_BUTTON_Y], null],
+	"dodge": [["b", JOY_BUTTON_RIGHT_SHOULDER], ["a", JOY_AXIS_TRIGGER_RIGHT, 1]], "item": [["b", JOY_BUTTON_LEFT_SHOULDER], ["a", JOY_AXIS_TRIGGER_LEFT, 1]],
+	"start": [["b", JOY_BUTTON_START], null],
+}
+const DIRS := ["left", "right", "up", "down"]
 
 var slots: Array = []   # dispositivo de cada jogador (índice = jogador)
 var virtual := {}       # dispositivos simulados (testes): nome -> {ação: bool}
@@ -27,9 +45,8 @@ const TWIN_FRAMES := 2
 var _jb := {}           # controle -> {botão: apertado}, pelos eventos (além da leitura direta)
 var _ja := {}           # controle -> {eixo: valor}, pelos eventos
 var last_raw := {}      # controle -> último botão/eixo cru recebido (tela TESTAR CONTROLES)
-var custom := {}        # mapeamento aprendido em CONFIGURAR CONTROLE: guid -> {ação: [tipo "b"/"a", índice, sinal]}
+var custom := {}        # mapeamento de cada dispositivo: chave (pad_key / "kb_a") -> {ação: [principal, alternativo]}
 const CUSTOM_PATH := "user://controles.cfg"
-const LEARN_ACTIONS := ["jump", "hammer", "heavy", "dodge", "item", "start", "back", "left", "right", "up", "down"]
 var toasts: Array = []  # avisos de controle conectado/desconectado: {text, t, ok}
 var vibration := true   # OPÇÕES: vibração dos controles
 signal pad_changed(dev: String, connected: bool)
@@ -38,32 +55,101 @@ func _ready() -> void:
 	Input.joy_connection_changed.connect(_on_joy)
 	load_custom()
 
-## Mapeamentos aprendidos (CONFIGURAR CONTROLE), por GUID do controle.
+## Mapeamentos por dispositivo. Chave de controle = GUID#n (n = ordem entre controles IGUAIS conectados), então
+## mapear um DualSense não muda o outro DualSense. Seções antigas (só GUID, valendo para todos do modelo) ainda são lidas.
 func load_custom() -> void:
 	custom.clear()
 	var cf := ConfigFile.new()
 	if cf.load(CUSTOM_PATH) != OK:
 		return
-	for guid in cf.get_sections():
+	for key in cf.get_sections():
 		var m := {}
-		for a in cf.get_section_keys(guid):
-			m[a] = cf.get_value(guid, a)
-		custom[guid] = m
+		for a in cf.get_section_keys(key):
+			var v = cf.get_value(key, a)
+			if v is Array and v.size() == 3 and v[0] is String:
+				v = [_spec_norm(v), null]   # formato antigo: um sinal só
+			m[a] = v
+		custom[key] = m
 
-func save_custom(guid: String, m: Dictionary) -> void:
-	custom[guid] = m
+func save_custom(key: String, m: Dictionary) -> void:
 	var cf := ConfigFile.new()
 	cf.load(CUSTOM_PATH)
-	if cf.has_section(guid):
-		cf.erase_section(guid)
-	for a in m:
-		cf.set_value(guid, a, m[a])
+	if cf.has_section(key):
+		cf.erase_section(key)
+	if m.is_empty():
+		custom.erase(key)
+	else:
+		custom[key] = m
+		for a in m:
+			cf.set_value(key, a, m[a])
 	cf.save(CUSTOM_PATH)
 
-func _custom_on(j: int, spec: Array) -> bool:
+static func _spec_norm(v: Array) -> Array:
+	return ["b", int(v[1])] if v[0] == "b" else ["a", int(v[1]), int(signf(float(v[2])))]
+
+## Chave do mapeamento deste dispositivo.
+func dev_key(dev: String) -> String:
+	if dev.begins_with("joy"):
+		return pad_key(int(dev.substr(3)))
+	return dev
+
+## GUID / nome / info só de controles conectados de verdade (os de mentira dos testes respondem "fake").
+func joy_guid(j: int) -> String:
+	return Input.get_joy_guid(j) if Input.get_connected_joypads().has(j) else "fake"
+
+func joy_name(j: int) -> String:
+	return Input.get_joy_name(j) if Input.get_connected_joypads().has(j) else ""
+
+func joy_info(j: int) -> Dictionary:
+	return Input.get_joy_info(j) if Input.get_connected_joypads().has(j) else {}
+
+func pad_key(j: int) -> String:
+	var g := joy_guid(j)
+	var n := 1
+	for o in _joys():
+		if o < j and joy_guid(o) == g:
+			n += 1
+	return "%s#%d" % [g, n]
+
+func _joys() -> Array:
+	var js: Array = Input.get_connected_joypads().duplicate()
+	for j in fake_joys:
+		if not j in js:
+			js.append(j)
+	js.sort()
+	return js
+
+## Padrão de fábrica do dispositivo: {ação: [principal, alternativo]}.
+func default_map(dev: String) -> Dictionary:
+	var src: Dictionary = KEYMAP[dev] if KEYMAP.has(dev) else PAD_DEFAULT
+	var m := {}
+	for a in MAP_ACTIONS:
+		m[a] = src[a].duplicate(true)
+	return m
+
+## Mapeamento em uso (o salvo deste dispositivo; senão o antigo do modelo; senão o padrão), completo.
+func current_map(dev: String) -> Dictionary:
+	var m := default_map(dev)
+	var cm: Dictionary = custom.get(dev_key(dev), {})
+	if cm.is_empty() and dev.begins_with("joy"):
+		cm = custom.get(joy_guid(int(dev.substr(3))), {})
+	for a in cm:
+		if m.has(a) and cm[a] is Array and cm[a].size() == 2:
+			m[a] = cm[a].duplicate(true)
+	return m
+
+func has_custom(dev: String) -> bool:
+	if custom.has(dev_key(dev)):
+		return true
+	return dev.begins_with("joy") and custom.has(joy_guid(int(dev.substr(3))))
+
+func _custom_on(j: int, spec) -> bool:
+	if not (spec is Array) or spec.is_empty():
+		return false
 	if spec[0] == "b":
 		return jbtn(j, int(spec[1]))
-	return jaxis(j, int(spec[1])) * float(spec[2]) > 0.5
+	var lim := 0.45 if int(spec[1]) <= JOY_AXIS_RIGHT_Y else 0.5
+	return jaxis(j, int(spec[1])) * float(spec[2]) > lim
 
 ## Sinais crus que estão chegando agora deste controle (diagnóstico): botões e eixos, pela leitura direta e por evento.
 func raw_now(j: int) -> String:
@@ -96,23 +182,87 @@ func _process(dt: float) -> void:
 		tt["t"] += dt
 	toasts = toasts.filter(func(tt): return tt["t"] < 4.0)
 
-## Nome amigável do controle (o que a Godot/SDL informa, encurtado).
+## Nome amigável do controle: o MODELO reconhecido (ex.: "DualSense"); se não reconhecer, o nome que o sistema informa.
 func pad_name(dev: String) -> String:
 	if not dev.begins_with("joy"):
 		return label(dev)
-	var nm := Input.get_joy_name(int(dev.substr(3))).strip_edges()
-	var fam: String = {"ps": "PlayStation", "nintendo": "Nintendo", "xbox": "Xbox"}.get(pad_type(dev), "")
-	if nm == "":
-		return fam if fam != "" else "controle %d" % (int(dev.substr(3)) + 1)
-	if fam != "" and not (fam.to_lower() in nm.to_lower()):
-		nm = "%s (%s)" % [fam, nm]   # ex.: "PlayStation (Wireless Controller)"
-	return nm.substr(0, 34)
+	var j := int(dev.substr(3))
+	var m := pad_model(dev)
+	if m != "gen":
+		return model_title(dev)
+	var nm := joy_name(j).strip_edges()
+	return nm.substr(0, 30) if nm != "" else "controle %d" % (j + 1)
 
-## Família do controle, pelo nome: muda só os desenhos dos botões (a posição é a mesma).
+## Nome do modelo com a geração quando o produto diz (Xbox Series / One / 360; Switch Pro).
+func model_title(dev: String) -> String:
+	var m := pad_model(dev)
+	if m == "xbox" and not fake_models.has(int(dev.substr(3))):
+		var p: int = joy_ids(int(dev.substr(3)))[1]
+		if p in [0x0b12, 0x0b13, 0x0b20, 0x0b21, 0x0b22]:
+			return "Xbox Series"
+		if p in [0x02d1, 0x02dd, 0x02e0, 0x02ea, 0x02fd, 0x0b00, 0x0b05]:
+			return "Xbox One"
+		if p in [0x028e, 0x028f, 0x0291, 0x0719]:
+			return "Xbox 360"
+	return MODEL_NAMES.get(m, "Controle")
+
+const MODEL_NAMES := {"ps5": "DualSense", "ps4": "DualShock 4", "xbox": "Xbox", "switch": "Switch Pro", "gen": "Controle genérico"}
+const MODEL_FAMILY := {"ps5": "PlayStation 5", "ps4": "PlayStation 4", "xbox": "Xbox", "switch": "Nintendo Switch", "gen": "botões como Xbox"}
+
+## Modelo do controle: ps5 / ps4 / xbox / switch / gen — pelo fabricante e produto (USB/Bluetooth) e, na falta, pelo nome.
+## Muda os desenhos (controle e ícones); a posição dos botões é a mesma (mapeamento SDL).
+func pad_model(dev: String) -> String:
+	if not dev.begins_with("joy"):
+		return ""
+	var j := int(dev.substr(3))
+	if fake_models.has(j):
+		return fake_models[j]
+	var ids := joy_ids(j)
+	return model_from(ids[0], ids[1], joy_name(j))
+
+var fake_models := {}   # testes/capturas: controle de mentira -> modelo
+
+## [fabricante, produto] do controle: das informações do sistema ou, se faltar, de dentro do GUID SDL.
+func joy_ids(j: int) -> Array:
+	var info: Dictionary = joy_info(j)
+	var v := _num(info.get("vendor_id", 0))
+	var p := _num(info.get("product_id", 0))
+	if v == 0:
+		var g := joy_guid(j)
+		if g.length() >= 20:
+			v = ("0x" + g.substr(10, 2) + g.substr(8, 2)).hex_to_int()
+			p = ("0x" + g.substr(18, 2) + g.substr(16, 2)).hex_to_int()
+	return [v, p]
+
+static func _num(x) -> int:
+	if x is int:
+		return x
+	var t := str(x).strip_edges()
+	return t.hex_to_int() if t.begins_with("0x") else t.to_int()
+
+static func model_from(vendor: int, product: int, nm: String) -> String:
+	match vendor:
+		0x054c:
+			return "ps5" if product in [0x0ce6, 0x0df2] else "ps4"
+		0x045e:
+			return "xbox"
+		0x057e:
+			return "switch"
+	var n := nm.to_lower()
+	for k in ["dualsense", "ps5"]:
+		if k in n:
+			return "ps5"
+	match type_from_name(nm):
+		"ps": return "ps4"
+		"xbox": return "xbox"
+		"nintendo": return "switch"
+	return "gen"
+
+## Família antiga (ps / xbox / nintendo / generico) — usada pelos desenhos simples dos botões.
 func pad_type(dev: String) -> String:
 	if not dev.begins_with("joy"):
 		return ""
-	return type_from_name(Input.get_joy_name(int(dev.substr(3))))
+	return {"ps5": "ps", "ps4": "ps", "xbox": "xbox", "switch": "nintendo"}.get(pad_model(dev), "generico")
 
 static func type_from_name(nm: String) -> String:
 	var n := nm.to_lower().strip_edges()
@@ -127,16 +277,28 @@ static func type_from_name(nm: String) -> String:
 	for k in ["nintendo", "switch", "pro controller", "joy-con", "joycon"]:
 		if k in n:
 			return "nintendo"
-	for k in ["xbox", "xinput", "x-box", "microsoft"]:
-		if k in n:
-			return "xbox"
 	return "generico"
 
-## Família que aparece nas dicas da tela: a do primeiro controle conectado (Xbox se não houver).
+## Família que aparece nas dicas gerais da tela: a do primeiro controle conectado (Xbox se não houver).
 func main_pad_type() -> String:
 	for j in Input.get_connected_joypads():
-		return type_from_name(Input.get_joy_name(j))
+		return pad_type("joy%d" % j)
 	return "xbox"
+
+func main_pad_model() -> String:
+	for j in Input.get_connected_joypads():
+		return pad_model("joy%d" % j)
+	return "xbox"
+
+## Conexão (para o cartão do controle), quando o sistema informa.
+func pad_conexao(dev: String) -> String:
+	if not dev.begins_with("joy"):
+		return ""
+	var nm := joy_name(int(dev.substr(3))).to_lower()
+	var info: Dictionary = joy_info(int(dev.substr(3)))
+	if "bluetooth" in str(info).to_lower() or "wireless" in nm:
+		return "sem fio"
+	return ""
 
 ## Vibra o controle do jogador (se for controle e a opção estiver ligada).
 func vibrate(p: int, weak: float, strong: float, dur: float) -> void:
@@ -157,11 +319,8 @@ var fake_joys: Array = []   # testes: controles "conectados" de mentira (recebem
 
 func all_devices() -> Array:
 	var list: Array = ["kb_a", "kb_b"]
-	for j in Input.get_connected_joypads():
+	for j in _joys():
 		list.append("joy%d" % j)
-	for j in fake_joys:
-		if not ("joy%d" % j) in list:
-			list.append("joy%d" % j)
 	list.append_array(virtual.keys())
 	return list
 
@@ -170,33 +329,30 @@ func _read(dev: String) -> Dictionary:
 	if virtual.has(dev):
 		for a in ACTIONS:
 			s[a] = bool(virtual[dev].get(a, false))
-	elif KEYMAP.has(dev):
-		for a in ACTIONS:
-			s[a] = false
-			for k in KEYMAP[dev][a]:
-				if key_down(k):
-					s[a] = true
+		for d in DIRS:
+			s["nav_" + d] = s[d] or s["nav_" + d]
+		return s
+	var m := current_map(dev)
+	if KEYMAP.has(dev):
+		for a in MAP_ACTIONS:
+			s[a] = key_down(m[a][0]) or key_down(m[a][1])
+		s["back"] = key_down(KEYMAP[dev]["back"][0]) or key_down(KEYMAP[dev]["back"][1])
+		for d in DIRS:   # menus: as teclas de fábrica sempre navegam (ninguém fica preso)
+			s["nav_" + d] = s[d] or key_down(KEYMAP[dev][d][0])
 	elif dev.begins_with("joy"):
 		var j := int(dev.substr(3))
-		var x := jaxis(j, JOY_AXIS_LEFT_X)
-		var y := jaxis(j, JOY_AXIS_LEFT_Y)
-		s["left"] = x < -0.45 or jbtn(j, JOY_BUTTON_DPAD_LEFT)
-		s["right"] = x > 0.45 or jbtn(j, JOY_BUTTON_DPAD_RIGHT)
-		s["up"] = y < -0.45 or jbtn(j, JOY_BUTTON_DPAD_UP)
-		s["down"] = y > 0.45 or jbtn(j, JOY_BUTTON_DPAD_DOWN)
-		s["jump"] = jbtn(j, JOY_BUTTON_A)
-		s["hammer"] = jbtn(j, JOY_BUTTON_X)
-		s["heavy"] = jbtn(j, JOY_BUTTON_Y)
-		s["dodge"] = jbtn(j, JOY_BUTTON_RIGHT_SHOULDER) or jaxis(j, JOY_AXIS_TRIGGER_RIGHT) > 0.5
-		s["item"] = jbtn(j, JOY_BUTTON_LEFT_SHOULDER) or jaxis(j, JOY_AXIS_TRIGGER_LEFT) > 0.5
-		s["start"] = jbtn(j, JOY_BUTTON_START)
-		s["back"] = jbtn(j, JOY_BUTTON_BACK) or jbtn(j, JOY_BUTTON_B)
-		var cm: Dictionary = custom.get(Input.get_joy_guid(j), {})
-		if not cm.is_empty():
-			# mapeamento aprendido: substitui o padrão nas ações configuradas
-			for a in cm:
-				s[a] = _custom_on(j, cm[a])
+		var usa_b := false
+		for a in MAP_ACTIONS:
+			s[a] = _custom_on(j, m[a][0]) or _custom_on(j, m[a][1])
+			usa_b = usa_b or m[a].has(["b", JOY_BUTTON_B])
+		# VOLTAR nos menus: Select/View, e o B/○ se ele não tiver virado outra ação no mapeamento
+		s["back"] = jbtn(j, JOY_BUTTON_BACK) or (jbtn(j, JOY_BUTTON_B) and not usa_b)
+		for d in DIRS:   # menus: analógico esquerdo e direcional sempre navegam
+			s["nav_" + d] = s[d] or _custom_on(j, PAD_DEFAULT[d][0]) or _custom_on(j, PAD_DEFAULT[d][1])
 	return s
+
+## Teclas/ botões recém-apertados (tela MAPEAR "aperte o novo botão"): o último evento de tecla.
+var key_hits: Array = []   # [código físico] apertados desde a última leitura
 
 var _keys := {}   # "tecla:posição" -> apertada (posição separa Ctrl/Shift esquerdo e direito)
 
@@ -235,12 +391,18 @@ func _input(e: InputEvent) -> void:
 	if e is InputEventKey and not e.echo:
 		var k: int = e.physical_keycode if e.physical_keycode != 0 else e.keycode
 		_keys["%d:%d" % [k, e.location]] = e.pressed
+		if e.pressed:
+			key_hits.append(k)
+			if key_hits.size() > 8:
+				key_hits.pop_front()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		_keys.clear()   # janela perdeu o foco: nenhuma tecla fica "presa"
 
 func key_down(k) -> bool:
+	if k == null:
+		return false
 	if k is String:
 		match k:
 			"ctrl_r": return _keys.get("%d:%d" % [KEY_CTRL, KEY_LOCATION_RIGHT], false)
@@ -273,8 +435,7 @@ func label(dev: String) -> String:
 	if dev.begins_with("boneco"):
 		return "BONECO DE TREINO"
 	if dev.begins_with("joy"):
-		var nm := Input.get_joy_name(int(dev.substr(3)))
-		return "controle %d: %s" % [int(dev.substr(3)) + 1, nm.substr(0, 22)]
+		return "controle %d: %s" % [int(dev.substr(3)) + 1, pad_name(dev)]
 	if dev.begins_with("v"):
 		return "controle virtual"
 	return dev

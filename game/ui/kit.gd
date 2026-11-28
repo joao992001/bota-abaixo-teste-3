@@ -143,7 +143,25 @@ const PAD_LETTER := {"xbox": {"baixo": "A", "direita": "B", "esquerda": "X", "ci
 const PAD_COLOR := {"baixo": Color("#5cc45c"), "direita": Color("#e5484d"), "esquerda": Color("#4f86d9"), "cima": Color("#f2c84b")}
 const PS_COLOR := {"baixo": Color("#8fb4f0"), "direita": Color("#ff7a8a"), "esquerda": Color("#f39ad9"), "cima": Color("#5fd6b0")}
 
+const Glifos := preload("res://ui/glifos.gd")
+const GLIFO_POS := {"baixo": "baixo", "direita": "dir", "esquerda": "esq", "cima": "cima", "lb": "lb", "rb": "rb", "start": "start", "select": "select"}
+
+## Modelo de controle para um estilo (família antiga ou já o modelo).
+static func pad_model_of(style: String) -> String:
+	if style in ["ps5", "ps4", "xbox", "switch", "gen"]:
+		return style
+	match style:
+		"ps":
+			var m: String = PlayerInput.main_pad_model()
+			return m if m in ["ps5", "ps4"] else "ps5"
+		"nintendo": return "switch"
+		"generico": return "gen"
+	return "xbox"
+
 static func pad_btn(ci: CanvasItem, c: Vector2, r: float, pos: String, style: String, lit := false) -> void:
+	if Glifos.ok() and GLIFO_POS.has(pos):
+		Glifos.glyph(ci, c, pad_model_of(style), GLIFO_POS[pos], r * 1.08, lit)   # ícones em papel e giz (controles_v2)
+		return
 	var dark := Color("#2f3640")
 	var ob := maxf(2.0, r * 0.16)
 	ci.draw_circle(c + Vector2(0, r * 0.18), r + ob, INK)
