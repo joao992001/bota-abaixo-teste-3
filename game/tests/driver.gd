@@ -6956,6 +6956,26 @@ func cargueiro_frames(dir: String) -> void:
 			w += 1
 		await frames(60)
 		await snap(dir, par[2])
+		if par[1] == 2:   # Atlântida: M7 racha (2 marretadas) e M11 gêiser (aviso e jorra)
+			var mc2 = main.demo.mecs
+			for i in mc2.list:
+				if i["tipo"] == "cupula_racha":
+					mc2.hammer_hit(mc2._cup_alvo(i), false, 0)
+					mc2.hammer_hit(mc2._cup_alvo(i), false, 0)
+					await frames(150)
+					await snap(dir, "f2_2b_m7_racha")
+			for i in mc2.list:
+				if i["tipo"] == "geiser":
+					var cg := float(i["d"]["ciclo_s"])
+					i["s"]["t"] = cg - float(i["d"]["aviso_s"]) - float(i["d"]["jorra_s"]) + 0.6
+					await frames(10)
+					await snap(dir, "f2_2c_m11_aviso")
+					var jr: Rect2 = mc2._geiser_rect(i, int(i["s"]["idx"]))
+					var rg = main.robots[1]
+					rg.invuln = 99.0
+					put(rg, Vector2(jr.get_center().x, main.level.etapa_rect(2).end.y - 60.0))
+					await frames(int(float(i["d"]["aviso_s"]) * 60.0) + 12)
+					await snap(dir, "f2_2d_m11_jorra")
 		if par[1] == 3:   # M4 maré nos Destroços: aviso e maré alta
 			for i in main.demo.mecs.list:
 				if i["tipo"] == "mare":
@@ -6973,6 +6993,13 @@ func cargueiro_frames(dir: String) -> void:
 					i["s"]["lado"] = 1.0
 					await frames(40)
 					await snap(dir, "f2_3d_m5_range")
+			for i in main.demo.mecs.list:   # M6: a rede rasga e as caixas caem
+				if i["tipo"] == "rede_rasga":
+					var rp = main.demo.mecs._rede_peca(i)
+					if rp != null:
+						main.demo.canteiro.damage(rp, 99, (rp["rect"] as Rect2).get_center())
+						await frames(40)
+						await snap(dir, "f2_3g_m6_rasgou")
 			for i in main.demo.mecs.list:   # M10: aviso (anel) e o salto
 				if i["tipo"] == "tubarao":
 					var bt = null
