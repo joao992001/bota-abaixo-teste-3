@@ -298,143 +298,124 @@ def cena1():
 
 
 # =========================================================================================== CENA 2a — DESTROÇOS DO CARGUEIRO
-MAR2 = 14 * T + 10      # nível do mar (maré baixa); maré alta sobe até a linha 12
+# O navio partido e encalhado é MOLDURA (não se pisa). A luta é sobre o MAR FUNDO (KO em toda a largura), em pontas de
+# rocha (FIXAS) e plataformas que quebram: contêineres empilhados/boiando, chapas do casco, mastro-ponte, contêiner no gancho.
+MAR2 = 15 * T           # superfície do mar (maré baixa); a maré alta sobe até a linha 13 e molha as plataformas baixas
 
 
 def c2_ceu():
     o = f'<rect width="{W}" height="{H}" fill="url(#c2ceu)"/>'
-    for cx, cy, s in [(300, 140, 1.0), (980, 90, 1.3), (1600, 160, 1.1)]:
+    for cx, cy, s in [(300, 110, 1.0), (980, 70, 1.3), (1600, 130, 1.1)]:
         for dx, dy, r in [(0, 0, 50), (60, -20, 60), (130, 0, 50)]:
             o += E(cx + dx * s, cy + dy * s, r * s, r * 0.65 * s, "#ffffff", 1.2)
-    o += f'<circle cx="1700" cy="230" r="70" fill="#fff6c8" opacity="0.9"/>'
-    o += PL([(1300, 640), (1420, 560), (1520, 590), (1640, 640)], "#7aa79a", 1.2) + PL([(1440, 560), (1460, 470), (1480, 560)], "#5f8a6a", 1.0)
-    o += f'<rect x="0" y="640" width="{W}" height="{H}" fill="#5fc4c0"/><rect x="0" y="640" width="{W}" height="10" fill="#ffffff" opacity="0.4"/>'
-    # a outra metade do navio afundando no horizonte
-    o += PL([(560, 640), (720, 600), (740, 640)], "#7a5a52", 1.2) + R(690, 560, 16, 44, "#7a5a52", 2, 1.0)
-    rnd = random.Random(12)
-    for k in range(5):
-        x, y = 700 + k * 120 + rnd.uniform(-30, 30), 260 + rnd.uniform(-60, 60)
-        o += f'<path d="M{x},{y} q10,-10 20,0 q10,-10 20,0" stroke="{INK}" stroke-width="3" fill="none"/>'
+    o += f'<circle cx="1760" cy="200" r="60" fill="#fff6c8" opacity="0.9"/>'
+    o += f'<rect x="0" y="560" width="{W}" height="{H}" fill="#7fd0c8"/>'
+    o += PL([(60, 560), (260, 470), (420, 500), (560, 560)], "#8fb59f", 1.2) + R(250, 380, 26, 100, "#eef0f4", 3, 1.0) + R(244, 360, 38, 24, "#d14b4b", 3, 1.0)
     return o
 
 
-def c2_balsa():
-    """Balsa-guindaste da equipe Bota-Abaixo (identidade da obra) ancorada ao fundo; o gancho segura um contêiner
-    que balança sobre a quebra do casco (plataforma alta, mecanismo)."""
-    bx = 1380
-    o = R(bx, MAR2 - 40, 360, 50, "#4a5468", 3, 1.6, dark="#353d4e") + zebra(bx, MAR2 - 46, 360, 8)
-    o += R(bx + 250, 2 * T, 26, MAR2 - 40 - 2 * T, "#e0a83a", 3, 1.6, dark="#b07a1e")
-    for k in range(13):
-        y = 2 * T + 20 + k * 52
-        o += f'<path d="M{bx + 250},{y} l26,30 M{bx + 276},{y} l-26,30" stroke="#b07a1e" stroke-width="3"/>'
-    o += R(bx - 380, 2 * T - 14, 680, 20, "#e0a83a", 3, 1.4) + R(bx + 230, 2 * T - 60, 70, 46, "#cfd3da", 3, 1.2)
-    o += f'<path d="M{bx - 330},{2 * T + 6} L{bx - 320},{5 * T - 10}" stroke="{INK}" stroke-width="4"/>'
-    o += f'<g transform="rotate(-6 {bx - 320} {5 * T})">' + conteiner(bx - 420, 5 * T - 10, 3 * T, T - 6, CONT[6], 0, True) + "</g>"
-    o += f'<path d="M{bx - 440},{5 * T + 20} q-16,0 -24,12 M{bx - 210},{5 * T} q16,0 24,12" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.9"/>'
-    o += sign(bx + 180, 5 * T + 20, "BOTA-ABAIXO", 170)
-    return o
-
-
-def c2_ilheu():
-    """Rochas do ilhéu (BASE FIXA) à esquerda e pilar de rocha à direita."""
-    o = PL([(70, H), (120, 12 * T), (160, 11 * T + 20), (3 * T, 9 * T), (5 * T, 9 * T - 20), (7 * T, 10 * T + 10), (9 * T, 12 * T), (10 * T, H)],
-           "#8a8f99", 2.6, dark="#6b7079")
-    o += PL([(3 * T - 10, 9 * T), (5 * T + 20, 9 * T - 20), (5 * T + 10, 9 * T + 20), (3 * T, 9 * T + 24)], "#a2a7b0", 1.4)   # topo plano jogável
-    o += PL([(25 * T, H), (25 * T + 20, 11 * T), (26 * T + 40, 10 * T), (28 * T, 10 * T + 10), (28 * T + 30, H)], "#8a8f99", 2.4, dark="#6b7079")
-    # coqueiro torto + farolete no ilhéu
-    o += f'<path d="M{2 * T},{11 * T + 30} q-30,-140 40,-260" stroke="#8a6b4f" stroke-width="18" fill="none"/>'
-    for a in range(5):
-        ang = -2.6 + a * 0.45
-        o += f'<path d="M{2 * T + 40},{6 * T + 20} q{math.cos(ang) * 60},{math.sin(ang) * 30 - 30} {math.cos(ang) * 120},{math.sin(ang) * 60 + 20}" stroke="#4f9a52" stroke-width="16" fill="none" stroke-linecap="round"/>'
-    o += R(4 * T + 30, 7 * T + 10, 30, 2 * T - 30, "#eef0f4", 3, 1.2) + R(4 * T + 24, 7 * T - 20, 42, 30, "#d14b4b", 3, 1.0) + f'<circle cx="{4 * T + 45}" cy="{7 * T - 30}" r="10" fill="#fff4c8"/>'
-    o += sign(80, 11 * T + 30, "ÁREA DE DESMONTE", 210)
-    return o
-
-
-def c2_casco():
-    """Metade da proa tombada sobre as rochas: convés vira RAMPA (linha 12 → 8); interior aberto com andares."""
-    o = ""
-    ang = -14
-    cx, cy = 13 * T, 11 * T
-    o += f'<g transform="rotate({ang} {cx} {cy})">'
-    o += PL([(8 * T, 10 * T), (19 * T, 10 * T), (19 * T + 30, 10 * T + 60), (18 * T + 40, 10 * T + 110), (19 * T + 20, 10 * T + 160),
-             (18 * T + 60, 13 * T + 40), (9 * T, 13 * T + 40)], FERR, 2.4, dark=FERR_D)
-    o += R(8 * T - 10, 10 * T - 14, 11 * T + 20, 18, "#6b6f7a", 2, 1.4)
-    for x in range(8 * T, 19 * T, 48):
-        o += f'<path d="M{x},{10 * T - 14} v-36" stroke="#e9e2d2" stroke-width="4"/>'
-    o += f'<path d="M{8 * T},{10 * T - 50} H{19 * T}" stroke="#e9e2d2" stroke-width="4"/>'
+def c2_navio_fundo():
+    """Moldura: as duas metades do navio encalhadas no ilhéu, grandes e apagadas (névoa)."""
+    o = PL([(380, 640), (980, 600), (1100, 640)], "#9aa0a8", 1.6)   # ilhéu atrás
+    # metade da proa tombada (fundo, esquerda/centro)
+    o += f'<g transform="rotate(-12 700 420)">' + PL([(300, 300), (1080, 300), (1110, 360), (1060, 420), (1100, 480), (1040, 640), (340, 640)], "#a5523d", 2.4, dark="#7e3a2b")
+    o += R(300, 290, 780, 16, "#7a7f8a", 2, 1.2)
     for k in range(6):
-        o += E(9 * T + 30 + k * 130, 11 * T + 30, 13, 13, "#3a3f4a", 1.0)
-    # interior aberto na quebra: dois andares de corredor (plataformas dentro do casco)
-    o += R(17 * T, 10 * T + 30, 2 * T - 10, 3 * T, "#3a2f33", 2, 1.2)
-    o += R(17 * T, 11 * T + 20, 2 * T, 12, "#8a8f9a", 2, 1.0) + R(17 * T, 12 * T + 30, 2 * T, 12, "#8a8f9a", 2, 1.0)
-    o += f'<path d="M{19 * T},{10 * T + 10} l18,20 l-14,16 l20,22 l-16,18 l22,20" stroke="{INK}" stroke-width="4" fill="none"/>'
-    o += zebra(17 * T, 10 * T - 30, 2 * T, 10)
-    # mastro do navio de pé no casco, com o cesto da gávea (plataforma alta, QUEBRA)
-    o += R(14 * T, 4 * T, 18, 6 * T - 14, "#9a9aa8", 3, 1.4, dark="#6b6b7a")
-    o += R(13 * T, 5 * T, 2 * T + 20, 16, "#9a9aa8", 3, 1.2)
-    o += PL([(13 * T - 10, 4 * T), (15 * T + 30, 4 * T), (15 * T + 10, 4 * T + 40), (13 * T + 10, 4 * T + 40)], "#8a6b4f", 1.4)
-    o += f'<path d="M{14 * T + 9},{4 * T} L{9 * T},{10 * T - 14} M{14 * T + 9},{4 * T} L{18 * T},{10 * T - 14}" stroke="#c9a46a" stroke-width="3"/>'
-    o += "</g>"
+        o += E(380 + k * 120, 380, 13, 13, "#4a3f44", 1.0)
+    o += f'<path d="M1080,300 l20,30 l-16,20 l22,26 l-18,24 l24,26" stroke="{INK}" stroke-width="4" fill="none"/>' + "</g>"
+    # metade da popa com a ponte, emborcada à direita
+    o += f'<g transform="rotate(10 1500 420)">' + PL([(1180, 300), (1900, 300), (1960, 640), (1220, 640)], "#a5523d", 2.4, dark="#7e3a2b")
+    o += R(1600, 160, 220, 140, "#d9dce4", 4, 1.4) + R(1620, 186, 60, 34, "#6a7a96", 3, 1.0) + R(1720, 186, 60, 34, "#6a7a96", 3, 1.0)
+    o += E(1880, 520, 40, 70, "#c9a46a", 1.2) + "</g>"
+    o += f'<rect x="0" y="0" width="{W}" height="{MAR2}" fill="#dff1ee" opacity="0.55"/>'   # névoa da manhã (empurra o navio para trás)
     return o
 
 
-def c2_resto():
-    o = ""
-    # mastro caído como ponte: da quebra do casco até o pilar de rocha
-    o += f'<g transform="rotate(4 {19 * T} {8 * T})">' + R(19 * T, 8 * T, 7 * T + 30, 18, "#9a9aa8", 3, 1.4, dark="#6b6b7a") + "</g>"
-    for k in range(3):
-        o += f'<path d="M{20 * T + k * 120},{8 * T + 26 + k * 6} q10,40 -4,70" stroke="#c9a46a" stroke-width="4" fill="none"/>'
-    # contêineres boiando (plataformas que balançam com a maré) e encalhado
-    o += f'<g transform="rotate(6 {21 * T} {MAR2})">' + conteiner(20 * T, MAR2 - T + 10, 3 * T, T, CONT[1], 1) + "</g>"
-    o += f'<g transform="rotate(-8 {23 * T} {MAR2})">' + conteiner(22 * T + 40, MAR2 - T + 20, 2 * T + 20, T, CONT[3], 0, True) + "</g>"
-    o += f'<g transform="rotate(12 {27 * T} {10 * T})">' + conteiner(26 * T - 20, 10 * T - T + 6, 3 * T, T, CONT[0], 2) + "</g>"
-    o += conteiner(150, 11 * T + 10 - T, 2 * T + 30, T, CONT[2], 0, True)
+def rocha(x0, x1, topo):
+    """Ponta de rocha (FIXA) saindo do mar fundo, com topo plano jogável."""
+    pts = [(x0 - 20, H), (x0, topo + 30), (x0 + 30, topo), (x1 - 30, topo), (x1, topo + 30), (x1 + 20, H)]
+    o = PL(pts, "#8a8f99", 2.6, dark="#6b7079")
+    o += R(x0 + 24, topo - 6, x1 - x0 - 48, 14, "#a2a7b0", 3, 1.0)
+    o += f'<path d="M{x0 + 10},{topo + 120} q30,-10 60,6 M{x1 - 80},{topo + 200} q30,-8 50,4" stroke="#6b7079" stroke-width="5" fill="none"/>'
+    return o
 
-    # destroços boiando
-    for x, cor in [(860, "#c98a4b"), (1500, "#f08a3d"), (1180, "#c98a4b")]:
-        o += R(x, MAR2 + 20, 70, 14, cor, 3, 1.0)
-    o += E(1580, MAR2 + 40, 26, 12, "#ffffff", 1.0) + E(1580, MAR2 + 40, 14, 6, "#d14b4b", 0.8)
-    # caranguejos (vida)
-    for x in (3 * T + 20, 26 * T + 20):
-        y = 9 * T - 10 if x < 600 else 10 * T - 6
+
+def c2_palco():
+    o = ""
+    # FIXO: três pontas de rocha + torre da balsa-guindaste ancorada à direita
+    o += rocha(1 * T, 5 * T + 20, 12 * T) + rocha(13 * T, 17 * T, 11 * T) + rocha(24 * T, 28 * T + 20, 12 * T)
+    o += R(28 * T - 6, 1 * T, 26, 11 * T, "#e0a83a", 3, 1.6, dark="#b07a1e")
+    for k in range(10):
+        y = T + 20 + k * 64
+        o += f'<path d="M{28 * T - 6},{y} l26,40 M{28 * T + 20},{y} l-26,40" stroke="#b07a1e" stroke-width="3"/>'
+    o += R(8 * T, 1 * T - 14, 21 * T, 20, "#e0a83a", 3, 1.4) + R(28 * T - 40, 1 * T - 60, 80, 46, "#cfd3da", 3, 1.2)
+    o += sign(24 * T + 30, 12 * T - 60, "BOTA-ABAIXO", 170)
+    # QUEBRA: contêineres empilhados nas rochas
+    o += conteiner(1 * T + 30, 11 * T, 3 * T, T, CONT[2], 0, True) + conteiner(1 * T + 50, 10 * T, 3 * T - 20, T, CONT[0], 1)
+    o += f'<g transform="rotate(-4 {26 * T} {11 * T})">' + conteiner(24 * T + 40, 11 * T, 3 * T, T, CONT[1], 0, True) + "</g>"
+    o += conteiner(25 * T, 10 * T, 3 * T - 10, T, CONT[3], 2)
+    # QUEBRA: contêineres boiando entre as rochas (balançam com a maré)
+    o += f'<g transform="rotate(5 {8 * T} {MAR2})">' + conteiner(6 * T + 30, MAR2 - T + 14, 3 * T, T, CONT[4], 0) + "</g>"
+    o += f'<g transform="rotate(-6 {20 * T} {MAR2})">' + conteiner(18 * T + 50, MAR2 - T + 14, 3 * T, T, CONT[6], 1, True) + "</g>"
+    # QUEBRA: chapa do casco encravada na rocha do meio (plataforma no nível 8) e outra à direita (nível 7)
+    o += f'<g transform="rotate(-6 {15 * T} {8 * T})">' + R(12 * T + 20, 8 * T, 6 * T, 24, "#6b3a30", 2, 1.6, dark="#4a2620") + zebra(12 * T + 20, 8 * T - 6, 6 * T, 7)
+    o += f'<path d="M{12 * T + 20},{8 * T + 22} l14,40 M{18 * T + 20},{8 * T + 22} l-10,30" stroke="#7e3a2b" stroke-width="10"/>' + "</g>"
+    o += R(14 * T + 10, 8 * T + 30, 18, 3 * T - 30, "#4a2620", 2, 1.0)   # escora retorcida apoiando a chapa na rocha
+    o += f'<g transform="rotate(8 {22 * T} {7 * T})">' + R(20 * T + 20, 7 * T, 4 * T + 20, 22, "#6b3a30", 2, 1.4, dark="#4a2620") + zebra(20 * T + 20, 7 * T - 6, 4 * T + 20, 7) + "</g>"
+    o += R(23 * T + 30, 7 * T + 30, 16, 3 * T, "#4a2620", 2, 1.0)
+    # QUEBRA: mastro caído como ponte (do topo dos contêineres da esquerda até a chapa do meio)
+    o += f'<g transform="rotate(-8 {5 * T} {10 * T})">' + R(4 * T + 30, 10 * T - 30, 8 * T, 18, "#9a9aa8", 3, 1.4, dark="#6b6b7a") + "</g>"
+    # QUEBRA: contêiner no gancho (nível 5) + tábuas presas no alto da torre (nível 4)
+    o += f'<path d="M{10 * T},{1 * T + 6} L{10 * T + 16},{4 * T + 10}" stroke="{INK}" stroke-width="4"/>'
+    o += f'<g transform="rotate(-5 {10 * T} {5 * T})">' + conteiner(8 * T + 30, 4 * T + 16, 3 * T, T - 8, CONT[5], 0, True) + "</g>"
+    o += f'<path d="M{8 * T + 10},{5 * T + 20} q-16,0 -24,12 M{11 * T + 60},{5 * T} q16,0 24,12" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.9"/>'
+    o += tabua(23 * T, 4 * T, 5 * T - 6)
+    o += f'<path d="M{23 * T + 20},{1 * T + 6} V{4 * T} M{27 * T + 30},{1 * T + 6} V{4 * T}" stroke="{INK}" stroke-width="3"/>'
+    # vida e destroços
+    for x in (3 * T, 26 * T + 10):
+        y = 10 * T - 4
         o += E(x, y, 12, 8, "#e06a4a", 0.8) + f'<path d="M{x - 12},{y} l-8,-8 M{x + 12},{y} l8,-8" stroke="#e06a4a" stroke-width="3"/>'
+    for x, cor in [(11 * T, "#c98a4b"), (22 * T, "#f08a3d")]:
+        o += R(x, MAR2 + 18, 70, 14, cor, 3, 1.0)
     return o
 
 
 def c2_atores():
-    o = robot("pa", "pesado_prep", el.COLORS[4], 3 * T + 20, 9 * T - 6, s=0.8)
-    mx, my = rot_pt(12 * T, 10 * T - 14, 13 * T, 11 * T, -14)
-    o += robot("marretao", "rapido", el.COLORS[0], mx, my, s=0.8, rot=-14)
-    o += robot("chave", "esquiva", el.COLORS[2], 22 * T + 20, 8 * T + 22, s=0.8, flip=True)
-    o += robot("britadeira", "parado", el.COLORS[3], 21 * T + 40, MAR2 - T + 6, s=0.8)
+    o = robot("pa", "pesado_prep", el.COLORS[4], 2 * T + 40, 10 * T)
+    o += robot("marretao", "rapido", el.COLORS[0], 14 * T + 20, 8 * T + 6)
+    o += robot("chave", "esquiva", el.COLORS[2], 9 * T + 60, 4 * T + 10, flip=True)
+    o += robot("britadeira", "parado", el.COLORS[3], 19 * T + 70, MAR2 - T + 10)
+    o += f'<path d="M{9 * T},{4 * T - 30} h-50 M{9 * T + 6},{4 * T - 16} h-40" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>'
     return o
 
 
 def c2_frente():
-    o = f'<rect x="0" y="{MAR2}" width="{W}" height="{H - MAR2}" fill="#3fa7a0" opacity="0.88"/>'
-    for x0, x1 in ((0, 110), (19 * T + 40, 25 * T + 10), (28 * T + 40, W)):   # MAR FUNDO (sem chão embaixo) = KO
-        o += f'<rect x="{x0}" y="{MAR2}" width="{x1 - x0}" height="{H - MAR2}" fill="#14506b" opacity="0.55"/>'
-    o += f'<path d="M0,{12 * T} H{W}" stroke="#ffffff" stroke-width="3" stroke-dasharray="16 12" opacity="0.8"/>'
-    o += f'<text x="{W - 30}" y="{12 * T - 10}" font-family="Fredoka" font-weight="700" font-size="18" fill="#ffffff" text-anchor="end">maré alta</text>'
+    o = f'<rect x="0" y="{MAR2}" width="{W}" height="{H - MAR2}" fill="#2f8f8a"/>'
+    o += f'<rect x="0" y="{MAR2}" width="{W}" height="{H - MAR2}" fill="url(#c2fundo)" opacity="0.7"/>'
     rnd = random.Random(6)
     for k in range(16):
         x = rnd.uniform(0, W)
-        o += f'<path d="M{x},{MAR2 + 30 + rnd.uniform(0, 120)} q16,-6 32,0" stroke="#bff0ea" stroke-width="4" fill="none" opacity="0.8"/>'
+        o += f'<path d="M{x},{MAR2 + 30 + rnd.uniform(0, 70)} q16,-6 32,0" stroke="#bff0ea" stroke-width="4" fill="none" opacity="0.8"/>'
     o += f'<path d="M0,{MAR2} ' + "".join("q30,-10 60,0 " for _ in range(33)) + '" stroke="#ffffff" stroke-width="4" fill="none" opacity="0.9"/>'
-    o += tag(4 * T, 6 * T + 10, "ROCHAS (FIXAS)") + tag(70, MAR2 + 120, "MAR FUNDO = KO") + tag(22 * T + 30, MAR2 + 150, "MAR FUNDO = KO") + tag(W - 70, MAR2 + 120, "KO") + tag(13 * T, 7 * T + 30, "CASCO TOMBADO")
-    o += tag(23 * T, 7 * T + 20, "MASTRO-PONTE") + tag(12 * T + 20, 3 * T + 30, "GÁVEA") + tag(1060, 4 * T - 20, "CONTÊINER NO GANCHO") + tag(21 * T + 60, MAR2 + 70, "CONTÊINER BOIANDO") + tag(26 * T + 40, 12 * T + 40, "MARÉ")
+    o += f'<path d="M0,{13 * T} H{W}" stroke="#ffffff" stroke-width="3" stroke-dasharray="16 12" opacity="0.85"/>'
+    o += f'<text x="{W - 30}" y="{13 * T - 10}" font-family="Fredoka" font-weight="700" font-size="18" fill="#ffffff" text-anchor="end">maré alta</text>'
+    o += tag(3 * T + 10, 13 * T + 20, "ROCHA (FIXA)") + tag(15 * T, 12 * T + 30, "ROCHA (FIXA)") + tag(26 * T + 10, 13 * T + 20, "ROCHA (FIXA)")
+    o += tag(3 * T + 20, 11 * T + 30, "CONTÊINERES") + tag(8 * T + 20, 10 * T + 10, "MASTRO-PONTE") + tag(16 * T + 40, 9 * T + 10, "CHAPA DO CASCO")
+    o += tag(8 * T + 20, MAR2 - 90, "BOIANDO") + tag(12 * T + 60, 4 * T + 40, "CONTÊINER NO GANCHO") + tag(25 * T + 20, 3 * T + 30, "TÁBUAS")
+    o += tag(9 * T, MAR2 + 70, "MAR FUNDO = KO") + tag(21 * T, MAR2 + 70, "MAR FUNDO = KO") + tag(1000, 230, "NAVIO PARTIDO = FUNDO")
     return o
 
 
 def cena2a():
-    defs = fonte() + rough(seed=33, scale=0.8, freq=0.05) + grad("c2ceu", [(0, "#9fdaf0"), (1, "#f4ecd2")])
-    body = c2_ceu() + c2_balsa() + c2_ilheu() + c2_casco() + c2_resto() + c2_atores() + c2_frente()
+    defs = fonte() + rough(seed=33, scale=0.8, freq=0.05) + grad("c2ceu", [(0, "#9fdaf0"), (1, "#f4ecd2")]) + grad("c2fundo", [(0, "#2f8f8a"), (1, "#0f3f4f")])
+    body = c2_ceu() + c2_navio_fundo() + c2_palco() + c2_atores() + c2_frente()
     return doc(W, H, f'<g filter="url(#rough)">{body}</g>', defs)
 
 
 # =========================================================================================== CENA 2b — ATLÂNTIDA
-CHAO3 = 14 * T
+# O templo e a cúpula são MOLDURA (não se pisam). A luta é sobre a FENDA ABISSAL (KO embaixo), em topos de pilares (FIXOS)
+# e plataformas que quebram: tambores de coluna, lajes de mármore entre colunas, frontão caído e pedaços do navio.
+TOPO3 = 12 * T
 MARM, MARM_D, OURO = "#ece3cf", "#c9bda2", "#e6b84a"
 
 
@@ -443,132 +424,142 @@ def c3_agua():
     for k in range(7):
         x = 120 + k * 270
         o += f'<path d="M{x},0 L{x + 90},0 L{x + 260},{H} L{x + 60},{H} Z" fill="#ffffff" opacity="0.06"/>'
-    # cidade distante (silhuetas de torres e arcos)
-    for x, w, h in [(40, 120, 300), (200, 90, 220), (1640, 110, 280), (1790, 120, 200)]:
-        o += R(x, CHAO3 - h, w, h, "#2f7f95", 4, 1.2) + E(x + w / 2, CHAO3 - h, w / 2, 40, "#2f7f95", 1.0)
     rnd = random.Random(21)
-    for k in range(3):   # cardumes
-        cx, cy = rnd.uniform(200, 1700), rnd.uniform(80, 300)
+    for k in range(3):
+        cx, cy = rnd.uniform(200, 1700), rnd.uniform(60, 260)
         for j in range(9):
             fx, fy = cx + j * 22 + rnd.uniform(-8, 8), cy + rnd.uniform(-20, 20)
             o += f'<path d="M{fx},{fy} q10,-6 20,0 q-10,6 -20,0 Z M{fx + 20},{fy} l8,-5 v10 Z" fill="#9fe0e8" opacity="0.8"/>'
     return o
 
 
-def c3_templo():
-    o = ""
-    # ESCADARIAS (BASE FIXA): plataforma de mármore em degraus
-    o += f'<rect x="0" y="{CHAO3 - 120}" width="{W}" height="{H - CHAO3 + 120}" fill="url(#c3fenda)"/>'   # a Fenda Abissal
-    o += PL([(2 * T - 20, CHAO3), (28 * T + 20, CHAO3), (23 * T, H + 10), (7 * T, H + 10)], "#4a5a6a", 2.4, dark="#34404c")   # pico de rocha
-    for k in range(6):
-        o += f'<path d="M{7 * T + k * 160},{H} l{30 + k * 4},-{60 + k * 12}" stroke="#34404c" stroke-width="5"/>'
-    o += R(2 * T, CHAO3 - 30, 26 * T, 30, MARM_D, 2, 1.6) + R(3 * T, CHAO3 - 56, 24 * T, 28, MARM, 2, 1.6)
-    # muralhas laterais (FIXAS) com arcos
-    for x in (2 * T, 25 * T):
-        o += R(x, 7 * T, 3 * T, CHAO3 - 56 - 7 * T, MARM_D, 4, 2.0, dark="#a89c82")
-        o += f'<path d="M{x + 40},{CHAO3 - 56} v-120 a56,56 0 0 1 112,0 v120 Z" fill="#1f5f78" opacity="0.8"/>'
-        o += R(x - 10, 7 * T - 18, 3 * T + 20, 22, MARM, 3, 1.2)
-    # COLUNAS (QUEBRA) + FRONTÃO (QUEBRA, plataforma) do templo central
-    for k in range(6):
-        cx = 8 * T + k * 2 * T + 30
-        o += R(cx, 7 * T + 20, 40, CHAO3 - 56 - 7 * T - 20, MARM, 3, 1.8, dark=MARM_D)
-        for j in range(4):
-            o += f'<path d="M{cx + 8 + j * 8},{7 * T + 30} V{CHAO3 - 66}" stroke="{MARM_D}" stroke-width="2"/>'
-        o += R(cx - 10, 7 * T + 4, 60, 18, MARM_D, 2, 1.0) + R(cx - 10, CHAO3 - 74, 60, 18, MARM_D, 2, 1.0)
-    o += R(7 * T, 6 * T + 20, 16 * T, 40, MARM_D, 3, 1.8)
-    o += PL([(7 * T - 20, 6 * T + 20), (15 * T, 3 * T + 30), (23 * T + 20, 6 * T + 20)], MARM, 2.0, dark=MARM_D)
-    o += E(15 * T, 5 * T + 10, 34, 34, OURO, 1.2) + f'<path d="M{15 * T - 18},{5 * T + 10} h36 M{15 * T},{5 * T - 8} v36" stroke="#a87a2a" stroke-width="5"/>'
-    # coluna rachada (já sendo quebrada)
-    o += f'<path d="M{12 * T + 40},{9 * T} l18,20 l-14,16 l16,22" stroke="{INK}" stroke-width="4" fill="none"/>'
-    # PASSARELAS de mármore (QUEBRA) nas laterais, linha 10
-    o += R(5 * T, 10 * T, 3 * T, 18, MARM, 2, 1.4) + R(22 * T, 10 * T, 3 * T, 18, MARM, 2, 1.4)
-    # estátuas de tritão sobre pedestais (QUEBRA)
-    for x in (5 * T + 40, 23 * T + 40):
-        o += R(x - 30, CHAO3 - 56 - 60, 60, 60, MARM_D, 3, 1.2)
-        o += E(x, CHAO3 - 56 - 110, 22, 44, "#9fb8a8", 1.2) + E(x, CHAO3 - 56 - 168, 16, 16, "#9fb8a8", 1.0)
-        o += f'<path d="M{x + 18},{CHAO3 - 56 - 190} v-50 M{x + 8},{CHAO3 - 56 - 236} h20" stroke="{OURO}" stroke-width="5"/>'
-    # concha-trampolim (mecanismo) no chão à esquerda
-    o += E(4 * T, CHAO3 - 70, 50, 20, "#f2a7c3", 1.2) + f'<path d="M{4 * T - 50},{CHAO3 - 74} a50,40 0 0 1 100,-30" fill="#f7c6d8" stroke="#d1708f" stroke-width="4"/>'
-    o += E(4 * T, CHAO3 - 74, 10, 8, "#ffffff", 0.8)
+def c3_templo_fundo():
+    """Moldura: a fachada do templo inteira lá atrás, apagada pela água (não se pisa)."""
+    o = R(2 * T, 9 * T, 26 * T, 40, "#7fb8c4", 3, 1.6)
+    for k in range(10):
+        o += R(3 * T + k * 2 * T + 40, 3 * T + 40, 50, 6 * T - 40, "#8ec4cf", 3, 1.6)
+    o += R(2 * T, 3 * T, 26 * T, 50, "#7fb8c4", 3, 1.6)
+    o += PL([(2 * T - 20, 3 * T), (15 * T, 0), (28 * T + 20, 3 * T)], "#8ec4cf", 1.8)
+    o += E(15 * T, 1 * T + 30, 40, 40, "#c9b46a", 1.2)
+    for x, w, h in [(0, 110, 400), (1800, 120, 360)]:
+        o += R(x, 9 * T - h + 200, w, h, "#3f8fa5", 4, 1.2)
+    o += f'<rect x="0" y="0" width="{W}" height="{H}" fill="#2f8fa8" opacity="0.35"/>'
     return o
 
 
-def c3_navio_caido():
+def pilar_fixo(x0, x1):
+    """Topo de pilar (FIXO): plinto de mármore sobre um pico de rocha que desce para a fenda."""
+    o = PL([(x0 + 20, TOPO3 + 40), (x1 - 20, TOPO3 + 40), (x1 - 60, H + 10), (x0 + 60, H + 10)], "#4a5a6a", 2.4, dark="#34404c")
+    o += R(x0, TOPO3, x1 - x0, 44, MARM_D, 3, 1.8, dark="#a89c82") + R(x0 + 10, TOPO3 - 14, x1 - x0 - 20, 18, MARM, 3, 1.2)
+    return o
+
+
+def coluna(x, y_top, y_bot, rachada=False):
+    o = R(x, y_top, 40, y_bot - y_top, MARM, 3, 1.6, dark=MARM_D)
+    for j in range(4):
+        o += f'<path d="M{x + 8 + j * 8},{y_top + 10} V{y_bot - 10}" stroke="{MARM_D}" stroke-width="2"/>'
+    o += R(x - 10, y_top - 14, 60, 16, MARM_D, 2, 1.0)
+    if rachada:
+        o += f'<path d="M{x + 10},{(y_top + y_bot) / 2} l16,18 l-12,14 l14,18" stroke="{INK}" stroke-width="4" fill="none"/>'
+    return o
+
+
+def tambores(x, y_base, n):
+    """Tambores de coluna empilhados (QUEBRA)."""
     o = ""
-    # mastro do navio atravessado: do canto de cima até o frontão (rampa/viga, QUEBRA)
-    o += f'<g transform="rotate(28 {2 * T} {1 * T})">' + R(2 * T, T, 12 * T, 24, "#9a9aa8", 3, 1.6, dark="#6b6b7a") + "</g>"
-    # contêiner caído sobre o frontão + pedaço de casco no alto direito
-    o += f'<g transform="rotate(-12 {18 * T} {3 * T})">' + conteiner(16 * T + 30, 3 * T - 20, 3 * T, T, CONT[3], 2) + "</g>"
-    o += PL([(24 * T, 0), (W + 20, 0), (W + 20, 3 * T), (26 * T, 2 * T + 20)], FERR_D, 1.8)
-    o += f'<path d="M{26 * T},{2 * T + 20} l20,20 l-10,16 l18,14" stroke="{INK}" stroke-width="4" fill="none"/>'
+    for j in range(n):
+        y = y_base - (j + 1) * 52
+        o += R(x, y, 96, 50, MARM if j % 2 == 0 else "#e4dac4", 6, 1.4, dark=MARM_D)
+        for k in range(5):
+            o += f'<path d="M{x + 14 + k * 17},{y + 6} v38" stroke="{MARM_D}" stroke-width="2"/>'
+    return o
+
+
+def laje(x, y, w):
+    """Laje de mármore (QUEBRA) apoiada em colunas."""
+    return R(x, y, w, 30, MARM, 3, 1.6, dark=MARM_D) + f'<rect x="{x}" y="{y + 24}" width="{w}" height="6" fill="{MARM_D}"/>'
+
+
+def c3_palco():
+    o = ""
+    # FIXO: três topos de pilar sobre a fenda
+    o += pilar_fixo(1 * T, 6 * T) + pilar_fixo(12 * T, 18 * T) + pilar_fixo(24 * T, 29 * T)
+    # QUEBRA: pilar central — duas colunas seguram uma laje (nível 8); sobre ela, colunas curtas e o FRONTÃO caído (nível 5)
+    o += coluna(12 * T + 40, 8 * T + 30, TOPO3 - 14, rachada=True) + coluna(17 * T - 80, 8 * T + 30, TOPO3 - 14)
+    o += laje(11 * T, 8 * T, 8 * T)
+    o += coluna(13 * T + 20, 5 * T + 40, 8 * T) + coluna(16 * T + 20, 5 * T + 40, 8 * T)
+    o += f'<g transform="rotate(-4 {15 * T} {5 * T})">' + PL([(12 * T, 5 * T + 40), (15 * T, 3 * T + 40), (18 * T + 20, 5 * T + 40)], MARM, 1.8, dark=MARM_D)
+    o += R(12 * T, 5 * T + 40, 6 * T + 20, 18, MARM_D, 2, 1.0) + E(15 * T, 4 * T + 50, 24, 24, OURO, 1.0) + "</g>"
+    # QUEBRA: esquerda — tambores empilhados + estátua de tritão; laje-ponte para o centro (nível 9)
+    o += tambores(1 * T + 30, TOPO3 - 14, 2) + tambores(3 * T + 40, TOPO3 - 14, 3)
+    o += coluna(5 * T + 10, 9 * T + 30, TOPO3 - 14) + laje(4 * T + 40, 9 * T, 6 * T + 40)
+    o += R(2 * T, TOPO3 - 14 - 104 - 60, 60, 60, MARM_D, 3, 1.2)
+    o += E(2 * T + 30, TOPO3 - 14 - 104 - 110, 22, 44, "#9fb8a8", 1.2) + E(2 * T + 30, TOPO3 - 14 - 104 - 168, 16, 16, "#9fb8a8", 1.0)
+    # QUEBRA: direita — pedaço do navio (contêiner) no pilar + coluna alta segurando uma laje (nível 6) + concha-trampolim
+    o += f'<g transform="rotate(-6 {26 * T} {TOPO3})">' + conteiner(24 * T + 30, TOPO3 - 14 - T, 3 * T, T, CONT[3], 2) + "</g>"
+    o += coluna(27 * T + 40, 6 * T + 30, TOPO3 - 14) + laje(21 * T + 40, 6 * T, 7 * T)
+    o += E(28 * T + 10, TOPO3 - 30, 40, 16, "#f2a7c3", 1.2) + f'<path d="M{28 * T - 30},{TOPO3 - 34} a40,32 0 0 1 80,-24" fill="#f7c6d8" stroke="#d1708f" stroke-width="4"/>'
+    # QUEBRA: mastro do navio atravessado como rampa (do alto esquerdo até a laje do centro) + contêiner preso no alto
+    o += f'<g transform="rotate(22 {1 * T} {3 * T})">' + R(1 * T, 3 * T, 11 * T, 22, "#9a9aa8", 3, 1.6, dark="#6b6b7a") + "</g>"
+    o += f'<g transform="rotate(10 {21 * T} {3 * T})">' + conteiner(19 * T + 40, 2 * T + 30, 3 * T, T, CONT[1], 1) + "</g>"
+    o += f'<path d="M{20 * T},{2 * T + 30} L{19 * T + 30},0 M{22 * T + 40},{2 * T + 40} L{23 * T},0" stroke="#5a5f6a" stroke-width="4"/>'   # correntes do navio
     return o
 
 
 def c3_cupula():
-    """Cúpula de AR sobre o templo; o lado direito rachou e está ALAGANDO até a linha 11."""
-    cx, base, rx, ry = 15 * T, CHAO3 - 56, 13 * T, 12 * T + 30
-    o = f'<path d="M{cx - rx},{base} A{rx},{ry} 0 0 1 {cx + rx},{base} Z" fill="#dff7fb" opacity="0.18"/>'
-    o += f'<path d="M{cx - rx},{base} A{rx},{ry} 0 0 1 {cx + rx},{base}" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.85"/>'
-    for k in range(1, 6):
-        a = math.pi * k / 6
-        o += f'<path d="M{cx - math.cos(a) * rx},{base - math.sin(a) * ry} L{cx - math.cos(a) * rx * 0.98},{base}" stroke="#ffffff" stroke-width="2" opacity="0.35"/>'
-    # rachadura e vazamento no lado direito
-    px, py = cx + math.cos(0.75) * rx, base - math.sin(0.75) * ry
+    """A cúpula de ar cobre a arena; rachou à DIREITA: a água entra e alaga até a linha 10 daquele lado."""
+    cx, base, rx, ry = 15 * T, H + 40, 15 * T + 40, H + 20
+    o = f'<path d="M{cx - rx},{base} A{rx},{ry} 0 0 1 {cx + rx},{base}" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.7"/>'
+    px, py = 24 * T, 1 * T + 10
     o += f'<path d="M{px},{py} l-20,26 l16,14 l-24,30 M{px},{py} l26,10" stroke="#ffffff" stroke-width="5" fill="none"/>'
-    o += f'<path d="M{px - 10},{py + 20} C{px - 40},{py + 120} {px - 20},{py + 220} {px - 60},{11 * T}" stroke="#7fd6e6" stroke-width="22" fill="none" opacity="0.7"/>'
-    o += f'<rect x="{18 * T}" y="{11 * T}" width="{9 * T}" height="{base - 11 * T}" fill="#3fc6dc" opacity="0.45"/>'
-    o += f'<path d="M{18 * T},{11 * T} q20,-8 40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0" stroke="#ffffff" stroke-width="4" fill="none"/>'
+    o += f'<path d="M{px - 10},{py + 20} C{px - 40},{py + 140} {px + 10},{py + 280} {px - 20},{10 * T}" stroke="#7fd6e6" stroke-width="22" fill="none" opacity="0.7"/>'
+    o += f'<rect x="{20 * T}" y="{10 * T}" width="{10 * T}" height="{H - 10 * T}" fill="#3fc6dc" opacity="0.35"/>'
+    o += f'<path d="M{20 * T},{10 * T} ' + "".join("q20,-8 40,0 " for _ in range(16)) + '" stroke="#ffffff" stroke-width="4" fill="none"/>'
     rnd = random.Random(17)
     for _ in range(18):
-        o += f'<circle cx="{rnd.uniform(18 * T, 27 * T)}" cy="{rnd.uniform(11 * T, base)}" r="{rnd.uniform(3, 9)}" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.8"/>'
+        o += f'<circle cx="{rnd.uniform(20 * T, 30 * T)}" cy="{rnd.uniform(10 * T, H)}" r="{rnd.uniform(3, 9)}" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.8"/>'
     return o
 
 
 def c3_grua():
-    """Grua submarina da equipe (identidade da obra), presa no alto da muralha da direita."""
-    x = 26 * T + 30
-    o = R(x - 20, 7 * T - 40, 70, 24, "#6b5a3a", 3, 1.2)
-    o += R(x, 2 * T, 22, 5 * T - 40, "#e0a83a", 3, 1.4, dark="#b07a1e")
+    """Grua submarina da equipe (identidade da obra) presa no pilar da esquerda, com holofote."""
+    x = 1 * T + 10
+    o = R(x, 3 * T, 22, TOPO3 - 14 - 104 - 3 * T, "#e0a83a", 3, 1.4, dark="#b07a1e")
     for k in range(5):
         y = 3 * T + 20 + k * 52
         o += f'<path d="M{x},{y} l22,30 M{x + 22},{y} l-22,30" stroke="#b07a1e" stroke-width="3"/>'
-    o += R(x - 200, 2 * T - 14, 300, 18, "#e0a83a", 3, 1.2) + f'<circle cx="{x + 10}" cy="{2 * T - 30}" r="12" fill="#fff4c8"/>'
-    o += f'<path d="M{x + 10},{2 * T - 30} L{x - 120},{2 * T + 200} L{x + 80},{2 * T + 200} Z" fill="#fff4c8" opacity="0.12"/>'
-    o += f'<rect x="{x - 260}" y="{CHAO3 - 50}" width="180" height="40" rx="6" fill="{YEL}"/><text x="{x - 170}" y="{CHAO3 - 23}" font-family="Fredoka" font-weight="700" font-size="17" fill="{INK}" text-anchor="middle">OBRA SUBMARINA</text>'
+    o += R(x - 20, 3 * T - 14, 200, 18, "#e0a83a", 3, 1.2) + f'<circle cx="{x + 170}" cy="{3 * T + 10}" r="12" fill="#fff4c8"/>'
+    o += f'<path d="M{x + 170},{3 * T + 10} L{x + 60},{6 * T} L{x + 300},{6 * T} Z" fill="#fff4c8" opacity="0.12"/>'
+    o += f'<rect x="{12 * T + 30}" y="{TOPO3 + 50}" width="180" height="36" rx="6" fill="{YEL}"/><text x="{12 * T + 120}" y="{TOPO3 + 75}" font-family="Fredoka" font-weight="700" font-size="17" fill="{INK}" text-anchor="middle">OBRA SUBMARINA</text>'
     return o
 
 
 def c3_atores():
-    o = robot("marretao", "pesado_golpe", el.COLORS[0], 12 * T + 10, CHAO3 - 56)
-    o += robot("picareta", "parado", el.COLORS[1], 10 * T, 6 * T + 20)
-    o += robot("chave", "esquiva", el.COLORS[2], 22 * T + 60, 10 * T, flip=True)
-    o += robot("pa", "rapido", el.COLORS[4], 20 * T, CHAO3 - 56 - 20, s=0.8, flip=True, rot=-10)   # na parte alagada: flutuando
-    o += f'<path d="M{20 * T - 30},{CHAO3 - 60} q-10,-30 6,-60" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.8"/>'
+    o = robot("marretao", "pesado_golpe", el.COLORS[0], 14 * T + 40, 8 * T)
+    o += robot("picareta", "parado", el.COLORS[1], 7 * T, 9 * T)
+    o += robot("chave", "esquiva", el.COLORS[2], 15 * T, 3 * T + 40)
+    o += robot("pa", "rapido", el.COLORS[4], 23 * T + 20, 8 * T + 40, flip=True, rot=-12)   # flutuando na parte alagada
+    o += f'<path d="M{23 * T - 20},{8 * T + 40} q-10,-30 6,-60" stroke="#ffffff" stroke-width="3" fill="none" opacity="0.8"/>'
     return o
 
 
 def c3_frente():
-    o = ""
-    o += f'<path d="M700,{H - 30} v-90 M660,{H - 90} h80 M670,{H - 30} q30,30 60,0" stroke="#5a5f6a" stroke-width="10" fill="none" stroke-linecap="round"/>'   # âncora do navio
-    for x, cor in [(560, "#e06a8a"), (1260, "#f2a33a")]:
-        for j in range(3):
-            o += f'<path d="M{x + j * 14},{H - 20} q-6,-40 {6 - j * 4},-70" stroke="{cor}" stroke-width="10" fill="none" stroke-linecap="round"/>'
-    o += conteiner(960, H - 90, 3 * T, T, CONT[1], 1)
+    o = f'<rect x="0" y="{TOPO3 + 120}" width="{W}" height="{H - TOPO3 - 120}" fill="url(#c3fenda)" opacity="0.85"/>'
     rnd = random.Random(23)
-    for x in ():   # (sem algas nas bordas: ali é a fenda)
-        o += f'<path d="M{x},{H} q-30,-120 10,-240 q30,-90 -10,-180" stroke="#2f8a5a" stroke-width="22" fill="none" stroke-linecap="round" opacity="0.9"/>'
-    for _ in range(26):
+    for _ in range(22):
         o += f'<circle cx="{rnd.uniform(0, W)}" cy="{rnd.uniform(0, H)}" r="{rnd.uniform(3, 10)}" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.6"/>'
-    o += tag(15 * T, 3 * T, "FRONTÃO") + tag(9 * T + 20, 12 * T + 10, "COLUNAS")
-    o += tag(17 * T + 60, 2 * T - 30, "PEDAÇO DO NAVIO") + tag(6 * T, 2 * T + 60, "MASTRO CAÍDO")
-    o += tag(22 * T + 50, 12 * T + 40, "ALAGANDO") + tag(4 * T, CHAO3 - 130, "CONCHA") + tag(15 * T, CHAO3 + 60, "ESCADARIAS (FIXAS)")
-    o += tag(23 * T, 0 * T + 40, "CÚPULA RACHOU") + tag(64, CHAO3 + 90, "FENDA = KO") + tag(W - 64, CHAO3 + 90, "FENDA = KO")
+    o += tag(3 * T + 30, TOPO3 + 70, "PILAR (FIXO)") + tag(15 * T, TOPO3 + 120, "PILAR (FIXO)") + tag(26 * T + 30, TOPO3 + 70, "PILAR (FIXO)")
+    o += tag(17 * T + 60, 7 * T + 50, "LAJE") + tag(8 * T, 10 * T + 10, "LAJE-PONTE") + tag(24 * T, 5 * T + 40, "LAJE ALTA")
+    o += tag(15 * T, 2 * T + 60, "FRONTÃO CAÍDO") + tag(3 * T + 40, 10 * T - 30, "TAMBORES") + tag(5 * T, 3 * T + 30, "MASTRO-RAMPA")
+    o += tag(21 * T + 40, 1 * T + 60, "CONTÊINER PRESO") + tag(25 * T + 20, 11 * T + 10, "ALAGANDO") + tag(28 * T, TOPO3 - 90, "CONCHA")
+    o += tag(9 * T, H - 40, "FENDA = KO") + tag(21 * T, H - 40, "FENDA = KO") + tag(W / 2, 40, "TEMPLO E CÚPULA = FUNDO")
     return o
 
 
 def cena2b():
-    defs = fonte() + rough(seed=35, scale=0.8, freq=0.05) + grad("c3agua", [(0, "#4fc0d0"), (0.6, "#1f7f9a"), (1, "#0f4f6f")]) + grad("c3fenda", [(0, "#0f4f6f"), (0.5, "#08283c"), (1, "#02080f")])
-    body = c3_agua() + c3_templo() + c3_grua() + c3_cupula() + c3_navio_caido() + c3_atores() + c3_frente()
+    defs = (fonte() + rough(seed=35, scale=0.8, freq=0.05) + grad("c3agua", [(0, "#4fc0d0"), (0.6, "#1f7f9a"), (1, "#0f4f6f")])
+            + grad("c3fenda", [(0, "#0f4f6f"), (0.5, "#08283c"), (1, "#02080f")]))
+    body = c3_agua() + c3_templo_fundo() + c3_grua() + c3_palco() + c3_cupula() + c3_atores() + c3_frente()
     return doc(W, H, f'<g filter="url(#rough)">{body}</g>', defs)
 
 

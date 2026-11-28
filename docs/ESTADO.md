@@ -15,7 +15,8 @@ etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capa
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
 **▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas
 Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
-PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`; esquema `art/out/fase2/esquema.png`. Próximo: aprovação → fotografia de cada cena.
+PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`. Fotografias `art/out/fase2/cena*.png` (fonte `f2_prancha.py`): cena 1 APROVADA (v3, navio = moldura,
+luta em plataformas); 2a/2b refeitas no mesmo princípio, aguardando aprovação. Depois: manifesto + .lvl + arte (blocos A–F).
 **▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
 reação em cadeia). Falta o usuário jogar para confirmar. Também: menus com segurar-repete e o fluxo configurar/selecionar mapa termina
 na escolha dos personagens.
