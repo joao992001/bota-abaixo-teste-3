@@ -13,7 +13,10 @@ PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for 
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
-**▶ Próximo:** refazer a tela PROJETOS DE DEMOLIÇÃO (o usuário não gostou; `game/ui/fim.gd` `_projetos`) — prancha primeiro.
+**▶ PROJETOS DE DEMOLIÇÃO v2 FEITO — A53** (prancha `art/out/ui/projetos_v2.png`, vídeo `out/videos/projetos_v2.mp4`, vitrine
+`--projetos=DIR`): cena única em papel e giz (tickets dos ganhos, prédio do projeto, bola da grua derruba 1 andar por ponto,
+contador de casas; completo = poeira + cartaz LIBERADO!/EM BREVE; sem mapa a liberar = "+N GUARDADOS"). Mapas a liberar em
+`progressao.mapas_a_liberar` (vazio hoje). Arte `art/src/ui/projetos_export.py` → `game/assets/ui/projetos/`. Próximo: perguntar.
 **▶ SESSÃO 7 (cont. 5): CONTROLES PROFISSIONAIS FEITO — A51** (prancha `art/out/ui/controles_v2.png`, aprovada 2026-11-28).
 Modelo pelo fabricante/produto (DualSense, DualShock 4, Xbox Series/One/360, Switch Pro, genérico); OPÇÕES ▸ CONTROLES =
 central com um cartão por aparelho (pisca "é este!" ao apertar) → MAPEAR só aquele aparelho (principal + alternativo, troca

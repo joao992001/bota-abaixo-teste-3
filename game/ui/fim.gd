@@ -469,7 +469,18 @@ func _projetos(ci: CanvasItem, k: float) -> void:
 	var t: float = main.hud.t
 	var pj := projeto_info()
 	var pm: int = pj["pm"]
-	_fundo(ci, t)
+	# fundo só com a cidade de longe (a grua e o prédio desta tela são os do projeto)
+	ci.draw_rect(Rect2(0, 0, 1920, 1080), Color("#bfe9ef"))
+	var longe: Texture2D = Data.tex("fase1/e1_longe")
+	if longe:
+		ci.draw_texture_rect(longe, Rect2(0, -20, 1920, 1056), false)
+	for q in 3:
+		var nx := fposmod(q * 700.0 + t * (14.0 + q * 5.0), 2300.0) - 200.0
+		for cc in [[0, 0, 46], [44, -16, 40], [86, 0, 38]]:
+			ci.draw_circle(Vector2(nx + cc[0], 90.0 + q * 70.0 + cc[1]), cc[2], Color(1, 1, 1, 0.75))
+	ci.draw_rect(Rect2(0, 880, 1920, 200), Color("#b9ab8f"))
+	ci.draw_rect(Rect2(0, 880, 1920, 60), Color("#d8ccb6"))
+	ci.draw_rect(Rect2(0, 880, 1920, 10), Color("#eee5d2"))
 	var linhas := _linhas()
 	var tempos := _pj_tempos()
 	var fim_anim := P_INICIO + linhas.size() * P_LINHA + int(pj["animados"]) * P_ANDAR + 0.4
@@ -514,10 +525,10 @@ func _projetos(ci: CanvasItem, k: float) -> void:
 			var idx := pm - 1 - (int(pj["no_chao"]) + tempos.find(e))   # andar (de baixo p/ cima) que cai
 			var y0 := PJ_BASE - (idx + 1) * fh
 			var tex := _pt("andar_a" if idx % 2 == 0 else "andar_b")
-			var c := Vector2(PJ_X + PJ_W / 2.0 - u * 160.0, y0 + fh / 2.0 + u * u * (PJ_BASE - y0) * 0.9)
-			ci.draw_set_transform(c, -u * 0.6, Vector2.ONE)
+			var c := Vector2(PJ_X + PJ_W / 2.0 - u * 160.0, minf(y0 + fh / 2.0 + u * u * (PJ_BASE - y0) * 0.9, PJ_BASE - fh * 0.5))
+			ci.draw_set_transform(c, -u * 0.3, Vector2.ONE)
 			if tex:
-				ci.draw_texture_rect(tex, Rect2(-240, -50 * fh / 84.0, 480, 100 * fh / 84.0), false, Color(1, 1, 1, 1.0 - u * 0.8))
+				ci.draw_texture_rect(tex, Rect2(-240, -50 * fh / 84.0, 480, 100 * fh / 84.0), false, Color(1, 1, 1, 1.0 - u))
 			ci.draw_set_transform(Vector2.ZERO)
 			_poeira(ci, Vector2(PJ_X + PJ_W + 10, y0 + fh * 0.5), u, 1.0)
 			_tijolos(ci, Vector2(PJ_X + PJ_W, y0 + fh * 0.5), u, tempos.find(e))
@@ -532,7 +543,8 @@ func _projetos(ci: CanvasItem, k: float) -> void:
 		elif d <= 0.0 and d > -0.25:
 			bx = PJ_X + PJ_W + 60.0 + 90.0 * (-d / 0.25)
 	if desaba > 0.0:
-		alvo_y = PJ_BASE - 180.0
+		alvo_y = PJ_BASE - 300.0   # descansa à direita, longe do cartaz
+		bx = 1640.0
 	ci.draw_line(PJ_GRUA, Vector2(bx, alvo_y - 50), Kit.INK, 5.0, true)
 	var bt := _pt("bola")
 	if bt:
@@ -618,7 +630,8 @@ func _ticket(ci: CanvasItem, p: Vector2, ln: Dictionary, aceso: bool, rot: float
 func _contador(ci: CanvasItem, r: Rect2, no_chao: int, pj: Dictionary, acabou: bool) -> void:
 	Kit.chunk(ci, r, Obra.CREAM, 18, 6, 8.0)
 	var pm: int = pj["pm"]
-	Kit.text(ci, Vector2(r.position.x, r.position.y + 50), "PROJETO %d · PRÓXIMO MAPA" % int(pj["projeto"]), 26, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
+	var cab := "TODOS OS PROJETOS EM DIA" if pj["guardado"] else "PROJETO %d · PRÓXIMO MAPA" % int(pj["projeto"])
+	Kit.text(ci, Vector2(r.position.x, r.position.y + 50), cab, 26, Kit.SOFT, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
 	var cw := (r.size.x - 80.0) / pm
 	for q in pm:
 		var cel := Rect2(r.position.x + 40 + q * cw + 4, r.position.y + 72, cw - 8, 54)
@@ -632,7 +645,7 @@ func _contador(ci: CanvasItem, r: Rect2, no_chao: int, pj: Dictionary, acabou: b
 	if pj["guardado"]:
 		txt = "+%d GUARDADOS (total %d)" % [int(pj["ganho"]), int(pj["total"])]
 		cor = Color("#3c9a46")
-	elif acabou:
+	elif acabou or no_chao >= pm:
 		txt = "PROJETO COMPLETO!"
 		cor = Color("#d42035")
 	Kit.text(ci, Vector2(r.position.x, r.position.y + 180), txt, 30, cor, HORIZONTAL_ALIGNMENT_CENTER, r.size.x)
