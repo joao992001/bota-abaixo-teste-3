@@ -49,10 +49,10 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
         skins K16–K20 por robô (mesmo commit)
   - [x] 4. Prancha do storyboard das 2 transições `art/out/fase2/transicoes.png` (gerador `art/src/cenarios/f2_transicoes.py`)
         (commit "bastão: dossiê F2 passo 4")
-  - [ ] 5. `DOSSIE.md` da fase: o que está APROVADO, o que espera o usuário (com as pranchas) e o plano A–F
+  - [x] 5. `docs/fases/derruba/f2_cargueiro/DOSSIE.md` (situação, perguntas, plano A–F, desempenho) (commit "bastão: dossiê F2 passo 5")
   - [ ] 6. Mandar ao usuário as pranchas pendentes + perguntas; mover o bloco para AGUARDANDO USUÁRIO
-- **Próximo passo exato:** passo 5 — escrever `docs/fases/derruba/f2_cargueiro/DOSSIE.md` (situação: APROVADO × aguardando,
-  lista das pranchas para o usuário, plano dos blocos A–F do `mapa.md` §3, desempenho) e apontar no README da fase.
+- **Próximo passo exato:** passo 6 — mandar ao usuário `cena2a_destrocos.png`, `cena2b_atlantida.png`, `perigos.png`,
+  `perigo_tubarao.png`, `transicoes.png` com as 5 perguntas do `DOSSIE.md` §2; mover este bloco para AGUARDANDO USUÁRIO.
 - Decisões pendentes do usuário: aprovar fotografias 2a/2b e a prancha de perigos (já enviadas pelo outro chat).
 
 ## AGUARDANDO USUÁRIO
