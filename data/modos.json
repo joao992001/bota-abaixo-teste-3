@@ -42,6 +42,12 @@
         "dica": "Destrua a obra: a destruição escolhe a próxima cena."
       },
       {
+        "id": "cargueiro_perdido",
+        "musica": "partida",
+        "nome": "Cargueiro Perdido",
+        "dica": "Do alto-mar ao fundo do mar: a destruição escolhe se o navio encalha ou afunda."
+      },
+      {
         "id": "demolicao",
         "musica": "partida",
         "nome": "Canteiro",

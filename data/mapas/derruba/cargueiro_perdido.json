@@ -1,0 +1,219 @@
+{
+ "schema_version": 2,
+ "mode_id": "derruba",
+ "map_id": "cargueiro_perdido",
+ "nome": "Cargueiro Perdido",
+ "estado": "EM_CONSTRUCAO",
+ "nota": "Fase 2 do Derruba (dossiê APROVADO A55, docs/fases/derruba/f2_cargueiro/DOSSIE.md). Bloco A: cenas + base fixa + estruturas com os tipos que já existem. Contêineres (tipo novo), perigos M1–M10, água e eventos G15–G19 entram nos blocos C–E. Escondido dos menus até ficar jogável (não está em modos[derruba].arenas).",
+ "lvl": "cargueiro_perdido",
+ "arte": "",
+ "spells_permitidas": [
+  "A01",
+  "A02",
+  "A03",
+  "A04",
+  "A05",
+  "A06",
+  "A07",
+  "A08",
+  "C01",
+  "C02",
+  "C03",
+  "C04",
+  "C05",
+  "E02",
+  "T01",
+  "T02",
+  "T03",
+  "T04",
+  "T05",
+  "T06",
+  "T07",
+  "D01",
+  "D02",
+  "D03",
+  "D04",
+  "D05",
+  "D06"
+ ],
+ "eventos_permitidos": [
+  "G10"
+ ],
+ "skins_originadas": [],
+ "topologia": 3,
+ "cenas": [
+  {
+   "id": "alto_mar",
+   "ordem": 1,
+   "nome": "Cargueiro no Alto-Mar",
+   "nivel": 1,
+   "eventos": [],
+   "mecanismos": [],
+   "rota_moderada": "destrocos",
+   "rota_total": "atlantida",
+   "aviso_moderada": "O NAVIO VAI ENCALHAR!",
+   "aviso_total": "O NAVIO VAI AFUNDAR!",
+   "base_fixa": [
+    "balsas (tiles linha 13)",
+    "pilar de atracação (tiles)"
+   ],
+   "estruturas": {
+    "lajes": {
+     "seg_x": [],
+     "nucleo": [],
+     "linha": 13
+    },
+    "andaimes": [
+     [
+      8,
+      9,
+      5
+     ],
+     [
+      17,
+      9,
+      4
+     ],
+     [
+      5,
+      6,
+      3
+     ],
+     [
+      22,
+      6,
+      6
+     ]
+    ],
+    "vigas": [
+     [
+      20,
+      3,
+      5
+     ]
+    ],
+    "pilares": [],
+    "terreos": []
+   },
+   "nota": "Ficha: docs/fases/derruba/f2_cargueiro/cenas/conves.md. andaimes = tábuas dos níveis 9 e 6; viga = viga içada. Contêineres: bloco D."
+  },
+  {
+   "id": "atlantida",
+   "ordem": 2,
+   "nome": "Atlântida",
+   "nivel": 2,
+   "eventos": [],
+   "mecanismos": [],
+   "rota_moderada": null,
+   "rota_total": null,
+   "base_fixa": [
+    "3 pilares do templo (tiles)"
+   ],
+   "estruturas": {
+    "pranchas": [
+     [
+      0,
+      26,
+      5
+     ],
+     [
+      5,
+      29,
+      7
+     ],
+     [
+      11,
+      27,
+      7
+     ],
+     [
+      12,
+      24,
+      5
+     ],
+     [
+      18,
+      23,
+      3
+     ],
+     [
+      23,
+      26,
+      6
+     ],
+     [
+      21,
+      29,
+      3
+     ]
+    ]
+   },
+   "nota": "Ficha: cenas/atlantida.md. pranchas = lajes de mármore, laje-ponte, laje do topo, prancha do navio, bloco na corrente (posições absolutas do mundo)."
+  },
+  {
+   "id": "destrocos",
+   "ordem": 3,
+   "nome": "Destroços do Cargueiro",
+   "nivel": 2,
+   "eventos": [],
+   "mecanismos": [],
+   "rota_moderada": null,
+   "rota_total": null,
+   "base_fixa": [
+    "rocha esquerda",
+    "rocha-arco",
+    "balsa (tiles)"
+   ],
+   "estruturas": {
+    "pranchas": [
+     [
+      43,
+      14,
+      3
+     ],
+     [
+      52,
+      14,
+      3
+     ],
+     [
+      45,
+      10,
+      8
+     ],
+     [
+      52,
+      11,
+      5
+     ],
+     [
+      55,
+      7,
+      8
+     ],
+     [
+      38,
+      7,
+      3
+     ],
+     [
+      46,
+      6,
+      3
+     ],
+     [
+      41,
+      16,
+      2
+     ],
+     [
+      43,
+      16,
+      3
+     ]
+    ]
+   },
+   "nota": "Ficha: cenas/destrocos.md. pranchas = convés quebrado, pedaço do convés, tábuas, contêiner içado, rede, bote, jangada (posições absolutas)."
+  }
+ ]
+}

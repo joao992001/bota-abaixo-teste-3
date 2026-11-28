@@ -106,6 +106,10 @@ func _run() -> void:
 			await perf_vaza()
 			get_tree().quit(0)
 			return
+		if a.begins_with("--cargueiro="):
+			await cargueiro_frames(a.substr(12))
+			get_tree().quit(0)
+			return
 		if a.begins_with("--perf-derruba="):
 			await perf_derruba(a.substr(15))
 			get_tree().quit(0)
@@ -567,6 +571,7 @@ func demolicao_test() -> void:
 	await spells_test()
 	await eventos_test()
 	await mapa_test()
+	await cargueiro_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6315,3 +6320,88 @@ func perf_vaza() -> void:
 			await frames(1)
 		print("VAZA partida %d: objetos %d  recursos %d  nós %d  órfãos %d" % [i + 1, Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT), Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)])
 	Node.print_orphan_nodes()
+
+
+## FASE 2 · Cargueiro Perdido — bloco A (cenas + base fixa + estruturas com os tipos atuais): manifesto válido, rotas,
+## nascimentos em chão firme, estruturas montadas e as DUAS transições de verdade (afunda → Atlântida; encalha →
+## Destroços), todos chegando vivos na área certa. --so=cargueiro
+func _cargueiro_partida() -> void:
+	main.go_join()
+	await frames(2)
+	PlayerInput.virtual = {"v0": {}, "v1": {}}
+	await tap("v0", "jump")
+	await tap("v1", "jump")
+	main.add_bot()
+	main.add_bot()
+	main.game_mode = "derruba"
+	main.demo.lives_setting = 4
+	main.event_level = 0
+	main.arena_choice = "cargueiro_perdido"
+	main.start_match()
+	await demo_round()
+	main.countdown = 0.0
+
+func _cargueiro_rota(tipo: String, n: int) -> void:
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	var lives0 = main.demo.lives.duplicate()
+	et.forcar(tipo)
+	var w := 0
+	while (et.etapa != n or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	await frames(40)
+	var a: Rect2 = main.level.etapa_rect(n)
+	check(et.etapa == n and main.level.area == a, "rota %s: chega à cena %d em %.1f s; área e KO passam para ela" % [tipo, n, w / 60.0])
+	check(main.robots.all(func(r): return r.alive and a.has_point(r.position)) and main.demo.lives == lives0, "rota %s: os 4 chegam vivos dentro da cena nova, sem perder vida (%s)" % [tipo, str(main.robots.map(func(r): return [r.pid, Vector2i(r.position / 64.0), r.alive]))])
+
+func cargueiro_test() -> void:
+	print("== Fase 2 · Cargueiro Perdido (bloco A)")
+	var m := MapaReg.manifesto("derruba", "cargueiro_perdido")
+	check(not m.is_empty() and MapaReg.validar(m).is_empty(), "manifesto do Cargueiro carrega e valida (%s)" % str(MapaReg.validar(m)))
+	check(MapaReg.rota("derruba", "cargueiro_perdido", 1, "total") == 2 and MapaReg.rota("derruba", "cargueiro_perdido", 1, "moderada") == 3 and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 2) and not MapaReg.tem_proxima("derruba", "cargueiro_perdido", 3), "Alto-Mar → Atlântida (total, 65%) ou Destroços (moderada, 40%); as duas são as últimas")
+	check(not "cargueiro_perdido" in main.demo.find_mode("derruba").get("arenas", []), "ainda escondido do menu do Derruba (em construção)")
+	await _cargueiro_partida()
+	var L = main.level
+	check(L.id == "cargueiro_perdido" and L.etapa_rect(1).has_area() and L.etapa_rect(2).has_area() and L.etapa_rect(3).has_area(), "o .lvl tem as 3 áreas de cena")
+	var ruins := []
+	for k in range(1, 13):
+		var sp: Vector2 = L.spawns.get(k, Vector2.INF)
+		if sp == Vector2.INF or not L.is_solid(Vector2i(int(sp.x / 64.0), int(sp.y / 64.0))):
+			ruins.append(k)
+	check(ruins.is_empty(), "12 nascimentos (4 por cena), todos em chão firme %s" % str(ruins))
+	var ct = main.demo.canteiro
+	var por := {1: 0, 2: 0, 3: 0}
+	for p in ct.parts:
+		por[int(p.get("etapa", 1))] += 1
+	check(por[1] == 5 and por[2] == 7 and por[3] == 9, "estruturas que quebram montadas em cada cena (Alto-Mar %d, Atlântida %d, Destroços %d)" % [por[1], por[2], por[3]])
+	await frames(60)
+	check(main.robots.all(func(r): return r.alive and L.etapa_rect(1).has_point(r.position)), "todos nascem e ficam de pé no Alto-Mar")
+	check(ct.progresso(1) < 0.05, "manômetro começa zerado (%.0f%%)" % (ct.progresso(1) * 100.0))
+	await _cargueiro_rota("total", 2)
+	await _cargueiro_rota("moderada", 3)
+	main.go_menu()
+
+## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
+func cargueiro_frames(dir: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dir)
+	get_window().size = Vector2i(1920, 1080)
+	await _cargueiro_partida()
+	main.hud.visible = false
+	await frames(30)
+	await snap(dir, "f2_1_alto_mar")
+	for par in [["total", 2, "f2_2_atlantida"], ["moderada", 3, "f2_3_destrocos"]]:
+		if par[0] == "moderada":
+			await _cargueiro_partida()
+			main.hud.visible = false
+		var et = main.demo.etapas
+		et.ativo = true
+		et.forcar(par[0])
+		var w := 0
+		while (et.etapa != par[1] or et.state != "etapa") and w < 1500:
+			await frames(1)
+			w += 1
+		await frames(60)
+		await snap(dir, par[2])
+	main.hud.visible = true
