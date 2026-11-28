@@ -42,14 +42,15 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
         prancha de perigos M1–M10 (proposta). Faltava pelo método (`docs/manuais/derruba/mapa.md` §1–2): fichas 2a/2b
         desatualizadas, fundo vivo (C0–C4), storyboard das 2 transições, eventos com id/aviso/efeito, números da água,
         engenhocas por cena, skins por robô, página de situação (DOSSIÊ).
-  - [ ] 1. Fichas das cenas 2a e 2b iguais às fotografias atuais (estrutura fixa × destrutível, KO, perigos no lugar)
-  - [ ] 2. Fundo vivo das 3 cenas + regra da água com números propostos
+  - [x] 1. Fichas das 3 cenas iguais às fotografias (fixo × destrutível, KO, perigos, eventos, fundo vivo C0–C4,
+        transições da cena 1) (commit: ver "bastão: dossiê F2 passo 1")
+  - [ ] 2. Regra da água com números propostos (README da fase)
   - [ ] 3. Eventos com id (G15+), aviso/efeito/duração/cenas; engenhocas (manter/tirar/novas); skins por robô
   - [ ] 4. Prancha do storyboard das 2 transições (1 → 2a encalha aos 40% · 1 → 2b parte e afunda aos 65%)
   - [ ] 5. `DOSSIE.md` da fase: o que está APROVADO, o que espera o usuário (com as pranchas) e o plano A–F
   - [ ] 6. Mandar ao usuário as pranchas pendentes + perguntas; mover o bloco para AGUARDANDO USUÁRIO
-- **Próximo passo exato:** passo 1 — reescrever `docs/fases/derruba/f2_cargueiro/cenas/destrocos.md` e `atlantida.md`
-  a partir de `art/out/fase2/cena2a_destrocos.png` e `cena2b_atlantida.png` (rótulos das fotos = estruturas).
+- **Próximo passo exato:** passo 2 — seção "Regra-assinatura: ÁGUA" no `docs/fases/derruba/f2_cargueiro/README.md`
+  com números propostos (lento, pulo, golpe) usando `env_slow` do robô; depois passo 3 (eventos G15–G19 em `eventos.md`).
 - Decisões pendentes do usuário: aprovar fotografias 2a/2b e a prancha de perigos (já enviadas pelo outro chat).
 
 ## AGUARDANDO USUÁRIO
