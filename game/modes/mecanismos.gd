@@ -170,6 +170,7 @@ func update(dt: float) -> void:
 			"conteiner_boia": _boia(inst, dt)
 			"rede_rasga": _rede(inst, dt)
 			"tubarao": _tubarao(inst, dt)
+			"cupula_racha": _cupula(inst, dt)
 	queue_redraw()
 	if frente != null:
 		frente.queue_redraw()
@@ -765,6 +766,57 @@ func _mare(inst: Dictionary, dt: float) -> void:
 			if p["kind"] == "prancha" and int(p["etapa"]) == int(inst["etapa"]) and float(p["idx"]) in d.get("boiam", []):   # JSON dá 7.0
 				ct.move_part(p, float(p["y0"]) - sobe)
 
+## M7 (Atlântida): a racha da cúpula pinga e mantém o lado direito alagado até a linha base; cada MARRETADA no vidro
+## (alvo) faz a racha crescer e a água subir um degrau (até max_degraus); sem novas marretadas a água desce um degrau a
+## cada volta_s. O evento "Bolhão de Ar" pode zerar `s.degraus`.
+func _cupula(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	var deg := int(s.get("degraus", 0))
+	if deg > 0:
+		s["volta"] = float(s.get("volta", 0.0)) + dt
+		if float(s["volta"]) >= float(d["volta_s"]):
+			s["volta"] = 0.0
+			s["degraus"] = deg - 1
+	var alvo_topo := o.y + float(d["base_px"]) - float(d["degrau_px"]) * int(s.get("degraus", 0))
+	var atual := float(s.get("nivel", alvo_topo))
+	s["nivel"] = move_toward(atual, alvo_topo, float(d["vel_px"]) * dt)
+	var z = _mare_zona(inst)
+	if z != null:
+		z["topo"] = float(s["nivel"])
+
+func cupula_racha(inst: Dictionary) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	s["degraus"] = mini(int(s.get("degraus", 0)) + 1, int(d["max_degraus"]))
+	s["volta"] = 0.0
+	s["pulso"] = 1.0
+	Audio.play("caixote_quebra", 1.4, -2.0)
+
+## Alvo do vidro em px do mundo (o manifesto dá em px relativos à cena).
+func _cup_alvo(inst: Dictionary) -> Rect2:
+	var a: Array = inst["d"]["alvo_rel"]
+	return Rect2(main.level.etapa_rect(inst["etapa"]).position + Vector2(float(a[0]), float(a[1])), Vector2(float(a[2]), float(a[3])))
+
+func _draw_cupula(inst: Dictionary) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var c := _cup_alvo(inst).get_center()
+	var deg := int(s.get("degraus", 0))
+	s["pulso"] = maxf(float(s.get("pulso", 0.0)) - 0.03, 0.0)
+	var brilho := 0.5 + 0.5 * sin(t * 6.0)
+	draw_circle(c, 26.0 + 8.0 * deg + 14.0 * float(s["pulso"]), Color(0.75, 0.95, 1.0, 0.18 + 0.15 * brilho))
+	var rr := 18.0 + 10.0 * deg
+	for k in 4 + deg * 2:   # racha: raios brancos saindo do ponto de impacto
+		var ang := float(k) * TAU / float(4 + deg * 2) + 0.4
+		draw_line(c, c + Vector2.from_angle(ang) * rr * (0.7 + 0.3 * float(k % 2)), Color(1, 1, 1, 0.9), 3.0, true)
+	var fio := 6.0 + 5.0 * deg   # jato que engrossa
+	var nivel := float(s.get("nivel", c.y + 200.0))
+	draw_line(c + Vector2(0, 10), Vector2(c.x - 10.0, nivel), Color(0.75, 0.94, 1.0, 0.7), fio, true)
+	var gy := fmod(t * 300.0, maxf(nivel - c.y, 1.0))   # gotas caindo
+	draw_circle(Vector2(c.x - 4.0, c.y + gy), 5.0, Color(0.85, 0.97, 1.0, 0.9))
+
 func _draw_mare(inst: Dictionary) -> void:
 	var s: Dictionary = inst["s"]
 	if s.get("fase", "") != "aviso" and s.get("fase", "") != "sobe":
@@ -1186,6 +1238,13 @@ func hammer_hit(hit: Rect2, heavy: bool, by := -1) -> bool:
 			main.spark(hit.get_center(), 8)
 			Audio.play("bonk", 0.8, 0.0)
 			return true
+		if String(inst["tipo"]) == "cupula_racha":   # M7: marretada no vidro: a racha cresce e a água sobe um degrau
+			if _cup_alvo(inst).intersects(hit):
+				cupula_racha(inst)
+				main.spark(hit.get_center(), 6)
+				main.float_text(hit.get_center() + Vector2(0, -60), "RACHOU!", Color("#9fe8ff"))
+				return true
+			continue
 		if String(inst["tipo"]) == "rede_rasga" and heavy:   # M6: marretada pesada rasga a rede
 			var rp = _rede_peca(inst)
 			if rp != null and not rp["fallen"] and (rp["rect"] as Rect2).grow_individual(0, 0, 0, 60).intersects(hit):
@@ -1270,6 +1329,8 @@ func _draw_perf() -> void:
 				_draw_rede(inst)
 			"tubarao":
 				_draw_tubarao(inst)
+			"cupula_racha":
+				_draw_cupula(inst)
 			"onda_balsa":
 				pass   # desenhada na frente do palco (frente): a onda passa POR CIMA dos contêineres
 			"betoneira":

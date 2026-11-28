@@ -42,16 +42,14 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] 1. Água: `agua.gd` (zonas por cena do manifesto, alagado/molhado, respingo/bolhas/gotas), números em
         `modos.json demolicao.agua`, ganchos no `robot.gd` (agua_grav/agua_queda/agua_empurra + env_slow) + teste `--so=agua`
   - [x] 2. M-perigos da cena 1 (M1–M3), um por commit, com teste — M1 contêiner despenca FEITO (`conteiner_cai`, `--so=m1`); M2 gancho balança FEITO (`gancho_balanca`, `--so=m2`); M3 onda na balsa FEITO (`onda_balsa`, `--so=m3`) — cena 1 completa
-  - [ ] 3. M-perigos da cena 2a (M4 maré etc.) e 2b (M7 cúpula etc.) + M10 tubarão
+  - [ ] 3. M-perigos da cena 2a (M4–M6, M10 FEITOS) e 2b — M7 racha da cúpula FEITO (`cupula_racha`, `--so=m7`); faltam M8, M9
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** Destroços COMPLETOS (M4 maré, M5 boia, M6 rede, M10 tubarão; `--so=m4,m5,m6,m10`). Próximo:
-  Atlântida (cena 2 no .lvl): **M7 racha da cúpula** (zona de água já existe em `cenas[atlantida].agua`: a racha
-  pinga/brilha; marretada no vidro faz a água crescer — mexer no `topo` da zona como o `mare`), **M8 lustre despenca**
-  (peça `p2_prancha_7`: marretada na corrente → estala + SOMBRA VERMELHA 1 s → cai, esmaga e racha a plataforma embaixo),
-  **M9 concha-trampolim** (hoje desenho no `e2_palco`: tirar de lá, tipo `concha` em `mecanismos.gd`: pisou → lança alto;
-  depois FECHA 2 s e prende; marretada abre). Pendente pequeno: "KO no mar = abocanhado" (animação) do M10; som de respingo.
+- **Próximo passo exato:** Atlântida (cena 2 no .lvl): **M8 lustre despenca** (peça `p2_prancha_7`: marretada na corrente →
+  estala + SOMBRA VERMELHA 1 s → cai, esmaga e racha a plataforma embaixo; tipo novo em `mecanismos.gd` + `--so=m8`), depois
+  **M9 concha-trampolim** (tirar o desenho do `e2_palco`; tipo `concha`: pisou → lança alto; FECHA 2 s e prende; marretada abre;
+  `--so=m9`). M7 pronto: `cupula_racha` (alvo_rel na quina da laje alta direita). Pendente pequeno: "KO no mar = abocanhado" do M10; som de respingo.
 - Decisões pendentes do usuário: nenhuma (água aprovada no A55; números ajustam jogando).
 
 ## AGUARDANDO USUÁRIO

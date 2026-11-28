@@ -7053,3 +7053,41 @@ func estudo_destruicao(n: int) -> void:
 		med.append(snappedf(v.reduce(func(a, b): return a + b, 0.0) / v.size(), 0.1))
 	print("ESTUDO média por 10 s: %s" % str(med))
 	main.go_menu()
+
+## M7 (Atlântida): a racha da cúpula mantém a direita alagada; marretada no vidro sobe a água; sem marretadas ela desce.
+func m7_test() -> void:
+	print("== Fase 2 · M7 racha da cúpula")
+	await _cargueiro_partida()
+	var et = main.demo.etapas
+	et.ativo = true
+	for r in main.robots:
+		r.active = false
+	et.forcar("total")
+	var w := 0
+	while (et.etapa != 2 or et.state != "etapa") and w < 1500:
+		await frames(1)
+		w += 1
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "cupula_racha":
+			inst = i
+	check(inst != null and main.demo.agua != null, "M7 está em Atlântida, com a zona de água")
+	if inst == null:
+		return
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(2).position
+	await frames(10)
+	var base := o.y + float(d["base_px"])
+	check(absf(float(s["nivel"]) - base) < 2.0 and main.demo.agua.alagado(Vector2(o.x + 25.0 * 64.0, base + 40.0)), "direita alagada até a linha base")
+	var hit: Rect2 = mc._cup_alvo(inst)
+	check(mc.hammer_hit(hit, false, 0), "marretada no vidro acerta a racha")
+	await frames(90)
+	check(int(s["degraus"]) == 1 and float(s["nivel"]) < base - 40.0, "a água subiu um degrau (%.0f px)" % (base - float(s["nivel"])))
+	for k in 5:
+		mc.hammer_hit(hit, false, 0)
+	check(int(s["degraus"]) == int(d["max_degraus"]), "no máximo %d degraus" % int(d["max_degraus"]))
+	s["volta"] = float(d["volta_s"]) - 0.05
+	await frames(5)
+	check(int(s["degraus"]) == int(d["max_degraus"]) - 1, "sem marretadas a água desce um degrau")
