@@ -81,6 +81,12 @@ Batata e Rei têm **mapa vivo**: itens a cada 3–5 s (até 3 na fase), eventos 
 | Cola · Teletransporte · Raio congelante · Soprador | Atrasar quem vem atrás ou alcançar o líder |
 
 ## 6. Fases (6 por modo, 12 cenários)
+**Regra dos temas do Derruba (A54, aprovada 2026-11-28):** cada mapa é uma ORDEM DE SERVIÇO — a equipe Bota-Abaixo vai a
+QUALQUER lugar derrubar uma **estrutura**. Todo mapa define: **estrutura** (o que se derruba) · **mundo** (onde) ·
+**regra-assinatura** (UMA mudança de jogo só dele: água subindo, pouca gravidade, vento, gelo…). A identidade da obra aparece
+em todo mapa (placas, fita zebrada, a grua adaptada ao mundo). Mapa grande = 7 cenas; os mapas novos se liberam pelos
+Projetos de Demolição. Beta: 2–3 mapas, cada um mudando uma regra física (descoberta).
+
 | Modo | Fases (cenário · interação principal) |
 |---|---|
 | Derruba (30×16) | Canteiro (canteiro · ilhas de caixote, terremoto) · Guindastes (porto · plataformas móveis) · Gangorras (serraria · gangorras sobre estacas) · Fábrica de Esteiras (fábrica · esteiras que invertem) · Prensa (ferro-velho · prensas e alçapão) · Fornalha (fundição · chamas e barris) |
