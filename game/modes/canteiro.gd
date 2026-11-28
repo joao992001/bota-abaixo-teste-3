@@ -172,6 +172,11 @@ func restore_body(p: Dictionary, r: Rect2) -> void:
 # ---------------------------------------------------------------- dano
 ## Aplica dano estrutural. O núcleo só treme e solta poeira.
 func damage(p: Dictionary, amount: int, at: Vector2) -> void:
+	var _pf := Perf.t0()
+	damage_perf(p, amount, at)
+	Perf.add("sub_canteiro_dano", _pf)
+
+func damage_perf(p: Dictionary, amount: int, at: Vector2) -> void:
 	if p["fallen"] or p["crit_t"] > 0.0 or p["evt"] != "" or p["kind"] == "terreo":
 		return
 	p["shake"] = 0.3
@@ -261,6 +266,11 @@ func hammer(r, hit: Rect2, down: bool, critico := false) -> bool:
 	return false
 
 func _collapse(p: Dictionary) -> void:
+	var _pf := Perf.t0()
+	_collapse_perf(p)
+	Perf.add("sub_canteiro_desaba", _pf)
+
+func _collapse_perf(p: Dictionary) -> void:
 	p["fallen"] = true
 	if is_instance_valid(p["body"]):
 		p["body"].queue_free()   # a colisão some agora, junto com o começo da queda
