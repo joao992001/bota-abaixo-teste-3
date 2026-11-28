@@ -24,4 +24,13 @@ golpe joga longe. Quanto mais fundo, mais água (cresce cena a cena).
 | 2a · Destroços do Cargueiro | `cenas/destrocos.md` | — (último nível) |
 | 2b · Atlântida | `cenas/atlantida.md` | — (último nível) |
 
+### Regra-assinatura: ÁGUA (ideia APROVADA; números PROPOSTOS — vão para `data/modos.json`, nunca no código)
+| Estado | Onde | Efeito proposto |
+|---|---|---|
+| **ALAGADO** | abaixo da linha d'água: maré alta (2a, M4), lado direito de Atlântida (2b, M7) | corrida ×0,6 (`env_slow`); gravidade ×0,55 e queda máx ×0,5 (**pulo flutua alto**); golpe recebido empurra ×1,25 (**joga longe**); respingo ao entrar/sair |
+| **MOLHADO** | onda na balsa (1, M3), Onda Gigante (G15) | corrida ×0,8 por 2 s; gotas pingando do robô (leitura em 1 s) |
+| Escala por cena | 1 → 2a → 2b | 1: só molha · 2a: alaga com a maré (~8 s a cada ~25 s) · 2b: lado direito sempre alagado e cresce |
+Leitura: a água alagada é desenhada POR CIMA do palco, translúcida, com linha clara na superfície; robô alagado solta bolhas.
+Desempenho: a água é um retângulo por cena (sem física de fluido); teste de "está na água" = 1 comparação de altura por robô.
+
 Inventários: `eventos.md` · `perigos_mecanismos.md` · `spells.md` · `skins.md` · `decisoes_testes.md`.

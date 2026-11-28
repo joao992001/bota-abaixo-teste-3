@@ -44,13 +44,15 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
         engenhocas por cena, skins por robô, página de situação (DOSSIÊ).
   - [x] 1. Fichas das 3 cenas iguais às fotografias (fixo × destrutível, KO, perigos, eventos, fundo vivo C0–C4,
         transições da cena 1) (commit: ver "bastão: dossiê F2 passo 1")
-  - [ ] 2. Regra da água com números propostos (README da fase)
-  - [ ] 3. Eventos com id (G15+), aviso/efeito/duração/cenas; engenhocas (manter/tirar/novas); skins por robô
+  - [x] 2. Regra da água com números propostos (README da fase) (commit "bastão: dossiê F2 passos 2–3")
+  - [x] 3. Eventos G15–G19 com aviso/efeito/duração/cenas; engenhocas (A03/T01 na água, A09 Torpedo, D07 Escafandro);
+        skins K16–K20 por robô (mesmo commit)
   - [ ] 4. Prancha do storyboard das 2 transições (1 → 2a encalha aos 40% · 1 → 2b parte e afunda aos 65%)
   - [ ] 5. `DOSSIE.md` da fase: o que está APROVADO, o que espera o usuário (com as pranchas) e o plano A–F
   - [ ] 6. Mandar ao usuário as pranchas pendentes + perguntas; mover o bloco para AGUARDANDO USUÁRIO
-- **Próximo passo exato:** passo 2 — seção "Regra-assinatura: ÁGUA" no `docs/fases/derruba/f2_cargueiro/README.md`
-  com números propostos (lento, pulo, golpe) usando `env_slow` do robô; depois passo 3 (eventos G15–G19 em `eventos.md`).
+- **Próximo passo exato:** passo 4 — prancha `art/out/fase2/transicoes.png` (gerador novo `art/src/cenarios/f2_transicoes.py`,
+  reaproveitando cores/funções do `f2_prancha.py`): 2 faixas de 4 quadros (40% encalha → deslize para a direita;
+  65% parte e afunda → queda pelo porão até Atlântida). Storyboard escrito em `cenas/conves.md`.
 - Decisões pendentes do usuário: aprovar fotografias 2a/2b e a prancha de perigos (já enviadas pelo outro chat).
 
 ## AGUARDANDO USUÁRIO
