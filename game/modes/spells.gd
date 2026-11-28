@@ -1102,18 +1102,34 @@ func update(dt: float, alive: Array) -> void:
 		bot_hold[pid] -= dt
 		if bot_hold[pid] <= 0.0:
 			bot_hold.erase(pid)
+	var _q__boxes := Perf.t0()
 	_update_boxes(dt, alive)
+	Perf.add("sub_eng_boxes", _q__boxes)
+	var _q__holds := Perf.t0()
 	_update_holds(dt)
+	Perf.add("sub_eng_holds", _q__holds)
+	var _q__aims := Perf.t0()
 	_update_aims(dt)
+	Perf.add("sub_eng_aims", _q__aims)
+	var _q__pile_aims := Perf.t0()
 	_update_pile_aims(dt)
+	Perf.add("sub_eng_pile_aims", _q__pile_aims)
 	for r in main.robots:   # E03: ▲ troca qual viga fica na mira
 		if r.alive and slot.has(r.pid) and slot[r.pid]["id"] == "E03" and PlayerInput.pressed(r.pid, "up"):
 			slot[r.pid]["data"]["tgt_i"] = int(slot[r.pid]["data"].get("tgt_i", 0)) + 1
 			Audio.play("menu_mover", 1.4, -6.0)
+	var _q__teles := Perf.t0()
 	_update_teles(dt)
+	Perf.add("sub_eng_teles", _q__teles)
+	var _q__frozen := Perf.t0()
 	_update_frozen(dt)
+	Perf.add("sub_eng_frozen", _q__frozen)
+	var _q__pinned := Perf.t0()
 	_update_pinned(dt)
+	Perf.add("sub_eng_pinned", _q__pinned)
+	var _q__decoys := Perf.t0()
 	_update_decoys(dt)
+	Perf.add("sub_eng_decoys", _q__decoys)
 	for hf in helmet_fly:
 		hf["t"] += dt
 		hf["vel"].y += 1400.0 * dt
@@ -1153,12 +1169,16 @@ func update(dt: float, alive: Array) -> void:
 					s["carga"] = clampf(s["prep"] / cmax, 0.0, 1.0)
 					s["prep"] = -1.0
 					s.erase("carga_hold")
+					var _qf := Perf.t0()
 					_fire(r, s)
+					Perf.add("sub_eng_disparo_" + String(s["id"]) if Perf.on else "", _qf)
 				elif s["prep"] >= cmax and fmod(s["prep"], 0.25) < dt:
 					main.spark(muzzle(r, "A01"), 1)   # cheio: chiando, esperando soltar
 			elif s["prep"] >= s["prep_len"]:
 				s["prep"] = -1.0
+				var _qf2 := Perf.t0()
 				_fire(r, s)
+				Perf.add("sub_eng_disparo_" + String(s["id"]) if Perf.on else "", _qf2)
 		if s.has("beam"):
 			_update_beam(r, s, dt)
 		if s["id"] == "D01" and anchors.has(r.pid):
@@ -1211,11 +1231,21 @@ func update(dt: float, alive: Array) -> void:
 				s["t"] -= dt
 				if s["t"] <= 0.0:
 					_explode_armor(r)
+	var _q__fists := Perf.t0()
 	_update_fists(dt)
+	Perf.add("sub_eng_fists", _q__fists)
+	var _q__shots := Perf.t0()
 	_update_shots(dt)
+	Perf.add("sub_eng_shots", _q__shots)
+	var _q__attack2 := Perf.t0()
 	_update_attack2(dt)
+	Perf.add("sub_eng_attack2", _q__attack2)
+	var _q__etapa3 := Perf.t0()
 	_update_etapa3(dt)
+	Perf.add("sub_eng_etapa3", _q__etapa3)
+	var _q__etapa4 := Perf.t0()
 	_update_etapa4(dt)
+	Perf.add("sub_eng_etapa4", _q__etapa4)
 	for p in platforms.duplicate():
 		p["t"] -= dt
 		p["k"] = minf(p["k"] + dt / 0.32, 1.0)

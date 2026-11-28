@@ -637,8 +637,9 @@ func respawn(r, ahead := false) -> void:
 	var best_d := -1.0
 	var pr := play_rect().grow_individual(-128, -192, -192, -64)
 	var zonas_mec: Array = mecs.zonas_perigo() if mecs != null and is_instance_valid(mecs) else []
-	for y in range(3, lv.rows - 1):
-		for x in range(1, lv.cols - 1):
+	# só as células dentro da área de jogo (o resto era varrido e descartado: o Canteiro empilha cenas → 6–8 ms por volta)
+	for y in range(maxi(3, int(pr.position.y / 64.0) - 1), mini(lv.rows - 1, int(pr.end.y / 64.0) + 2)):
+		for x in range(maxi(1, int(pr.position.x / 64.0) - 1), mini(lv.cols - 1, int(pr.end.x / 64.0) + 2)):
 			var c := Vector2i(x, y)
 			if lv.is_solid(c) and lv.ch_at(c) != "I" and not lv.is_solid(c + Vector2i.UP) and not lv.is_solid(c + Vector2i(0, -2)) \
 					and not lv.is_solid(c + Vector2i(0, -3)) and not lv.is_solid(c + Vector2i(0, -4)):   # desce de 220 px: caminho livre
