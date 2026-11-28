@@ -41,11 +41,11 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   `game/assets/cargueiro/` (sprites novos dos perigos)
 - Método (igual ao outro chat): por cena, PRANCHA com quadro a quadro da animação → aprovação → arte+código → captura no jogo (após `--import`).
 - Passos:
-  - [ ] 1. Cena 1: prancha M1 contêiner caindo, M2 gancho, M3 onda (+ tábuas/andaimes) → aprovação
+  - [x] 1. Cena 1: prancha `art/out/fase2/lapida_cena1.png` (fonte `f2_lapida1.py`: onda 5 quadros, contêiner 4, gancho 3, tábua) — ENVIADA, aguardando aprovação
   - [ ] 2. Cena 1 no jogo (sprites + animação) + capturas
   - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
   - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
-- **Próximo passo exato:** passo 1 — ver capturas atuais `art/out/fase2/uso/cena1.png`, fazer `art/src/cenarios/f2_lapida1.py` → `art/out/fase2/lapida_cena1.png`.
+- **Próximo passo exato:** aprovada a prancha da cena 1 → passo 2: exportar os quadros como sprites (`onda_0..4`, `conteiner_cai_0..3`, `poeira`, `gancho`, `tabua_boa`) pelo `f2_jogo.py` (SPRITES, importando de `f2_lapida1`), copiar para `game/assets/cargueiro/`, `--import`, e trocar os `_draw_*` de M1/M2/M3 em `mecanismos.gd` (+ tábuas do canteiro) para usar os quadros; testes `--so=m1,m2,m3`; capturas.
 - Decisões pendentes do usuário: aprovar cada prancha.
 
 ## AGUARDANDO USUÁRIO
