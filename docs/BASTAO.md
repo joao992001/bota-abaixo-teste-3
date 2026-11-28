@@ -33,7 +33,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 ## EM ANDAMENTO
 
 ### Fase 2 · cena 1 (Alto-Mar): plataformas no tema (A57) no jogo + animação dos perigos no padrão novo
-- Quem: (livre — última: sessão 018QUPBQj4sLX3w64QQJCiVt, parou por limite de uso) · Desde: 2026-11-28 · Última atualização: 2026-11-28
+- Quem: sessão 01HthQDxRkYCgN9XMLafZiZ5 (assumiu da 018QUPBQ…) · Desde: 2026-11-28 · Última atualização: 2026-11-28
 - Pedido do usuário: "lapidar as artes e as animações… a onda tá feia, os contêineres caindo não tão legal" + "o contexto
   visual das plataformas não se encaixa no tema" + "agora vamos colocar mais plataformas" → **"extremamente aprovado, é esse o
   caminho"** (A57: peças do tema + apoio visível; fases recheadas de plataformas).
