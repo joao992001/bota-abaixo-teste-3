@@ -46,7 +46,9 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** (M7 e M11 prontos e testados.)
+- **Próximo passo exato:** (M7 e M11 prontos e testados; capturas no jogo `art/out/fase2/uso/{cena1,destrocos,atlantida}.png`
+  enviadas ao usuário para aprovação visual. **Antes de capturar num contêiner novo: `godot --headless --path game --import`**
+  — sem isso a arte do Cargueiro não carrega e as capturas saem com blocos vermelhos.)
   **M8 lustre despenca** (peça `p2_prancha_7`: marretada na corrente →
   estala + SOMBRA VERMELHA 1 s → cai, esmaga e racha a plataforma embaixo; tipo novo em `mecanismos.gd` + `--so=m8`), depois
   **M9 concha-trampolim** (tirar o desenho do `e2_palco`; tipo `concha`: pisou → lança alto; FECHA 2 s e prende; marretada abre;
