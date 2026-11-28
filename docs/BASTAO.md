@@ -46,7 +46,10 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] (pedido do usuário, adiantado do bloco D) TEXTURAS DO TEMA: base fixa das fotos (`e1/e2/e3_palco`, tiles invisíveis
         `sem_arte_de: 0`), contêineres como peça nova do canteiro (`conteineres` no manifesto, `conteiner_hp`), tábuas (Alto-Mar)
         e lajes de mármore (Atlântida) no lugar de andaimes/pranchas; M1 usa a arte do contêiner. Captura `art/out/fase2/jogo/palco_tema.png`
-- **Próximo passo exato:** Atlântida (cena 2 no .lvl): **M8 lustre despenca** (peça `p2_prancha_7`: marretada na corrente →
+- **Próximo passo exato:** **M11 Gêiser** (APROVADO 2026-11-28, prancha `art/out/fase2/perigo_geiser.png`, ficha em
+  `perigos_mecanismos.md`): tipo `geiser` em `mecanismos.gd` nas 2 fendas da cena 2 (colunas 6–12 e 18–24): borbulha 1,5 s →
+  jorra ~2,5 s, quem cai na fenda é jogado de volta (sem dano), o jato é elevador até as lajes altas; ~10 s alternando; `--so=m11`.
+  Depois: **M8 lustre despenca** (peça `p2_prancha_7`: marretada na corrente →
   estala + SOMBRA VERMELHA 1 s → cai, esmaga e racha a plataforma embaixo; tipo novo em `mecanismos.gd` + `--so=m8`), depois
   **M9 concha-trampolim** (tirar o desenho do `e2_palco`; tipo `concha`: pisou → lança alto; FECHA 2 s e prende; marretada abre;
   `--so=m9`). M7 pronto: `cupula_racha` (alvo_rel na quina da laje alta direita). Pendente pequeno: "KO no mar = abocanhado" do M10; som de respingo.
@@ -54,10 +57,8 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## AGUARDANDO USUÁRIO
 
-### M11 Gêiser (Atlântida) — ideia do usuário
-- Pergunta enviada (2026-11-28): aprova a prancha `art/out/fase2/perigo_geiser.png` (borbulha 1,5 s → jorra ~2,5 s: quem
-  cai na fenda é jogado de volta; o jato também serve de elevador; sem dano; ~10 s alternando entre as 2 fendas)?
-- Aprovado → tipo `geiser` em `mecanismos.gd` (fendas = colunas 6–12 e 18–24 da cena 2), teste `--so=m11`, vitrine.
+### M7 racha da cúpula — explicação pedida
+- 2026-11-28: o usuário APROVOU o M11 Gêiser e pediu explicação de como a racha (M7, código pronto) muda o mapa; aprova ou troca.
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
 - **Fase 2 · bloco D (contêineres + ARTE DO PALCO no tema: o usuário pediu trocar caixotes/andaimes do canteiro pelos do mar)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
