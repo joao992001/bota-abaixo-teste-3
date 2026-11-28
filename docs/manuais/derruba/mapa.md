@@ -100,6 +100,8 @@ Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regr
 - [ ] Em toda etapa, **cair do piso em qualquer ponto = KO, rápido**. Palco sobre o vazio, vãos abertos e visíveis. Nada de
       bordas pretas que matam, paredes até o teto ou poço com parede (o robô se agarrava na fresta).
 - [ ] Saída para KO em **pelo menos 2 lados** em cada etapa (`--so=bots` termina as rodadas).
+- [ ] **Palco = plataformas.** A estrutura grande do tema (prédio, navio, templo) é MOLDURA de fundo e não se pisa; a luta é numa
+      estrutura aberta: pouca parte fixa (balsas, pilares, torres) e o resto plataforma destrutível (contêineres, tábuas, vigas, peças penduradas).
 - [ ] Renascimento só em **chão firme**; nada de pilar em cima de peça que quebra.
 - [ ] Peças, caixas, eventos e inspeções da outra etapa **não entram nos sorteios** (filtro por `etapa`).
 

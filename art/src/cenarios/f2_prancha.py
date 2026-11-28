@@ -154,124 +154,146 @@ def c1_longe():
     return o
 
 
-def c1_navio():
+MAR1 = 15 * T          # superfície do mar: abaixo disto é KO em toda a largura
+
+
+def c1_navio_fundo():
+    """O CARGUEIRO É MOLDURA (não se pisa): costado grande e apagado atrás do palco, com a ponte e a carga lá em cima."""
     o = ""
-    # casco: popa (esq.) e proa (dir.) terminam ANTES da borda da tela — dos dois lados é mar aberto (cair = KO)
-    o += PL([(110, DECK), (1730, DECK), (1730, 11 * T), (1870, 11 * T), (1800, H), (190, H), (110, DECK + 80)], FERR, 2.4, dark=FERR_D)
-    o += f'<rect x="150" y="{DECK + 150}" width="1690" height="22" fill="#e9e2d2" opacity="0.9"/>'   # linha d'água pintada
-    for k in range(12):
-        o += E(230 + k * 130, DECK + 80, 14, 14, "#3a3f4a", 1.0) + f'<circle cx="{230 + k * 130 - 4}" cy="{DECK + 76}" r="4" fill="#9fc0dc"/>'
-    o += f'<text x="980" y="{DECK + 128}" font-family="Fredoka" font-weight="700" font-size="40" fill="#e9e2d2" text-anchor="middle" opacity="0.85">ESTRELA DO SUL · PORTO LIVRE</text>'
-    # convés
-    o += R(110, DECK - 10, 1630, 20, "#6b6f7a", 2, 1.4) + R(1720, 11 * T - 10, 150, 20, "#6b6f7a", 2, 1.4)
-    for x in list(range(110, 20 * T - 20, 48)) + list(range(23 * T + 30, 1720, 48)):   # guarda-corpo (abre no porão)
-        o += f'<path d="M{x},{DECK - 10} v-40" stroke="#e9e2d2" stroke-width="4"/>'
-    return o
-
-
-def c1_ponte():
-    """Ponte de comando (BASE FIXA): 3 andares com terraços jogáveis nas linhas 10, 7 e 4."""
-    o = ""
-    x0, w = 2 * T + 20, 5 * T + 30
-    for k, (y, h) in enumerate([(10 * T, 3 * T), (7 * T, 3 * T), (4 * T, 3 * T)]):
-        ww = w - k * 30
-        xx = x0 + k * 15
-        o += R(xx, y, ww, h, "#eef0f4", 4, 2.0, dark="#c9ccd6")
-        o += R(xx - 16, y - 12, ww + 32, 18, "#cfd3da", 3, 1.2)
-        for j in range(4 - k):
-            o += R(xx + 30 + j * 86, y + 46, 60, 40, "#5a6f8f", 4, 1.0) + f'<rect x="{xx + 34 + j * 86}" y="{y + 50}" width="20" height="10" fill="#9fc0dc"/>'
-    o += R(x0 + 140, 2 * T, 14, 2 * T, "#8a8f9a", 2, 1.0) + R(x0 + 100, 2 * T + 10, 94, 10, "#8a8f9a", 2, 1.0)
-    o += E(x0 + 147, 2 * T - 6, 18, 8, "#cfd3da", 1.0) + f'<circle cx="{x0 + 147}" cy="{2 * T - 18}" r="6" fill="#ff6b6b"/>'
-    o += sign(x0 + 40, 10 * T + 8, "BOTA-ABAIXO · DESMONTE", 270)
-    # bote salva-vidas pendurado (mecanismo: plataforma que balança; o cabo quebra)
-    o += f'<path d="M{x0 + w + 20},{7 * T} v70 M{x0 + w + 130},{7 * T} v70" stroke="{INK}" stroke-width="3"/>'
-    o += PL([(x0 + w + 4, 8 * T + 6), (x0 + w + 150, 8 * T + 6), (x0 + w + 130, 8 * T + 50), (x0 + w + 24, 8 * T + 50)], "#f08a3d", 1.4)
-    o += R(x0 + w - 4, 7 * T - 10, 160, 12, "#8a8f9a", 2, 1.0)
-    return o
-
-
-def c1_carga():
-    """Contêineres empilhados sobre as tampas dos porões (QUEBRA). Contêiner = 3×1 tiles."""
-    o = ""
-    pilhas = [(8, 3, 0), (11, 2, 1), (17, 3, 0), (24, 3, 1)]
-    for k, (col, n, dano) in enumerate(pilhas):
-        x = col * T
-        o += R(x - 10, DECK - 22, 3 * T + 20, 18, "#7a7f8a", 2, 1.2)   # tampa do porão
-        o += zebra(x - 10, DECK - 26, 3 * T + 20, 6)
+    # carga no convés lá atrás (silhuetas)
+    rnd = random.Random(14)
+    x = 420
+    while x < W:
+        n = rnd.randint(2, 4)
         for j in range(n):
-            o += conteiner(x, DECK - 22 - (j + 1) * T, 3 * T, T, CONT[(k * 3 + j) % len(CONT)], dano if j == n - 1 else 0, porta=j % 2 == 0)
-    # PORÃO ABERTO (a tampa já caiu): vão no meio do convés — cair aqui = KO
-    o += f'<rect x="{20 * T}" y="{DECK - 10}" width="{3 * T}" height="{H - DECK + 10}" fill="#14141c"/>'
-    o += f'<rect x="{20 * T}" y="{DECK - 10}" width="{3 * T}" height="60" fill="url(#c1poro)"/>'
-    o += zebra(20 * T - 14, DECK - 26, 14, 16) + zebra(23 * T, DECK - 26, 14, 16)
-    o += f'<g transform="rotate(64 {20 * T} {DECK})">' + R(20 * T, DECK - 8, 3 * T, 16, "#7a7f8a", 2, 1.0) + "</g>"
-    for k in range(5):
-        o += f'<circle cx="{20 * T + 30 + k * 34}" cy="{DECK + 60 + k * 30}" r="{4 + k}" fill="#3a3a48"/>'
-    # tampa RACHADA do outro porão
-    o += R(14 * T - 10, DECK - 22, 3 * T + 20, 18, "#7a7f8a", 2, 1.2)
-    o += f'<path d="M{14 * T + 40},{DECK - 22} l14,10 l-10,8 M{15 * T + 60},{DECK - 20} l-12,14" stroke="{INK}" stroke-width="4" fill="none"/>'
+            o += R(x, 290 - (j + 1) * 42, 150, 42, shade(CONT[rnd.randint(0, len(CONT) - 1)], -0.15), 2, 1.2)
+        x += 156
+    # ponte de comando lá atrás (esquerda)
+    o += R(60, 40, 300, 250, "#d9dce4", 4, 1.6, dark="#b9bcc6")
+    for r in range(3):
+        for c in range(3):
+            o += R(90 + c * 92, 62 + r * 74, 60, 36, "#6a7a96", 3, 1.0)
+    o += R(190, 0, 12, 40, "#8a8f9a", 2, 1.0)
+    # costado
+    o += R(-40, 290, W + 80, MAR1 - 290 + 30, "#a5523d", 0, 2.4, dark="#7e3a2b")
+    o += R(-40, 282, W + 80, 16, "#7a7f8a", 0, 1.2)
+    for k in range(9):   # chapas do casco e ferrugem escorrendo
+        o += f'<path d="M{-40 + k * 240},{300} V{MAR1}" stroke="#8e4533" stroke-width="3" opacity="0.7"/>'
+    for k in range(3):
+        o += f'<path d="M-40,{420 + k * 150} H{W + 40}" stroke="#8e4533" stroke-width="3" opacity="0.6"/>'
+    rnd2 = random.Random(31)
+    for k in range(18):
+        x = rnd2.uniform(0, W)
+        y = rnd2.uniform(320, 700)
+        o += f'<path d="M{x},{y} q4,40 -2,{rnd2.uniform(50, 120)}" stroke="#7a3424" stroke-width="{rnd2.uniform(3, 7):.1f}" fill="none" opacity="0.55"/>'
+    for k in range(15):
+        o += E(70 + k * 130, 360, 14, 14, "#4a3f44", 1.0)
+    o += E(1700, 400, 46, 30, "#5a3a32", 1.2) + f'<path d="M1700,430 v120 M1670,520 h60 M1675,550 q25,25 50,0" stroke="#5a5f6a" stroke-width="9" fill="none"/>'   # escovém + âncora
+    o += f'<rect x="-40" y="{MAR1 - 70}" width="{W + 80}" height="22" fill="#e9e2d2" opacity="0.7"/>'
+    o += f'<text x="{W / 2}" y="600" font-family="Fredoka" font-weight="700" font-size="64" fill="#e9e2d2" text-anchor="middle" opacity="0.55">ESTRELA DO SUL</text>'
+    # turcos (braços) do bote presos no costado
+    o += f'<path d="M150,290 q0,-40 90,-60 M330,290 q0,-40 -60,-60" stroke="#8a8f9a" stroke-width="10" fill="none"/>'
+    # névoa: empurra o navio para trás
+    o += f'<rect x="0" y="0" width="{W}" height="{MAR1}" fill="#f2b892" opacity="0.28"/>'
     return o
 
 
-def c1_guindaste():
-    """Guindaste do navio entre as pilhas (QUEBRA) + gancho com contêiner balançando (mecanismo)."""
-    x = 15 * T + 20
-    o = R(x - 30, DECK - 60, 84, 40, "#d9a53a", 4, 1.4)
-    o += R(x, 4 * T, 24, DECK - 60 - 4 * T, "#e0a83a", 3, 1.6, dark="#b07a1e")
-    for k in range(9):
-        y = 4 * T + 20 + k * 52
-        o += f'<path d="M{x},{y} l24,30 M{x + 24},{y} l-24,30" stroke="#b07a1e" stroke-width="3"/>'
-    o += f'<g transform="rotate(-18 {x + 12} {4 * T})">' + R(x + 12, 4 * T - 10, 420, 20, "#e0a83a", 3, 1.4) + "</g>"
-    hx, hy = x + 400, 4 * T - 140
-    o += f'<path d="M{hx},{hy + 6} L{hx + 30},{6 * T + 20}" stroke="{INK}" stroke-width="4"/>'
-    o += f'<g transform="rotate(8 {hx + 30} {6 * T + 40})">' + conteiner(hx - 60, 6 * T + 26, 3 * T, T - 8, CONT[4]) + "</g>"
-    o += f'<path d="M{hx - 70},{6 * T + 60} q-18,0 -26,12 M{hx + 140},{6 * T + 40} q18,0 26,12" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.8"/>'
+def andaime(x, y_top, y_bot):
+    """Torre de andaime laranja (FIXA): dois montantes + travessas."""
+    o = ""
+    for dx in (0, 52):
+        o += R(x + dx, y_top, 12, y_bot - y_top, "#f08a3d", 2, 1.2, dark="#c06a2a")
+    yy = y_top
+    while yy < y_bot - 40:
+        o += f'<path d="M{x + 6},{yy} L{x + 58},{yy + 64} M{x + 58},{yy} L{x + 6},{yy + 64}" stroke="#c06a2a" stroke-width="4"/>'
+        o += R(x, yy, 64, 8, "#f08a3d", 2, 0.8)
+        yy += 64
     return o
 
 
-def c1_proa():
-    o = R(27 * T, 11 * T - 40, 2 * T, 40, "#cfd3da", 3, 1.2)
-    o += E(27 * T + 50, 11 * T - 60, 30, 22, "#5a5f6a", 1.2) + f'<path d="M{27 * T + 50},{11 * T - 60} h50" stroke="#8a8f9a" stroke-width="10"/>'
-    o += R(28 * T + 30, 6 * T, 12, 5 * T - 40, "#8a8f9a", 2, 1.0) + f'<circle cx="{28 * T + 36}" cy="{6 * T - 8}" r="10" fill="#fff4c8"/>'
-    # onda batendo por cima da proa
-    o += S(f"M{W},{11 * T + 20} C{W - 120},{11 * T - 160} {W - 300},{11 * T - 120} {W - 260},{11 * T - 20} C{W - 230},{11 * T + 30} {W - 120},{11 * T + 40} {W},{11 * T + 60} Z",
-           "#d6eef8", (W - 310, 11 * T - 170, W, 11 * T + 60), k=1.6, dark="#9fcfe6")
-    rnd = random.Random(4)
-    for k in range(14):
-        o += f'<circle cx="{W - rnd.uniform(60, 360)}" cy="{11 * T - rnd.uniform(0, 200)}" r="{rnd.uniform(4, 12)}" fill="#ffffff" opacity="0.8"/>'
-    o += f'<path d="M{W - 300},{DECK - 30} h-140 M{W - 300},{DECK - 50} h-90" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.85"/>'
+def tabua(x, y, w):
+    """Tábua de andaime (QUEBRA)."""
+    o = R(x, y, w, 18, "#c98a4b", 2, 1.4, dark="#9a6a3a")
+    for k in range(int(w / 64)):
+        o += f'<path d="M{x + 32 + k * 64},{y + 3} v12" stroke="#9a6a3a" stroke-width="3"/>'
+    return o
+
+
+def balsa(x, w):
+    """Balsa da equipe (FIXA) boiando: convés de aço no nível 13, flutuadores na água."""
+    o = R(x, 13 * T, w, 26, "#4a5468", 3, 1.6, dark="#353d4e") + zebra(x, 13 * T - 8, w, 8)
+    o += R(x + 20, 13 * T + 26, w - 40, MAR1 - 13 * T, "#353d4e", 3, 1.4)
+    for k in range(int(w / 90)):
+        o += E(x + 50 + k * 90, MAR1 + 6, 30, 14, "#f2c84b", 1.0)
+    return o
+
+
+def c1_palco():
+    o = ""
+    # --- FIXO: balsas nas pontas, pilar de atracação no meio, torres de andaime, torre da grua
+    o += balsa(70, 6 * T) + balsa(22 * T, 7 * T)
+    o += R(14 * T, 11 * T + 20, 2 * T, MAR1 - 11 * T, "#9a9488", 4, 2.0, dark="#7a7468")       # pilar de concreto
+    o += R(13 * T - 10, 11 * T, 4 * T + 20, 28, "#b9b2a4", 3, 1.6) + zebra(13 * T - 10, 11 * T - 8, 4 * T + 20, 8)
+    for k in range(3):
+        o += E(13 * T + 20 + k * 100, 11 * T + 40, 16, 10, "#3a3a44", 0.8)   # pneus de atracação
+    o += andaime(7 * T, 4 * T, 13 * T) + andaime(21 * T, 4 * T, 13 * T)
+    o += R(28 * T, 1 * T, 26, 12 * T, "#e0a83a", 3, 1.6, dark="#b07a1e")                          # torre da grua da balsa
+    for k in range(11):
+        y = T + 20 + k * 64
+        o += f'<path d="M{28 * T},{y} l26,40 M{28 * T + 26},{y} l-26,40" stroke="#b07a1e" stroke-width="3"/>'
+    o += R(9 * T, 1 * T - 14, 20 * T, 20, "#e0a83a", 3, 1.4) + R(28 * T - 30, 1 * T - 60, 80, 46, "#cfd3da", 3, 1.2)
+    o += sign(23 * T, 13 * T - 60, "BOTA-ABAIXO", 170)
+    # --- QUEBRA: contêineres separados sobre as balsas e o pilar
+    pil = [(70, 3, 0), (3 * T + 70, 2, 1), (22 * T + 30, 2, 0), (25 * T + 40, 3, 2)]
+    for k, (x, n, dano) in enumerate(pil):
+        for j in range(n):
+            o += conteiner(x + 10, 13 * T - (j + 1) * T, 3 * T - 10, T, CONT[(k * 3 + j) % len(CONT)], dano if j == n - 1 else 0, porta=j % 2 == 0)
+    o += conteiner(13 * T + 20, 11 * T - T, 3 * T, T, CONT[5], 1)
+    # tábuas entre as torres e os contêineres (nível 9) e no alto (nível 6)
+    o += tabua(7 * T + 64, 9 * T, 5 * T) + tabua(16 * T + 30, 9 * T, 5 * T - 30)
+    o += tabua(3 * T, 6 * T, 4 * T + 64) + tabua(21 * T + 64, 6 * T, 4 * T)
+    # contêiner no gancho da grua (balança, nível 6)
+    o += f'<path d="M{15 * T},{1 * T + 6} L{15 * T + 20},{5 * T}" stroke="{INK}" stroke-width="4"/>'
+    o += f'<g transform="rotate(5 {15 * T + 20} {6 * T})">' + conteiner(13 * T + 40, 5 * T + 10, 3 * T - 20, T - 8, CONT[4], 0, True) + "</g>"
+    o += f'<path d="M{13 * T + 20},{6 * T + 10} q-18,0 -26,12 M{16 * T + 50},{6 * T} q18,0 26,12" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.9"/>'
+    # viga içada lá no alto (nível 3), pendurada por dois cabos da lança
+    o += f'<path d="M{20 * T},{1 * T + 6} L{20 * T + 10},{3 * T} M{25 * T},{1 * T + 6} L{24 * T + 50},{3 * T}" stroke="{INK}" stroke-width="3"/>'
+    o += R(19 * T + 40, 3 * T, 5 * T + 40, 22, "#7a808c", 2, 1.4, dark="#5a606c")
+    # bote salva-vidas pendurado nos turcos do navio (nível 5)
+    o += f'<path d="M240,230 v26 M270,230 v26" stroke="{INK}" stroke-width="3"/>'
+    o += PL([(140, 4 * T), (340, 4 * T), (316, 4 * T + 50), (164, 4 * T + 50)], "#f08a3d", 1.4)
+    o += R(150, 4 * T - 8, 180, 10, "#d9dce4", 2, 0.8)
     return o
 
 
 def c1_atores():
-    o = robot("marretao", "pesado_prep", el.COLORS[0], 9 * T + 40, DECK - 22 - 3 * T)
-    o += robot("picareta", "rapido", el.COLORS[1], 12 * T + 70, DECK - 22 - 2 * T, flip=True)
-    o += robot("chave", "esquiva", el.COLORS[2], 18 * T + 60, DECK - 22 - 4 * T)
-    o += robot("britadeira", "esquiva", el.COLORS[3], 21 * T + 30, DECK - 3 * T, flip=True)   # pulando o porão aberto
-    o += f'<path d="M{21 * T + 90},{DECK - 3 * T - 20} q-30,30 -70,40" stroke="#ffffff" stroke-width="4" fill="none" stroke-dasharray="8 8" opacity="0.8"/>'
-    o += f'<path d="M{18 * T},{DECK - 22 - 4 * T - 30} h-50 M{18 * T + 6},{DECK - 22 - 4 * T - 16} h-40" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>'
+    o = robot("marretao", "pesado_prep", el.COLORS[0], 2 * T + 40, 13 * T - 3 * T)
+    o += robot("picareta", "rapido", el.COLORS[1], 10 * T + 20, 9 * T, flip=True)
+    o += robot("chave", "esquiva", el.COLORS[2], 15 * T + 10, 5 * T - 10)
+    o += robot("britadeira", "pesado_golpe", el.COLORS[3], 23 * T + 40, 13 * T - 2 * T, flip=True)
+    o += f'<path d="M{15 * T - 60},{5 * T - 40} h-50 M{15 * T - 54},{5 * T - 26} h-40" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>'
     return o
 
 
 def c1_frente():
-    o = ondas_frente(H - 70, "#2f6f9f", "#9fd0ec", 16, 2)
+    o = ondas_frente(MAR1, "#2f6f9f", "#9fd0ec", 16, 2)
+    # borrifo de onda subindo no meio (mecanismo: a onda molha e empurra quem está baixo)
+    o += S(f"M{11 * T},{MAR1 + 10} C{11 * T + 20},{12 * T} {12 * T + 60},{11 * T + 40} {12 * T + 40},{MAR1}", "#d6eef8", (11 * T, 11 * T + 30, 13 * T, MAR1 + 10), k=1.4)
     rnd = random.Random(9)
     for _ in range(30):
         x = rnd.uniform(1400, W)
         o += f'<path d="M{x},{rnd.uniform(0, H)} l-14,40" stroke="#e6e2f6" stroke-width="2.5" opacity="0.5"/>'
-    o += tag(9 * T + 96, DECK - 22 - 3 * T - 130, "CONTÊINERES")
-    o += tag(14 * T + 96, DECK + 20, "TAMPA DO PORÃO") + tag(21 * T + 32, DECK + 120, "PORÃO ABERTO = KO")
-    o += tag(56, DECK + 190, "MAR = KO") + tag(W - 60, DECK + 190, "MAR = KO")
-    o += tag(21 * T + 40, 3 * T + 30, "GANCHO")
-    o += tag(W - 200, 11 * T - 200, "ONDA")
-    o += tag(7 * T + 80, 8 * T - 40, "BOTE")
-    o += tag(3 * T + 70, 3 * T + 30, "PONTE (FIXA)")
+    o += tag(3 * T, 13 * T + 50, "BALSA (FIXA)") + tag(26 * T, 13 * T + 50, "BALSA (FIXA)") + tag(15 * T, 12 * T + 40, "PILAR (FIXO)")
+    o += tag(7 * T + 32, 3 * T + 40, "ANDAIME (FIXO)") + tag(4 * T + 40, 9 * T - 30, "CONTÊINERES") + tag(10 * T + 40, 9 * T + 50, "TÁBUAS")
+    o += tag(15 * T + 10, 7 * T + 30, "CONTÊINER NO GANCHO") + tag(22 * T + 20, 2 * T + 30, "VIGA IÇADA") + tag(240, 5 * T + 20, "BOTE")
+    o += tag(9 * T, MAR1 + 70, "MAR = KO") + tag(21 * T, MAR1 + 70, "MAR = KO") + tag(W / 2, 7 * T - 20 - 2 * T, "") if False else ""
+    o += tag(9 * T, MAR1 + 70, "MAR = KO") + tag(21 * T, MAR1 + 70, "MAR = KO") + tag(40, 12 * T, "KO") + tag(W - 34, 12 * T, "KO") + tag(1150, 250, "NAVIO = FUNDO (não se pisa)")
     return o
 
 
 def cena1():
     defs = fonte() + rough(seed=31, scale=0.8, freq=0.05) + grad("c1ceu", [(0, "#f7b27a"), (0.45, "#e8988a"), (1, "#6f6aa0")]) + grad("c1poro", [(0, "#3a3a48"), (1, "#14141c")])
-    body = c1_ceu() + c1_longe() + c1_navio() + c1_ponte() + c1_guindaste() + c1_carga() + c1_proa() + c1_atores() + c1_frente()
+    body = c1_ceu() + c1_longe() + c1_navio_fundo() + c1_palco() + c1_atores() + c1_frente()
     return doc(W, H, f'<g filter="url(#rough)">{body}</g>', defs)
 
 
