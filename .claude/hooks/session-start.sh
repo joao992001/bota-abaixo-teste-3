@@ -7,6 +7,7 @@ br="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
 timeout 20 git fetch -q origin "$br" 2>/dev/null || true
 atras="$(git rev-list --count "HEAD..origin/$br" 2>/dev/null || echo 0)"
 echo "=== PASSAGEM DE BASTÃO (docs/BASTAO.md) — leia antes de qualquer coisa ==="
+echo "Claude novo neste projeto? Siga docs/COMO_TRABALHAR.md §9 (assumir) e use o kit do §8 (arte, pranchas, vídeo, testes)."
 echo "Branch: $br"
 if [ "${atras:-0}" != "0" ]; then
   echo "ATENÇÃO: este contêiner está $atras commit(s) ATRÁS do GitHub (outro chat enviou trabalho)."

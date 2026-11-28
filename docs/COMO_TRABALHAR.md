@@ -32,7 +32,7 @@ por isso a passagem de bastão (§6) é obrigatória.
 - **Arte nova copiada para `game/assets/` SÓ vale depois de `godot --headless --path game --import`** (sem isso o jogo
   continua com a imagem antiga — já aconteceu no lote 3 e o usuário viu a arma antiga). Confira de PERTO numa captura
   recortada (o robô ocupa ~5% da tela cheia) antes de dizer que está igual à prancha.
-- Commit + push no fim de cada etapa que funciona (`git -c push.negotiate=true push origin main`). O hook de
+- Commit + push no fim de cada etapa que funciona: `git pull -q --rebase origin claude/practical-maxwell-hldv9n && git push -q origin claude/practical-maxwell-hldv9n` (nunca force; conflito = merge). O hook de
   "uncommitted changes": `art/out/.jobs.json` é lixo do gerador → `git checkout -- art/out/.jobs.json`.
 
 ## 4. Entregas que o usuário pede com frequência
@@ -72,3 +72,36 @@ nova). O mecanismo:
 `tools/setup_nuvem.sh` instala Godot 4.7.1 + RTK (checksums conferidos) e importa o projeto. Se a sessão começar sem
 `godot`, rode-o (`bash tools/setup_nuvem.sh` a partir da pasta que contém o repositório) e proponha salvá-lo como
 setup script do ambiente da conta (ferramentas de ambiente do Claude), para as próximas sessões já nascerem prontas.
+
+## 8. Kit de ferramentas (o mesmo que as sessões anteriores usaram) — copie os comandos
+**Economia de contexto (obrigatório):** a saída dos comandos já vem condensada (RTK, `tools/setup_nuvem.sh` instala); procure
+com `grep -n`/Grep e leia só o trecho (`sed -n a,bp`), nunca o arquivo grande inteiro (`mecanismos.gd`, `driver.gd`, `ESTADO.md`).
+Comando longo (teste de Godot, gravação) → em segundo plano + Monitor/notificação; não fique relendo a saída. Imagens: abra
+recortes/folhas (`tools/folha_quadros.py`), não quadros cheios um por um. Subagentes só para lote grande de arte (CLAUDE.md).
+
+| Para quê | Comando / arquivo |
+|---|---|
+| Arte (papel e giz) | Python gera SVG → Chromium rasteriza: `NODE_PATH=$(npm root -g) python3 art/src/<pasta>/<gerador>.py` (usa `svg.queue/render_all`, filtro `papel.rough`, formas `f2_prancha.R/E/S/PL`, robôs `elenco.py`). **Abra o PNG e olhe** antes de mandar. |
+| Prancha para aprovação | gerador próprio em `art/src/…` → `art/out/<fase>/<nome>.png`; antes × depois com a captura real do jogo (modelo: `art/src/cenarios/f2_plataformas.py --prancha`). Envie com `SendUserFile`. |
+| Levar arte ao jogo | gerador de jogo (ex.: `art/src/cenarios/f2_jogo.py`) → `art/out/game/<cena>/` → copiar para `game/assets/<cena>/` → **`godot --headless --path game --import`**. |
+| Teste da parte mexida | `godot --headless --path game --fixed-fps 60 -- --autotest --so=a,b` (≈1–3 min; `--so=` lista em `game/tests/driver.gd`). |
+| Captura/vitrine | `xvfb-run -a -s "-screen 0 1920x1080x24" godot --path game --fixed-fps 60 -- --cargueiro=DIR` (fase 2), `--menus=DIR`, `--fase=DIR`. |
+| Vídeo de um perigo | `... -- --cargueiro-video=DIR --video-cena=1 --video-so=<tipo> --video-passo=1 [--video-uma]` → `ffmpeg -framerate 60 -i DIR/%04d.png -vf scale=1280:-2 -c:v libx264 -crf 22 -pix_fmt yuv420p out/videos/x.mp4` (lento: `-framerate 15`; `git add -f` para versionar). |
+| Revisar animação | `python3 tools/folha_quadros.py DIR folha.png X0 Y0 LARG ALT 100,120,…` → abrir a folha; checklist `docs/manuais/animacao.md`. |
+| Higiene antes do commit | `git checkout -- art/src/__pycache__ art/src/robos/__pycache__ art/out/.jobs.json`; restaure SVGs regenerados sem relação (`art/src/cenarios/svg/f2_jogo/`). |
+
+**Processos aprovados pelo usuário (seguir sem perguntar):**
+- Visual: prancha → aprovação → código → captura no jogo → vídeo (§2). Animação: `docs/manuais/animacao.md` (5 batidas,
+  procedural, revisão em câmera lenta). **Plataformas e cenário: `docs/manuais/derruba/mapa.md` §5 "vocabulário do tema +
+  sustentação"** (A57: toda peça é do tema e tem apoio visível; fases RECHEADAS de plataformas).
+- `data/modos.json` e manifestos `data/mapas/...json`: edição pontual (trecho exato), nunca reescrever o arquivo.
+
+## 9. Primeira vez neste repositório (Claude novo assumindo o projeto) — passo a passo
+1. `git pull --rebase origin claude/practical-maxwell-hldv9n` (branch de trabalho; **nunca** envie para o teste-2).
+2. Sem `godot`? `bash tools/setup_nuvem.sh` a partir da pasta acima do repositório (Godot 4.7.1 + RTK + `--import`).
+   Confira: `godot --version` (4.7.1) e `node -e "require('playwright')"` com `NODE_PATH=$(npm root -g)`.
+3. Leia **só** isto, nesta ordem: `CLAUDE.md` → este arquivo (§1–§9) → `docs/BASTAO.md` → "▶ Retomar aqui" do `docs/ESTADO.md`.
+   O resto (manuais, skills, dossiês) você abre quando a tarefa pedir — o índice é `docs/manuais/README.md`.
+4. Assuma o bloco de EM ANDAMENTO (troque Quem/Desde, commit+push "bastão: assume …") e siga o **Próximo passo exato**.
+5. Skills (`.claude/skills/*`) carregam pelo nome da tarefa (tabela "Roteamento" do `CLAUDE.md`); agentes em `.claude/agents/`.
+6. A cada passo: `[x]` + commit no bloco, novo Próximo passo exato, commit+push. Responda ao usuário em ≤ 15 linhas.

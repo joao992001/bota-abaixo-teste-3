@@ -17,6 +17,7 @@ Antes de criar qualquer coisa, leia [`sistema_criacao.md`](sistema_criacao.md) (
 | **Som** | [`audio.md`](audio.md) | packs aprovados em `audio/pack_*` | `--so=som` |
 | **Desempenho** (queda de FPS, ou TODO elemento novo antes de entregar) | [`desempenho.md`](desempenho.md) — protocolo corretivo + preventivo | orçamento `data/desempenho.json` | `--so=desempenho` + `--perf-derruba=DIR` |
 | **Animação** de perigo/mecanismo/efeito (TODO elemento que se mexe) | [`animacao.md`](animacao.md) — 5 batidas, técnica procedural, revisão em vídeo lento | `game/modes/mec_onda.gd` (exemplo) | `--cargueiro-video=DIR --video-so=<tipo> --video-passo=1` |
+| **Plataformas e cenário** de uma cena (trocar/adicionar peças do palco) | [`derruba/mapa.md`](derruba/mapa.md) §5 "vocabulário do tema + sustentação" (A57) | modelo `art/src/cenarios/f2_plataformas.py` | prancha antes × depois + `--so=cargueiro,mapa` |
 | Mexer numa fase **existente** | a biblioteca do mapa (`docs/fases/<modo>/<mapa>/README.md`) + o manual do tipo de elemento | manifesto do mapa | regressão da fase |
 
 ## 2. Mapa dos documentos

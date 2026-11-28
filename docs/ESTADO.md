@@ -4,7 +4,12 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-28 (sessão 7, cont. 5)
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-28 (sessão 7, cont. 6)
+**Claude novo? `docs/COMO_TRABALHAR.md` §9 (passo a passo de quem assume) + §8 (kit de ferramentas). Prompt para colar: `docs/PROMPT_UNIVERSAL.md`.**
+**▶ FASE 2 · CENA 1 (2026-11-28):** M3 onda refeita como animação procedural e APROVADA (`mec_onda.gd`, manual `docs/manuais/animacao.md`);
+plataformas no tema do mar APROVADAS — **A57: peças do tema + apoio visível, fases recheadas de plataformas** (prancha
+`art/out/fase2/plataformas_cena1_novas.png`, fonte `art/src/cenarios/f2_plataformas.py`). Falta levar ao jogo e refazer M1/M2:
+passos exatos no bloco da Fase 2 do `docs/BASTAO.md`.
 **Comece por `docs/COMO_TRABALHAR.md` e pelo quadro `docs/BASTAO.md` (tarefas em andamento de cada chat, arquivos
 reservados e o próximo passo exato — o gancho de início de sessão já mostra).** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
 bateria completa 623 ok, 0 falhas no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).

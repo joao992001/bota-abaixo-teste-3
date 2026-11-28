@@ -32,46 +32,43 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-### Fase 2 · lapidar ARTE e ANIMAÇÃO dos perigos (antes das transições)
-- Quem: sessão 018QUPBQj4sLX3w64QQJCiVt · Desde: 2026-11-28 · Última atualização: 2026-11-28
-- Pedido do usuário: "lapidar as artes e as animações de cada etapa… a onda tá muito feia, o tubarão não tá bonito, os
-  andaimes, os contêineres caindo não tão legal… um trabalho mais minucioso e detalhado das animações e das artes dos perigos,
-  para que a gente avance para as animações de transição de cena".
-- Arquivos reservados: `game/modes/mecanismos.gd` (desenhos `_draw_*`), `art/src/cenarios/f2_jogo.py` (SPRITES), `art/src/cenarios/f2_lapida*.py` (novo),
-  `game/assets/cargueiro/` (sprites novos dos perigos)
-- Método (igual ao outro chat): por cena, PRANCHA com quadro a quadro da animação → aprovação → arte+código → captura no jogo (após `--import`).
+### Fase 2 · cena 1 (Alto-Mar): plataformas no tema (A57) no jogo + animação dos perigos no padrão novo
+- Quem: (livre — última: sessão 018QUPBQj4sLX3w64QQJCiVt, parou por limite de uso) · Desde: 2026-11-28 · Última atualização: 2026-11-28
+- Pedido do usuário: "lapidar as artes e as animações… a onda tá feia, os contêineres caindo não tão legal" + "o contexto
+  visual das plataformas não se encaixa no tema" + "agora vamos colocar mais plataformas" → **"extremamente aprovado, é esse o
+  caminho"** (A57: peças do tema + apoio visível; fases recheadas de plataformas).
+- Arquivos reservados: `art/src/cenarios/f2_plataformas.py`, `art/src/cenarios/f2_jogo.py`, `game/assets/cargueiro/`,
+  `game/modes/mec_onda.gd`, `game/modes/mecanismos.gd` (M1/M2), cena 1 do manifesto `data/mapas/derruba/cargueiro_perdido.json`
+- Feito (commits na branch): manual `docs/manuais/animacao.md`; **M3 onda procedural APROVADA** ("aceitável; dá para melhorar
+  depois") `game/modes/mec_onda.gd` + vídeos `out/videos/cargueiro_onda_v2(_lento).mp4`; prancha das plataformas APROVADA
+  `art/out/fase2/plataformas_cena1_novas.png` (fonte `f2_plataformas.py`); contêiner de cima da boia REMOVIDO do manifesto.
 - Passos:
-  - [x] 1. Cena 1: prancha `art/out/fase2/lapida_cena1.png` (fonte `f2_lapida1.py`: onda 5 quadros, contêiner 4, gancho 3, tábua) — ENVIADA, aguardando aprovação
-  - [x] 2. Cena 1 no jogo: sprites `onda_0..4`, `cai_0..3`, `alvo_zebra`, `moitao`, tábuas `tabua_boa` (via `f2_jogo.py` ← `f2_lapida1.py`); `_draw_onda/_draw_conteiner/_draw_gancho` trocados; `--so=m1,m2,m3` ok; captura `art/out/fase2/uso/cena1.png`
-  - [x] 2b. Vídeo da cena 1 no jogo: `out/videos/cargueiro_cena1_perigos.mp4` (gravado com `--cargueiro-video=DIR --video-cena=1|2|3`, quadros PNG → ffmpeg 30 fps)
-  - [ ] 2c. **REFAZER a cena 1 no padrão novo** (usuário reprovou o vídeo: "onda desconecta do mar, sem impacto no personagem,
-    contêiner/queda ruins, plataformas já não agradam"). Manual novo `docs/manuais/animacao.md` (5 batidas + revisão em vídeo lento).
-    - [x] M3 onda procedural `game/modes/mec_onda.gd` (sai do mar, encurva, bate, lâmina varre, escoa; robô arremessado) → `out/videos/cargueiro_onda_v2(_lento).mp4` ENVIADO, aguardando opinião
-    - [ ] M1 contêiner (sai do navio/gancho, cai acelerando, achata, quica, poeira/lascas, robô esmagado/arremessado)
-    - [ ] M2 gancho (pêndulo com cabo, antecipação puxando, pancada com hitstop)
-    - [x] plataformas: usuário respondeu "composição boa, mas o contexto visual não se encaixa no tema" → prancha
-      `art/out/fase2/plataformas_cena1.png` (fonte `art/src/cenarios/f2_plataformas.py`, `--prancha`): andaime→mastro de carga,
-      tábua→passarela de aço, pilar→boia-torre, viga→bote salva-vidas. v1 "melhorou muito mas a composição não faz sentido" → v2: postes cravados no mar, balsas amarradas, passarelas estaiadas, sem escoras na boia; usuário: "tira esse contêiner" da boia → removido do manifesto (cena 1: 11 peças) e da prancha — ENVIADA, aguardando aprovação
-    - [x] "agora vamos colocar mais plataformas" → `art/out/fase2/plataformas_cena1_novas.png`: +4 (degraus do nível 9 nos
-      dois postes com console, patamar na torre da grua, bote 1 nos turcos do navio); viga da grua vira CARGA IÇADA (gancho + 2 lingas).
-      No manifesto vai virar: andaimes += [5,9,2], [22,9,2], [26,3,2]; vigas += [2,3,4] — ENVIADA, aguardando aprovação
-    - [ ] aprovada → levar ao jogo: `f2_jogo.py` (e1_palco ← `f2_plataformas.e1_palco_mar`, _pecas_e1 ← `pecas_mar`), regenerar,
-      copiar para `game/assets/cargueiro/`, `--import`, captura; depois ver se Destroços/Atlântida têm o mesmo problema
-  - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
-  - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
-- **Próximo passo exato:** passo 2c — M1 contêiner no padrão novo (`game/modes/mec_conteiner.gd`): sai da PILHA do navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata+quica, poeira/lascas, robô esmagado/arremessado; vídeo `--video-so=conteiner_cai --video-passo=1`. Depois M2. (Antigo: passo 3 — prancha da cena 2a (`art/src/cenarios/f2_lapida2.py` → `art/out/fase2/lapida_cena2a.png`):
-  M4 maré (subida com espuma na linha, setas), M5 boia (rangendo/virando, respingo), M6 rede (rasgando, caixas caindo), M10 tubarão
-  (redesenho completo: corpo, barbatana na água, salto, mordida, tonto). Mesmo método: quadros desenhados em funções reaproveitáveis.
-- Decisões pendentes do usuário: aprovar cada prancha.
+  - [ ] 1. **Plataformas aprovadas → jogo.** (a) `f2_jogo.py`: `e1_palco()` passa a devolver `f2_plataformas.e1_palco_mar()` e
+    `_pecas_e1()` passa a devolver `f2_plataformas.pecas_mar()` (import `f2_plataformas as fpl`); (b) manifesto, cena `alto_mar`,
+    `estruturas` (edição pontual): `andaimes` += `[5, 9, 2]`, `[22, 9, 2]`, `[26, 3, 2]` (viram p1_andaime_4/5/6) e `vigas` +=
+    `[2, 3, 4]` (p1_viga_1, o bote nos turcos) — confira em `canteiro.gd` (`_add` de andaime/viga) se o retângulo bate com o desenho
+    (passarela: x−6, y−4, larg+12, 28 px; bote: topo em 3T); (c) `NODE_PATH=$(npm root -g) python3 art/src/cenarios/f2_jogo.py` →
+    copiar `art/out/game/cargueiro/*` para `game/assets/cargueiro/` → `godot --headless --path game --import`; (d) teste
+    `--so=cargueiro,mapa,m1,m2,m3` (no `driver.gd` a contagem do Alto-Mar sobe de 11 para 15 peças); (e) captura
+    `--cargueiro=DIR` e conferir de perto que cada peça está onde a prancha mostra; bots alcançam (`--so=bots`).
+  - [ ] 2. M1 contêiner no padrão `animacao.md` (`game/modes/mec_conteiner.gd`, como `mec_onda.gd`): sai da PILHA de carga do
+    navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata e quica, poeira/lascas, robô
+    esmagado/arremessado (hitstop + `vis.hurt`); vídeo `--video-so=conteiner_cai --video-passo=1` + folha de quadros → usuário.
+  - [ ] 3. M2 gancho no mesmo padrão (pêndulo com cabo que verga, antecipação puxando, pancada com hitstop) → vídeo → usuário.
+  - [ ] 4. Aplicar A57 nas cenas Destroços e Atlântida (prancha antes × depois, mais plataformas) → aprovação → jogo.
+  - [ ] 5. Depois: perigos da cena 2 (M4 maré, M5 boia, M6 rede, M10 tubarão) e 3 (M7, M8, M9, M11) no padrão de animação.
+- **Próximo passo exato:** passo 1 (a)–(e) acima.
+- Decisões pendentes do usuário: nenhuma (próxima: aprovar o vídeo do M1).
 
 ## AGUARDANDO USUÁRIO
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
-- (em andamento acima) **Lapidar o visual dos perigos M1–M11 no jogo** (usuário 2026-11-28, vendo `art/out/fase2/uso/*.png`: "os perigos existem, mas pelas fotos faltam muitos ajustes visuais, estão bem ruins — pode continuar o fluxo, depois a gente lapida"). Fazer depois de M8/M9: prancha de cada perigo no tema (como a do tubarão) → arte no jogo.
+- (em andamento acima, passos 2–5) **Lapidar o visual dos perigos M1–M11 no jogo** (usuário 2026-11-28, vendo `art/out/fase2/uso/*.png`: "os perigos existem, mas pelas fotos faltam muitos ajustes visuais, estão bem ruins — pode continuar o fluxo, depois a gente lapida"). Fazer depois de M8/M9: prancha de cada perigo no tema (como a do tubarão) → arte no jogo.
 - **Fase 2 · bloco D (contêineres + ARTE DO PALCO no tema: o usuário pediu trocar caixotes/andaimes do canteiro pelos do mar)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
 ## CONCLUÍDO (últimos; detalhes no "Retomar aqui" do ESTADO)
+- 2026-11-28 · M3 onda procedural aprovada; manual de animação; plataformas da cena 1 no tema aprovadas (A57, prancha); kit de passagem de bastão (`COMO_TRABALHAR.md` §8–§9, `PROMPT_UNIVERSAL.md`, `tools/folha_quadros.py`) — sessão 018QUPBQ…
 - 2026-11-28 · Fase 2 bloco C: água + perigos M1–M11 no jogo (`--so=agua,m1..m11` verdes; capturas `art/out/fase2/uso/`); visual a lapidar (FILA) — sessões 017desNJ… e 018QUPBQ…
 - 2026-11-28 · Fase 2 bloco B: cena viva do Cargueiro (`cena_cargueiro.gd`, `f2_jogo.py`); usuário aprovou a composição — sessão 017desNJ…
 - 2026-11-28 · Correções urgentes do Canteiro (A56 regra dos 90 s, caixas no subterrâneo, FPS da G03, controle principal); bateria 623 ok, .exe — sessão 017desNJ…
