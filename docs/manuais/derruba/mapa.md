@@ -100,6 +100,10 @@ Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regr
 - [ ] Em toda etapa, **cair do piso em qualquer ponto = KO, rápido**. Palco sobre o vazio, vãos abertos e visíveis. Nada de
       bordas pretas que matam, paredes até o teto ou poço com parede (o robô se agarrava na fresta).
 - [ ] Saída para KO em **pelo menos 2 lados** em cada etapa (`--so=bots` termina as rodadas).
+- [ ] **Coerência física, peça por peça** (reprovado em 2026-11-28 no Cargueiro): peça pendurada = cabo até um gancho e duas lingas
+      até as QUINAS (ou dois cabos verticais nas PONTAS); peça apoiada = as duas pontas tocam algo (torre, coluna, escora, rocha) — senão
+      ponha escora/mão-francesa; objeto solto (pneu, caixa, bicho, robô) fica EM CIMA de uma superfície; nada girado "por estilo" com
+      o cabo errado. Meça no grid antes de desenhar.
 - [ ] **Palco = plataformas.** A estrutura grande do tema (prédio, navio, templo) é MOLDURA de fundo e não se pisa; a luta é numa
       estrutura aberta: pouca parte fixa (balsas, pilares, torres) e o resto plataforma destrutível (contêineres, tábuas, vigas, peças penduradas).
 - [ ] Renascimento só em **chão firme**; nada de pilar em cima de peça que quebra.
@@ -127,6 +131,7 @@ Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regr
 | Erro | Causa | Regra |
 |---|---|---|
 | Mapa feito direto no código, sem pensar a cena | não havia cartilha nem catálogo | ordem do §1: catálogo → prancha → código |
+| Fase 2 (Cargueiro): cabos que não chegavam nas pontas, tábuas com uma ponta no ar, pneus/caranguejo flutuando, coluna em cima de baú | joguei elementos "no olho", sem medir apoio | regra de coerência física no §5; funções `icado`/`pendurada` em `f2_prancha.py` |
 | Fase 2 (Cargueiro): fotografias v1 com piso de ponta a ponta — ninguém caía (sem KO) | desenhei o palco antes de decidir por onde se cai | ao montar CADA cena, primeiro marque as saídas para KO (≥ 2 lados, visíveis: mar, fenda, porão) e só depois o resto |
 | 3 rodadas de correção depois do playtest | a composição só foi "lida" pelo usuário | checklist do §5 antes de mandar |
 | Evento da biblioteca inútil e travando na fase (drone G09) | evento entrou na lista sem ser provado na fase | bloco E: provar cada evento na fase; senão sai da lista |
