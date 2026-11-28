@@ -104,6 +104,10 @@ Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regr
       até as QUINAS (ou dois cabos verticais nas PONTAS); peça apoiada = as duas pontas tocam algo (torre, coluna, escora, rocha) — senão
       ponha escora/mão-francesa; objeto solto (pneu, caixa, bicho, robô) fica EM CIMA de uma superfície; nada girado "por estilo" com
       o cabo errado. Meça no grid antes de desenhar.
+- [ ] **Vocabulário do tema + sustentação** (reprovado 2× em 2026-11-28 no Cargueiro: andaime/tábua de OBRA no mar; depois postes
+      terminando no ar e escoras em cima da boia): cada estrutura do palco é um objeto do TEMA e tem uma origem de apoio legível —
+      nasce do chão/mar (poste cravado, boia), boia amarrada (balsa), pende de cabo (bote na lança) ou é estaiada (passarela: abraçadeira
+      num poste + estai do topo). Pergunte "o que segura isto?" para cada peça antes de mandar a prancha.
 - [ ] **Palco = plataformas.** A estrutura grande do tema (prédio, navio, templo) é MOLDURA de fundo e não se pisa; a luta é numa
       estrutura aberta: pouca parte fixa (balsas, pilares, torres) e o resto plataforma destrutível (contêineres, tábuas, vigas, peças penduradas).
 - [ ] Renascimento só em **chão firme**; nada de pilar em cima de peça que quebra.
@@ -133,6 +137,7 @@ Para ver: `ROTA=moderada … -- --fase=DIR`. Última cena: sem transição. Regr
 | Mapa feito direto no código, sem pensar a cena | não havia cartilha nem catálogo | ordem do §1: catálogo → prancha → código |
 | Fase 2 (Cargueiro): cabos que não chegavam nas pontas, tábuas com uma ponta no ar, pneus/caranguejo flutuando, coluna em cima de baú | joguei elementos "no olho", sem medir apoio | regra de coerência física no §5; funções `icado`/`pendurada` em `f2_prancha.py` |
 | Fase 2 (Cargueiro): fotografias v1 com piso de ponta a ponta — ninguém caía (sem KO) | desenhei o palco antes de decidir por onde se cai | ao montar CADA cena, primeiro marque as saídas para KO (≥ 2 lados, visíveis: mar, fenda, porão) e só depois o resto |
+| Fase 2 (Cargueiro): plataformas de OBRA (andaime, tábua com braçadeira, pilar com pneus) no alto-mar; na troca, postes acabando no ar | troquei a pele sem repensar o tema nem a sustentação | regra "vocabulário do tema + sustentação" no §5; `art/src/cenarios/f2_plataformas.py` |
 | 3 rodadas de correção depois do playtest | a composição só foi "lida" pelo usuário | checklist do §5 antes de mandar |
 | Evento da biblioteca inútil e travando na fase (drone G09) | evento entrou na lista sem ser provado na fase | bloco E: provar cada evento na fase; senão sai da lista |
 

@@ -51,7 +51,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
     - [ ] M2 gancho (pêndulo com cabo, antecipação puxando, pancada com hitstop)
     - [x] plataformas: usuário respondeu "composição boa, mas o contexto visual não se encaixa no tema" → prancha
       `art/out/fase2/plataformas_cena1.png` (fonte `art/src/cenarios/f2_plataformas.py`, `--prancha`): andaime→mastro de carga,
-      tábua→passarela de aço, pilar→boia-torre, viga→bote salva-vidas — ENVIADA, aguardando aprovação
+      tábua→passarela de aço, pilar→boia-torre, viga→bote salva-vidas. v1 "melhorou muito mas a composição não faz sentido" → v2: postes cravados no mar, balsas amarradas, passarelas estaiadas, sem escoras na boia — ENVIADA, aguardando aprovação
     - [ ] aprovada → levar ao jogo: `f2_jogo.py` (e1_palco ← `f2_plataformas.e1_palco_mar`, _pecas_e1 ← `pecas_mar`), regenerar,
       copiar para `game/assets/cargueiro/`, `--import`, captura; depois ver se Destroços/Atlântida têm o mesmo problema
   - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo

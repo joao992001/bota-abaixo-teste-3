@@ -46,26 +46,56 @@ def ferrugem(x, y, n, alt, seed, larg=6):
     return o
 
 
-def mastro(x, y_top, y_bot, niveis=(6 * T, 9 * T), seed=1):
-    """MASTRO DE CARGA (fixo, no lugar do andaime de 64 px): coluna de aço branca, capitel vermelho, cruzetas onde as
-    passarelas encostam, escada de marinheiro do lado, rebites, ferrugem escorrendo e uma boia salva-vidas."""
+def mastro(x, y_top, niveis=(), seed=1):
+    """POSTE DE ATRACAÇÃO (fixo, no lugar do andaime): coluna de aço branca cravada no MAR (nasce da água, com a faixa
+    molhada de limo e cracas), capitel vermelho com olhal para os estais, abraçadeiras onde as passarelas prendem, escada
+    de marinheiro até a água, ferrugem escorrendo e boia salva-vidas. A balsa ao lado fica amarrada nele."""
     cx = x + 32
+    y_bot = MAR1 + 24
     o = R(cx - 20, y_top, 40, y_bot - y_top, BRANCO, 3, 1.4, dark=BRANCO_D)
     o += f'<rect x="{cx - 20}" y="{y_top}" width="9" height="{y_bot - y_top}" fill="{BRANCO_D}" opacity="0.7"/>'
-    o += R(cx - 24, y_top - 6, 48, 30, VERM, 3, 1.0, dark=VERM_D)                      # capitel vermelho
+    o += R(cx - 20, MAR1 - 46, 40, 70, "#4f6a52", 2, 1.0, dark="#3a5040")                 # limo na linha d'água
+    rnd = random.Random(seed)
+    for _ in range(9):                                                                    # cracas
+        o += f'<circle cx="{cx + rnd.uniform(-15, 15):.1f}" cy="{MAR1 - rnd.uniform(4, 44):.1f}" r="{rnd.uniform(2, 4):.1f}" fill="#d9d2c0"/>'
+    o += R(cx - 24, y_top - 6, 48, 30, VERM, 3, 1.0, dark=VERM_D)                         # capitel vermelho
     o += R(cx - 28, y_top - 14, 56, 10, ACO_D, 2, 0.8)
-    for yy in range(int(y_top) + 40, int(y_bot) - 10, 64):                            # costuras com rebites
+    o += f'<circle cx="{cx}" cy="{y_top - 20}" r="7" fill="none" stroke="{ACO_D}" stroke-width="4"/>'   # olhal dos estais
+    for yy in range(int(y_top) + 40, int(MAR1) - 60, 64):                                # costuras com rebites
         o += f'<path d="M{cx - 20},{yy} h40" stroke="{BRANCO_D}" stroke-width="3"/>' + rebites(cx - 14, yy + 6, cx + 16, 10, 1.8, "#a59c8a")
-    for yv in niveis:                                                                  # cruzetas de apoio
-        if y_top < yv < y_bot:
-            o += R(cx - 34, yv + 24, 68, 12, ACO, 2, 0.8, dark=ACO_D) + rebites(cx - 28, yv + 30, cx + 32, 12, 1.8)
-    lx = cx + 24                                                                       # escada de marinheiro
-    o += f'<path d="M{lx},{y_top + 30} V{y_bot} M{lx + 16},{y_top + 30} V{y_bot}" stroke="{YEL}" stroke-width="4"/>'
-    for yy in range(int(y_top) + 44, int(y_bot), 22):
+    for yv in niveis:                                                                     # abraçadeiras das passarelas
+        o += R(cx - 23, yv - 8, 46, 40, ACO, 3, 0.8, dark=ACO_D) + f'<circle cx="{cx - 14}" cy="{yv + 12}" r="3" fill="{ACO_D}"/><circle cx="{cx + 14}" cy="{yv + 12}" r="3" fill="{ACO_D}"/>'
+    lx = cx + 24                                                                          # escada de marinheiro até a água
+    o += f'<path d="M{lx},{y_top + 30} V{MAR1 + 10} M{lx + 16},{y_top + 30} V{MAR1 + 10}" stroke="{YEL}" stroke-width="4"/>'
+    for yy in range(int(y_top) + 44, int(MAR1) + 6, 22):
         o += f'<path d="M{lx},{yy} h16" stroke="#c49a2a" stroke-width="3"/>'
-    o += ferrugem(cx - 6, y_top + 60, 4, 120, seed) + ferrugem(cx + 4, (y_top + y_bot) / 2, 3, 90, seed + 7)
-    by = (y_top + y_bot) / 2 + 40
-    o += f'<path d="M{cx - 4},{by - 40} L{cx - 4},{by - 26}" stroke="{INK}" stroke-width="3"/>' + boia(cx - 4, by, 24)
+    o += ferrugem(cx - 6, y_top + 60, 4, 120, seed) + ferrugem(cx + 4, (y_top + MAR1) / 2, 3, 90, seed + 7)
+    return o
+
+
+def estai(x0, y0, x1, y1):
+    """Cabo de aço tensionado (estai) do olhal do poste até a ponta da passarela, com esticador e manilhas."""
+    import math
+    L = math.hypot(x1 - x0, y1 - y0)
+    ux, uy = (x1 - x0) / L, (y1 - y0) / L
+    ex, ey = x0 + ux * L * 0.78, y0 + uy * L * 0.78
+    ang = math.degrees(math.atan2(uy, ux))
+    return (f'<path d="M{x0},{y0} L{x1},{y1}" stroke="#3a4250" stroke-width="4"/>'
+            f'<rect x="-11" y="-5" width="22" height="10" rx="3" fill="{ACO_L}" transform="translate({ex:.1f},{ey:.1f}) rotate({ang:.1f})"/>'
+            f'<circle cx="{x1}" cy="{y1}" r="5" fill="{ACO_D}"/>')
+
+
+def amarra(cx, y, lado):
+    """Cabo de amarração: 3 voltas de corda no poste e o cabo descendo até o cunho da balsa (lado = -1 balsa à esquerda)."""
+    o = ""
+    for k in range(3):
+        yy = y + k * 12
+        o += f'<path d="M{cx - 22},{yy + 6} L{cx + 22},{yy - 4}" stroke="{CORDA_D}" stroke-width="10" stroke-linecap="round"/>'
+        o += f'<path d="M{cx - 22},{yy + 6} L{cx + 22},{yy - 4}" stroke="{CORDA}" stroke-width="5" stroke-linecap="round"/>'
+    bx = cx + lado * 70
+    o += f'<path d="M{cx + lado * 20},{y + 26} Q{cx + lado * 46},{y + 60} {bx},{y + 34}" stroke="{CORDA_D}" stroke-width="9" fill="none" stroke-linecap="round"/>'
+    o += f'<path d="M{cx + lado * 20},{y + 26} Q{cx + lado * 46},{y + 60} {bx},{y + 34}" stroke="{CORDA}" stroke-width="4" fill="none" stroke-dasharray="7 4" stroke-linecap="round"/>'
+    o += R(bx - 12, y + 28, 24, 10, ACO_D, 3, 0.4)   # cunho na balsa
     return o
 
 
@@ -130,13 +160,8 @@ def boia_torre(x0, x1, topo):
     o += ferrugem(cx + 20, topo + 40, 4, 110, 21, 30)
     o += R(x0, topo, x1 - x0, 28, ACO, 3, 1.4, dark=ACO_D) + zebra(x0, topo - 8, x1 - x0, 8)   # convés da boia
     o += rebites(x0 + 14, topo + 20, x1 - 8, 24, 2.4, "#2f3843")
-    for k in range(3):                                                                  # defensas de corda
-        fx = x0 + 34 + k * ((x1 - x0 - 68) / 2)
-        o += E(fx, topo + 44, 14, 18, CORDA, 0.8, dark=CORDA_D) + f'<path d="M{fx - 10},{topo + 36} h20 M{fx - 10},{topo + 46} h20 M{fx - 10},{topo + 56} h20" stroke="{CORDA_D}" stroke-width="2"/>'
-    ax = x1 - 6                                                                         # braço com lanterna
-    o += f'<path d="M{cx + cw / 2},{topo + 90} L{ax + 26},{topo + 90} V{topo + 60}" stroke="{ACO_D}" stroke-width="6" fill="none"/>'
-    o += R(ax + 16, topo + 38, 20, 24, "#3fbf6a", 3, 0.6) + f'<circle cx="{ax + 26}" cy="{topo + 50}" r="20" fill="#bff7cf" opacity="0.35"/>'
-    o += R(ax + 14, topo + 32, 24, 7, ACO_D, 2, 0.4)
+    o += R(x0 + 10, topo + 28, x1 - x0 - 20, 12, "#2a2a30", 4, 0.8)                         # defensa de borracha
+    o += f'<text x="{cx}" y="{topo + 150}" font-family="Fredoka" font-weight="700" font-size="34" fill="{VERM_D}" text-anchor="middle" opacity="0.8">3</text>'
     return o
 
 
@@ -159,17 +184,25 @@ def bote(x0, x1, y_topo, y_cabo):
 
 # ---------------------------------------------------------------- palco e peças da cena 1 (mesma composição de hoje)
 def e1_palco_mar():
+    """Lógica de sustentação (pedido do usuário: "a composição dos elementos não faz sentido"): TUDO que fica em pé tem
+    apoio visível — postes e boia nascem do MAR, as balsas boiam amarradas nos postes, as passarelas presas no poste por
+    abraçadeira e seguradas na outra ponta por ESTAIS (cabo de aço do topo do poste) ou pela torre da grua; o bote pende
+    da lança. Nada de escora apoiada na boia."""
+    yt = 4 * T + 20
+    L, Rr = 7 * T + 32, 21 * T + 32          # eixo dos postes
     o = fp.balsa(70, 6 * T) + fp.balsa(22 * T, 7 * T)
     o += boia_torre(13 * T - 10, 17 * T + 10, 11 * T)
-    o += mastro(7 * T, 4 * T, 13 * T, seed=3) + mastro(21 * T, 4 * T, 13 * T, seed=5)
+    o += mastro(7 * T, yt, niveis=(6 * T - 4, 9 * T - 4), seed=3) + mastro(21 * T, yt, niveis=(6 * T - 4, 9 * T - 4), seed=5)
     o += R(28 * T, 1 * T, 26, 12 * T, "#e0a83a", 3, 1.6, dark="#b07a1e")              # torre da grua da balsa (já é do navio)
     for k in range(11):
         y = T + 20 + k * 64
         o += f'<path d="M{28 * T},{y} l26,40 M{28 * T + 26},{y} l-26,40" stroke="#b07a1e" stroke-width="3"/>'
     o += R(9 * T, 1 * T - 14, 20 * T, 20, "#e0a83a", 3, 1.4) + R(28 * T - 30, 1 * T - 60, 80, 46, "#cfd3da", 3, 1.2)
+    o += R(28 * T - 14, 6 * T - 4, 54, 34, ACO, 3, 0.8, dark=ACO_D)                     # mão da grua segurando a passarela alta
     o += sign(23 * T, 13 * T - 60, "BOTA-ABAIXO", 170)
-    o += montante(13 * T, 9 * T + 24, 11 * T - 8) + montante(17 * T - 14, 9 * T + 24, 11 * T - 8)
-    o += console(7 * T + 12, 6 * T + 130, 5 * T + 24, 6 * T + 26)
+    o += estai(L, yt - 20, 13 * T, 9 * T) + estai(Rr, yt - 20, 17 * T, 9 * T)            # pontas de dentro do nível 9
+    o += estai(L, yt - 20, 5 * T, 6 * T)                                                  # ponta de fora do nível 6 (esq.)
+    o += amarra(L, 13 * T - 46, -1) + amarra(Rr, 13 * T - 46, 1)
     return o
 
 
