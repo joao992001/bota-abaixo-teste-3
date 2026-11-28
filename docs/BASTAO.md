@@ -33,7 +33,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 ## EM ANDAMENTO
 
 ### Fase 2 · bloco C (água + perigos M1–M10)
-- Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
+- Quem: sessão 018QUPBQj4sLX3w64QQJCiVt (assumiu do 017desNJ…) · Desde: 2026-11-28 · Última atualização: 2026-11-28
 - Pedido do usuário: "as fotografias estão muito boas… falta substituir as plataformas pelos elementos do tema (→ bloco D)…
   já podemos avançar para a próxima parte". Bugs/gameplay do mapa 1 relatados por ele passam na FRENTE.
 - Arquivos reservados: `game/modes/agua.gd` (novo), `game/player/robot.gd` (agua_*), `game/modes/mecanismos.gd`,
