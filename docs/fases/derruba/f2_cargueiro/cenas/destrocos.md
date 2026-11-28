@@ -1,4 +1,4 @@
-# Cena 2a — DESTROÇOS DO CARGUEIRO (`destrocos`) · cena APROVADA · fotografia v3 aguardando aprovação
+# Cena 2a — DESTROÇOS DO CARGUEIRO (`destrocos`) · cena APROVADA · fotografia v3 APROVADA (2026-11-28)
 
 **Ficha:** o navio partiu ao meio e encalhou num ilhéu de rochas · área `etapa2` · manhã dourada depois da tempestade ·
 paleta areia, rocha cinza, casco ferrugem, mar verde-claro · assinatura: as duas metades do navio (ESTRELA DO SUL) tortas
@@ -26,7 +26,7 @@ grua) · **M10 tubarão** (barbatana no mar fundo; ataca só plataformas rentes 
 **Regra-assinatura — água:** com a maré alta, tudo abaixo da linha fica ALAGADO (lento, pulo flutua, golpe joga longe).
 Último nível (sem transição).
 
-### Fundo vivo (A) — PROPOSTO
+### Fundo vivo (A) — APROVADO
 | Camada | Conteúdo e animação |
 |---|---|
 | C0 | céu da manhã limpando, sol baixo à esquerda, nuvens da tempestade indo embora |

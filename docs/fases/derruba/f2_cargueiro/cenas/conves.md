@@ -21,7 +21,7 @@ M2 gancho balança (preso na torre da grua), M3 onda estoura na balsa (só as ba
 **Eventos (todos do mapa, A14):** G15 Onda Gigante, G16 Tempestade, G18 Polvo da Grua (`../eventos.md`).
 **Regra-assinatura — água:** só as balsas molham (onda M3); o resto é seco.
 
-### Fundo vivo (A) — PROPOSTO
+### Fundo vivo (A) — APROVADO
 | Camada | Conteúdo e animação |
 |---|---|
 | C0 | céu de fim de tarde com nuvens de chuva chegando da direita (escurecem aos poucos com a luta); sol baixo |

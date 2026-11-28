@@ -4,21 +4,21 @@
 
 | Campo | Valor |
 |---|---|
-| Estado | `PROPOSTO` — biblioteca completa (2026-11-28); conceito, topologia e cena 1 APROVADOS; o resto aguarda o usuário (ver DOSSIE.md) |
+| Estado | `APROVADO` (2026-11-28: "Aprovo tudo") — em construção (código, blocos A–F; ver `docs/BASTAO.md`) |
 | Modo | Derruba (`docs/manuais/derruba/README.md`) |
 | `map_id` | `cargueiro_perdido` · arte `game/assets/cargueiro/` |
 | Manifesto | `data/mapas/derruba/cargueiro_perdido.json` (estrutura do Canteiro; conteúdo próprio) |
 | Geometria | `levels/cargueiro_perdido.lvl` (`etapa1..3`, `ko`, `buraco`, nascimentos) |
 | Topologia | **3 cenas** (APROVADO: este mapa fica com 3; a árvore de 7 fica para um mapa futuro que combine melhor) |
 | Esquema | `art/out/fase2/esquema.png` (fonte `art/src/cenarios/f2_catalogo.py`) |
-| Fotografias | `art/out/fase2/cena1_conves.png` (APROVADA), `cena2a_destrocos.png`, `cena2b_atlantida.png` (aguardando) — fonte `art/src/cenarios/f2_prancha.py` |
-| Transições | `art/out/fase2/transicoes.png` (fonte `art/src/cenarios/f2_transicoes.py`) — aguardando |
+| Fotografias | `art/out/fase2/cena1_conves.png` (APROVADA), `cena2a_destrocos.png`, `cena2b_atlantida.png` (APROVADAS) — fonte `art/src/cenarios/f2_prancha.py` |
+| Transições | `art/out/fase2/transicoes.png` (fonte `art/src/cenarios/f2_transicoes.py`) — APROVADO |
 
 **Conceito (APROVADO, 2026-11-28):** tema **fundo do mar** — a viagem é DESCER O MAR, da superfície até Atlântida
 (Atlântida = os últimos momentos). Regra dos temas A54: estrutura + mundo + regra-assinatura. **Toda cena precisa de
 estrutura coerente para pisar e quebrar** (pedido do usuário: "no final das contas é isso que o jogador vai destruir,
 pisar, jogar").
-**Regra-assinatura (APROVADO na ideia; números PROPOSTOS):** a **ÁGUA** — onde está alagado: anda devagar, pulo flutua alto,
+**Regra-assinatura (APROVADO, ideia e números):** a **ÁGUA** — onde está alagado: anda devagar, pulo flutua alto,
 golpe joga longe. Quanto mais fundo, mais água (cresce cena a cena).
 
 | Cena | Arquivo | Próxima |
@@ -27,7 +27,7 @@ golpe joga longe. Quanto mais fundo, mais água (cresce cena a cena).
 | 2a · Destroços do Cargueiro | `cenas/destrocos.md` | — (último nível) |
 | 2b · Atlântida | `cenas/atlantida.md` | — (último nível) |
 
-### Regra-assinatura: ÁGUA (ideia APROVADA; números PROPOSTOS — vão para `data/modos.json`, nunca no código)
+### Regra-assinatura: ÁGUA (APROVADO, ideia e números — vão para `data/modos.json`, nunca no código)
 | Estado | Onde | Efeito proposto |
 |---|---|---|
 | **ALAGADO** | abaixo da linha d'água: maré alta (2a, M4), lado direito de Atlântida (2b, M7) | corrida ×0,6 (`env_slow`); gravidade ×0,55 e queda máx ×0,5 (**pulo flutua alto**); golpe recebido empurra ×1,25 (**joga longe**); respingo ao entrar/sair |

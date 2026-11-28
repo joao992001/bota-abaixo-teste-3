@@ -1,4 +1,4 @@
-# Cena 2b — ATLÂNTIDA (`atlantida`) · cena APROVADA (os últimos momentos) · fotografia v3 aguardando aprovação
+# Cena 2b — ATLÂNTIDA (`atlantida`) · cena APROVADA (os últimos momentos) · fotografia v3 APROVADA (2026-11-28)
 
 **Ficha:** o navio afundou e caiu sobre a cidade submersa, dentro de uma cúpula de ar · área `etapa3` · luz azul do fundo
 com raios de sol de cima · paleta turquesa, mármore creme, dourado · assinatura: a cúpula dourada com a **proa do navio
@@ -25,7 +25,7 @@ M9 concha-trampolim (no pilar central).
 **Regra-assinatura — água:** o lado direito alaga desde o começo (jato da proa) e cresce com M7; Bolhão de Ar baixa a água.
 Último nível (sem transição).
 
-### Fundo vivo (A) — PROPOSTO
+### Fundo vivo (A) — APROVADO
 | Camada | Conteúdo e animação |
 |---|---|
 | C0 | luz azul do fundo do mar com raios de sol ondulando lá de cima; o casco do navio escuro sobre a cúpula |
