@@ -577,6 +577,7 @@ func demolicao_test() -> void:
 	await mapa_test()
 	await cargueiro_test()
 	await agua_test()
+	await m1_test()
 	await skins_test()
 	await etapas_test()
 	await verificacao_test()
@@ -6567,6 +6568,55 @@ func agua_test() -> void:
 	check(main.demo.agua == null and main.robots.all(func(r): return r.agua_grav == 1.0), "mapa sem água (Canteiro): nada muda")
 	main.go_menu()
 
+## M1 Contêiner despenca (Alto-Mar): sombra vermelha antes (aviso), acerta quem está embaixo, racha a peça em que bate
+## e fica como plataforma nova; depois some. --so=m1
+func m1_test() -> void:
+	print("== Fase 2 · M1 contêiner despenca")
+	await _cargueiro_partida()
+	var mc = main.demo.mecs
+	var inst = null
+	for i in mc.list:
+		if i["tipo"] == "conteiner_cai":
+			inst = i
+	check(inst != null, "M1 está no Alto-Mar (manifesto)")
+	if inst == null:
+		return
+	var d: Dictionary = inst["d"]
+	d["colunas"] = [8]   # coluna do andaime da esquerda (tem peça embaixo)
+	var s: Dictionary = inst["s"]
+	s["t"] = float(d["ciclo_s"]) - 0.02
+	await frames(3)
+	check(s.get("fase", "") == "aviso" and s.has("alvo"), "aviso: a sombra vermelha marca onde vai cair (%.1f s antes)" % float(d["aviso_s"]))
+	var alvo: Rect2 = s["alvo"]
+	check(mc.zonas_perigo().any(func(z): return z.intersects(alvo)), "a sombra entra nas zonas de perigo (ninguém renasce ali)")
+	var r0 = main.robots[0]
+	for r in main.robots:
+		r.invuln = 99.0
+	r0.invuln = 0.0
+	r0.active = false
+	put(r0, Vector2(alvo.get_center().x, alvo.end.y))
+	var ct = main.demo.canteiro
+	var hp0 := 0
+	for p in ct.parts:
+		if (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, alvo.size.x, 12.0)):
+			hp0 += int(p.get("hp", 0))
+	var dmg0: float = r0.dmg
+	var w := 0
+	while s.get("fase", "") != "espera" and w < 400:
+		await frames(1)
+		w += 1
+	check(r0.dmg > dmg0, "quem estava embaixo leva o golpe (%.0f%%)" % (r0.dmg - dmg0))
+	var hp1 := 0
+	for p in ct.parts:
+		if (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, alvo.size.x, 12.0)):
+			hp1 += int(p.get("hp", 0))
+	check(hp1 < hp0, "racha a peça em que bateu (HP %d → %d)" % [hp0, hp1])
+	check(s.has("plat") and is_instance_valid(s["plat"]), "fica como plataforma nova")
+	s["parado"] = 0.01
+	await frames(3)
+	check(not s.has("plat"), "depois de um tempo some (abre espaço para o próximo)")
+	main.go_menu()
+
 ## Capturas da Fase 2 em construção (--cargueiro=DIR): Alto-Mar, chegada em Atlântida (total) e nos Destroços (moderada).
 func cargueiro_frames(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -6575,6 +6625,14 @@ func cargueiro_frames(dir: String) -> void:
 	main.hud.visible = false
 	await frames(30)
 	await snap(dir, "f2_1_alto_mar")
+	for i in main.demo.mecs.list:   # M1: o aviso (sombra vermelha) e o contêiner caído
+		if i["tipo"] == "conteiner_cai":
+			i["d"]["colunas"] = [8]
+			i["s"]["t"] = float(i["d"]["ciclo_s"]) - 0.02
+			await frames(50)
+			await snap(dir, "f2_1b_m1_aviso")
+			await frames(110)
+			await snap(dir, "f2_1c_m1_caiu")
 	for par in [["total", 2, "f2_2_atlantida"], ["moderada", 3, "f2_3_destrocos"]]:
 		if par[0] == "moderada":
 			await _cargueiro_partida()

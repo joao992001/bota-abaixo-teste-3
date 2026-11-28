@@ -48,7 +48,28 @@
    "nome": "Cargueiro no Alto-Mar",
    "nivel": 1,
    "eventos": [],
-   "mecanismos": [],
+   "mecanismos": [
+    {
+     "tipo": "conteiner_cai",
+     "etapa": 1,
+     "nota": "M1 (ideia do usuário): amarras estalam + SOMBRA VERMELHA → o contêiner despenca do navio; golpe forte, racha a plataforma embaixo; fica como plataforma nova até o próximo (ou afunda no mar).",
+     "ciclo_s": 20.0,
+     "fase_s": 8.0,
+     "aviso_s": 1.5,
+     "colunas": [
+      3,
+      9,
+      14,
+      19,
+      24
+     ],
+     "largura_t": 2,
+     "altura_t": 1,
+     "vel_queda": 1500,
+     "dano_peca": 2,
+     "fica_s": 14.0
+    }
+   ],
    "rota_moderada": "destrocos",
    "rota_total": "atlantida",
    "aviso_moderada": "O NAVIO VAI ENCALHAR!",

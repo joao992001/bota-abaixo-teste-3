@@ -104,6 +104,10 @@ func zonas_perigo() -> Array:
 				out.append(Rect2(float(d["x"]) - 130.0, float(d["topo"]) - 40.0, 260.0, float(d["chao"]) - float(d["topo"]) + 60.0))
 			"vagonete":
 				out.append(Rect2(float(d["x"][0]) - 80.0, float(d["chao"]) - 200.0, float(d["x"][1]) - float(d["x"][0]) + 160.0, 220.0))
+			"conteiner_cai":   # sombra no aviso/queda e o contêiner parado (plataforma nova)
+				var s2: Dictionary = inst["s"]
+				if s2.has("alvo"):
+					out.append((s2["alvo"] as Rect2).grow(48.0))
 			"gerador":
 				var a: Array = d["alvo"]
 				out.append(Rect2(float(a[0]), float(a[1]), float(a[2]), float(a[3])).grow(80.0))
@@ -139,6 +143,7 @@ func update(dt: float) -> void:
 			"agua": _agua(inst, dt)
 			"vagonete": _vagonete(inst, dt)
 			"gerador": _gerador(inst, dt)
+			"conteiner_cai": _conteiner_cai(inst, dt)
 	queue_redraw()
 
 # ---------------------------------------------------------------- tipos
@@ -441,6 +446,125 @@ func _gerador(inst: Dictionary, dt: float) -> void:
 					r.take_hit(0, "mec_choque", -1)
 					main.spark(r.position + Vector2(0, -30), 6)
 
+## M1 Contêiner despenca (Fase 2, Alto-Mar; ideia do usuário): a cada ciclo uma coluna é sorteada; amarras estalam e a
+## SOMBRA VERMELHA mostra onde cai (aviso_s); o contêiner despenca, acerta quem está embaixo (mec_conteiner), racha a peça
+## do palco em que bate e FICA como plataforma nova (fica_s, ou até o próximo); se cair no mar, afunda.
+func _conteiner_cai(inst: Dictionary, dt: float) -> void:
+	var d: Dictionary = inst["d"]
+	var s: Dictionary = inst["s"]
+	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
+	var w := float(d.get("largura_t", 2)) * T
+	var h := float(d.get("altura_t", 1)) * T
+	var fase := String(s.get("fase", "espera"))
+	match fase:
+		"espera":
+			if s.has("parado"):
+				s["parado"] = float(s["parado"]) - dt
+				if float(s["parado"]) <= 0.0:
+					_conteiner_some(s)
+			if float(s["t"]) >= float(d["ciclo_s"]):
+				s["t"] = 0.0
+				_conteiner_some(s)
+				var cols: Array = d["colunas"]
+				var x := o.x + float(cols[main.rng.randi() % cols.size()]) * T
+				var chao := _chao_em(Rect2(x, o.y, w, 1.0), main.level.etapa_rect(inst["etapa"]).end.y + 200.0)
+				s["alvo"] = Rect2(x, chao - h, w, h)
+				s["mar"] = chao > main.level.etapa_rect(inst["etapa"]).end.y
+				s["y"] = o.y - h - 260.0
+				s["vy"] = 0.0
+				s["aviso"] = float(d["aviso_s"])
+				s["fase"] = "aviso"
+				s["cor"] = main.rng.randi() % 5
+				s["hit"] = {}
+				Audio.play("gancho", 0.7, -2.0)   # amarras estalando
+		"aviso":
+			s["aviso"] = float(s["aviso"]) - dt
+			if float(s["aviso"]) <= 0.0:
+				s["fase"] = "cai"
+				s["y"] = main.view_rect().position.y - (s["alvo"] as Rect2).size.y * 0.55   # cai de onde estava pendurado
+				Audio.play("alarme", 1.4, -8.0)
+		"cai":
+			var alvo: Rect2 = s["alvo"]
+			s["vy"] = minf(float(s["vy"]) + 4000.0 * dt, float(d["vel_queda"]))
+			s["y"] = minf(float(s["y"]) + float(s["vy"]) * dt, alvo.position.y if not s["mar"] else alvo.position.y + 400.0)
+			var cr := Rect2(alvo.position.x, float(s["y"]), w, h)
+			for r in _robots():
+				if r.rect().intersects(cr) and not s["hit"].has(r.pid):
+					s["hit"][r.pid] = true
+					r.take_hit(1 if r.position.x >= cr.get_center().x else -1, "mec_conteiner", -1)
+			if not s["mar"] and float(s["y"]) >= alvo.position.y:
+				s["fase"] = "espera"
+				main.shake(8.0)
+				Audio.play("caixote_pancada", 0.6, 0.0)
+				main.dust(Vector2(alvo.get_center().x, alvo.end.y), 1.8)
+				var ct = main.demo.canteiro   # racha a peça do palco em que bateu
+				if ct != null and is_instance_valid(ct):
+					for p in ct.parts:
+						if not p["fallen"] and (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, w, 12.0)):
+							ct.damage(p, int(d.get("dano_peca", 2)), Vector2(alvo.get_center().x, alvo.end.y))
+				s["plat"] = _body(alvo)   # fica como plataforma nova
+				s["parado"] = float(d.get("fica_s", 14.0))
+			elif s["mar"] and float(s["y"]) >= alvo.position.y + 400.0:
+				s["fase"] = "espera"   # afundou no mar
+				s.erase("alvo")
+
+func _conteiner_some(s: Dictionary) -> void:
+	if s.has("plat") and is_instance_valid(s["plat"]):
+		main.dust((s["alvo"] as Rect2).get_center(), 1.0)
+		s["plat"].queue_free()
+	s.erase("plat")
+	s.erase("parado")
+	if String(s.get("fase", "espera")) == "espera":
+		s.erase("alvo")
+
+## Primeiro chão (tile sólido ou peça do canteiro de pé) embaixo da faixa r, descendo até limite.
+func _chao_em(r: Rect2, limite: float) -> float:
+	var y := r.position.y
+	var best := limite
+	var ct = main.demo.canteiro
+	if ct != null and is_instance_valid(ct):
+		for p in ct.parts:
+			var pr: Rect2 = p["rect"]
+			if not p["fallen"] and pr.position.x < r.end.x and pr.end.x > r.position.x and pr.position.y > y:
+				best = minf(best, pr.position.y)
+	var c0 := int(r.position.x / T)
+	var c1 := int((r.end.x - 1.0) / T)
+	var row := int(y / T)
+	while row * T < best:
+		for c in range(c0, c1 + 1):
+			if main.level.is_solid(Vector2i(c, row)):
+				return minf(best, row * T)
+		row += 1
+	return best
+
+const CONT_CORES := [Color("#d14b4b"), Color("#3f7fd0"), Color("#4fae5b"), Color("#f2a33a"), Color("#8a63d2")]
+
+func _draw_conteiner(s: Dictionary, d: Dictionary) -> void:
+	if not s.has("alvo"):
+		return
+	var alvo: Rect2 = s["alvo"]
+	var fase := String(s.get("fase", "espera"))
+	if fase == "aviso" or fase == "cai":   # SOMBRA VERMELHA onde vai cair (cresce e pisca no fim do aviso)
+		var k := 1.0 - clampf(float(s.get("aviso", 0.0)) / float(d["aviso_s"]), 0.0, 1.0)
+		var a := 0.35 + 0.35 * k + (0.2 * sin(t * 30.0) if k > 0.6 else 0.0)
+		var cx := alvo.get_center().x
+		draw_set_transform(Vector2(cx, alvo.end.y), 0.0, Vector2(1.0, 0.22))
+		draw_circle(Vector2.ZERO, alvo.size.x * (0.45 + 0.25 * k), Color(0.85, 0.1, 0.1, a))
+		draw_set_transform(Vector2.ZERO)
+		for k2 in 2:   # faixas de perigo descendo até a sombra
+			draw_line(Vector2(alvo.position.x + 10.0 + k2 * (alvo.size.x - 20.0), main.view_rect().position.y), Vector2(alvo.position.x + 10.0 + k2 * (alvo.size.x - 20.0), alvo.end.y), Color(0.85, 0.1, 0.1, 0.25 * a), 4.0)
+	var y := float(s.get("y", alvo.position.y)) if fase != "espera" else alvo.position.y
+	if fase == "aviso":
+		y = main.view_rect().position.y - alvo.size.y * 0.55 + sin(t * 40.0) * 3.0   # aparece balançando no alto (amarras)
+	var r := Rect2(alvo.position.x, y, alvo.size.x, alvo.size.y)
+	var cor: Color = CONT_CORES[int(s.get("cor", 0)) % CONT_CORES.size()]
+	draw_rect(r, cor)
+	draw_rect(Rect2(r.position, Vector2(r.size.x, 8.0)), cor.darkened(0.3))
+	for k3 in range(1, 6):   # nervuras do contêiner
+		var x := r.position.x + k3 * r.size.x / 6.0
+		draw_line(Vector2(x, r.position.y + 10.0), Vector2(x, r.end.y - 6.0), cor.darkened(0.22), 4.0)
+	draw_rect(r, INK, false, 4.0)
+
 func _find(tipo: String):
 	for inst in list:
 		if inst["tipo"] == tipo and _on(inst):
@@ -510,6 +634,8 @@ func _draw_perf() -> void:
 		var d: Dictionary = inst["d"]
 		var s: Dictionary = inst["s"]
 		match String(inst["tipo"]):
+			"conteiner_cai":
+				_draw_conteiner(s, d)
 			"betoneira":
 				var p := _v(d["pos"])
 				var aviso: bool = float(s["t"]) > float(d["ciclo_s"]) - float(d["aviso_s"])

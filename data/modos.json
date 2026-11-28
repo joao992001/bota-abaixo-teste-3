@@ -504,6 +504,13 @@
         "ky": 420,
         "ky_por": 2.0
       },
+      "mec_conteiner": {
+        "dano": 18,
+        "kx": 240,
+        "kx_por": 3.2,
+        "ky": 260,
+        "ky_por": 1.8
+      },
       "mec_estaca": {
         "dano": 16,
         "kx": 220,
