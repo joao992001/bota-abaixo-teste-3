@@ -26,7 +26,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Passos:
   - [x] 1. ... (commit abc1234)
   - [ ] 2. ...
-- **Próximo passo exato:** <o que fazer, com arquivo e comando>
+- **Próximo passo exato:** passo 2b: gravar a onda atual (`--video-so=onda_balsa --video-passo=1`), folha de quadros, diagnosticar as paradas e a cobertura; storyboard da proposta para o usuário.
 - Decisões pendentes do usuário: <ou "nenhuma">
 ```
 
@@ -51,14 +51,15 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
     copiar `art/out/game/cargueiro/*` para `game/assets/cargueiro/` → `godot --headless --path game --import`; (d) teste
     `--so=cargueiro,mapa,m1,m2,m3` (no `driver.gd` a contagem do Alto-Mar sobe de 11 para 15 peças); (e) captura
     `--cargueiro=DIR` e conferir de perto que cada peça está onde a prancha mostra; bots alcançam (`--so=bots`).
-  - [~] 2. (código + vídeo feitos, commit abaixo; `--so=m1,m2` 0 falhas; AGUARDA aprovação do vídeo `out/videos/cargueiro_conteiner_v2(_lento).mp4`) M1 contêiner no padrão `animacao.md` (`game/modes/mec_conteiner.gd`, como `mec_onda.gd`): sai da PILHA de carga do
+  - [x] 2. (commit c194334; **APROVADO** pelo usuário 2026-11-28: "ficou muito bom"; vídeo `out/videos/cargueiro_conteiner_v2(_lento).mp4`) M1 contêiner no padrão `animacao.md` (`game/modes/mec_conteiner.gd`, como `mec_onda.gd`): sai da PILHA de carga do
     navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata e quica, poeira/lascas, robô
     esmagado/arremessado (hitstop + `vis.hurt`); vídeo `--video-so=conteiner_cai --video-passo=1` + folha de quadros → usuário.
+  - [ ] 2b. **Onda (M3): melhorar a COMPOSIÇÃO** (usuário 2026-11-28: "a física está muito boa, mas a animação está meio estranha: ela sobe, aí para… vem de um lado, ou só pega nos cantos — vamos melhorar a composição"). Vídeo/folha do atual → proposta (storyboard) → aprovação → código → vídeo.
   - [ ] 3. M2 gancho no mesmo padrão (pêndulo com cabo que verga, antecipação puxando, pancada com hitstop) → vídeo → usuário.
   - [ ] 4. Aplicar A57 nas cenas Destroços e Atlântida (prancha antes × depois, mais plataformas) → aprovação → jogo.
   - [ ] 5. Depois: perigos da cena 2 (M4 maré, M5 boia, M6 rede, M10 tubarão) e 3 (M7, M8, M9, M11) no padrão de animação.
 - **Próximo passo exato:** esperar o usuário aprovar o vídeo do M1 (`game/modes/mec_conteiner.gd`: sai do topo da pilha do navio no fundo, salta, cai girando, achata, quica; quem está embaixo é cuspido para o lado; coluna 14 tirada porque atravessava o gancho). Ajustar o que ele pedir; aprovado → passo 3 (M2 gancho, mesmo padrão: `mec_gancho.gd`).
-- Decisões pendentes do usuário: aprovar o vídeo do M1 (enviado 2026-11-28).
+- Decisões pendentes do usuário: nenhuma (próxima: aprovar a proposta da onda).
 
 ## AGUARDANDO USUÁRIO
 
