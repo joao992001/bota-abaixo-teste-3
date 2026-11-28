@@ -51,14 +51,14 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
     copiar `art/out/game/cargueiro/*` para `game/assets/cargueiro/` → `godot --headless --path game --import`; (d) teste
     `--so=cargueiro,mapa,m1,m2,m3` (no `driver.gd` a contagem do Alto-Mar sobe de 11 para 15 peças); (e) captura
     `--cargueiro=DIR` e conferir de perto que cada peça está onde a prancha mostra; bots alcançam (`--so=bots`).
-  - [ ] 2. M1 contêiner no padrão `animacao.md` (`game/modes/mec_conteiner.gd`, como `mec_onda.gd`): sai da PILHA de carga do
+  - [~] 2. (código + vídeo feitos, commit abaixo; `--so=m1,m2` 0 falhas; AGUARDA aprovação do vídeo `out/videos/cargueiro_conteiner_v2(_lento).mp4`) M1 contêiner no padrão `animacao.md` (`game/modes/mec_conteiner.gd`, como `mec_onda.gd`): sai da PILHA de carga do
     navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata e quica, poeira/lascas, robô
     esmagado/arremessado (hitstop + `vis.hurt`); vídeo `--video-so=conteiner_cai --video-passo=1` + folha de quadros → usuário.
   - [ ] 3. M2 gancho no mesmo padrão (pêndulo com cabo que verga, antecipação puxando, pancada com hitstop) → vídeo → usuário.
   - [ ] 4. Aplicar A57 nas cenas Destroços e Atlântida (prancha antes × depois, mais plataformas) → aprovação → jogo.
   - [ ] 5. Depois: perigos da cena 2 (M4 maré, M5 boia, M6 rede, M10 tubarão) e 3 (M7, M8, M9, M11) no padrão de animação.
-- **Próximo passo exato:** passo 2 (M1 contêiner): ler `docs/manuais/animacao.md` e `game/modes/mec_onda.gd` (modelo), achar o M1 em `mecanismos.gd` (`grep -n conteiner_cai`), criar `game/modes/mec_conteiner.gd` com as 5 batidas; vídeo `--video-so=conteiner_cai`.
-- Decisões pendentes do usuário: nenhuma (próxima: aprovar o vídeo do M1).
+- **Próximo passo exato:** esperar o usuário aprovar o vídeo do M1 (`game/modes/mec_conteiner.gd`: sai do topo da pilha do navio no fundo, salta, cai girando, achata, quica; quem está embaixo é cuspido para o lado; coluna 14 tirada porque atravessava o gancho). Ajustar o que ele pedir; aprovado → passo 3 (M2 gancho, mesmo padrão: `mec_gancho.gd`).
+- Decisões pendentes do usuário: aprovar o vídeo do M1 (enviado 2026-11-28).
 
 ## AGUARDANDO USUÁRIO
 

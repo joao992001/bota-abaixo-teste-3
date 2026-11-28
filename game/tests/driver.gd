@@ -7308,9 +7308,22 @@ func cargueiro_video(dir: String) -> void:
 		if so != "" and tp != so:
 			continue
 		match tp:
-			"conteiner_cai":
-				i["s"]["t"] = float(d["ciclo_s"]) - 0.02
-				await grava.call(float(d["aviso_s"]) + 2.2)
+			"conteiner_cai":   # robô embaixo (leva o golpe) e um do lado (a pancada arremessa); 2ª queda no bote
+				var cols0: Array = d["colunas"]
+				for c in ([9] if uma else [9, 3]):
+					d["colunas"] = [c]
+					for ri in 2:
+						var r = main.robots[ri]
+						r.invuln = 0.0
+						r.velocity = Vector2.ZERO
+						r.own_vx = 0.0
+						r.position = Vector2(float(c) * 64.0 + 64.0 + 150.0 * ri, (8.6 if c == 9 else 2.6) * 64.0)
+					await grava.call(0.3)
+					i["s"]["t"] = float(d["ciclo_s"]) - 0.02
+					await grava.call(float(d["aviso_s"]) + float(d.get("salta_s", 0.42)) + 2.0)
+					for r in main.robots:
+						r.invuln = 9999.0
+				d["colunas"] = cols0
 				i["s"]["t"] = -9999.0
 			"gancho_balanca":
 				i["s"]["t"] = float(d["ciclo_s"]) - float(d["aviso_s"]) - 0.02

@@ -11,6 +11,7 @@ const T := 64.0
 const Kit := preload("res://ui/kit.gd")
 const INK := Color("#2a1a2e")
 const OndaFx := preload("res://modes/mec_onda.gd")
+const ConteinerFx := preload("res://modes/mec_conteiner.gd")
 var main: Node
 var frente: Node2D            # desenho por cima do palco (onda M3)
 var list: Array = []          # instâncias {tipo, etapa, d (dados do data), s (estado)}
@@ -488,6 +489,12 @@ func _conteiner_cai(inst: Dictionary, dt: float) -> void:
 	var o: Vector2 = main.level.etapa_rect(inst["etapa"]).position
 	var w := float(d.get("largura_t", 2)) * T
 	var h := float(d.get("altura_t", 1)) * T
+	if not s.has("fx"):
+		var fx0 = ConteinerFx.new()
+		fx0.setup(self, d)
+		s["fx"] = fx0
+	var fx = s["fx"]
+	var ev: String = fx.update(dt)   # animação em mec_conteiner.gd (5 batidas); aqui só a regra de jogo
 	var fase := String(s.get("fase", "espera"))
 	match fase:
 		"espera":
@@ -503,42 +510,53 @@ func _conteiner_cai(inst: Dictionary, dt: float) -> void:
 				var chao := _chao_em(Rect2(x, o.y, w, 1.0), main.level.etapa_rect(inst["etapa"]).end.y + 200.0)
 				s["alvo"] = Rect2(x, chao - h, w, h)
 				s["mar"] = chao > main.level.etapa_rect(inst["etapa"]).end.y
-				s["y"] = o.y - h - 260.0
-				s["vy"] = 0.0
 				s["aviso"] = float(d["aviso_s"])
 				s["fase"] = "aviso"
 				s["cor"] = main.rng.randi() % 7
 				s["hit"] = {}
-				Audio.play("gancho", 0.7, -2.0)   # amarras estalando
-		"aviso":
-			s["aviso"] = float(s["aviso"]) - dt
-			if float(s["aviso"]) <= 0.0:
+				fx.comecar(s["alvo"], s["mar"], int(s["cor"]))
+		"aviso", "salta":   # treme e solta da pilha do navio; o alvo zebrado cresce no chão
+			s["aviso"] = maxf(float(s["aviso"]) - dt, 0.0)
+			if fx.fase == "cai":
 				s["fase"] = "cai"
-				s["y"] = main.view_rect().position.y - (s["alvo"] as Rect2).size.y * 0.55   # cai de onde estava pendurado
-				Audio.play("alarme", 1.4, -8.0)
+			elif ev == "solta":
+				s["fase"] = "salta"
 		"cai":
 			var alvo: Rect2 = s["alvo"]
-			s["vy"] = minf(float(s["vy"]) + 4000.0 * dt, float(d["vel_queda"]))
-			s["y"] = minf(float(s["y"]) + float(s["vy"]) * dt, alvo.position.y if not s["mar"] else alvo.position.y + 400.0)
-			var cr := Rect2(alvo.position.x, float(s["y"]), w, h)
+			var cr: Rect2 = fx.caixa()
+			s["y"] = cr.position.y
 			for r in _robots():
 				if r.rect().intersects(cr) and not s["hit"].has(r.pid):
 					s["hit"][r.pid] = true
-					r.take_hit(1 if r.position.x >= cr.get_center().x else -1, "mec_conteiner", -1)
-			if not s["mar"] and float(s["y"]) >= alvo.position.y:
+					var dir := 1 if r.position.x >= cr.get_center().x else -1
+					if r.take_hit(dir, "mec_conteiner", -1):
+						r.hitstop = 0.09
+						r.vis.hurt(0.8, dir)
+			if ev == "impacto":
 				s["fase"] = "espera"
-				main.shake(8.0)
-				Audio.play("caixote_pancada", 0.6, 0.0)
-				main.dust(Vector2(alvo.get_center().x, alvo.end.y), 1.8)
+				for r in _robots():   # quem ficou embaixo é cuspido para o lado (não fica entalado nem sobe no contêiner)
+					var rr0: Rect2 = r.rect()
+					if rr0.intersects(alvo.grow(-4.0)):
+						var dir0 := 1 if r.position.x >= alvo.get_center().x else -1
+						r.position.x = (alvo.end.x + rr0.size.x * 0.5 + 6.0) if dir0 > 0 else (alvo.position.x - rr0.size.x * 0.5 - 6.0)
+						r.position.y = maxf(r.position.y, alvo.end.y)
+						r.velocity = Vector2(dir0 * 520.0, -420.0)
+						r.own_vx = 0.0
+						s["hit"][r.pid] = true
+				var chao_r := Rect2(alvo.position.x - 56.0, alvo.end.y - 76.0, w + 112.0, 76.0)
+				for r in _robots():   # a pancada arremessa quem está do lado (não embaixo)
+					if not s["hit"].has(r.pid) and r.rect().intersects(chao_r) and not r.rect().intersects(alvo):
+						var dir2 := 1 if r.position.x >= alvo.get_center().x else -1
+						r.knock(dir2, 340.0, 380.0, 0.2)
+						r.vis.hurt(0.4, dir2)
 				var ct = main.demo.canteiro   # racha a peça do palco em que bateu
 				if ct != null and is_instance_valid(ct):
 					for p in ct.parts:
 						if not p["fallen"] and (p["rect"] as Rect2).intersects(Rect2(alvo.position.x, alvo.end.y - 4.0, w, 12.0)):
 							ct.damage(p, int(d.get("dano_peca", 2)), Vector2(alvo.get_center().x, alvo.end.y))
 				s["plat"] = _body(alvo)   # fica como plataforma nova
-				s["impacto"] = 0.45   # quadro de impacto (poeira e lascas)
 				s["parado"] = float(d.get("fica_s", 14.0))
-			elif s["mar"] and float(s["y"]) >= alvo.position.y + 400.0:
+			elif ev == "afundou":
 				s["fase"] = "espera"   # afundou no mar
 				s.erase("alvo")
 
@@ -1346,40 +1364,29 @@ func _cabo_aco(a: Vector2, b: Vector2) -> void:
 ## Contêiner lapidado (prancha `lapida_cena1.png`): no aviso aparece preso por cintas (quadro 0) e uma cinta ESTALA (1) +
 ## ALVO zebrado com seta que cresce no chão; cai com traços de velocidade (2); no impacto, poeira e lascas (3, ~0,45 s).
 func _draw_conteiner(s: Dictionary, d: Dictionary) -> void:
-	if not s.has("alvo"):
-		return
-	var alvo: Rect2 = s["alvo"]
 	var fase := String(s.get("fase", "espera"))
-	var sc := alvo.size.x / 192.0
-	if fase == "aviso" or fase == "cai":   # ALVO zebrado no chão (cresce e pisca no fim do aviso)
+	if s.has("alvo") and fase in ["aviso", "salta", "cai"] and not s.get("mar", false):   # ALVO zebrado no chão (cresce e pisca no fim do aviso)
+		var alvo: Rect2 = s["alvo"]
+		var sc := alvo.size.x / 192.0
 		var k := 1.0 - clampf(float(s.get("aviso", 0.0)) / float(d["aviso_s"]), 0.0, 1.0)
 		var az: Texture2D = Data.tex("cargueiro/alvo_zebra")
-		if az != null and not s.get("mar", false):
+		if az != null:
 			var ww := 240.0 * sc * (0.55 + 0.45 * k)
 			var pisca := 1.0 if k < 0.7 else 0.6 + 0.4 * sin(t * 30.0)
 			draw_texture_rect(az, Rect2(alvo.get_center().x - ww / 2.0, alvo.end.y - 100.0 * sc, ww, 110.0 * sc), false, Color(1, 1, 1, pisca))
-	var y := float(s.get("y", alvo.position.y)) if fase != "espera" else alvo.position.y
-	var q := -1
-	if fase == "aviso":
-		y = main.view_rect().position.y - alvo.size.y * 0.55 + sin(t * 40.0) * 3.0   # balançando lá no alto, preso pelas cintas
-		q = 0 if float(s.get("aviso", 0.0)) > float(d["aviso_s"]) * 0.45 else 1
-	elif fase == "cai":
-		q = 2
-	elif float(s.get("impacto", 0.0)) > 0.0:
-		q = 3
-		s["impacto"] = float(s["impacto"]) - get_physics_process_delta_time()
-	var r := Rect2(alvo.position.x, y, alvo.size.x, alvo.size.y)
-	if q >= 0:
-		var tq: Texture2D = Data.tex("cargueiro/cai_%d" % q)
-		if tq != null:   # sprite 360×300 com o contêiner (192×64) na origem (84,150)
-			draw_texture_rect(tq, Rect2(r.position - Vector2(84, 150) * sc, Vector2(360, 300) * sc), false)
+	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % (int(s.get("cor", 0)) % 7))   # mesma arte dos contêineres do palco
+	var fx = s.get("fx")
+	if fx != null and fx.ativa():
+		fx.draw(self, ctx)
+		if fx.fase != "":
 			return
-	var ctx: Texture2D = Data.tex("cargueiro/cont_%d" % (int(s.get("cor", 0)) % 7))   # parado: mesma arte dos contêineres do palco
+	if not s.has("alvo") or fase != "espera" or not s.has("plat"):
+		return
+	var r: Rect2 = s["alvo"]
 	if ctx != null:
 		draw_texture_rect(ctx, r, false)
 	else:
 		draw_rect(r, CONT_CORES[int(s.get("cor", 0)) % CONT_CORES.size()])
-		draw_rect(r, INK, false, 4.0)
 
 func _find(tipo: String):
 	for inst in list:

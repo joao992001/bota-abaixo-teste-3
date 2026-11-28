@@ -59,15 +59,20 @@
      "colunas": [
       3,
       9,
-      14,
       19,
       24
      ],
+     "nota_colunas": "sem a coluna 14: ali o contêiner atravessava o do gancho (M2) pendurado em cima da boia",
      "largura_t": 2,
      "altura_t": 1,
      "vel_queda": 1500,
      "dano_peca": 2,
-     "fica_s": 14.0
+     "fica_s": 14.0,
+     "salta_s": 0.42,
+     "pilha_img": [[495, 2], [651, 4], [807, 3], [963, 4], [1119, 3], [1275, 3], [1431, 3], [1587, 4], [1743, 4], [1899, 2]],
+     "nota_pilha": "animação (mec_conteiner.gd): a carga do TOPO da pilha do navio no fundo (centro x no PNG e1_longe, nº de contêineres; f2_prancha.c1_navio_fundo) solta e cai no alvo",
+     "foto_grow": 0.03,
+     "foto_par": 0.06
     },
     {
      "tipo": "gancho_balanca",
