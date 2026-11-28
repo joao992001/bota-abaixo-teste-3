@@ -13,6 +13,7 @@ PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for 
 **▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
 etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
 cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
+**▶ FASE 2 · CARGUEIRO PERDIDO — PRONTO PARA O 1º PROTÓTIPO: siga `docs/fases/derruba/f2_cargueiro/DOSSIE_PROTOTIPO.md`** (fotografias das 3 cenas e perigos M1–M10 aprovados para protótipo)
 **▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas
 Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
 PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`. Fotografias `art/out/fase2/cena*.png` (fonte `f2_prancha.py`): cena 1 APROVADA (v3, navio = moldura,
