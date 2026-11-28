@@ -32,28 +32,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## EM ANDAMENTO
 
-### Correções urgentes do mapa 1 (Canteiro) + controle principal
-- Quem: sessão 017desNJLabnbh98EwrZ9vQj · Desde: 2026-11-28 · Última atualização: 2026-11-28
-- Pedido do usuário: "a obra cede em 20 s… tem que ter um equilíbrio dos 90 s (estudo de proporção jogando partidas)…
-  travação no subterrâneo quando ativa a gravidade… ficando sem engenhocas no subterrâneo… só o controle principal
-  (o 1º conectado) mexe nos menus; na configuração de controles o P1 escolhe o controle do P2, ele assume e depois volta"
-- Arquivos reservados: `data/modos.json` (destruicao, canteiro), `game/modes/etapas.gd`, `game/modes/canteiro.gd`,
-  `game/modes/spells.gd` (spawn), `game/modes/eventos.gd` (G03), `game/autoload/player_input.gd`, `game/ui/menus.gd` (controles)
-- Passos:
-  - [x] 1. Estudo da destruição (`--estudo-destruicao=N [--estudo-nivel=2 --estudo-eventos=3]`): a cena virava em ~20 s
-        pelo A53b (65% a qualquer momento); platô natural ~67% (parte de cima cai); aos 90 s médios 64–67%, difíceis 67–86%
-  - [x] 2. Regra A56 em `data/modos.json`: só a verificação decide (`total_imediato` false), 1ª aos 90 s (3 vidas),
-        moderada 35%, total 70%, mostrador até 70% + testes etapas/verificacao (commit deste passo)
-  - [x] 3. Engenhocas no subterrâneo: `spells.spawn_points` usa o chão firme da cena quando faltam peças + teste `--so=caixas_subsolo`
-  - [x] 4. FPS G03: porcas viraram atlas (1 textura) + teto 24 → CPU 8,5→6,9 ms, chamadas 991→763, picos 3,8%→0,7%
-  - [x] 5. Controle principal (`PlayerInput.principal/manda_no_menu`, `menus.dono`) + teste `--so=principal`
-  - [ ] 6. Medir a regra com a transição ligada (várias partidas), registrar A56 em reformulacao_derruba.md, manual de
-        desempenho §4/§5, bateria completa, .exe, relatório
-- **Próximo passo exato:** passo 6 — feito: estudo com a transição ligada (8/8 viram na verificação; 3 total, 5 moderada),
-  1ª verificação aos 90 s com o padrão de 4 vidas, A56 registrado, manual de desempenho e ESTADO. Falta: conferir a bateria
-  (`godot --headless --path game --fixed-fps 60 -- --autotest`), gerar o .exe (`tools/exportar.sh`) e relatar ao usuário.
-- Decisões pendentes do usuário: nenhuma (o estudo decide os números; reportar).
-
+(nenhum)
 
 ## AGUARDANDO USUÁRIO
 
@@ -69,6 +48,7 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 - Desempenho: cartões do HUD (~1,2 ms/quadro constante) — ver `docs/manuais/desempenho.md` §7.
 
 ## CONCLUÍDO (últimos; detalhes no "Retomar aqui" do ESTADO)
+- 2026-11-28 · Correções urgentes do Canteiro (A56 regra dos 90 s, caixas no subterrâneo, FPS da G03, controle principal); bateria 623 ok, .exe — sessão 017desNJ…
 - 2026-11-28 · Fase 2 bloco A: `.lvl` + manifesto + teste `--so=cargueiro` (2 rotas de verdade) + vitrine `--cargueiro=DIR` — sessão 017desNJ…
 - 2026-11-28 · Dossiê da Fase 2 completo e APROVADO pelo usuário (A55) — sessão 017desNJ…
 - 2026-11-28 · Protocolo de desempenho (2ª passada) + 2 vazamentos — sessão 017desNJ…
