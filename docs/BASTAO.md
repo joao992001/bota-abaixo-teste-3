@@ -56,7 +56,10 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
 
 ## AGUARDANDO USUÁRIO
 
-(nenhum)
+### M11 Gêiser (Atlântida) — ideia do usuário
+- Pergunta enviada (2026-11-28): aprova a prancha `art/out/fase2/perigo_geiser.png` (borbulha 1,5 s → jorra ~2,5 s: quem
+  cai na fenda é jogado de volta; o jato também serve de elevador; sem dano; ~10 s alternando entre as 2 fendas)?
+- Aprovado → tipo `geiser` em `mecanismos.gd` (fendas = colunas 6–12 e 18–24 da cena 2), teste `--so=m11`, vitrine.
 
 ## FILA (pedido pelo usuário, ninguém pegou ainda)
 - **Fase 2 · bloco D (contêineres + ARTE DO PALCO no tema: o usuário pediu trocar caixotes/andaimes do canteiro pelos do mar)**, **E (eventos G15–G19)**, **F (entrega)** — ver `DOSSIE.md` §3.
