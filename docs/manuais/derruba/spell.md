@@ -10,7 +10,7 @@ controle, engenharia, transformação). **Disponibilidade = do mapa**: uma spell
 ## Códigos (renumerados por classe em 2026-11-25; antigo → novo)
 | Ataque | Controle | Engenharia | Transformação |
 |---|---|---|---|
-| S01→A01 Punho Pneumático · S02→A02 Laser de Corte · S03→A03 Canhão Criogênico · S04→A04 Marreta Sísmica · S05→A05 Rebiteira Ricochete · S17→A06 Bate-Estaca · S19→A07 Marreta-Bumerangue · S20→A08 Canhão de Molas | S06→C01 Superímã · S07→C02 Turboventilador · S08→C03 Gancho de Arrasto · S11→C04 Teleporte · S21→C05 Laço de Energia | S10→E01 Andaime Relâmpago · S12→E02 Carga Remota · S27→E03 Controle Remoto | S13→T01 Armadura Fornalha · S14→T02 Mecha Empilhadeira · S15→T03 Bola de Demolição · S16→T04 Propulsor Gambiarra · S31→T05 Modo Broca · S33→T06 Modo Soldador · S34→T07 Minirrobô Veloz |
+| S01→A01 Punho Pneumático · S02→A02 Laser de Corte · S03→A03 Canhão Criogênico · S04→A04 Marreta Sísmica · S05→A05 Rebiteira Ricochete · S17→A06 Bate-Estaca · S19→A07 Marreta-Bumerangue · S20→A08 Canhão de Molas | S06→C01 Superímã · S07→C02 Turboventilador · S08→C03 Gancho de Arrasto · S11→C04 Teleporte · S21→C05 Laço de Energia | S10→E01 Andaime Relâmpago · S12→E02 Carga Remota · S27→E03 Controle Remoto | S13→T01 Armadura Fornalha · S14→T02 Mecha Empilhadeira · S15→T03 Bola de Demolição · S16→T04 Propulsor Gambiarra · S31→T05 Modo Broca · S33→T06 Modo Soldador · S34→T07 Minirrobô Veloz (A36: agora MECHA CORREDOR) |
 As texturas de arte mantêm os nomes antigos em minúsculas (`spells/s13_frente.png` etc.): o código só mudou nos dados e no jogo.
 **REPROVADAS (nunca voltam):** S09, S22, S23, S24, S26, S29, S30, S32 e, em 2026-11-25, **S18 Disco de Corte, S25 Ponte Dobrável, S28 Escudo de Solda** (código removido).
 Armaduras (Transformação) são **raras** nas caixas normais (peso 7) — o momento delas é a **Carga Especial (G10)**.
@@ -80,3 +80,7 @@ Armaduras (Transformação) são **raras** nas caixas normais (peso 7) — o mom
 - Jetpack em pulsos → voo segurando com combustível e inclinação.
 - Gancho que puxa pouco → puxa quase tudo (robô, caixa, bomba; estrutura puxa você).
 - Alcance curto (disco, bumerangue) → mais alcance (6).
+
+
+## Visual das armaduras (transformações T##) — A29, obrigatório para as novas
+Toda armadura é um **mecha humanoide pilotado e ameaçador**: cabeça do piloto visível no cockpit do peito; faixa na cor do jogador no mesmo lugar do casco; ~2× o robô; ombreiras com espetos, fenda de olho vermelha, pés com garras; **silhueta própria** (não repetir corpo); o tema vira o braço-arma da frente ou o corpo todo; papel e giz, brasa/fumaça/faísca quando ligado. Referência: `art/out/robos_v2/armaduras_v2_final.png` (gerador `art/src/robos/armaduras_conceito.py`, função `mecha(...)`).

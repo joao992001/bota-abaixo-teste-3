@@ -4,28 +4,138 @@ Leia isto primeiro ao retomar o projeto numa sessão nova. Histórico de decisõ
 Repositórios (GitHub privado, ramo `main`): `joao992001/bota-abaixo` = versão estável (não mexer) ·
 `joao992001/bota-abaixo-teste-2` = cópia anterior (congelada) · **`joao992001/bota-abaixo-teste-3` = cópia para as mudanças estruturais grandes (trabalhe aqui).**
 
-## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-26 (fim da sessão 1 da conta A)
-**Comece por `docs/COMO_TRABALHAR.md`** (como conversar, ordem de trabalho, testes, entregas, passagem de bastão).
+## ▶ Retomar aqui (sessão nova) — atualizado 2026-11-28 (sessão 7, cont. 6)
+**Claude novo? `docs/COMO_TRABALHAR.md` §9 (passo a passo de quem assume) + §8 (kit de ferramentas). Prompt para colar: `docs/PROMPT_UNIVERSAL.md`.**
+**▶ FASE 2 · CENA 1 (2026-11-28):** M3 onda refeita como animação procedural e APROVADA (`mec_onda.gd`, manual `docs/manuais/animacao.md`);
+plataformas no tema do mar APROVADAS — **A57: peças do tema + apoio visível, fases recheadas de plataformas** (prancha
+`art/out/fase2/plataformas_cena1_novas.png`, fonte `art/src/cenarios/f2_plataformas.py`). Falta levar ao jogo e refazer M1/M2:
+passos exatos no bloco da Fase 2 do `docs/BASTAO.md`.
+**Comece por `docs/COMO_TRABALHAR.md` e pelo quadro `docs/BASTAO.md` (tarefas em andamento de cada chat, arquivos
+reservados e o próximo passo exato — o gancho de início de sessão já mostra).** Branch de trabalho: `claude/practical-maxwell-hldv9n` (tudo commitado e enviado;
+bateria completa 623 ok, 0 falhas no último commit). O usuário APROVOU todos os visuais até aqui (lotes 1 e 2 + mochila + Corredor).
 
-**Onde paramos:** reformulação do Derruba v2 IMPLEMENTADA (D1–D5, Fachada, eventos nas 3 cenas, perfil, gangorra,
-Projetos) e a **interface nova "Canteiro vivo" (A21) no jogo** — abertura (robô sorteado marreta, letras caem), menu
-com placas em coluna, mapas no tapume, **ajustes em 5 etapas obrigatórias** (1 Engenhocas → 2 Eventos → 3 Vidas →
-4 Jogadores → 5 Detonar; `game/ui/selecao.gd`, kit `game/ui/obra.gd`). Spells = "Engenhocas" (A20). Último `.exe`
-entregue com isso. Bateria: 443 ok (1 falha da abertura corrigida depois, teste `--so=controles` ok).
+**Ideia em espera (2026-11-28):** online via **Steam Remote Play Together** (sem netcode; anfitrião no PC, convidados em
+PC/Steam Deck/celular/TV pelo Steam Link; consoles não). Só quando o jogo for para a Steam. Netcode próprio: não agora.
+**▶ CORREÇÕES URGENTES DO CANTEIRO (2026-11-28) — A56:** (1) **regra dos 90 s**: só a verificação de tempo decide a rota
+(90 s com 4 vidas, ±15 s por vida; < 35% fica · 35–70% Fachada · ≥ 70% subterrâneo; o A53b virava em ~20 s) — estudo
+`--estudo-destruicao=N [--estudo-nivel=2 --estudo-eventos=3 --estudo-regra]`; (2) **caixas de engenhoca no subterrâneo**
+(`spells.spawn_points` usa o chão firme quando faltam peças); (3) **FPS da G03** (porcas em atlas + teto 24; `--perf-cena=2
+--perf-evento=G03`); (4) **controle principal**: só o 1º controle conectado (e o teclado) mexe nos menus, quem pausou mexe na
+pausa, em MAPEAR/TESTAR o controle escolhido assume até voltar (`PlayerInput.principal`, `menus.dono`, etiqueta PRINCIPAL no hub).
+Testes `--so=caixas_subsolo,principal,verificacao,etapas`. Falta o usuário jogar para confirmar os números.
+**▶ BOTS EDITÁVEIS NA ENTRADA FEITO — A52** (prancha `art/out/ui/jogadores_bots.png`): R1/RB edita o próximo bot (borda e
+etiqueta "P1 EDITANDO"), ▲▼ linha, ◄► ROBÔ/VISUAL/COR/DIFICULDADE (capacetes), TIRAR BOT tira só ele, VOLTAR volta ao próprio
+cartão; Y com a mesa cheia não tira mais todos. `main.gd` (`_proximo_bot`, `_editar_bot`), `hud.gd` (`_bot_card`).
+**▶ FASE 2 · BLOCO C FEITO (2026-11-28):** água + perigos M1–M11 do Cargueiro no jogo (M7 racha, M8 lustre, M9 concha, M11 gêiser
+nesta passada); testes `--so=agua,m1..m11,cargueiro,mapa` verdes; capturas `art/out/fase2/uso/`. Usuário: "faltam muitos ajustes
+visuais, depois a gente lapida" → FILA. **Antes de capturar num contêiner novo: `godot --headless --path game --import`.**
+**▶ BASTÃO CONTÍNUO (2026-11-28):** quadro `docs/BASTAO.md` + gancho `.claude/hooks/session-start.sh` (mostra o quadro em todo
+chat novo) + regras em `docs/COMO_TRABALHAR.md` §6. Até 3 chats na mesma branch: pegue a tarefa no quadro, envie a cada passo.
+**▶ FASE 2 · DOSSIÊ APROVADO (A55) + BLOCO A FEITO** (`levels/cargueiro_perdido.lvl`, manifesto, `--so=cargueiro` verde com as 2 rotas,
+vitrine `--cargueiro=DIR`; fase escondida do menu até ficar jogável). Próximo: bloco B (arte) — ver FILA do `docs/BASTAO.md`.
+**▶ (anterior) FASE 2 · DOSSIÊ COMPLETO** (`docs/fases/derruba/f2_cargueiro/DOSSIE.md`: situação, 5 perguntas,
+plano A–F). Novo nesta passada: fichas das 3 cenas iguais às fotos, fundo vivo, regra da água com números, eventos G15–G19,
+engenhocas na água + A09/D07, skins K16–K20, storyboard das 2 transições `art/out/fase2/transicoes.png`.
+**▶ FASE 2 · CARGUEIRO PERDIDO — biblioteca + esquema (aguardando aprovação)**: tema fundo do mar descendo (APROVADO); 3 cenas
+Cargueiro no Alto-Mar → Destroços do Cargueiro (40%) / Atlântida (65%) (APROVADO); regra-assinatura ÁGUA; estruturas/perigos/eventos
+PROPOSTOS em `docs/fases/derruba/f2_cargueiro/`. Fotografias `art/out/fase2/cena*.png` (fonte `f2_prancha.py`): cena 1 APROVADA (v3, navio = moldura,
+luta em plataformas); 2a/2b refeitas no mesmo princípio, aguardando aprovação. Depois: manifesto + .lvl + arte (blocos A–F).
+**▶ EQUILÍBRIO DA DESTRUIÇÃO — A53b (substituído pelo A56)** (meta 65% a qualquer momento → subterrâneo; 40% no tempo → Fachada; luta quebra mais;
+reação em cadeia). Falta o usuário jogar para confirmar. Também: menus com segurar-repete e o fluxo configurar/selecionar mapa termina
+na escolha dos personagens.
+**▶ PROJETOS DE DEMOLIÇÃO v2 FEITO — A53** (prancha `art/out/ui/projetos_v2.png`, vídeo `out/videos/projetos_v2.mp4`, vitrine
+`--projetos=DIR`): cena única em papel e giz (tickets dos ganhos, prédio do projeto, bola da grua derruba 1 andar por ponto,
+contador de casas; completo = poeira + cartaz LIBERADO!/EM BREVE; sem mapa a liberar = "+N GUARDADOS"). Mapas a liberar em
+`progressao.mapas_a_liberar` (vazio hoje). Arte `art/src/ui/projetos_export.py` → `game/assets/ui/projetos/`. Próximo: perguntar.
+**▶ SESSÃO 7 (cont. 5): CONTROLES PROFISSIONAIS FEITO — A51** (prancha `art/out/ui/controles_v2.png`, aprovada 2026-11-28).
+Modelo pelo fabricante/produto (DualSense, DualShock 4, Xbox Series/One/360, Switch Pro, genérico); OPÇÕES ▸ CONTROLES =
+central com um cartão por aparelho (pisca "é este!" ao apertar) → MAPEAR só aquele aparelho (principal + alternativo, troca
+automática, direções aceitam qualquer analógico/botão, Esc/Shift/Ctrl proibidos, salvar/restaurar) → TESTAR ao vivo (teclado:
+os dois lados + teste de fantasma). Teclado novo: A = WASD + G/Espaço H J Y U; B = setas + numérico 1–5 (notebook K L Ç O P).
+Arte em papel e giz `art/src/ui/controles_arte.py` + `controles_export.py` → `game/assets/ui/controles/`; ícones também nas dicas
+(`Kit.pad_btn`). Bateria 573/573. Falta testar com controles REAIS (só simulados aqui). Próximo: perguntar ao usuário.
+**▶ SESSÃO 7 (cont. 4): HUD DE CIMA VIVO FEITO — A50** (retrato animado, número que pula, maleta da engenhoca com/usando,
+perigo e fora; vídeo `out/videos/hud_vivo.mp4`, vitrine `--hud=DIR`). Próximo: perguntar ao usuário.
+**▶ SESSÃO 7 (cont. 4): DESEMPENHO — 2ª passada FEITA** (protocolo completo em `docs/manuais/desempenho.md`: orçamento,
+sonda `Perf` com marcadores por subsistema, cenário `--perf-derruba` (+ `--perf-partidas=N` sessão longa, `--perf-vaza`),
+regras de ouro, teste `--so=desempenho` na bateria). Corrigido: busca dos bots fatiada, sorteio de eventos espalhado,
+`modos.json` relido a cada chamada (picos de 10 ms em caixa/eliminação), `is_solid` com lista por chamada, renascimento no
+mapa todo, e 2 VAZAMENTOS entre partidas (cache de estilos e formas de colisão órfãs). Quadros acima do pico: 2,2% → 0,3%.
+Próximo alvo de desempenho: cartões do HUD (~1,2 ms/quadro, constante).
+**▶ SESSÃO 7 (cont. 3): DESEMPENHO — 1ª passada FEITA** (protocolo `docs/manuais/desempenho.md`, sonda `Perf` +
+`--perf-derruba=DIR`). Corrigido: corações do placar (triangulação falhando a cada quadro, ~7 ms), chave do cache de estilos
+(`Kit._sb`) e rota dos bots (1 cache para 4 bots → picos de 16–30 ms; agora rota por alvo). Pior caso: CPU 41,8 → 28 ms em
+média, p99 88 → 56 ms (contêiner com GL por software; num PC é 3–5× menos). Próximos alvos listados no manual.
+Obs.: uma sessão paralela tinha refeito o combate (r2) sem ver o A47 — esse trabalho duplicado ficou só no `git stash`
+local ("combate r2 desta sessão"), NÃO entrou na branch.
+**▶ SESSÃO 7 (cont. 2): SKINS v2 FEITAS** — 15 skins (3 por robô) aprovadas e no jogo (`art/src/robos/skins_lote.py --jogo`,
+biblioteca `docs/fases/derruba/f1_canteiro/skins.md`, vídeo `art/out/skins_v2/skins_no_jogo.mp4`). Corrigido: Defesa sumia (config
+salva antes dela → agora engenhoca nova entra acesa) e a tela de engenhocas cabe inteira (grade se ajusta). .exe entregue.
+Próximo: perguntar ao usuário. Pendência menor: joelheiras das skins do Marretão não aparecem no jogo (membros são do código).
+**▶ SESSÃO 7 (cont.): RECOMPENSAS + MAPAS FEITO — A49** (pranchas `art/out/recompensas/g1–g3, m1`, aprovadas 2026-11-27):
+gangorra = A · Balança da grua (`game/ui/fim.gd`, arte `art/src/ui/premio_export.py` → `game/assets/premio/`); caixas sem texto
+que dizem o prêmio (skin = figurino com cabide; engenhoca = maleta de aço; evento = caixote com sirene); presente em 5 tempos
+(decide → sai de cena → voa ao centro → treme e abre → prêmio grande no pedestal com nome e NOVO; vídeo
+`art/out/recompensas/v_gangorra_presente.mp4`). Mapas em grade 3 × 3 com páginas (◄► na borda desliza; `game/ui/menus.gd`).
+Skin revelada aparece com o visual padrão até as skins K1–K5 serem refeitas.
+**▶ SESSÃO 7: D (combate) FEITO — A47; A (animação dos robôs no jogo) FEITO — A48 (poses das animações aprovadas, cabeça com mola, jeito de andar)** (prancha `combate_r3.png`, vídeo `out/videos/combate_r3.mp4`). Pendências que sobram: C) skins K1–K5. (Os 7 pontos da avaliação de interface JÁ estavam feitos desde a sessão 2 — A22–A26; conferido em 2026-11-27, captura `out/videos/interface_atual.png`.) Perguntar ao usuário qual segue.
+**▶ PRÓXIMO PASSO:** Auditoria das engenhocas — ATAQUE CONCLUÍDO (lotes 1–4, A38–A41) e a subida da coluna do A06 REFEITA
+(sessão 6, A42: sai de um buraco em 0,35 s, passa do ponto e assenta com tranco, rachaduras escuras, poeira dos dois lados,
+o rival sobe COLADO no topo e é lançado aos 60% da subida; colisão cresce junto; faixa zebrada grossa; ícone = cravadeira;
+vídeos `out/videos/a06_coluna*.mp4`). **Controle FEITO** (A43: só o C03 Gancho muda — agarrou embaixo/na quina de estrutura alta → sobe por cima; o resto fica).
+**Defesa lote D1 FEITO** (A44: classe nova verde/cúpula/capacete; D01 Âncora de Contrapeso, D02 Airbag de Obra passivo;
+vídeos `out/videos/defesa_lote1*.mp4`) e **lote D2 FEITO** (A45: D03 Para-choque de Mola; D04 Cortina de Poeira — o
+Remendo Rápido foi reprovado; vídeos `out/videos/defesa_lote2*.mp4`) e **lote D3 FEITO** (A46: D05 Capacete de Aço,
+D06 Boneco de Teste; vídeos `out/videos/defesa_lote3*.mp4`). Defesa = 6 engenhocas (D01–D06), APROVADAS pelo usuário. **A auditoria das engenhocas (Ataque, Controle,
+Defesa) está CONCLUÍDA e APROVADA pelo usuário (2026-11-27).** Próximo: o usuário escolher entre as pendências; pendências antigas abaixo (skins K1–K5, prancha de
+combate r2, números provisórios, 7 pontos da avaliação de interface).
+**Lição da sessão 5:** arte copiada para `game/assets` só aparece depois de `godot --headless --path game --import`; conferir
+SEMPRE de perto (recorte) antes de entregar — o usuário reprovou o lote 3 na 1ª entrega por isso.
+APROVADAS em `docs/revisoes/auditoria_engenhocas.md`, seção "Propostas APROVADAS"). Depois lote 4 = A06 Bate-Estaca (vira
+lançador: coluna de concreto que lança para cima e fica de plataforma) + A07 (cada robô arremessa a SUA arma). Depois: pedir
+ao usuário as notas do CONTROLE (C01–C05; proposta: C04 Teleporte → Defesa) e criar a classe nova DEFESA (ideias levadas:
+Âncora de Contrapeso, Airbag de Obra, Para-choque de Mola, Remendo Rápido, Botas Magnéticas; PROIBIDO escudo na mão — S28).
+**Fluxo que o usuário aprovou (repetir igual por lote de 2):**
+1. Prancha 4 tempos (preparo → ação → impacto → resultado) + arte nova da arma em `art/src/robos/eng_ataques.py`
+   (`prancha()` = lote 1, `prancha2()`/`--l2` = lote 2; criar `prancha3()`/`--l3`). Render: `NODE_PATH=$(npm root -g) python3
+   art/src/robos/eng_ataques.py --l3` → `art/out/robos_v2/eng_ataques_l3.png`. Mandar ao usuário e ESPERAR aprovação.
+2. Código em `game/modes/spells.gd` (+ pose em `game/player/robot_visual.gd`), números em `data/modos.json` (edição
+   PONTUAL; nunca regravar o JSON inteiro), arte exportada por `exportar_jogo()` (`--jogo`) no espaço de design 128x64 com
+   a pega/bico de `RobotVis.SPELL_TOOLS` → copiar para `game/assets/spells/`.
+3. Testes em `game/tests/driver.gd` (`spells_test`), rodar `--so=spells,combate,bots`; captura `--spells=DIR
+   --so-spells=ID+...` (há segmentos extras: A01cheio, A02corte) → vídeo com ffmpeg (30 fps = tempo real; 10–12 = lento).
+4. Commit + push, registrar decisão (A40…) em `docs/revisoes/reformulacao_derruba.md`, marcar o lote na auditoria.
+**Lições desta sessão:** impacto tem que parecer do cenário (poeira cor de concreto, lascas com borda escura — o usuário
+reprovou rachadura amarela em zigue-zague e a textura `laje_2` com fita zebrada: peça destruída por engenhoca desaba direto
+com `ct._collapse(p)`); tiros saem do bico DESENHADO (`muzzle()` lê o meta "bico" gravado em `draw_robot`); testes que
+dependem de sorteio precisam de `seed()` (bots e renascer já têm). A laje cai por TRECHO de 4 tiles; o núcleo nunca cai.
 
-**PRÓXIMO PASSO (o usuário acabou de avaliar — fazer nesta ordem):** `docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`
-(7 pontos, prints na mesma pasta):
-1. Menu: logo por cima da placa JOGAR (e cabo cruzando o logo) → separar.
-2. Modos: tirar Batata/Rei/Fuga, só DERRUBA, no visual novo (ou pular a tela de modos — perguntar).
-3. Mapas: fazer IGUAL à prancha aprovada `6_referencia_mapas_preferida.png` (Sorteio, Canteiro com capacetes das
-   cenas, 2 cartazes bloqueados de exemplo com lona/cadeado, régua dos Projetos).
-4. Fim da partida: REMOVER a tela antiga de placar ("P1 1 de 5 estrelas") que ainda aparece antes dos resultados.
-5. Recompensas em TELAS PRÓPRIAS animadas antes dos resultados: Gangorra (grande, prêmios nas pontas, agulha vai e
-   volta e termina num lado) e Projetos de Demolição (repensar a evolução; conferir a lógica +1/+2 vs quadrados).
-   → fazer PRANCHA primeiro.
-6. Resultados: estatísticas por jogador + CRONÔMETRO para escolher a opção. Tirar o círculo com estrela (feio).
-7. Pausa: visual novo; propor (A/B) se ganha Configurar mapa / Selecionar mapa.
-Pendentes antigos: limiares 30%/70% (usuário quer testar antes), números PROVISÓRIOS (P1, P3, P4/P6).
+**Feito nesta sessão (decisões A28–A35 em `docs/revisoes/reformulacao_derruba.md`):**
+- Elenco A27 no jogo; Guindaste (G2 Lança) e Escavadeira (E2 Trator) refeitos (A28). Ids internos antigos mantidos:
+  picareta=Guindaste, chave=Solda, britadeira=Brita, pa=Escavadeira.
+- Engenhocas em 3 classes (A31): sai Andaime Relâmpago e Controle Remoto; Carga Remota → Ataque; Propulsor → MECHA JATO.
+- ARMADURAS = MECHAS pilotados ameaçadores (A29) com silhueta própria; Bola sem corrente, fica em pé e fecha em bola
+  SEGURANDO o especial. Habilidades (A30): Broca dash furando (segurar), Para-Raios (ex-Soldador) raio em cadeia 3 alvos
+  + metal, Fornalha fogo de partículas 8 direções, Empilhadeira agarra/arremessa, Jato voa. Tamanho ≈ 2 blocos (A32).
+  Modo mecha (A33): atributos recebe/empurrão/causa por mecha (`demolicao.modo_mecha`), golpe LEVE/PESADO próprios.
+- Animação ARTICULADA (A34): `RobotVis._draw_mecha` = esqueleto com IK (coxa/canela/pé, braço/antebraço), pé plantado
+  (`walk_d`), estilos `MECHA_ESTILO` e golpes `MECHA_GOLPES`. Peças: `art/src/robos/armaduras_export.py` → `game/assets/mecha`.
+- Cartucho de Mecha na mão + holograma, ativação cravando no peito, ícones = cartucho, duração +50% (A35).
+- Vitrines: `--mechas=DIR` (grava pos.json para recortar; `MECHAS_SO=T07` filtra), `--equipa=DIR` (inclui kits T01–T06). Vídeos em `out/videos/`.
+- **Sessão 4 (A36):** T07 Minirrobô Veloz virou **MECHA CORREDOR** (variante A Velocista: pernas-lâmina, aerofólio, escapes).
+  Velocidade ×1,7, pulo ×1,15; SEGURAR especial = ARRANCADA (3 s de combustível, sobe parede, atropela). Golpes:
+  joelhada-relâmpago (leve) e voadora deslizante (pesado). Arte `art/src/robos/mecha_corredor.py` (prancha) → export `--so=T07`.
+  `selecao_test` agora calcula as contagens pelos dados (estava desatualizado desde a A31). Vídeo `out/videos/mecha_corredor.mp4`.
+- **Auditoria das engenhocas** (`docs/revisoes/auditoria_engenhocas.md`): Ataque decidido; **lote 1 FEITO (A38: A04 cratera +
+  A01 carregado), lote 2 FEITO (A39: A02 feixe que corta, A05 rajada que prega)**; próximos lotes A08+E02 → A06+A07; depois notas do Controle e a classe nova DEFESA.
+- **A37:** o mecha vai como MOCHILA nas costas antes de ativar (sai o cartucho na mão + holograma). Vitrine:
+  `MECHAS_SO=T07 MECHAS_SEGURA=120 MECHAS_MODELO=0..4 ... --mechas=DIR` (anda carregando, card da seleção, ativação).
+
+**PRÓXIMO passo (esperando o usuário jogar o último .exe):** ajustar o que ele apontar na animação dos mechas
+(estilos/golpes em `robot_visual.gd`), depois os 7 pontos da avaliação de interface (`docs/avaliacoes/2026-11-26_interface/AVALIACAO.md`).
+**Decisões pendentes:** atributos do Corredor (A36) PROVISÓRIOS até o usuário jogar; skins K1–K5 a refazer no
+estilo novo; prancha de combate `r2_combate.png` (A/B) sem resposta; números PROVISÓRIOS (atributos dos mechas, 100/60/35%
+do raio, limiares 30/70%). Animações do elenco (robôs a pé) no jogo ainda usam as poses antigas, não as dos vídeos.
 
 ---
 ### Histórico (sessões anteriores)

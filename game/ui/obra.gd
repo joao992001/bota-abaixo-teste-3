@@ -162,8 +162,11 @@ static func chip(ci: CanvasItem, p: Vector2, n := 1) -> void:
 
 static var _sbs := {}
 static func _sb(fill: Color, radius: int, border := 0) -> StyleBoxFlat:
-	var k := "%s|%d|%d" % [fill.to_html(), radius, border]
+	fill = Kit.cor_cache(fill)   # mesma regra do Kit: sem cor exata na chave (vazamento com transparência animada)
+	var k := [fill.to_rgba32(), radius, border]
 	if not _sbs.has(k):
+		if _sbs.size() >= Kit.SB_MAX:
+			_sbs.clear()
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = fill
 		sb.set_corner_radius_all(radius)

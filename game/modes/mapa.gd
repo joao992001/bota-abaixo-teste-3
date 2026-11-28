@@ -11,8 +11,15 @@ extends RefCounted
 static var _cache := {}
 static var _avisos := {}
 
+## modos.json lido UMA vez (desempenho, 2026-11-28): antes cada modo_cfg() relia e interpretava os 39 KB do arquivo —
+## o sorteio de caixa chamava isso dentro de laços (~10 ms por caixa), a eliminação idem. Somente leitura: não altere.
+static func _modos() -> Dictionary:
+	if not _cache.has("_modos"):
+		_cache["_modos"] = Data.read_json("data/modos.json")
+	return _cache["_modos"]
+
 static func modo_cfg(mode_id: String) -> Dictionary:
-	for m in Data.read_json("data/modos.json")["demolicao"]["modos"]:
+	for m in _modos()["demolicao"]["modos"]:
 		if m["id"] == mode_id:
 			return m
 	return {}
@@ -114,7 +121,7 @@ static func validar(m: Dictionary) -> Array:
 	if mc.is_empty():
 		err.append("modo inexistente: " + mode_id)
 		return err
-	var sp: Dictionary = Data.read_json("data/modos.json")["demolicao"]["spells"]
+	var sp: Dictionary = _modos()["demolicao"]["spells"]
 	var classes: Dictionary = mc.get("classes_spells", {})
 	var lista: Array = m.get("spells_permitidas", [])
 	if lista.is_empty():
@@ -125,7 +132,7 @@ static func validar(m: Dictionary) -> Array:
 		elif not classes.has(String(sp[id]["familia"])):
 			err.append("spell %s com classe '%s' fora das classes do modo" % [id, sp[id]["familia"]])
 	var lib := {}
-	for e in Data.read_json("data/modos.json")["demolicao"]["eventos"]["lista"]:
+	for e in _modos()["demolicao"]["eventos"]["lista"]:
 		lib[e["id"] if e is Dictionary else e] = true
 	var ids := {}
 	var ordens := {}
@@ -141,7 +148,7 @@ static func validar(m: Dictionary) -> Array:
 			if not lib.has(e):
 				err.append("cena %s: evento inexistente na biblioteca: %s" % [c["id"], e])
 		for d in c.get("mecanismos", []):
-			if not (d.has("pos") or d.has("x") or d.has("base") or String(d.get("tipo", "")) == "cede"):   # cede escolhe a peça
+			if not (d.has("pos") or d.has("x") or d.has("base") or String(d.get("tipo", "")) in ["cede", "conteiner_cai", "gancho_balanca", "onda_balsa", "mare", "conteiner_boia", "rede_rasga", "tubarao", "cupula_racha", "geiser", "lustre_cai", "concha"]):   # cede escolhe a peça; o contêiner sorteia a coluna; os da Fase 2 trazem a posição relativa à cena
 				err.append("cena %s: mecanismo %s sem posição" % [c["id"], d.get("id", "?")])
 	# v2: árvore de cenas por nível (3 = 1→2, 7 = 1→2→4); cada cena não-final tem as DUAS rotas para o nível seguinte;
 	# destino pode ser uma cena pendente (aprovada, ainda não implementada).

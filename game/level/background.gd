@@ -55,6 +55,11 @@ func set_theme(name: String) -> void:
 	queue_redraw()
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("fundo", _pf)
+
+func _process_perf(dt: float) -> void:
 	if motes.is_empty() and gulls.is_empty() and stars.is_empty():
 		return
 	t += dt
@@ -74,6 +79,11 @@ func _process(dt: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_fundo", _pf)
+
+func _draw_perf() -> void:
 	if texture != null:
 		draw_texture_rect(texture, Rect2(0, 0, 1920, 1080), false)
 	else:

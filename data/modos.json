@@ -42,6 +42,12 @@
         "dica": "Destrua a obra: a destruição escolhe a próxima cena."
       },
       {
+        "id": "cargueiro_perdido",
+        "musica": "partida",
+        "nome": "Cargueiro Perdido",
+        "dica": "Do alto-mar ao fundo do mar: a destruição escolhe se o navio encalha ou afunda."
+      },
+      {
         "id": "demolicao",
         "musica": "partida",
         "nome": "Canteiro",
@@ -168,6 +174,16 @@
         "musica": "altura"
       }
     ],
+    "modo_mecha": {
+      "nota": "A33 (2026-11-27): no modo mecha o robô recebe menos dano/empurrão e causa mais; golpe rápido = LEVE do mecha, golpe pesado = PESADO do mecha, especial = habilidade (A30). Números PROVISÓRIOS. area_pesado: frente | volta (os dois lados).",
+      "T01": {"recebe": 0.6, "empurrao": 0.45, "causa": 1.3, "alcance_leve": 110, "alcance_pesado": 150, "area_pesado": "volta", "leve": "soco em brasa", "pesado": "pisão em chamas"},
+      "T02": {"recebe": 0.7, "empurrao": 0.5, "causa": 1.3, "alcance_leve": 150, "alcance_pesado": 150, "area_pesado": "frente", "leve": "estocada do garfo", "pesado": "garfada de cima (crava)"},
+      "T03": {"recebe": 0.75, "empurrao": 0.55, "causa": 1.35, "alcance_leve": 110, "alcance_pesado": 170, "area_pesado": "volta", "leve": "soco duplo", "pesado": "socão no chão"},
+      "T04": {"recebe": 0.85, "empurrao": 0.65, "causa": 1.25, "alcance_leve": 120, "alcance_pesado": 140, "area_pesado": "frente", "leve": "soco-jato", "pesado": "mergulho do ar"},
+      "T05": {"recebe": 0.8, "empurrao": 0.6, "causa": 1.4, "alcance_leve": 140, "alcance_pesado": 175, "area_pesado": "frente", "leve": "cutucada de broca", "pesado": "perfuração carregada"},
+      "T06": {"recebe": 0.85, "empurrao": 0.65, "causa": 1.25, "alcance_leve": 120, "alcance_pesado": 160, "area_pesado": "volta", "leve": "choque curto", "pesado": "descarga em anel"},
+      "T07": {"recebe": 0.9, "empurrao": 0.85, "causa": 1.1, "alcance_leve": 100, "alcance_pesado": 150, "area_pesado": "frente", "leve": "joelhada-relâmpago", "pesado": "voadora deslizante"}
+    },
     "amassometro": {
       "rapido": {
         "dano": 6,
@@ -240,6 +256,9 @@
         "ky": 240,
         "ky_por": 3.0
       },
+        "pesado_cima": {"dano": 14, "kx": 70, "kx_por": 0.8, "ky": 1050, "ky_por": 4.5},
+        "pesado_baixo": {"dano": 14, "kx": 60, "kx_por": 0.6, "ky": -760, "ky_por": -3.2},
+        "nota_combate_r3": "A47 (2026-11-27): pesado carregável (segurar até carga_max_s, +carga_mult no empurrão/dano, armadura contra o leve), 4 direções (◄► pesado, ▲ pesado_cima, ▼ no ar pesado_baixo), ponta = CRÍTICO (martelao × critico_mult; quebra a peça). Leve não quebra o cenário. Arremesso contra parede e pouso forte racham a obra.",
       "explosao": {
         "dano": 24,
         "kx": 420,
@@ -355,6 +374,9 @@
         "ky": 160,
         "ky_por": 1.2
       },
+      "defesa_serragem": {"dano": 5, "kx": 520, "kx_por": 3.0, "ky": 300, "ky_por": 1.2},
+      "defesa_rebate": {"dano": 6, "kx": 820, "kx_por": 4.0, "ky": 380, "ky_por": 1.5},
+      "spell_cratera": {"dano": 14, "kx": 760, "kx_por": 5.0, "ky": 560, "ky_por": 3.0},
       "spell_sismo": {
         "dano": 10,
         "kx": 260,
@@ -397,13 +419,7 @@
         "ky": 220,
         "ky_por": 1.0
       },
-      "spell_carga": {
-        "dano": 14,
-        "kx": 600,
-        "kx_por": 5.0,
-        "ky": 700,
-        "ky_por": 3.0
-      },
+      "spell_carga": {"dano": 14, "kx": 950, "kx_por": 5.0, "ky": 950, "ky_por": 3.0},
       "spell_viga": {
         "dano": 12,
         "kx": 200,
@@ -439,6 +455,13 @@
         "ky": 70,
         "ky_por": 0.4
       },
+        "spell_broca_dash": {"dano": 8, "kx": 430, "kx_por": 3.0, "ky": 260, "ky_por": 1.0},
+        "spell_arrancada": {"dano": 7, "kx": 520, "kx_por": 3.4, "ky": 320, "ky_por": 1.2},
+        "spell_raio1": {"dano": 4, "kx": 120, "kx_por": 0.8, "ky": 90, "ky_por": 0.4},
+        "spell_raio2": {"dano": 2.4, "kx": 90, "kx_por": 0.5, "ky": 70, "ky_por": 0.3},
+        "spell_raio3": {"dano": 1.4, "kx": 60, "kx_por": 0.3, "ky": 50, "ky_por": 0.2},
+        "mecha_leve": {"dano": 7, "kx": 260, "kx_por": 2.6, "ky": 200, "ky_por": 1.2},
+        "mecha_pesado": {"dano": 15, "kx": 420, "kx_por": 5.0, "ky": 360, "ky_por": 2.6},
       "evento_entulho": {
         "dano": 8,
         "kx": 240,
@@ -481,6 +504,41 @@
         "ky": 420,
         "ky_por": 2.0
       },
+      "mec_gancho": {
+        "dano": 12,
+        "kx": 320,
+        "kx_por": 3.4,
+        "ky": 240,
+        "ky_por": 1.6
+      },
+      "mec_lustre": {
+        "dano": 16,
+        "kx": 200,
+        "kx_por": 2.6,
+        "ky": 320,
+        "ky_por": 1.8
+      },
+      "mec_caixas": {
+        "dano": 10,
+        "kx": 160,
+        "kx_por": 2.6,
+        "ky": 220,
+        "ky_por": 1.4
+      },
+      "mec_tubarao": {
+        "dano": 14,
+        "kx": 260,
+        "kx_por": 3.0,
+        "ky": 520,
+        "ky_por": 2.2
+      },
+      "mec_conteiner": {
+        "dano": 18,
+        "kx": 240,
+        "kx_por": 3.2,
+        "ky": 260,
+        "ky_por": 1.8
+      },
       "mec_estaca": {
         "dano": 16,
         "kx": 220,
@@ -512,7 +570,7 @@
       "pulo_duplo": 0.82,
       "borda_max_s": 2.0,
       "invuln_inicio_s": 3.0,
-      "invuln_volta_s": 2.0
+      "invuln_volta_s": 3.0
     },
     "rede": {
       "quica": 1050,
@@ -534,29 +592,30 @@
           "controle": {
             "peso": 20
           },
-          "engenharia": {
-            "peso": 20
-          },
           "transformacao": {
             "peso": 7
+          },
+          "defesa": {
+            "peso": 20
           }
         },
-        "nota_classes": "Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
+        "nota_classes": "3 classes (2026-11-27): ataque, controle, transformação (mechas); a classe engenharia saiu — E01 Andaime Relâmpago e E03 Controle Remoto REMOVIDOS do jogo, E02 Carga Remota virou ataque. Classes de spell pertencem ao MODO (o mapa só autoriza spells; não cria classes). Transformações (armaduras) RARAS nas caixas normais (peso 7, 2026-11-25): o momento delas é a Carga Especial (G10).",
         "destruicao": {
-          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. Chegar a 90% antes da verificação não antecipa. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
-          "limiar_moderada": 0.5,
-          "limiar_total": 0.9,
+          "nota": "Derruba v2 (aprovado 2026-11-25/26, docs/revisoes/reformulacao_derruba.md A3/A5/A16): o TEMPO decide QUANDO verificar, a DESTRUIÇÃO decide PARA ONDE. Na verificação: < limiar_moderada fica (verifica de novo a cada intervalo); >= limiar_moderada e < limiar_total → rota_moderada da cena; >= limiar_total → rota_total. A56 (2026-11-28, estudo com bots `--estudo-destruicao`: com o A53b (65% a qualquer momento) a cena virava em ~20 s): SÓ a verificação de tempo decide (total_imediato false), 1ª aos 90 s com o padrão de 4 vidas (75 s com 3, 120 s com 6); aos 90 s bots médios ficam em 64–67% (moderada) e bots difíceis/caos em 67–86% (total em metade). O platô natural de ~67% (a parte de cima cai) separa as rotas: total exige derrubar também a base. 1ª verificação = primeira_base_s + por_vida_s x (vidas - vidas_base); intervalo = 1ª x intervalo_frac (PROVISÓRIO P1). A cena pode sobrescrever com 'verificacao' no manifesto. SEM diretor: nenhuma destruição espontânea (A5). Progresso = soma(peso x HP perdido)/soma(peso) das peças elegíveis; peça caída = 100%. Manômetro do HUD: mostrador de 10% a 90% (A16).",
+          "limiar_moderada": 0.35,
+          "limiar_total": 0.7,
+          "total_imediato": false,
           "verificacao": {
-            "vidas_base": 3,
-            "primeira_base_s": 30,
-            "por_vida_s": 20,
+            "vidas_base": 4,
+            "primeira_base_s": 90,
+            "por_vida_s": 15,
             "intervalo_frac": 0.3334,
             "vidas_min": 3,
             "vidas_max": 6
           },
           "mostrador": [
             0.1,
-            0.9
+            0.7
           ],
           "zonas": [
             "#2e9e4f",
@@ -592,7 +651,8 @@
           "partida_valida_min_s": 60,
           "pontos_partida": 1,
           "pontos_cena_nova": 2,
-          "pontos_por_mapa": 6
+          "pontos_por_mapa": 6,
+          "resultados_cronometro_s": 15
         }
       },
       {
@@ -650,18 +710,22 @@
       "laje_hp": 4,
       "andaime_hp": 3,
       "viga_hp": 2,
-      "dano_pesada": 1,
-      "impacto_vel": 950,
-      "dano_impacto": 1,
-      "impacto_forte_vel": 1500,
-      "dano_impacto_forte": 2,
+      "dano_pesada": 2,
+      "impacto_vel": 700,
+      "dano_impacto": 2,
+      "impacto_forte_vel": 1150,
+      "dano_impacto_forte": 3,
+      "luta_mult": 2,
+      "cascata_dano": 1,
+      "cascata_alcance_tiles": 6,
       "aviso_queda_s": 1.1,
       "ciclo_dano": 99,
       "escora_hp": 2,
       "estaca_hp": 2,
       "grelha_hp": 2,
       "entulho_hp": 2,
-      "prancha_hp": 2
+      "prancha_hp": 2,
+      "conteiner_hp": 3
     },
     "ko_explosao": {
       "nota": "KO pela borda: força do tremor e duração da explosão",
@@ -728,9 +792,7 @@
           "C03",
           "C04",
           "C05",
-          "E01",
           "E02",
-          "E03",
           "T01",
           "T02",
           "T03",
@@ -747,6 +809,16 @@
         "preparo": 0.4,
         "intervalo_s": 0.45,
         "alcance_tiles": 4,
+        "nota": "auditoria 2026-11-27: segurar carrega (carga_max_s); soltar = soco com força pela carga; carga >= quique_min_carga quica na parede e racha o bloco",
+        "carga_min_s": 0.15,
+        "carga_max_s": 1.0,
+        "segura_max_s": 1.2,
+        "mult_cheio": 2.6,
+        "sobe_cheio": 180,
+        "quique_min_carga": 0.5,
+        "quique_s": 0.9,
+        "quique_perda": 0.35,
+        "dano_bloco": 3,
         "icone": "s01_luva"
       },
       "A02": {
@@ -756,6 +828,14 @@
         "preparo": 0.5,
         "intervalo_s": 0.5,
         "alcance_tiles": 14,
+        "nota": "auditoria 2026-11-27: feixe contínuo enquanto segura (feixe_min_s..feixe_max_s), varre com ▲▼, arrasta quem toca, CORTA as peças de 'corta'",
+        "feixe_min_s": 0.35,
+        "feixe_max_s": 1.3,
+        "varre_rad_s": 2.2,
+        "arrasto": 1600,
+        "arrasto_max": 650,
+        "corte_s": 0.12,
+        "corta": ["andaime", "viga", "estaca", "prancha", "grelha"],
         "icone": "s02_laser"
       },
       "A03": {
@@ -775,18 +855,27 @@
         "familia": "ataque",
         "raridade": "comum",
         "cargas": 1,
-        "preparo": 0.45,
+        "preparo": 0.5,
         "alcance_tiles": 5,
         "vel": 950,
-        "icone": "s04_marreta"
+        "nota": "auditoria 2026-11-27: a mais destrutiva: cratera derruba as peças à frente (nunca a que está sob quem bate; núcleo não cai); quem está na cratera voa longe (spell_cratera), a onda levanta quem está no chão",
+        "cratera_frente_px": 40,
+        "cratera_tiles": 2.5,
+        "icone": "a04_marreta"
       },
       "A05": {
         "familia": "ataque",
         "raridade": "comum",
-        "cargas": 4,
-        "intervalo_s": 0.32,
+        "cargas": 2,
+        "intervalo_s": 0.45,
+        "nota": "auditoria 2026-11-27: 1 carga = rajada de 3 rebites em brasa; 3 acertos seguidos (janela pino_janela_s) = PREGADO por pino_s",
+        "rajada": 3,
+        "rajada_intervalo_s": 0.09,
+        "pino_n": 3,
+        "pino_s": 1.0,
+        "pino_janela_s": 1.6,
         "vel": 1150,
-        "ricochetes": 2,
+        "ricochetes": 3,
         "perda": 0.78,
         "vida_s": 1.2,
         "icone": "s05_rebiteira"
@@ -801,7 +890,65 @@
         "mira_vel": 700,
         "mira_alcance_tiles": 7,
         "mira_max_s": 2.0,
-        "icone": "s17_estaca"
+        "coluna_tiles": 3.0, "coluna_s": 6.0, "lanca_vel": 1250, "sobe_s": 0.35, "nota_coluna": "A41: crava a estaca e sobe uma COLUNA de concreto (sólida) que lança quem está em cima e fica de plataforma coluna_s, depois desaba. Sessão 6: sobe em sobe_s saindo de um buraco no chão (rachaduras, poeira, tranco ao assentar).", "icone": "s17_cravadeira"
+      },
+      "D01": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 classe DEFESA (lote D1): crava o contrapeso — duracao_s sem ser empurrado (golpe, vento, ímã, onda, gancho); dano conta; anda a vel_mult e não pula; só no chão",
+        "duracao_s": 4.0,
+        "vel_mult": 0.45,
+        "icone": "d01_contrapeso"
+      },
+      "D02": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 classe DEFESA (lote D1): PASSIVO — lançado rápido (>= dispara_vel, no ar ou deslizando) por apos_voo_s logo após um golpe, ou caindo no vazio, infla: corta o voo e desce devagar (desce_vel) até o chão; puxa para o chão mais perto se embaixo for vazio",
+        "dispara_vel": 700,
+        "apos_voo_s": 0.2,
+        "desce_vel": 110,
+        "deriva_vel": 260,
+        "max_s": 2.2,
+        "icone": "d02_airbag"
+      },
+      "D03": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 DEFESA lote D2: molas em volta por duracao_s; golpe não passa e quem bateu (perto) é REBATIDO (defesa_rebate); tiros (rebite, gelo, mola) voltam com dono novo",
+        "duracao_s": 1.5,
+        "rebate_raio": 230,
+        "icone": "d03_molas"
+      },
+      "D04": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 DEFESA lote D2: rasga um saco de cimento → nuvem de pó por duracao_s: golpe, tiro e perigo passam direto; dentro dela não ataca nem usa engenhoca",
+        "rasga_s": 0.25,
+        "duracao_s": 2.0,
+        "icone": "d04_saco"
+      },
+      "D05": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 DEFESA lote D3: capacete de aço por cima — absorve os próximos `protecoes` golpes/tiros (sem dano, sem empurrão); no último voa longe",
+        "protecoes": 3,
+        "intervalo_s": 0.15,
+        "icone": "d05_capacete0"
+      },
+      "D06": {
+        "familia": "defesa",
+        "raridade": "comum",
+        "cargas": 1,
+        "nota": "2026-11-27 DEFESA lote D3: deixa um boneco de teste no lugar e recua num pulo; bots miram nele por duracao_s; quem bate leva serragem (defesa_serragem)",
+        "duracao_s": 5.0,
+        "recuo_vx": 480,
+        "recuo_vy": 560,
+        "icone": "d06_boneco"
       },
       "A07": {
         "familia": "ataque",
@@ -810,7 +957,7 @@
         "vel": 1250,
         "alcance_tiles": 8,
         "max_s": 3.4,
-        "icone": "s04_marreta"
+        "pulso_s": 0.25, "vibra_s": 1.1, "raio_vibra_tiles": 1.7, "raio_terra_tiles": 1.9, "puxa_vel": 900, "nota_por_robo": "A41: cada robô arremessa a SUA arma: marreta e chave voltam (bumerangue); gancho do Guindaste agarra e PUXA; britadeira da Brita crava e VIBRA; caçamba da Escavadeira espalha TERRA.", "icone": "s04_marreta"
       },
       "A08": {
         "familia": "ataque",
@@ -854,6 +1001,8 @@
         "alcance_tiles": 12,
         "puxa_vel": 1250,
         "puxa_max_s": 0.7,
+        "topo_tiles": 4.5,
+        "nota_topo": "sessão 6: agarrou embaixo/na quina de estrutura alta → sobe por cima dela (busca o topo até topo_tiles)",
         "icone": "s08_gancho"
       },
       "C04": {
@@ -886,11 +1035,11 @@
         "icone": "s10_tabua"
       },
       "E02": {
-        "familia": "engenharia",
+        "familia": "ataque",
         "raridade": "comum",
         "cargas": 1,
         "arma_s": 0.5,
-        "auto_s": 12.0,
+        "auto_s": 4.0,
         "raio_tiles": 2.4,
         "dano_estrutura": 2,
         "icone": "s12_carga"
@@ -906,20 +1055,20 @@
         "familia": "transformacao",
         "raridade": "rara",
         "cargas": 1,
-        "duracao_s": 10.0,
-        "combustivel_s": 3.0,
+        "duracao_s": 15.0,
+        "combustivel_s": 4.0,
         "vel_mult": 0.7,
         "empurrao_mult": 0.45,
         "fogo_alcance_tiles": 3.2,
         "fogo_tick_s": 0.22,
         "explosao_raio_tiles": 2.4,
-        "icone": "s13_frente"
+        "icone": "icone_mecha_T01"
       },
       "T02": {
         "familia": "transformacao",
         "raridade": "incomum",
         "cargas": 1,
-        "duracao_s": 6.5,
+        "duracao_s": 10.0,
         "vel_mult": 0.65,
         "empurrao_mult": 0.5,
         "garfo_alcance": 170,
@@ -929,13 +1078,13 @@
         "garfo_altura": 130,
         "investida_s": 0.35,
         "investida_vel": 760,
-        "icone": "s14_chassi"
+        "icone": "icone_mecha_T02"
       },
       "T03": {
         "familia": "transformacao",
         "raridade": "rara",
         "cargas": 1,
-        "duracao_s": 5.0,
+        "duracao_s": 8.0,
         "acel": 2600,
         "vel_max": 900,
         "freio": 2200,
@@ -944,51 +1093,55 @@
         "contra_mult": 1.6,
         "pulo_ar_mult": 0.85,
         "tolerancia_s": 0.12,
-        "icone": "s15_bola"
+        "icone": "icone_mecha_T03"
       },
       "T04": {
         "familia": "transformacao",
         "raridade": "comum",
         "cargas": 1,
-        "duracao_s": 12.0,
+        "duracao_s": 16.0,
         "combustivel_s": 3.6,
         "sobe_vel": 520,
         "desce_vel": 140,
         "sobe_acel": 3800,
-        "icone": "s16_mochila"
+        "icone": "icone_mecha_T04"
       },
       "T05": {
         "familia": "transformacao",
         "raridade": "incomum",
         "cargas": 1,
-        "duracao_s": 5.0,
+        "duracao_s": 8.0,
         "vel_mult": 0.75,
         "empurrao_mult": 0.6,
         "tick_s": 0.25,
         "estrutura_tick_s": 0.45,
-        "icone": "s31_broca"
+        "combustivel_s": 0.85, "dash_vel": 800, "dash_tick_s": 0.1, "nota_dash": "A30: SEGURAR = dash furando até acabar o combustível (fura trechos à frente, atropela).", "icone": "icone_mecha_T05"
       },
       "T06": {
         "familia": "transformacao",
         "raridade": "incomum",
         "cargas": 1,
-        "duracao_s": 6.5,
-        "combustivel_s": 3.0,
+        "duracao_s": 10.0,
+        "combustivel_s": 4.0,
         "arco_alcance": 90,
         "tick_s": 0.22,
         "reparo_s": 0.9,
-        "icone": "s28_macarico"
+        "raio_alcance": 300, "raio_salto": 230, "raio_alvos": 3, "metal_alcance": 240, "nota_raio": "A30 PARA-RAIOS: segurar = raio na mira; pula para o próximo robô a até raio_salto (até 3, golpes spell_raio1/2/3 = 100/60/35%) e conduz em estrutura de METAL (grelha/estaca) danificando.", "icone": "icone_mecha_T06"
       },
       "T07": {
+        "nota": "A36 (2026-11-27): MECHA CORREDOR (ex-Minirrobô Veloz, não encolhe mais). Segurar o especial = ARRANCADA (corre em linha reta, atropela, sobe parede). Números PROVISÓRIOS.",
         "familia": "transformacao",
         "raridade": "comum",
         "cargas": 1,
-        "duracao_s": 5.5,
-        "tamanho": 0.58,
-        "vel_mult": 1.35,
-        "empurrao_mult": 1.5,
-        "golpe_mult": 0.6,
-        "icone": "s33_mascara"
+        "duracao_s": 10.0,
+        "vel_mult": 1.7,
+        "pulo_mult": 1.15,
+        "empurrao_mult": 1.0,
+        "combustivel_s": 3.0,
+        "arrancada_vel": 1500,
+        "arrancada_tick_s": 0.4,
+        "sobe_parede_vel": 700,
+        "icone": "icone_mecha_T07"
       }
     },
     "eventos": {
@@ -1210,6 +1363,15 @@
       ],
       "conflitos_nota": "Pares que nunca rodam juntos (Relatório 04 §6.5 + segurança de geometria). Até max_simultaneos[intensidade] eventos compatíveis ao mesmo tempo."
     },
+    "agua": {
+      "nota": "Regra-assinatura ÁGUA da Fase 2 (A55, docs/fases/derruba/f2_cargueiro/README.md; modes/agua.gd). Alagado: corrida x corrida, gravidade x gravidade, queda máx x queda_max (pulo flutua), golpe recebido x empurrao. Molhado (onda): corrida x molhado_corrida por molhado_s. Zonas por cena no manifesto (cenas[].agua.zonas, tiles da cena).",
+      "corrida": 0.6,
+      "gravidade": 0.55,
+      "queda_max": 0.5,
+      "empurrao": 1.25,
+      "molhado_corrida": 0.8,
+      "molhado_s": 2.0
+    },
     "etapas": {
       "nota": "Cinematografia da transição entre cenas (aviso, desabamento, queda lenta, câmera que desce junto). O GATILHO agora é a destruição (modos[derruba].destruicao), não o tempo. Rota moderada com destino AO LADO (Fachada): todos escorregam num arco em deslize_s até as pranchas de cima.",
       "aviso_s": 3.0,
@@ -1223,27 +1385,33 @@
     }
   },
   "bots": {
-    "nota": "react_s = tempo de reação; hammer_acc = chance de marretar quando dá; safety = chance de checar buraco antes de andar",
+    "nota": "react_s = tempo de reação; hammer_acc = chance de marretar quando dá; safety = chance de checar buraco antes de andar; pausa = chance de, a cada decisão, ficar parado/respirar por pausa_s (ritmo humano: avaliação 2026-11-26, bots acelerados demais)",
     "facil": {
-      "react_s": 0.38,
+      "react_s": 0.5,
       "hammer_acc": 0.45,
       "safety": 0.85,
       "use_items": 0.4,
-      "hammer_cooldown_s": 1.0
+      "hammer_cooldown_s": 1.4,
+      "pausa": 0.3,
+      "pausa_s": [0.6, 1.3]
     },
     "medio": {
-      "react_s": 0.2,
+      "react_s": 0.3,
       "hammer_acc": 0.75,
       "safety": 0.97,
       "use_items": 0.8,
-      "hammer_cooldown_s": 0.6
+      "hammer_cooldown_s": 0.9,
+      "pausa": 0.18,
+      "pausa_s": [0.4, 0.9]
     },
     "dificil": {
-      "react_s": 0.09,
+      "react_s": 0.14,
       "hammer_acc": 0.95,
       "safety": 1.0,
       "use_items": 1.0,
-      "hammer_cooldown_s": 0.4
+      "hammer_cooldown_s": 0.55,
+      "pausa": 0.06,
+      "pausa_s": [0.25, 0.5]
     }
   }
 }

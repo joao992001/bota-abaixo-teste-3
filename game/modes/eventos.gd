@@ -66,6 +66,8 @@ func reset_round() -> void:
 	crates.clear()
 	rivets.clear()
 	bits.clear()
+	_fila.clear()
+	_fila_viva = false
 	gravity_mult = 1.0
 	wind = 0.0
 	var lvl: int = main.event_level
@@ -198,9 +200,13 @@ func update(dt: float) -> void:
 	front.queue_redraw()
 	for r in main.robots:
 		r.env_slow = 1.0   # lentidão do ambiente: eventos e mecanismos somam neste quadro
+	var _pb := Perf.t0()
 	_update_bits(dt)
+	Perf.add("sub_ev_particulas", _pb)
+	_pb = Perf.t0()
 	_update_crates(dt)
 	_update_rivets(dt)
+	Perf.add("sub_ev_caixas_rebites", _pb)
 	wind = 0.0
 	gravity_mult = 1.0
 	if main.event_level <= 0 or main.state != main.S.RUN or main.countdown > 0.0:
@@ -210,17 +216,52 @@ func update(dt: float) -> void:
 	if not manual and not virando and active.size() < max_sim():
 		timer -= dt
 		if timer <= 0.0:
-			var pool: Array = cfg["lista"].filter(func(e): return compatible(e["id"]) and eligible(e))
-			if pool.is_empty():
-				timer = 3.0
-			else:
-				var other := pool.filter(func(e): return fired.is_empty() or e["id"] != fired[-1])
-				var src: Array = other if not other.is_empty() else pool
-				_announce(src[main.rng.randi() % src.size()], -1.0)
-				timer = float(cfg["intervalo_s"][main.event_level]) * main.rng.randf_range(0.8, 1.2)
+			_sorteia_aos_poucos()
 	for a in active.duplicate():
+		var _pe := Perf.t0()
 		_step(a, dt)
+		Perf.add("ev_%s_%s" % [String(a.get("id", "?")), String(a.get("phase", ""))] if Perf.on else "", _pe)
 	wind = clampf(wind, -float(cfg["vento_max"]), float(cfg["vento_max"]))
+
+## Sorteio do próximo evento ESPALHADO EM QUADROS (desempenho, 2026-11-28): testar se cada evento cabe na cena (lugares
+## livres, guindaste, andaimes...) custava 8–19 ms quando os 14 eram testados de uma vez. Agora a fila sai embaralhada e
+## no máximo SORTEIO_POR_QUADRO são testados por quadro; o primeiro que couber é o sorteado (mesma chance para todos os
+## que cabem). O último disparado vai para o fim da fila (só repete se nenhum outro couber).
+const SORTEIO_POR_QUADRO := 2
+var _fila: Array = []
+var _fila_viva := false
+
+func _sorteia_aos_poucos() -> void:
+	if not _fila_viva:
+		var ultimo = null
+		_fila = []
+		for e in cfg["lista"]:
+			if not fired.is_empty() and e["id"] == fired[-1]:
+				ultimo = e
+			else:
+				_fila.append(e)
+		for i in range(_fila.size() - 1, 0, -1):   # embaralha com o rng da partida (repetível)
+			var j: int = main.rng.randi_range(0, i)
+			var tmp = _fila[i]
+			_fila[i] = _fila[j]
+			_fila[j] = tmp
+		if ultimo != null:
+			_fila.append(ultimo)
+		_fila_viva = true
+	var n := 0
+	while not _fila.is_empty() and n < SORTEIO_POR_QUADRO:
+		var e: Dictionary = _fila.pop_front()
+		n += 1
+		if compatible(e["id"]) and eligible(e):
+			var _pa := Perf.t0()
+			_announce(e, -1.0)
+			Perf.add("ev_anuncio", _pa)
+			timer = float(cfg["intervalo_s"][main.event_level]) * main.rng.randf_range(0.8, 1.2)
+			_fila_viva = false
+			return
+	if _fila.is_empty():   # nenhum cabe agora: tenta de novo daqui a pouco
+		_fila_viva = false
+		timer = 3.0
 
 func _step(a: Dictionary, dt: float) -> void:
 	a["age"] += dt
@@ -1088,13 +1129,24 @@ func _update_rivets(dt: float) -> void:
 
 # ---------------------------------------------------------------- lugares
 ## Chão firme livre (pés em p): não é borda que vai cair, nem perto de nascimento, nem em entulho/tapume.
+## Pontos de chão livre da cena atual. Varre só a área da cena (não o mapa inteiro) e guarda o resultado por 0,25 s:
+## era chamada várias vezes por quadro (elegibilidade dos eventos + porcas da G03, 14×/s) e travava o jogo (avaliação 2026-11-26).
+var _gs_cache := {}
 func _ground_spots(free_tiles := 3) -> Array:
+	var ck: Dictionary = _gs_cache.get(free_tiles, {})
+	if not ck.is_empty() and t - float(ck["t"]) < 0.25 and ck["area"] == main.level.area:
+		return (ck["out"] as Array).duplicate()   # cópia: quem chama embaralha/ordena
+	var out := _ground_spots_scan(free_tiles)
+	_gs_cache[free_tiles] = {"t": t, "out": out, "area": main.level.area}
+	return out.duplicate()
+
+func _ground_spots_scan(free_tiles: int) -> Array:
 	var out := []
 	var lv = main.level
 	var ct = _canteiro()
 	var pr := _pr().grow(-96)
-	for y in range(2, lv.rows):
-		for x in range(0, lv.cols):
+	for y in range(maxi(2, int(pr.position.y / T) - 1), mini(lv.rows, int(pr.end.y / T) + 2)):
+		for x in range(maxi(0, int(pr.position.x / T) - 1), mini(lv.cols, int(pr.end.x / T) + 2)):
 			var c := Vector2i(x, y)
 			if not lv.is_solid(c) or lv.is_solid(c + Vector2i.UP) or lv.is_solid(c + Vector2i(0, -2)) or (free_tiles >= 3 and lv.is_solid(c + Vector2i(0, -3))):
 				continue
@@ -1144,19 +1196,32 @@ func _crane_spot() -> Variant:
 		return null
 	var pr := _pr()
 	var cands := []
-	for row in [ct.LAJE_Y - 4, ct.LAJE_Y - 3, ct.LAJE_Y - 5]:
+	var chao_y: int = ct.LAJE_Y
+	var topo := pr.position.y - 200.0   # Térreo: céu aberto acima
+	if chao_y * T < pr.position.y or chao_y * T > pr.end.y:   # Fundação/Fachada: o chão da cena atual (não a laje do Térreo)
+		topo = INF   # cena coberta (Fundação): basta folga de 3 blocos acima da carga (não o céu livre)
+		var gs := _ground_spots(2)
+		if gs.is_empty():
+			return null
+		var ys: Array = gs.map(func(p): return int(p.y / T))
+		ys.sort()
+		chao_y = ys[ys.size() / 2]
+	for row in [chao_y - 4, chao_y - 3, chao_y - 5]:
+		if row * T < pr.position.y + 2 * T or row * T > pr.end.y:
+			continue   # linha fora da cena atual: Rect2 negativo a cada quadro
 		for xi in range(int(pr.position.x / T) + 2, int(pr.end.x / T) - 6):
 			var r := Rect2(xi * T, row * T, 4 * T, 26)
 			var ok := true
 			var zone := r.grow_individual(48, 110, 48, 100)
-			var above := Rect2(r.position.x - 16, pr.position.y - 200, r.size.x + 32, r.position.y - pr.position.y + 200)
+			var top_y: float = topo if topo != INF else r.position.y - 3.0 * T
+			var above := Rect2(r.position.x - 16, top_y, r.size.x + 32, r.position.y - top_y)
 			for p in ct.parts:
 				if not p["fallen"] and (zone.intersects(p["rect"]) or above.intersects(p["rect"])):
 					ok = false
 					break
 			if ok:
 				for x in range(int(zone.position.x), int(zone.end.x), 32):
-					for y in range(int(above.position.y) + 200, int(zone.end.y), 32):
+					for y in range(int(maxf(above.position.y, pr.position.y)), int(zone.end.y), 32):
 						if main.level.is_solid(Vector2i(int(floor(x / float(T))), int(floor(y / float(T))))):
 							ok = false
 			if ok:
@@ -1209,7 +1274,43 @@ func _streak_bit(dir: int) -> void:
 	bits.append({"pos": Vector2(x, randf_range(pr.position.y + 40, pr.end.y - 20)), "vel": Vector2(dir * randf_range(1300, 1900), randf_range(-20, 20)),
 		"t": 0.0, "life": 1.6, "kind": "vento", "rot": 0.0, "size": randf_range(60, 160)})
 
+const PORCAS_MAX := 24        # G03: teto de porcas no ar (eram ~45, cada uma 4 comandos de desenho → +1,3 ms e +210 chamadas)
+const PORCA_PX := 32
+const PORCA_QUADROS := 6       # sextavada: 0–60° bastam; 6 giros pré-desenhados num atlas (1 textura = desenho em lote)
+static var _porca_tex: ImageTexture
+
+## Atlas das porcas (desenhado 1×, por código): corpo cinza, aro escuro, furo.
+static func porca_tex() -> ImageTexture:
+	if _porca_tex != null:
+		return _porca_tex
+	var img := Image.create(PORCA_PX * PORCA_QUADROS, PORCA_PX, false, Image.FORMAT_RGBA8)
+	var c := PORCA_PX / 2.0
+	var ap := (c - 1.5) * cos(PI / 6.0)
+	for f in PORCA_QUADROS:
+		var rot := f * (PI / 3.0) / PORCA_QUADROS
+		for y in PORCA_PX:
+			for x in PORCA_PX:
+				var v := Vector2(x + 0.5 - c, y + 0.5 - c)
+				var m := 0.0
+				for k in 3:
+					m = maxf(m, absf(v.dot(Vector2.from_angle(rot + PI / 6.0 + k * PI / 3.0))))
+				var cor := Color(0.79, 0.82, 0.85)
+				if m > ap - 2.2:
+					cor = Color(0.42, 0.47, 0.51)
+				if v.length() < c * 0.42:
+					cor = Color(0.16, 0.1, 0.18)
+				cor.a = clampf(ap + 0.5 - m, 0.0, 1.0)
+				img.set_pixel(f * PORCA_PX + x, y, cor)
+	_porca_tex = ImageTexture.create_from_image(img)
+	return _porca_tex
+
 func _nut_bit(speed: float) -> void:
+	var n := 0
+	for b in bits:
+		if b["kind"] == "porca":
+			n += 1
+	if n >= PORCAS_MAX:
+		return
 	var g := _ground_spots()
 	var pr := _pr()
 	var p: Vector2 = g[randi() % g.size()] if not g.is_empty() else Vector2(randf_range(pr.position.x, pr.end.x), pr.end.y - 64)
@@ -1221,6 +1322,11 @@ func _spark_bit(p: Vector2) -> void:
 
 # ================================================================ desenho (atrás dos robôs)
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_eventos", _pf)
+
+func _draw_perf() -> void:
 	for c in crates:
 		_draw_crate(c)
 	for a in active:
@@ -1617,6 +1723,11 @@ func _draw_bands(a: Dictionary) -> void:
 
 # ================================================================ desenho (frente dos robôs)
 func _draw_front() -> void:
+	var _pf := Perf.t0()
+	_draw_front_perf()
+	Perf.add("draw_eventos_frente", _pf)
+
+func _draw_front_perf() -> void:
 	var fr := front
 	for b in bits:
 		var k: float = 1.0 - b["t"] / b["life"]
@@ -1626,16 +1737,11 @@ func _draw_front() -> void:
 				var dx := signf(b["vel"].x)
 				fr.draw_line(p, p - Vector2(dx * b["size"], 0), Color(1, 1, 1, 0.35 * minf(k * 3.0, 1.0)), 4.0, true)
 				fr.draw_line(p - Vector2(dx * b["size"] * 0.3, 10), p - Vector2(dx * b["size"] * 0.8, 10), Color(1, 1, 1, 0.2 * minf(k * 3.0, 1.0)), 3.0, true)
-			"porca":
+			"porca":   # 1 retângulo do atlas por porca (mesma textura: a placa desenha todas juntas)
 				var p: Vector2 = b["pos"]
-				var pts := PackedVector2Array()
-				for s in 6:
-					pts.append(p + Vector2.from_angle(b["rot"] + s * TAU / 6.0) * b["size"])
-				var a := minf(k * 3.0, 1.0)
-				fr.draw_colored_polygon(pts, Color(0.79, 0.82, 0.85, a))
-				fr.draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.42, 0.47, 0.51, a), 2.0, true)
-				fr.draw_circle(p, b["size"] * 0.42, Color(0.16, 0.1, 0.18, a))
-				fr.draw_circle(p + Vector2(0, b["size"] + 6.0), 3.0, Color(0.62, 0.89, 0.96, 0.4 * a))
+				var sz: float = b["size"]
+				var f := int(fposmod(b["rot"], PI / 3.0) / (PI / 3.0) * PORCA_QUADROS) % PORCA_QUADROS
+				fr.draw_texture_rect_region(porca_tex(), Rect2(p.x - sz, p.y - sz, sz * 2.0, sz * 2.0), Rect2(f * PORCA_PX, 0, PORCA_PX, PORCA_PX), Color(1, 1, 1, minf(k * 3.0, 1.0)))
 			"faisca":
 				fr.draw_circle(b["pos"], b["size"] * k + 1.0, Color(1.0, 0.85, 0.4, k))
 			"lasca":

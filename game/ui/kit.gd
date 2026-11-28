@@ -23,9 +23,21 @@ static func font() -> Font:
 			_font = ThemeDB.fallback_font
 	return _font
 
+## Cor arredondada para o cache de estilos: transparência em 32 níveis (invisível na tela). Sem isso cada valor de uma
+## animação de transparência (cartão que some, aviso que desbota) virava um estilo novo guardado PARA SEMPRE: o cache
+## crescia ~3 mil objetos por partida (vazamento medido na sessão longa, 2026-11-28).
+static func cor_cache(c: Color) -> Color:
+	return Color(roundf(c.r * 255.0) / 255.0, roundf(c.g * 255.0) / 255.0, roundf(c.b * 255.0) / 255.0, roundf(c.a * 32.0) / 32.0)
+
+const SB_MAX := 1500
+
 static func _sb(fill: Color, radius: int, border: int, bcol: Color) -> StyleBoxFlat:
-	var key := "%s|%d|%d|%s" % [fill.to_html(), radius, border, bcol.to_html()]
+	fill = cor_cache(fill)
+	bcol = cor_cache(bcol)
+	var key := [fill.to_rgba32(), radius, border, bcol.to_rgba32()]   # desempenho: chave direta (antes montava texto com to_html a cada quadro)
 	if not _flat.has(key):
+		if _flat.size() >= SB_MAX:
+			_flat.clear()   # teto: nunca cresce sem limite
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = fill
 		sb.set_corner_radius_all(radius)
@@ -143,7 +155,25 @@ const PAD_LETTER := {"xbox": {"baixo": "A", "direita": "B", "esquerda": "X", "ci
 const PAD_COLOR := {"baixo": Color("#5cc45c"), "direita": Color("#e5484d"), "esquerda": Color("#4f86d9"), "cima": Color("#f2c84b")}
 const PS_COLOR := {"baixo": Color("#8fb4f0"), "direita": Color("#ff7a8a"), "esquerda": Color("#f39ad9"), "cima": Color("#5fd6b0")}
 
+const Glifos := preload("res://ui/glifos.gd")
+const GLIFO_POS := {"baixo": "baixo", "direita": "dir", "esquerda": "esq", "cima": "cima", "lb": "lb", "rb": "rb", "start": "start", "select": "select"}
+
+## Modelo de controle para um estilo (família antiga ou já o modelo).
+static func pad_model_of(style: String) -> String:
+	if style in ["ps5", "ps4", "xbox", "switch", "gen"]:
+		return style
+	match style:
+		"ps":
+			var m: String = PlayerInput.main_pad_model()
+			return m if m in ["ps5", "ps4"] else "ps5"
+		"nintendo": return "switch"
+		"generico": return "gen"
+	return "xbox"
+
 static func pad_btn(ci: CanvasItem, c: Vector2, r: float, pos: String, style: String, lit := false) -> void:
+	if Glifos.ok() and GLIFO_POS.has(pos):
+		Glifos.glyph(ci, c, pad_model_of(style), GLIFO_POS[pos], r * 1.08, lit)   # ícones em papel e giz (controles_v2)
+		return
 	var dark := Color("#2f3640")
 	var ob := maxf(2.0, r * 0.16)
 	ci.draw_circle(c + Vector2(0, r * 0.18), r + ob, INK)

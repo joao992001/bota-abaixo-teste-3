@@ -1,0 +1,8 @@
+{
+ "nota": "Orçamento de desempenho (protocolo docs/manuais/desempenho.md). CPU do jogo = lógica + geração de desenho medidas pela sonda Perf. A 60 FPS o quadro tem 16,7 ms: metade fica para o render/GPU e o sistema.",
+ "orcamento_cpu_ms": 8.0,
+ "pico_cpu_ms": 12.0,
+ "max_quadros_acima_pico_pct": 0.5,
+ "orcamento_por_sistema_ms": {"draw_robos": 1.5, "fisica_robos": 1.0, "engenhocas": 1.0, "draw_engenhocas": 1.0, "eventos": 0.8, "draw_eventos": 0.8, "draw_canteiro": 1.0, "canteiro": 0.8, "draw_nivel": 0.8, "draw_hud": 0.8, "bots": 1.0},
+ "max_chamadas_desenho": 2500
+}

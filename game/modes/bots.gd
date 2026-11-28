@@ -32,7 +32,16 @@ func update(dt: float) -> void:
 		var lv: Dictionary = cfg[LEVELS[p.get("level", 1)]]
 		st["think"] -= dt
 		st["hammer_cd"] = st.get("hammer_cd", 0.0) - dt
-		if st["think"] <= 0.0:
+		if st["think"] <= 0.0 and r.is_on_floor() and r.stun_t <= 0.0 and main.rng.randf() < float(lv.get("pausa", 0.0)) and not main.danger_near(r):
+			# respira: fica parado um pouco (ritmo humano; bots acelerados demais — avaliação 2026-11-26)
+			var ps: Array = lv.get("pausa_s", [0.4, 0.9])
+			st["think"] = main.rng.randf_range(float(ps[0]), float(ps[1]))
+			st["cmd"] = {}
+			st["pulse_hammer"] = false
+			st["pulse_heavy"] = false
+			st["pulse_dodge"] = false
+			st["pulse_item"] = false
+		elif st["think"] <= 0.0:
 			st["think"] = float(lv["react_s"]) * main.rng.randf_range(0.8, 1.4)
 			st["cmd"] = _decide(r, lv, st)
 			if st["cmd"].get("jump", false) and st["jump_hold"] <= 0 and r.is_on_floor():
@@ -127,6 +136,12 @@ func _robot_of(dev: String):
 	return main.robots[i]
 
 func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
+	var _pf := Perf.t0()
+	var _r = _decide_perf(r, lv, st)
+	Perf.add("sub_bot_decide", _pf)
+	return _r
+
+func _decide_perf(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 	if r.drop_t > 0.0 and not r.is_on_floor():
 		return {"dir": 0}   # descendo pendurado no guindaste (renascimento): espera pousar
 	var L = main.level
@@ -264,6 +279,10 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 		return cmd
 	var dx: float = target.position.x - pos.x
 	var dy: float = target.position.y - pos.y
+	var dc6 = demo.spells.decoy_of(target.pid) if demo.spells != null else null
+	if dc6 != null:   # D06: o boneco de teste é a isca — o bot vai nele
+		dx = dc6.x - pos.x
+		dy = dc6.y - pos.y
 	# 3a) rival preparando a marretada pesada virado para mim: esquiva para longe (bots melhores fazem mais)
 	if absf(dx) < 130.0 and absf(dy) < 60.0 and target.atk == "pesado" and not target.atk_hit \
 			and signi(int(-dx)) == target.facing and r.dodge_cd <= 0.0 and main.rng.randf() < float(lv["hammer_acc"]) * 0.7:
@@ -304,8 +323,15 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 		"T04": it_ok = not r.is_on_floor() and r.velocity.y > 200.0
 		"T05": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dy) < 40.0 and absf(dx) < 220.0
 		"T06": it_ok = absf(dy) < 40.0 and absf(dx) < 120.0
-		"T07": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 320.0
+		"T07":   # A36: vira o mecha Corredor; já montado, ARRANCADA quando o rival está na frente, na mesma altura
+			it_ok = (sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 420.0) or (sp.slot[r.pid]["t"] > 0.0 and absf(dy) < 40.0 and absf(dx) < 460.0 and signf(dx) == float(r.facing))
 		"C03": it_ok = absf(dy) < 40.0 and absf(dx) > 120.0 and absf(dx) < 480.0
+		"D01": it_ok = r.is_on_floor() and sp.slot[r.pid]["t"] < 0.0 and absf(dy) < 60.0 and absf(dx) < 170.0   # Defesa: ancora quando o rival chega perto
+		"D02": it_ok = false   # passivo
+		"D03": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dy) < 60.0 and absf(dx) < 130.0 and target.atk != ""   # rival atacando perto
+		"D04": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 160.0 and r.dmg > 60.0   # machucado e cercado
+		"D05": it_ok = sp.slot[r.pid]["t"] < 0.0 and absf(dx) < 220.0
+		"D06": it_ok = absf(dx) < 140.0 and absf(dy) < 60.0
 		"C05": it_ok = absf(dy) < 50.0 and absf(dx) > 100.0 and absf(dx) < 400.0
 		"E03":
 			var tg = sp.remote_target(r)
@@ -347,7 +373,14 @@ func _decide(r, lv: Dictionary, st: Dictionary) -> Dictionary:
 
 ## Caminho até o objetivo: distância (em pulos) de cada degrau até o degrau do objetivo, calculada de trás
 ## para a frente e guardada enquanto o objetivo não muda de célula. Devolve o próximo degrau (ou -1).
-var _nav := {"lv": null, "goal": Vector2i(-99, -99), "dist": {}, "t": 0.0}
+## Caminhos por DESTINO (desempenho, 2026-11-27): cada destino guarda o seu mapa de distâncias por até NAV_VALIDADE s
+## (antes era um só para os 4 bots: cada destino diferente refazia a busca e vários bots refaziam no mesmo quadro →
+## picos de 7–14 ms). No máximo UMA busca nova por quadro; quem não conseguiu usa a guardada (ou espera 1 quadro).
+const NAV_VALIDADE := 0.6
+const NAV_MAX := 16
+var _navs := {}          # célula-destino -> {dist, t}
+var _nav_lv = null
+var _nav_quadro := -1
 
 func _standable(L, c: Vector2i) -> bool:
 	var ch: String = L.ch_at(c)
@@ -379,6 +412,12 @@ func _reach(L, a: Vector2i, b: Vector2i) -> bool:
 ## Sair andando para a coluna c é seguro? Chão na mesma altura (e sem parede) ou um vão cujo primeiro piso embaixo dá para
 ## ficar em pé (nunca espinho, água ou o fundo do mapa).
 func _queda_segura(L, c: int, row: int) -> bool:
+	var _pf := Perf.t0()
+	var _r = _queda_segura_perf(L, c, row)
+	Perf.add("sub_bot_queda", _pf)
+	return _r
+
+func _queda_segura_perf(L, c: int, row: int) -> bool:
 	if L.is_solid(Vector2i(c, row)):
 		return not L.is_solid(Vector2i(c, row - 1))
 	for y in range(row + 1, L.rows):
@@ -395,32 +434,93 @@ func _goal_cell(L, goal: Vector2) -> Vector2i:
 			return Vector2i(gx, gy + k)
 	return Vector2i(-1, -1)
 
+## Busca de distâncias (passos) até g, para trás a partir do destino, FATIADA (desempenho, 2026-11-28): uma busca inteira
+## custava 13–16 ms num quadro só. Agora só a cena atual entra (não o mapa todo) e a busca anda no máximo
+## NAV_FATIA_MS por quadro; enquanto não termina, o bot usa a anterior (ou segue o próprio instinto por um instante).
+const NAV_FATIA_MS := 1.2
+var _busca = null   # {g, L, linhas, dist, queue, qi}
+
+func _nova_busca(L, g: Vector2i) -> Dictionary:
+	var ar: Rect2 = L.area if L.get("area") != null and L.area.size.x > 0.0 else Rect2(0, 0, L.cols * 64.0, L.rows * 64.0)
+	var y0 := maxi(1, int(ar.position.y / 64.0) - 2)
+	return {"g": g, "L": L, "linhas": {}, "dist": {g: 0}, "queue": [g], "qi": 0,
+		"y": y0, "y1": mini(L.rows, int(ar.end.y / 64.0) + 2),
+		"x0": maxi(1, int(ar.position.x / 64.0) - 1), "x1": mini(L.cols - 1, int(ar.end.x / 64.0) + 1)}
+
+## Avança a busca em andamento (uma vez por quadro, até NAV_FATIA_MS); quando termina, guarda em _navs.
+func _avanca_busca() -> void:
+	if _busca == null or Engine.get_physics_frames() == _nav_quadro:
+		return
+	_nav_quadro = Engine.get_physics_frames()
+	var _pf := Perf.t0()
+	var t0 := Time.get_ticks_usec()
+	var bz: Dictionary = _busca
+	var L = bz["L"]
+	var linhas: Dictionary = bz["linhas"]
+	var dist: Dictionary = bz["dist"]
+	var queue: Array = bz["queue"]
+	var qi: int = bz["qi"]
+	# 1º: as células em pé da cena, linha por linha (também dentro da fatia de tempo)
+	while int(bz["y"]) < int(bz["y1"]):
+		var y: int = bz["y"]
+		var xs := []
+		for x in range(int(bz["x0"]), int(bz["x1"])):
+			if _standable(L, Vector2i(x, y)):
+				xs.append(x)
+		if not xs.is_empty():
+			linhas[y] = xs
+		bz["y"] = y + 1
+		if (Time.get_ticks_usec() - t0) / 1000.0 > NAV_FATIA_MS:
+			Perf.add("sub_bot_busca", _pf)
+			return
+	var n := 0
+	while qi < queue.size():
+		var b: Vector2i = queue[qi]
+		qi += 1
+		for y in range(b.y - 8, b.y + 7):   # quem chega em b: até 6 abaixo (trampolim) ou caindo de até 8 acima
+			if not linhas.has(y):
+				continue
+			for x in linhas[y]:
+				if x < b.x - 5 or x > b.x + 5:
+					continue
+				var a := Vector2i(x, y)
+				if not dist.has(a) and _reach(L, a, b):
+					dist[a] = int(dist[b]) + 1
+					queue.append(a)
+		n += 1
+		if n % 6 == 0 and (Time.get_ticks_usec() - t0) / 1000.0 > NAV_FATIA_MS:
+			break
+	bz["qi"] = qi
+	Perf.add("sub_bot_busca", _pf)
+	if qi >= queue.size():
+		_navs[bz["g"]] = {"dist": dist, "t": Time.get_ticks_msec() / 1000.0}
+		_busca = null
+		if _navs.size() > NAV_MAX:   # joga fora o mais velho
+			var velho = null
+			for k in _navs:
+				if velho == null or float(_navs[k]["t"]) < float(_navs[velho]["t"]):
+					velho = k
+			_navs.erase(velho)
+
 func _nav_step(from: Vector2i, goal: Vector2) -> Vector2i:
 	var L = main.level
 	var g := _goal_cell(L, goal)
 	if g.x < 0 or not _standable(L, from):
 		return Vector2i(-1, -1)
 	var now := Time.get_ticks_msec() / 1000.0
-	if _nav["lv"] != L or (_nav["goal"] != g and now - float(_nav["t"]) > 0.5):
-		var ok := {}
-		for y in range(1, L.rows):
-			for x in range(1, L.cols - 1):
-				if _standable(L, Vector2i(x, y)):
-					ok[Vector2i(x, y)] = true
-		var dist := {g: 0}
-		var queue: Array = [g]
-		var qi := 0
-		while qi < queue.size():
-			var b: Vector2i = queue[qi]
-			qi += 1
-			for y in range(b.y - 8, b.y + 7):   # quem chega em b: até 6 abaixo (trampolim) ou caindo de até 8 acima
-				for x in range(b.x - 5, b.x + 6):
-					var a := Vector2i(x, y)
-					if ok.has(a) and not dist.has(a) and _reach(L, a, b):
-						dist[a] = int(dist[b]) + 1
-						queue.append(a)
-		_nav = {"lv": L, "goal": g, "dist": dist, "t": now}
-	var d: Dictionary = _nav["dist"]
+	if _nav_lv != L or (_busca != null and _busca["L"] != L):
+		_navs.clear()
+		_busca = null
+		_nav_lv = L
+	var e = _navs.get(g)
+	if e == null or now - float(e["t"]) > NAV_VALIDADE:
+		if _busca == null:
+			_busca = _nova_busca(L, g)
+		_avanca_busca()
+		e = _navs.get(g)
+		if e == null:
+			return Vector2i(-1, -1)   # a busca deste destino ainda está andando: o bot segue o instinto por um instante
+	var d: Dictionary = e["dist"]
 	if not d.has(from) or int(d[from]) == 0:
 		return Vector2i(-1, -1)
 	var best := Vector2i(-1, -1)
@@ -438,6 +538,12 @@ func _nav_step(from: Vector2i, goal: Vector2) -> Vector2i:
 ## Subir até um objetivo no alto: escolhe um degrau (chão com espaço em cima, 1–3 linhas acima e perto)
 ## que aproxime do objetivo; tábuas dão para atravessar por baixo, blocos sólidos ele pega pela lateral.
 func _climb(r, goal: Vector2, lv: Dictionary) -> Dictionary:
+	var _pf := Perf.t0()
+	var _r = _climb_perf(r, goal, lv)
+	Perf.add("sub_bot_sobe", _pf)
+	return _r
+
+func _climb_perf(r, goal: Vector2, lv: Dictionary) -> Dictionary:
 	var L = main.level
 	var pos: Vector2 = r.position
 	var cmd := {"dir": 0}
@@ -503,6 +609,12 @@ func _climb(r, goal: Vector2, lv: Dictionary) -> Dictionary:
 ## Segurança: olha à frente o quanto o robô anda até a próxima decisão; não entra em buraco sem chão
 ## alcançável do outro lado (pula vãos, inclusive de 1 caixote, e paredes).
 func _safe(r, cmd: Dictionary, lv: Dictionary, may_distract := true) -> Dictionary:
+	var _pf := Perf.t0()
+	var _r = _safe_perf(r, cmd, lv, may_distract)
+	Perf.add("sub_bot_seguro", _pf)
+	return _r
+
+func _safe_perf(r, cmd: Dictionary, lv: Dictionary, may_distract := true) -> Dictionary:
 	var L = main.level
 	var dir: int = cmd.get("dir", 0)
 	if dir == 0 or not r.is_on_floor():

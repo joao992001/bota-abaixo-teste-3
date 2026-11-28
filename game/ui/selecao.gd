@@ -9,7 +9,8 @@ extends RefCounted
 const Kit := preload("res://ui/kit.gd")
 const SpellsScr := preload("res://modes/spells.gd")   # NOMES e FAM_COR (constantes): a tela abre ANTES de existir partida
 const Obra := preload("res://ui/obra.gd")
-const COLS := 9          # mosaico de engenhocas (24 cartas + chave "nas caixas")
+const GRADE_AREA := Rect2(110, 250, 1700, 736)   # mosaico de engenhocas: cabe sempre dentro do quadro (cartas encolhem)
+const CARTA := Vector2(170, 226)                 # tamanho máximo da carta (proporção fixa)
 const COLS_EV := 7       # mosaico de eventos (nenhum + 11 + aleatório + intensidade)
 const EV_NIVEIS := ["DESLIGADOS", "BAIXA", "NORMAL", "ALTA"]
 const EV_COR := Color("#6aa6c8")
@@ -53,8 +54,15 @@ func abrir_spells() -> void:
 		main.spells_on.clear()
 		var uc: Dictionary = main.perfil.dados.get("ultima_config", {})
 		var volta: bool = String(uc.get("mapa", "")) == main.arena_choice   # perfil (D4): volta a última configuração deste mapa
+		# engenhoca que NÃO existia quando a configuração foi guardada entra acesa (a Defesa sumia: configs antigas)
+		var salvas: Array = uc.get("spells", [])
+		var conhecidas = uc.get("conhecidas", null)
+		var fams := {}
+		for id in salvas:
+			fams[String(_sc(id).get("familia", ""))] = true
 		for id in spells_do_mapa():
-			main.spells_on[id] = (id in uc.get("spells", [])) if volta else true
+			var nova: bool = (not id in conhecidas) if conhecidas is Array else not fams.has(String(_sc(id).get("familia", "")))
+			main.spells_on[id] = (id in salvas or nova) if volta else true
 		if volta:
 			for id in eventos_do_mapa():
 				main.events.enabled[id] = id in uc.get("eventos", [])
@@ -91,18 +99,42 @@ func aleatorio_spells() -> void:
 			main.spells_on[l[i]] = true
 			l.remove_at(i)
 
+## Grade do mosaico de engenhocas para n cartas: escolhe linhas × colunas que deixam a carta MAIOR sem sair da tela.
+func grade_spells(n: int) -> Dictionary:
+	var gap := 14.0
+	var best := {}
+	for rows in range(1, 8):
+		var cols := int(ceil(n / float(rows)))
+		var cw := (GRADE_AREA.size.x - (cols - 1) * gap) / cols
+		var ch := (GRADE_AREA.size.y - (rows - 1) * gap) / rows
+		var k := minf(minf(cw / CARTA.x, ch / CARTA.y), 1.0)
+		if best.is_empty() or k > float(best["k"]) + 0.001:
+			best = {"k": k, "cols": cols, "rows": rows}
+	var sz: Vector2 = CARTA * float(best["k"])
+	var cols: int = best["cols"]
+	var rows: int = best["rows"]
+	var x0 := GRADE_AREA.get_center().x - (cols * sz.x + (cols - 1) * gap) / 2.0
+	var y0 := GRADE_AREA.get_center().y - (rows * sz.y + (rows - 1) * gap) / 2.0
+	return {"cols": cols, "rows": rows, "size": sz, "gap": gap, "origem": Vector2(x0, y0)}
+
+## ◄► anda e dá a volta (fim da linha → começo da próxima; última → primeira); ▲▼ troca de linha na mesma coluna e
+## dá a volta em cima/embaixo (linha incompleta: vai para a última ficha).
 func _mover(m: Node, n: int, cols: int) -> void:
-	sel = clampi(sel + m.move_h(), 0, n - 1)
+	var h: int = m.move_h()
+	if h != 0:
+		sel = posmod(sel + h, n)
 	var v: int = m.move_v()
 	if v != 0:
-		sel = clampi(sel + v * cols, 0, n - 1)
+		var rows := int(ceil(n / float(cols)))
+		var r := posmod(sel / cols + v, rows)
+		sel = mini(r * cols + sel % cols, n - 1)
 
 ## Etapa 1: ENGENHOCAS (mosaico) + chave "engenhocas nas caixas" (última carta).
 func update_spells(m: Node) -> void:
 	aviso_t = maxf(aviso_t - 1.0 / 60.0, 0.0)
 	var lista := spells_do_mapa()
 	var n := lista.size() + 2
-	_mover(m, n, COLS)
+	_mover(m, n, int(grade_spells(n)["cols"]))
 	if m.pressed("jump"):
 		if sel < lista.size():
 			main.spells_on[lista[sel]] = not main.spells_on.get(lista[sel], false)
@@ -237,9 +269,31 @@ func _ficha(ci: CanvasItem, r: Rect2, cor: Color, nome: String, on: bool, cursor
 	if rotulo != "":
 		Kit.text(ci, r.position + Vector2(14, 31), rotulo, 20, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, -1, 5)
 	var quebra := nome.replace("-", "- ") if not " " in nome else nome   # MARRETA-BUMERANGUE quebra no hífen
-	Kit.text_box(ci, Vector2(r.position.x + 6, r.end.y - 46), r.size.x - 12, quebra, 17, Kit.INK if on else Kit.SOFT, 2)
+	var fs := _fonte_nome(quebra, r.size.x - 14.0)   # nome comprido não corta (TURBOVENTILADOR, PARA-CHOQUE DE MOLA)
+	Kit.text_box(ci, Vector2(r.position.x + 6, r.end.y - 46), r.size.x - 12, quebra, fs, Kit.INK if on else Kit.SOFT, 2)
 	_check(ci, r.position + Vector2(r.size.x - 12, 12), on)
 	return Rect2(r.position + Vector2(20, 46), Vector2(r.size.x - 40, r.size.y - 100))
+
+## Maior fonte (17 → 12) em que o nome cabe em 2 linhas quebrando nas palavras (largura estimada por letra).
+static func _fonte_nome(nome: String, w: float) -> int:
+	for fs in range(17, 11, -1):
+		var cw := fs * 0.68
+		var linhas := 1
+		var atual := 0
+		var ok := true
+		for p in nome.split(" "):
+			if p.length() * cw > w:
+				ok = false
+				break
+			var n := p.length() if atual == 0 else atual + 1 + p.length()
+			if n * cw > w:
+				linhas += 1
+				atual = p.length()
+			else:
+				atual = n
+		if ok and linhas <= 2:
+			return fs
+	return 12
 
 func _cursor_chip(ci: CanvasItem, r: Rect2) -> void:
 	Obra.chip(ci, r.position - Vector2(28, 30))
@@ -248,12 +302,13 @@ func draw_spells(ci: CanvasItem) -> void:
 	_tela(ci, "ESCOLHA AS ENGENHOCAS", 0)
 	Obra.quadro(ci, Rect2(90, 232, 1740, 762))
 	var lista := spells_do_mapa()
-	var cw := 170.0
-	var ch := 226.0
-	var gap := 18.0
-	var x0 := 960.0 - (COLS * cw + (COLS - 1) * gap) / 2.0
+	var gd := grade_spells(lista.size() + 2)
+	var cols: int = gd["cols"]
+	var csz: Vector2 = gd["size"]
+	var gap: float = gd["gap"]
+	var o: Vector2 = gd["origem"]
 	for i in lista.size() + 2:
-		var r := Rect2(x0 + (i % COLS) * (cw + gap), 254 + (i / COLS) * (ch + 18), cw, ch)
+		var r := Rect2(o + Vector2((i % cols) * (csz.x + gap), (i / cols) * (csz.y + gap)), csz)
 		if i < lista.size():
 			var id: String = lista[i]
 			var s: Dictionary = _sc(id)

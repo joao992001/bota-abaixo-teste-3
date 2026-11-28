@@ -1,4 +1,4 @@
-# Manual — SKINS (processo documentado; recurso FUTURO, não implementar ainda)
+# Manual — SKINS
 
 **Estado do recurso:** `APROVADO` (2026-11-25) — escolha na ENTRADA, depois de modo e mapa. Loja, desbloqueio ou
 progressão continuam **não autorizados**. O elenco implementado tem **5 robôs** ("15 robôs" é perspectiva, não quantidade implementada).
@@ -14,7 +14,10 @@ progressão continuam **não autorizados**. O elenco implementado tem **5 robôs
 4. Compatível com ataques, ferramenta, armas, spells, armaduras/transformações, expressões e dano visual.
 5. Duas aprovações: **arte** (prancha estática) e **aplicação em movimento** (GIF com as 13 poses e spells).
 
-## Exemplo aprovado
+## Skins v2 (2026-11-27): 3 por robô, estilo atual
+Geradores: `art/src/robos/skins_v2.py` (K1, amostra) e `art/src/robos/skins_lote.py` (lote de 15 + `--jogo`). Biblioteca: `docs/fases/derruba/f1_canteiro/skins.md`.
+
+## Exemplo aprovado (v1, elenco antigo — substituído pelas v2)
 Canteiro de Obras (K1–K5): `art/src/robos/skins_canteiro.py` → `art/out/prancha_skins_canteiro.png` (recorta o uniforme no
 contorno do tronco, troca capacete e ferramenta por cima do desenho do robô).
 

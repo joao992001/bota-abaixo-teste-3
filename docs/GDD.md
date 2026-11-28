@@ -17,14 +17,18 @@ Robôs de demolição se enfrentam com marretas em obras, fábricas, portos e mi
 4. Visual cartoon de papel e giz, com contorno grosso e cores fortes por cenário.
 
 ## 2. Controles
-| Ação | Controle | Teclado J1 | Teclado J2 |
+| Ação | Controle | Teclado A (esquerda) | Teclado B (direita) |
 |---|---|---|---|
-| Andar | analógico / direcional | A · D | ← · → |
-| Pular (segurar = mais alto) | A | Espaço | Ctrl direito · L · 0 do teclado numérico |
-| Marreta | X · RB · RT | F · E | . · / · K · Enter numérico |
-| Usar item | Y · B · LB · LT | G · Q | , · J · 1 do teclado numérico |
-| Descer de tábua fina; com marreta, quebrar o chão embaixo | ▼ | S | ↓ |
-| Pausa / voltar | START | Enter · Backspace/Esc | Enter · Delete |
+| Andar / subir / descer | analógico esquerdo · direcional | W A S D | setas |
+| Pular (segurar = mais alto) | A / ✕ | G · Espaço | 1 numérico · K |
+| Golpe rápido | X / □ | H | 2 numérico · L |
+| Marretada pesada | Y / △ | J | 3 numérico · Ç (;) |
+| Esquiva | RB / R1 · RT / R2 | Y | 4 numérico · O |
+| Especial (engenhoca) | LB / L1 · LT / L2 | U | 5 numérico · P |
+| Pausa | START / OPTIONS | Enter · Esc | Enter numérico |
+
+Sem Shift/Ctrl (o Windows manda "fantasmas" deles). **Cada aparelho remapeia só ele** em OPÇÕES ▸ CONTROLES
+(principal + alternativo por ação; o jogo reconhece DualSense, DualShock 4, Xbox, Switch Pro e genérico e mostra os ícones de cada um).
 
 Movimento: corrida, pulo variável, tempo de "coiote", buffer de pulo, deslizar e pular na parede (com medidor de aderência), pisão na cabeça.
 
@@ -77,6 +81,12 @@ Batata e Rei têm **mapa vivo**: itens a cada 3–5 s (até 3 na fase), eventos 
 | Cola · Teletransporte · Raio congelante · Soprador | Atrasar quem vem atrás ou alcançar o líder |
 
 ## 6. Fases (6 por modo, 12 cenários)
+**Regra dos temas do Derruba (A54, aprovada 2026-11-28):** cada mapa é uma ORDEM DE SERVIÇO — a equipe Bota-Abaixo vai a
+QUALQUER lugar derrubar uma **estrutura**. Todo mapa define: **estrutura** (o que se derruba) · **mundo** (onde) ·
+**regra-assinatura** (UMA mudança de jogo só dele: água subindo, pouca gravidade, vento, gelo…). A identidade da obra aparece
+em todo mapa (placas, fita zebrada, a grua adaptada ao mundo). Mapa grande = 7 cenas; os mapas novos se liberam pelos
+Projetos de Demolição. Beta: 2–3 mapas, cada um mudando uma regra física (descoberta).
+
 | Modo | Fases (cenário · interação principal) |
 |---|---|
 | Derruba (30×16) | Canteiro (canteiro · ilhas de caixote, terremoto) · Guindastes (porto · plataformas móveis) · Gangorras (serraria · gangorras sobre estacas) · Fábrica de Esteiras (fábrica · esteiras que invertem) · Prensa (ferro-velho · prensas e alçapão) · Fornalha (fundição · chamas e barris) |

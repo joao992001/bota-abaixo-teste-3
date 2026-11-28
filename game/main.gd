@@ -16,10 +16,10 @@ const Eventos := preload("res://modes/eventos.gd")
 const Laboratorio := preload("res://ui/laboratorio.gd")
 const T := 64
 
-enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS, DETONAR }
+enum S { JOIN, RUN, SCORE, WIN, MENU, MODES, HOWTO, OPTIONS, ARENAS, AJUSTES, EVENTOS, CONTROLES, INTRO, CONFIGPAD, SELSPELLS, SELEVENTOS, DETONAR, TESTPAD }
 var state := S.INTRO   # abre com a intro animada (os testes pulam direto para a entrada)
 var paused := false
-const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS, S.DETONAR]
+const MENU_STATES := [S.MENU, S.MODES, S.HOWTO, S.OPTIONS, S.ARENAS, S.AJUSTES, S.EVENTOS, S.CONTROLES, S.INTRO, S.CONFIGPAD, S.SELSPELLS, S.SELEVENTOS, S.DETONAR, S.TESTPAD]
 var sandbox := false          # LABORATÓRIO: ambiente de testes (respawn infinito, rodada sem fim)
 var lab: Node = null
 var lab_mode := false        # LABORATÓRIO aberto
@@ -108,6 +108,7 @@ func _ready() -> void:
 	menus = Menus.new()
 	menus.setup(self)
 	selecao.setup(self)
+	fim.setup(self)
 	perfil.carregar()
 	add_child(menus)
 	lab = Laboratorio.new()
@@ -116,7 +117,7 @@ func _ready() -> void:
 	PlayerInput.pad_changed.connect(_on_pad_changed)
 	var args := OS.get_cmdline_user_args()
 	for a in args:
-		if a == "--autotest" or a.begins_with("--shot") or a.begins_with("--anim") or a.begins_with("--demo") or a.begins_with("--menus") or a.begins_with("--arenas") or a.begins_with("--video") or a.begins_with("--stats") or a.begins_with("--perf") or a.begins_with("--spells") or a.begins_with("--eventos=") or a.begins_with("--elenco=") or a.begins_with("--fase=") or a.begins_with("--equipa=") or a.begins_with("--parede") or a.begins_with("--intro") or a.begins_with("--maquete") or a.begins_with("--robos") or a.begins_with("--combate") or a.begins_with("--lab") or a.begins_with("--pulo") or a.begins_with("--prancha") or a.begins_with("--canteiro") or a.begins_with("--espiar"):
+		if a == "--autotest" or a.begins_with("--shot") or a.begins_with("--anim") or a.begins_with("--demo") or a.begins_with("--menus") or a.begins_with("--arenas") or a.begins_with("--video") or a.begins_with("--stats") or a.begins_with("--perf") or a.begins_with("--cargueiro") or a.begins_with("--estudo") or a.begins_with("--spells") or a.begins_with("--eventos=") or a.begins_with("--elenco=") or a.begins_with("--fase=") or a.begins_with("--equipa=") or a.begins_with("--mechas=") or a.begins_with("--hud=") or a.begins_with("--projetos=") or a.begins_with("--luta=") or a.begins_with("--parede") or a.begins_with("--intro") or a.begins_with("--maquete") or a.begins_with("--robos") or a.begins_with("--combate") or a.begins_with("--lab") or a.begins_with("--pulo") or a.begins_with("--prancha") or a.begins_with("--canteiro") or a.begins_with("--espiar"):
 			state = S.JOIN   # testes e capturas começam direto na entrada de jogadores
 			var scr: GDScript = load("res://tests/driver.gd")
 			if scr == null or not scr.can_instantiate():
@@ -269,8 +270,12 @@ func go_menu() -> void:
 		load_arena("demolicao")
 	state = S.MENU
 
+## Toda configuração (jogar, configurar mapa, selecionar mapa) termina AQUI, na escolha dos personagens.
+## O aperto que trouxe para cá não vale nesta tela (antes o mesmo START da etapa VIDAS já pulava para DETONAR).
+var join_f := -10
 func go_join() -> void:
 	state = S.JOIN
+	join_f = Engine.get_physics_frames()
 
 func player_color(p: int) -> Color:
 	if p >= 0 and p < players.size():
@@ -290,6 +295,7 @@ func _physics_process(dt: float) -> void:
 	_update_music()
 	if _reassign_lost_pads():
 		return   # o START que assumiu o controle não conta como "continuar"
+	menus._repeat_tick(dt)   # segurar direção repete nos menus (1× por quadro)
 	if paused:
 		if sandbox and tester().open:
 			tester().update()
@@ -303,8 +309,10 @@ func _physics_process(dt: float) -> void:
 			if sandbox and not players[i].get("bot", false) and PlayerInput.pressed(i, "start"):
 				tester().toggle()   # no Laboratório, START abre o painel de testes
 				return
-			if not players[i].get("bot", false) and PlayerInput.pressed(i, "start"):
+			var esc_teclado: bool = PlayerInput.is_keyboard(PlayerInput.slots[i]) and PlayerInput.pressed(i, "back") if i < PlayerInput.slots.size() else false
+			if not players[i].get("bot", false) and (PlayerInput.pressed(i, "start") or esc_teclado):
 				paused = true
+				menus.dono_pausa = PlayerInput.slots[i]   # quem pausou também mexe na pausa (além do principal)
 				menus.pause_sel = 0
 				Audio.play("menu_ok")
 				return
@@ -323,7 +331,12 @@ func _physics_process(dt: float) -> void:
 			demo.update(dt)
 			perf_acc["bots"] = perf_acc.get("bots", 0.0) + (t1 - t0) / 1000.0
 			perf_acc["demo"] = perf_acc.get("demo", 0.0) + (Time.get_ticks_usec() - t1) / 1000.0
+			if Perf.on:
+				Perf.acc["bots"] = float(Perf.acc.get("bots", 0.0)) + (t1 - t0) / 1000.0
+				Perf.add("demo_total", t1)
+			var t2 := Time.get_ticks_usec()
 			_run_update(dt)
+			Perf.add("partida", t2)
 		S.SCORE:
 			timer -= dt
 			if timer <= 0.0:
@@ -331,7 +344,7 @@ func _physics_process(dt: float) -> void:
 		S.WIN:
 			res_t += dt
 			if demo.partida_unica():
-				_resultados_update()
+				_resultados_update(dt)
 			elif menus.pressed("back"):
 				go_menu()
 			else:
@@ -428,11 +441,16 @@ func _update_camera(dt: float) -> void:
 		var my := 0.0
 		var mx := 0.0
 		var n := 0
+		var qb := Rect2()
 		for r in robots:
 			if r.alive:
 				my += r.position.y
 				mx += r.position.x
+				qb = Rect2(r.position, Vector2.ZERO) if n == 0 else qb.expand(r.position)
 				n += 1
+		if n > 0:   # aproxima nos robôs para ver que estão caindo/escorregando (avaliação 2026-11-26), sem cortar ninguém
+			qb = qb.grow_individual(420, 320, 420, 260)
+			tz = clampf(minf(1920.0 / qb.size.x, 1024.0 / qb.size.y), tz, 1.0)
 		var c2 := a2.get_center()
 		if demo.etapas.rota == "moderada" and demo.etapas._deslize_dur > 0.0:
 			# rota moderada (destino AO LADO): a câmera vai para o lado junto com quem escorrega, até a cena nova
@@ -499,6 +517,8 @@ func to_screen(p: Vector2) -> Vector2:
 
 # ---------------------------------------------------------------- entrada
 func _join_update() -> void:
+	if Engine.get_physics_frames() <= join_f + 1:
+		return
 	var devs: Array = PlayerInput.all_devices()
 	devs.sort_custom(func(a, b): return PlayerInput.is_known(a) and not PlayerInput.is_known(b))   # reconhecidos primeiro
 	for dev in devs:
@@ -517,11 +537,25 @@ func _join_update() -> void:
 			add_player(dev)
 	for i in range(players.size() - 1, -1, -1):
 		if PlayerInput.pressed(i, "back") and Engine.get_physics_frames() - join_volta_f > 1:
+			if String(players[i].get("edita", "")) != "":
+				players[i]["edita"] = ""   # editando um bot: VOLTAR só volta para o próprio cartão
+				Audio.play("menu_voltar")
+				continue
 			players.remove_at(i)
 			PlayerInput.slots.remove_at(i)
 	if players.is_empty() and menus.pressed("back"):
-		state = S.AJUSTES if selecao.ativo_para(arena_choice) else S.MODES   # etapa 4 → volta à etapa 3 (vidas)
+		state = S.AJUSTES if selecao.ativo_para(arena_choice) else S.ARENAS   # etapa 4 → volta à etapa 3 (vidas)
 	for i in players.size():
+		if players[i].get("bot", false):
+			continue
+		if PlayerInput.pressed(i, "dodge"):
+			_proximo_bot(i)
+			continue
+		var alvo := bot_editado(i)
+		if alvo >= 0:
+			if _editar_bot(i, alvo):
+				break   # um bot saiu: os índices mudaram
+			continue
 		if PlayerInput.pressed(i, "left"):
 			_cycle_color(i, -1)
 		if PlayerInput.pressed(i, "right"):
@@ -532,13 +566,13 @@ func _join_update() -> void:
 			cycle_robot(i, 1)
 		if PlayerInput.pressed(i, "hammer"):
 			cycle_skin(i)
-		if PlayerInput.pressed(i, "heavy") and not PlayerInput.held(i, "back") and not players[i].get("bot", false):
-			# Y/△ (marretada pesada): adiciona bot; com a mesa cheia, tira os bots
+		if PlayerInput.pressed(i, "heavy") and not PlayerInput.held(i, "back"):
+			# Y/△ (marretada pesada): adiciona um bot na próxima vaga (tirar = editar o bot ▸ TIRAR BOT)
 			if players.size() < 4:
 				add_bot()
+				Audio.play("menu_ok")
 			else:
-				while players.size() > 0 and players[-1].get("bot", false):
-					remove_last_bot()
+				Audio.play("menu_negado")
 			break
 	if players.size() >= 2:
 		for i in players.size():
@@ -572,13 +606,81 @@ func skin_nome(model: int, skin: String) -> String:
 	return ""
 
 ## X/□ (golpe rápido) na entrada: passa pelas skins do mapa para o robô escolhido.
-func cycle_skin(i: int) -> void:
+func cycle_skin(i: int, d := 1) -> void:
 	var ops := skins_do_robo(int(players[i]["model"]))
 	if ops.size() <= 1:
 		Audio.play("menu_negado")
 		return
-	players[i]["skin"] = ops[posmod(ops.find(String(players[i].get("skin", ""))) + 1, ops.size())]
+	players[i]["skin"] = ops[posmod(ops.find(String(players[i].get("skin", ""))) + d, ops.size())]
 	Audio.play("menu_mover")
+
+## BOTS na entrada (prancha jogadores_bots, 2026-11-28): R1/RB passa a editar o próximo bot (e volta para o próprio
+## cartão); editando: ▲▼ linha · ◄► muda (ROBÔ, VISUAL, COR, DIFICULDADE) · PULAR em TIRAR BOT tira só ele · VOLTAR volta.
+const BOT_LINHAS := ["robo", "visual", "cor", "nivel", "tirar"]
+
+## Índice do bot que o jogador i está editando (-1 = o próprio cartão).
+func bot_editado(i: int) -> int:
+	var dev := String(players[i].get("edita", ""))
+	if dev == "":
+		return -1
+	var b: int = PlayerInput.slots.find(dev)
+	if b < 0 or b >= players.size() or not players[b].get("bot", false):
+		players[i]["edita"] = ""
+		return -1
+	return b
+
+func _proximo_bot(i: int) -> void:
+	var bots_i: Array = []
+	for b in players.size():
+		if players[b].get("bot", false):
+			bots_i.append(b)
+	if bots_i.is_empty():
+		Audio.play("menu_negado")
+		return
+	var k := bots_i.find(bot_editado(i))
+	if k == bots_i.size() - 1:
+		players[i]["edita"] = ""   # passou do último: volta para o próprio cartão
+	else:
+		players[i]["edita"] = players[bots_i[k + 1]]["dev"]
+		players[i]["linha"] = 0
+	Audio.play("menu_mover")
+
+## Um aperto do jogador i no bot b. true = o bot saiu.
+func _editar_bot(i: int, b: int) -> bool:
+	var ln := int(players[i].get("linha", 0))
+	var v := int(PlayerInput.pressed(i, "down")) - int(PlayerInput.pressed(i, "up"))
+	if v != 0:
+		players[i]["linha"] = posmod(ln + v, BOT_LINHAS.size())
+		Audio.play("menu_mover")
+		return false
+	var h := int(PlayerInput.pressed(i, "right")) - int(PlayerInput.pressed(i, "left"))
+	match BOT_LINHAS[ln]:
+		"robo":
+			if h != 0:
+				cycle_robot(b, h)
+		"visual":
+			if h != 0:
+				cycle_skin(b, h)
+		"cor":
+			if h != 0:
+				_cycle_color(b, h)
+				Audio.play("menu_mover")
+		"nivel":
+			if h != 0:
+				players[b]["level"] = posmod(int(players[b].get("level", bot_level)) + h, 3)
+				Audio.play("menu_mover")
+		"tirar":
+			if PlayerInput.pressed(i, "jump"):
+				var dev: String = players[b]["dev"]
+				PlayerInput.virtual.erase(dev)
+				players.remove_at(b)
+				PlayerInput.slots.remove_at(b)
+				for p in players:
+					if String(p.get("edita", "")) == dev:
+						p["edita"] = ""
+				Audio.play("menu_voltar")
+				return true
+	return false
 
 func add_player(dev: String) -> void:
 	var used := players.map(func(p): return p["color"])
@@ -644,6 +746,9 @@ var perfil := preload("res://modes/perfil.gd").new()   # perfil salvo local (D4)
 var res_info := {}   # gangorra/Projetos da última partida (tela de resultados)
 var res_t := 0.0     # tempo na tela de resultados (animação da agulha)
 const RES_OPCOES := ["JOGAR DE NOVO", "CONFIGURAR MAPA", "SELECIONAR MAPA", "MENU PRINCIPAL"]
+var fim := preload("res://ui/fim.gd").new()   # telas do fim: gangorra → Projetos → resultados (pranchas r1–r3)
+var res_fase := "resultados"   # "gangorra" | "projetos" | "resultados"
+var res_crono := 0.0           # cronômetro dos resultados (A25: 15 s; mexer reinicia; zerou = vale a opção marcada)
 
 func start_match() -> void:
 	lost_pads.clear()
@@ -651,13 +756,15 @@ func start_match() -> void:
 	if selecao.ativo_para(arena_choice) and spells_mapa == arena_choice:   # última configuração (perfil, D4)
 		perfil.guardar_config({"mapa": arena_choice, "vidas": demo.lives_setting,
 			"spells": spells_on.keys().filter(func(id): return spells_on[id]),
+			"conhecidas": selecao.spells_do_mapa(),
 			"eventos": selecao.eventos_do_mapa().filter(func(id): return events.enabled.get(id, true)),
 			"jogadores": players.map(func(p): return {"dispositivo": String(p.get("dev", "")), "robo": int(p.get("model", 0)), "skin": String(p.get("skin", "")), "bot": bool(p.get("bot", false))})})
 	for p in players:
 		if not estrelas_da_sessao():
 			p["score"] = 0
-		p["stats"] = {"derrubadas": 0, "caixotes": 0, "quedas": 0}
+		p["stats"] = {"derrubadas": 0, "caixotes": 0, "quedas": 0, "engenhocas": 0, "golpes": 0}
 	match_over = false
+	aquecer = 3   # primeiros quadros (contagem): sobe as texturas de todas as cenas para a placa de vídeo
 	round_no = 0
 	winner = -1
 	_demo_next_round()
@@ -718,9 +825,12 @@ func _run_update(dt: float) -> void:
 	if end_delay >= 0.0:
 		end_delay -= dt
 		if end_delay < 0.0:
+			match_over = demo.end_round()
+			if match_over and demo.partida_unica():
+				_after_score()   # Derruba v2: sem a tela antiga de placar ("1 de 5 estrelas"); direto ao fim (avaliação 2026-11-26)
+				return
 			state = S.SCORE
 			timer = float(demo.cfg["score_seconds"])
-			match_over = demo.end_round()
 
 func check_contacts(r: CharacterBody2D) -> void:
 	if state != S.RUN or not r.alive or r.finished:
@@ -732,8 +842,8 @@ func check_contacts(r: CharacterBody2D) -> void:
 			return
 	if level.elevator_cell != Vector2i(-1, -1) and demo.rule() == "fuga" and rr.intersects(level.goal_rect):
 		finish(r)   # Fuga: chegou ao elevador primeiro
-	elif level.ko_off:
-		pass   # virada da fase: todos caem para a etapa 2 sem eliminação
+	elif level.ko_off and not r.has_meta("pousou_cena"):
+		pass   # virada da fase: quem ainda está caindo não é eliminado (quem já pousou joga normal, com KO da cena nova)
 	elif level.ko_rect().has_area():
 		# KO no MUNDO (independente da câmera): saiu da zona em qualquer direção → explode na borda
 		if not level.ko_rect().has_point(r.position + Vector2(0, -36)):
@@ -815,20 +925,52 @@ func danger_near(r: CharacterBody2D) -> bool:
 	return false
 
 # ---------------------------------------------------------------- resultados (Derruba v2, A7)
-func _resultados_update() -> void:
+func _resultados_update(dt: float) -> void:
+	var apertou := false
+	var mexeu := 0
 	for i in players.size():
 		if players[i].get("bot", false):
 			continue
-		if PlayerInput.pressed(i, "up"):
-			res_sel = posmod(res_sel - 1, RES_OPCOES.size())
-			Audio.play("menu_mover")
+		if PlayerInput.pressed(i, "jump") or PlayerInput.pressed(i, "start"):
+			apertou = true
+		elif PlayerInput.pressed(i, "up"):
+			mexeu = -1
 		elif PlayerInput.pressed(i, "down"):
-			res_sel = posmod(res_sel + 1, RES_OPCOES.size())
-			Audio.play("menu_mover")
-		elif PlayerInput.pressed(i, "jump") or PlayerInput.pressed(i, "start"):
+			mexeu = 1
+	if res_fase != "resultados":
+		var dur: float = fim.duracao(res_fase)
+		if apertou:
 			Audio.play("menu_ok")
-			resultado_escolhe(res_sel)
-			return
+			if res_t < dur:
+				res_t = dur   # 1º aperto: pula a animação
+			else:
+				_proxima_fase_fim()
+		return   # avaliação 2026-11-26: as telas de recompensa só passam quando um jogador confirma
+	if mexeu != 0:
+		res_sel = posmod(res_sel + mexeu, RES_OPCOES.size())
+		res_crono = fim.cronometro_s()   # mexer reinicia o relógio (A25)
+		Audio.play("menu_mover")
+	elif apertou:
+		Audio.play("menu_ok")
+		resultado_escolhe(res_sel)
+		return
+	res_crono -= dt
+	if res_crono <= 0.0:
+		resultado_escolhe(res_sel)
+
+## Gangorra → Projetos → Resultados. Luta que não vale: só a tela "NÃO CONTOU" (A24) e os resultados.
+func _proxima_fase_fim() -> void:
+	if res_fase == "gangorra" and not res_info.is_empty() and res_info["valida"]:
+		res_fase = "projetos"
+	else:
+		res_fase = "resultados"
+		res_crono = fim.cronometro_s()
+	res_t = 0.0
+
+## Estatística do jogador (quadro dos resultados).
+func add_stat(pid: int, key: String, n := 1) -> void:
+	if pid >= 0 and pid < players.size() and players[pid].has("stats"):
+		players[pid]["stats"][key] = int(players[pid]["stats"].get(key, 0)) + n
 
 func resultado_escolhe(k: int) -> void:
 	match k:
@@ -858,6 +1000,8 @@ func _after_score() -> void:
 			var mc: Dictionary = MapaReg.modo_cfg("derruba")
 			res_info = perfil.fim_de_partida(String(level.id), ids, et.progresso, demo.luta_t, winner >= 0,
 				mc.get("progressao", {}), mc.get("destruicao", {}).get("mostrador", [0.1, 0.9]))
+		res_fase = "gangorra" if not res_info.is_empty() else "resultados"
+		res_crono = fim.cronometro_s()
 		_clear_robots()
 	else:
 		_demo_next_round()
@@ -950,7 +1094,30 @@ func break_robot(r: CharacterBody2D) -> void:
 	spark(r.position + Vector2(0, -40), 7)
 	shake(8.0)
 
+## "Aquece" as texturas da fase na placa de vídeo durante a contagem: desenha cada uma num canto, quase invisível, para o
+## envio à GPU acontecer antes da luta e não no meio dela (trancos ao trocar de cena — avaliação 2026-11-26).
+var aquecer := 0
+func _aquece_texturas() -> void:
+	var key := String(level.prop("cena", ""))
+	var n := 0
+	for path in Data._tex.keys():
+		var ps := String(path)
+		if not (ps.begins_with(key + "/") or ps.begins_with("canteiro/") or ps.begins_with("cenario/") or ps.begins_with("spells/")) or key == "":
+			continue
+		var tx: Texture2D = Data._tex[path]
+		if tx != null:
+			overlay.draw_texture_rect(tx, Rect2(camera.position - Vector2(940, 520) + Vector2(n % 40, n / 40) * 2.0, Vector2(2, 2)), false, Color(1, 1, 1, 0.01))
+			n += 1
+
 func _draw_overlay() -> void:
+	var _pf := Perf.t0()
+	_draw_overlay_perf()
+	Perf.add("draw_overlay", _pf)
+
+func _draw_overlay_perf() -> void:
+	if aquecer > 0:
+		aquecer -= 1
+		_aquece_texturas()
 	var puff := Data.tex("cenario/poeira")
 	for p in puffs:
 		var k: float = p["t"] / 0.45

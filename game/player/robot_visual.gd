@@ -12,6 +12,16 @@ const ORIGIN := Vector2(64, 120)
 const GRIP := Vector2(32, 56)          # pega dentro da textura da marreta (64x64)
 const HAMMER_REST := 0.35
 const STRIDE := 46.0
+## A48: mola da cabeça de cada robô [rigidez, amortecimento, ganho]: Guindaste (picareta) molenga, Brita rápida, Escavadeira (pa) pesada.
+## A48: jeito de andar de cada robô (das animações aprovadas): passada (px por meio ciclo), balanço do corpo, passo
+## (amplitude e altura do pé), ginga (lean oscilando) e quique (pulinho na corrida).
+const GAIT := {"marretao": {"stride": 46.0, "bob": 5.0, "step": 11.0, "lift": 10.0, "ginga": 0.0, "quique": 0.0},
+	"picareta": {"stride": 66.0, "bob": 3.0, "step": 16.0, "lift": 12.0, "ginga": 0.04, "quique": 0.0},
+	"chave": {"stride": 40.0, "bob": 4.0, "step": 9.0, "lift": 8.0, "ginga": 0.12, "quique": 0.0},
+	"britadeira": {"stride": 28.0, "bob": 2.0, "step": 7.0, "lift": 7.0, "ginga": 0.0, "quique": 6.0},
+	"pa": {"stride": 54.0, "bob": 7.0, "step": 12.0, "lift": 6.0, "ginga": 0.05, "quique": 0.0}}
+const HEAD_MOLA := {"marretao": [110.0, 9.0, 0.0016], "picareta": [55.0, 5.0, 0.0028], "chave": [90.0, 8.0, 0.0018],
+	"britadeira": [170.0, 11.0, 0.0012], "pa": [140.0, 13.0, 0.001]}
 ## Spells (modes/spells.gd). Armas: [textura, tamanho na tela, pega e bico (px da arte de design)]. Com arma, a marreta
 ## vai para as costas e o robô carrega a arma com as duas mãos; ao dar golpe, a arma vai para as costas e a marreta volta.
 const SPELL_TOOLS := {"A01": ["s01_canhao", Vector2(52, 26), Vector2(30, 34), Vector2(100, 33)],
@@ -19,13 +29,14 @@ const SPELL_TOOLS := {"A01": ["s01_canhao", Vector2(52, 26), Vector2(30, 34), Ve
 	"C01": ["s06_ima", Vector2(44, 31), Vector2(14, 40), Vector2(106, 40)],
 	"A02": ["s02_laser", Vector2(58, 29), Vector2(19, 50), Vector2(122, 31)],
 	"A05": ["s05_rebiteira", Vector2(56, 28), Vector2(40, 52), Vector2(127, 25)],
-	"A08": ["s20_canhao", Vector2(60, 30), Vector2(24, 54), Vector2(124, 32)],
+	"A06": ["s17_cravadeira", Vector2(58, 29), Vector2(30, 50), Vector2(126, 33)],   # A41: cravadeira pneumática
+	"A08": ["s20_canhao", Vector2(60, 30), Vector2(25, 48), Vector2(126, 31)],   # lote 3: Pistão-mola (arma C)
 	"C02": ["s07_ventilador", Vector2(60, 30), Vector2(29, 52), Vector2(126, 32)],
 	"C03": ["s08_gancho", Vector2(58, 29), Vector2(33, 50), Vector2(126, 30)],
 	"C05": ["s21_laco", Vector2(56, 28), Vector2(29, 52), Vector2(124, 32)],
 	"F31": ["a31_braco", Vector2(70, 35), Vector2(16, 28), Vector2(110, 28)],
 	"F33": ["a33_tocha", Vector2(58, 24), Vector2(14, 20), Vector2(94, 20)]}
-const WEAPONS := ["A01", "A02", "A03", "A05", "C01", "A08", "C02", "C03", "C05"]
+const WEAPONS := ["A01", "A02", "A03", "A05", "C01", "A08", "C02", "C03", "C05", "A06"]
 ## Armaduras de transformação (o robô VESTE a máquina): frente/costas no molde da Fornalha (150x130, janela em 75,50),
 ## cor dos membros, tipo de janela do rosto (circle = vigia, rect = cabine, visor = solda) e cor do aro.
 const ARMOR_SETS := {
@@ -70,20 +81,13 @@ static func armor_fit(mname: String) -> Array:
 	_fit[mname] = res
 	return res
 ## Spells sem arma: objeto nas costas (andaime dobrado, marreta sísmica, fornalha desmontada) ou na mão de trás.
-const BACK_PROPS := {"A04": ["s04_marreta", Vector2(30, 60), -0.5], "E01": ["s10_trouxa", Vector2(34, 23), 1.35],
-	"T04": ["a16_jato", Vector2(38, 44), 0.0]}
+const BACK_PROPS := {"A04": ["a04_marreta", Vector2(48, 60), -0.5], "D01": ["d01_contrapeso", Vector2(30, 38), 0.15], "D02": ["d02_airbag", Vector2(24, 32), 0.1],
+	"D03": ["d03_molas", Vector2(30, 30), 0.1], "D04": ["d04_saco", Vector2(26, 32), 0.15], "D06": ["d06_boneco", Vector2(20, 40), 0.2], "E01": ["s10_trouxa", Vector2(34, 23), 1.35]}
 ## Kit da transformação levado NAS COSTAS antes de usar (como a Fornalha): peça de costas no meio das costas,
 ## placa da frente dobrada por cima espiando no ombro (dá para reconhecer a máquina) e alças pelo peito.
 ## [textura de costas, tamanho, giro, placa da frente ("" = nenhuma), tamanho, giro]
-const KITS := {
-	"T01": ["s13_costas", Vector2(52, 45), -0.08, "s13_frente", Vector2(38, 33), -0.42],
-	"T02": ["a14_costas", Vector2(52, 45), -0.08, "a14_frente", Vector2(38, 33), -0.42],
-	"T05": ["a31_costas", Vector2(52, 45), -0.08, "a31_frente", Vector2(38, 33), -0.42],
-	"T06": ["a33_costas", Vector2(52, 45), -0.08, "a33_frente", Vector2(38, 33), -0.42],
-	"T03": ["s15_bola", Vector2(40, 40), 0.0, "", Vector2.ZERO, 0.0],
-	"T07": ["a34_raio", Vector2(48, 32), -1.57, "", Vector2.ZERO, 0.0],
-}
-const HAND_PROPS := {"E02": ["s12_carga", Vector2(30, 22)], "E03": ["s27_controle", Vector2(18, 24)]}
+const KITS := {}   # A35/A36: os mechas vão no CARTUCHO (MECHA_CART); o T07 deixou de ser o kit do raio encolhedor
+const HAND_PROPS := {"E02": ["s12_carga", Vector2(20, 29)], "E03": ["s27_controle", Vector2(18, 24)]}
 # aparência
 var color_idx := 0
 var model := 0
@@ -131,7 +135,13 @@ var hurt_s := 0.0
 var hurt_lean := 0.0
 var flash_t := 0.0
 var tumble := 0.0                      # giro acumulado do arremesso (rad)
+var cena_pose := ""                    # transição de cena: "cai" (pânico, se debatendo) ou "desliza" (surfando a laje)
 var tumbling := false
+var head_a := 0.0                      # A48: cabeça com mola — ângulo (rad), velocidade e deslocamento vertical (atraso)
+var head_v := 0.0
+var head_dy := 0.0
+var head_dv := 0.0
+var walk_d := 0.0                      # distância andada no chão (px): a passada do MECHA segue o chão sem escorregar (A34)
 var flip_t := -1.0                     # pulo duplo (0..1): chute, cambalhota, abre
 var heavy_was_cd := false
 var land_t := 0.0                      # amortecimento depois de pousar arremessado
@@ -307,10 +317,12 @@ func tick(r, dt: float) -> void:
 			flip_t = -1.0
 	if r.atk == "":
 		atk_kind = ""
+	if on_floor and r.dodge_t <= 0.0:
+		walk_d += spd * dt
 	# passada pela distância percorrida + poeirinha a cada passo
 	if on_floor and spd > 30.0 and r.dodge_t <= 0.0:
 		var before := int(phase / PI)
-		phase += spd * dt / STRIDE * TAU
+		phase += spd * dt / float(GAIT.get(Data.MODELS[posmod(model, Data.MODELS.size())], {"stride": STRIDE})["stride"]) * TAU
 		if int(phase / PI) != before:
 			pass   # passos SEM som (pedido do usuário em 2026-11-25: barulho demais)
 			if spd > 300.0:
@@ -348,6 +360,12 @@ func tick(r, dt: float) -> void:
 	var ax := clampf(a.x * float(r.facing), -9000.0, 9000.0)
 	ant_v += (-150.0 * ant - 6.0 * ant_v - ax * 0.0045 - clampf(a.y, -9000, 9000) * 0.0008) * dt
 	ant = clampf(ant + ant_v * dt, -0.9, 0.9)
+	# A48: cabeça com mola (rigidez, amortecimento, ganho) — o Guindaste é molenga, a Brita é rápida, a Escavadeira pesada
+	var hm: Array = HEAD_MOLA.get(Data.MODELS[posmod(model, Data.MODELS.size())], [110.0, 9.0, 0.0016])
+	head_v += (-float(hm[0]) * head_a - float(hm[1]) * head_v - ax * float(hm[2]) * 0.5) * dt
+	head_a = clampf(head_a + head_v * dt, -0.35, 0.35)
+	head_dv += (-float(hm[0]) * 1.4 * head_dy - float(hm[1]) * head_dv + clampf(a.y, -9000, 9000) * float(hm[2]) * 2.2) * dt
+	head_dy = clampf(head_dy + head_dv * dt, -6.0, 6.0)
 	# plaquinha solta (muito amassado): pêndulo que reage ao movimento
 	panel[1] += (-60.0 * sin(panel[0]) - 2.5 * panel[1] - ax * 0.004) * dt
 	panel[0] = clampf(panel[0] + panel[1] * dt, -1.4, 1.4)
@@ -406,6 +424,8 @@ func tick(r, dt: float) -> void:
 	drops = drops.filter(func(d): return d["t"] < 0.6)
 	# piscando enquanto invulnerável; clarão branco no golpe
 	var al := 0.45 if r.invuln > 0.0 and fmod(t, 0.16) < 0.08 else 1.0
+	if r.get("poeira_t") != null and r.poeira_t > 0.0:
+		al = 0.55   # D04: meio sumido na poeira
 	var fl := 1.0 + 2.2 * (flash_t / 0.08) + 0.8 * dodged_flash
 	modulate = Color(fl, fl, fl, al)
 	_pose_springs(r, dt, on_floor, v)
@@ -527,6 +547,11 @@ func _draw_ghost(g: Node2D) -> void:
 	draw_robot(g, sn["look"], sn["pose"], sn["xf"])
 
 func _process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_process_perf(dt)
+	Perf.add("visual_robos", _pf)
+
+func _process_perf(dt: float) -> void:
 	var col: Color = Data.COLORS[color_idx % Data.COLORS.size()]
 	for g in ghosts:
 		if not g.visible:
@@ -587,7 +612,9 @@ func current_pose() -> Dictionary:
 	var r := run_k
 	var c: Dictionary = Data.ctrl
 	var ant_extra := 0.0
-	var bob := -absf(sin(phase)) * 5.0 * r + sin(t * 2.3) * 1.0 * (1.0 - r) + float(s_bob[0])
+	var gt: Dictionary = GAIT.get(Data.MODELS[posmod(model, Data.MODELS.size())], GAIT["marretao"])
+	var bob := -absf(sin(phase)) * float(gt["bob"]) * r + sin(t * 2.3) * 1.0 * (1.0 - r) + float(s_bob[0])
+	bob -= absf(sin(phase * 2.0)) * float(gt["quique"]) * r * (1.0 - air_k)   # Brita: pulinhos a cada passo
 	var feet := [Vector2.ZERO, Vector2.ZERO]
 	var kd := float(g.get("knee", 1))
 	var knee := [Vector2(1.5 * kd, 0), Vector2(1.5 * kd, 0)]
@@ -608,7 +635,7 @@ func current_pose() -> Dictionary:
 	for i in 2:
 		var ph := phase + (0.0 if i == 0 else PI)
 		var lift := maxf(sin(ph), 0.0)
-		feet[i] += Vector2(cos(ph) * 11.0 * r, -lift * 10.0 * r - maxf(-sin(ph), 0.0) * 1.2 * r)
+		feet[i] += Vector2(cos(ph) * float(gt["step"]) * r, -lift * float(gt["lift"]) * r - maxf(-sin(ph), 0.0) * 1.2 * r)
 		knee[i] = Vector2((1.5 + 7.0 * r * lift) * kd, 0)
 	hf += Vector2(cos(phase) * 2.0, -absf(sin(phase)) * 3.0) * r + Vector2(0, sin(t * 2.3 + 1.1) * 0.6 * (1.0 - r))
 	ang += sin(phase) * 0.14 * r
@@ -628,6 +655,28 @@ func current_pose() -> Dictionary:
 		hf = hf.lerp(_a2(fr_air["hf"]) + Vector2(0, -2.0 * up + 3.0 * down), a)
 		ang = lerpf(ang, ang + wrapf(float(fr_air["a"]) - ang, -PI, PI) + 0.35 * down - 0.2 * up, a)
 		hb = hb.lerp(hbr + Vector2(sin(t * 24.0) * 6.0, -18.0 + cos(t * 24.0) * 5.0) * down + Vector2(-12, -8) * apex, a)
+	# transição de cena (avaliação 2026-11-26): o robô MOSTRA que está caindo/escorregando
+	if cena_pose == "cai" and not (robot != null and robot.is_on_floor()):
+		p["expr"] = "susto"
+		two_hand = false
+		for i in 2:
+			var ph := t * 16.0 + i * PI
+			feet[i] = Vector2(sin(ph) * 9.0, -6.0 + cos(ph) * 7.0)
+			knee[i] = Vector2((5.0 + 4.0 * maxf(sin(ph), 0.0)) * kd, 0)
+		hb = hbr + Vector2(sin(t * 20.0) * 10.0, -34.0 + cos(t * 20.0) * 6.0)
+		hf = hfr + Vector2(cos(t * 18.0) * 6.0, -30.0 + sin(t * 18.0) * 6.0)
+		ang = -PI * 0.5 + sin(t * 9.0) * 0.6
+		bob += sin(t * 12.0) * 2.0
+	elif cena_pose == "desliza":
+		p["expr"] = "esforco" if fmod(t, 1.4) < 0.9 else "vitoria"
+		two_hand = false
+		feet[0] = Vector2(14.0, -2.0)
+		feet[1] = Vector2(-10.0, 0.0)
+		knee[0] = Vector2(6.0 * kd, 0)
+		knee[1] = Vector2(8.0 * kd, 0)
+		hb = hbr + Vector2(-16.0, -26.0 + sin(t * 8.0) * 3.0)
+		hf = hfr + Vector2(10.0, -20.0 + cos(t * 8.0) * 3.0)
+		bob += 6.0
 	# pulo duplo: chute com jato → cambalhota encolhida (ferramenta colada) → abre
 	if flip_t >= 0.0:
 		var k := flip_t
@@ -699,13 +748,58 @@ func current_pose() -> Dictionary:
 		feet[1] = feet[1].lerp(Vector2(4, 0), wall_k)
 	# spells (igual para todos): a mão da frente segura a arma / aponta; a ferramenta vai para as costas
 	var sf: Dictionary = robot.fx_flags() if robot != null and robot.has_method("fx_flags") else {}
+	# DEFESA D01 (Âncora): ergue o contrapeso das costas por cima da cabeça e crava atrás; depois segura a corrente
+	# com as duas mãos, inclina fazendo força ao arrastar e balança no tranco de um golpe (sem sair do lugar)
+	var def_set := false
+	var an_t := float(sf.get("ancora_t", -1.0))
+	if an_t >= 0.0 and not sf.get("armor", false):
+		two_hand = false
+		var u := clampf(an_t / ANCORA_CRAVA_S, 0.0, 1.0)
+		if u < 1.0:
+			hf = ancora_mao(u)
+			p["hb_abs"] = hf + Vector2(-8, 3)
+			lean = lerpf(lean, -0.3 * sin(u * PI * 0.9) + 0.35 * maxf(u - 0.6, 0.0) / 0.4, 0.7)
+			if u > 0.6:
+				bob += 6.0 * (u - 0.6) / 0.4
+		else:
+			var tr := float(sf.get("ancora_tranco", 0.0))
+			var arr: bool = sf.get("arrasta", false)
+			hf = Vector2(4, -36) + Vector2(sin(t * 60.0), cos(t * 55.0)) * 2.0 * tr
+			p["hb_abs"] = Vector2(-6, -34)
+			lean = lerpf(lean, (0.28 if arr else 0.08) - 0.3 * tr + sin(t * 40.0) * 0.08 * tr, 0.6)
+			if arr:
+				bob += 2.0 + sin(t * 14.0) * 1.5
+		def_set = true
+	# DEFESA D04 (Cortina): as duas mãos erguem o saco de cimento e rasgam por cima da cabeça
+	var rk := float(sf.get("rasga_k", -1.0))
+	if rk >= 0.0:
+		two_hand = false
+		hf = Vector2(8, -40).lerp(Vector2(10, -74), _smooth(minf(rk * 2.0, 1.0)))
+		p["hb_abs"] = hf + Vector2(-12, 2)
+		lean = lerpf(lean, -0.15, 0.6)
+		def_set = true
+	elif sf.get("molas", false):   # D03: braços abertos, firme
+		hf = Vector2(18, -38)
+		p["hb_abs"] = Vector2(-16, -38)
+		two_hand = false
+		def_set = true
+	# DEFESA D02 (Airbag): encolhido dentro do balão (joelhos no peito, braços abraçando)
+	var abk := float(sf.get("airbag_k", 0.0))
+	if abk > 0.0:
+		two_hand = false
+		for i in 2:
+			feet[i] = feet[i].lerp(Vector2(-6.0 + i * 12.0, -24.0), abk)
+		hf = hf.lerp(Vector2(10, -42), abk)
+		p["hb_abs"] = Vector2(-4, -44)
+		lean = lerpf(lean, 0.25 * sin(t * 3.0), abk)
+		def_set = true
 	var sid: String = sf.get("spell", "")
 	var prep: float = sf.get("prep", -1.0)
 	var fire: float = sf.get("fire", -1.0)
-	var aiming: bool = prep >= 0.0 or (fire >= 0.0 and fire < 0.32) or (sf.get("channel", false) and sid in ["C01", "C04", "C02", "A06"])
-	var hf_set := false
+	var aiming: bool = prep >= 0.0 or (fire >= 0.0 and fire < (0.55 if sid == "A04" else 0.32)) or (sf.get("channel", false) and sid in ["C01", "C04", "C02", "A06"])
+	var hf_set := def_set
 	if sid != "" and aiming and not sf.get("armor", false):
-		var kick := clampf(1.0 - fire / 0.22, 0.0, 1.0) if fire >= 0.0 and prep < 0.0 else 0.0
+		var kick := clampf(1.0 - fire / 0.22, 0.0, 1.0) if fire >= 0.0 and prep < 0.0 and not sf.get("beam", false) else 0.0   # A02: arma firme durante o feixe
 		var buzz := Vector2(sin(t * 80.0), cos(t * 71.0)) * 1.4 * maxf(prep, 0.0)
 		var aa := float(sf.get("aim_a", 0.0))
 		two_hand = false
@@ -742,13 +836,10 @@ func current_pose() -> Dictionary:
 				hf = Vector2(-16, -52).lerp(Vector2(28, -38), ease(u, 0.3))
 				lean = lerpf(lean, -0.1 + 0.25 * u, 0.5)
 				hf_set = true
-			"A06":
-				hf = Vector2(26, -30)
-				hf_set = true
 			"E02", "E03":
 				hf = Vector2(24, -34 + 4.0 * kick)
 				hf_set = true
-			"A03", "C01", "A02", "A05", "A08", "C03", "C05", "C02":
+			"A03", "C01", "A02", "A05", "A08", "C03", "C05", "C02", "A06":
 				var ad := Vector2.from_angle(aa)
 				var hold := Vector2(sin(t * 70.0), cos(t * 61.0)) * 1.4 if sf.get("channel", false) else Vector2.ZERO
 				hf = SHOULDER + ad * (ARM - 9.0 * kick) + buzz + hold
@@ -871,6 +962,12 @@ func current_pose() -> Dictionary:
 					if k > 0.6:
 						st["hf"] += Vector2(sin(t * 90.0), cos(t * 83.0)) * 1.2
 				p["glint"] = clampf((k - 0.5) / 0.35, 0.0, 1.0) * (1.0 - sw)
+				if robot.heavy_charge > 0.0:   # A47: CARREGANDO — treme cada vez mais e a cabeça da marreta brilha forte
+					var ck := clampf(robot.heavy_charge / float(hp["carga_max_s"]), 0.0, 1.0)
+					st["hf"] += Vector2(sin(t * 95.0), cos(t * 87.0)) * (1.0 + 2.5 * ck)
+					st["lean"] = float(st["lean"]) - 0.1 * ck
+					p["glint"] = 1.0
+					p["charge"] = ck
 				if String(esp.get("pesado", "")) == "giro":
 					p["spin"] = cos(sw * 0.6 * TAU)
 			elif at < pre + act:
@@ -879,6 +976,12 @@ func current_pose() -> Dictionary:
 				smear_from = float(st["a"])
 				_blend(st, fhit, 0.6 + 0.4 * _ease_out(k), 1)
 				smear_a = 1.0
+				if robot.atk_dir == "cima":   # A47: ▲ golpe para cima (arco por cima da cabeça)
+					st["a"] = lerpf(-1.4, -0.15, _ease_out(k))
+					st["hf"] = Vector2(10, -58)
+				elif robot.atk_dir == "baixo":   # ▼ no ar: crava para baixo
+					st["a"] = lerpf(0.6, PI, _ease_out(k))
+					st["hf"] = Vector2(14, -20)
 				if String(esp.get("pesado", "")) == "giro":
 					p["spin"] = cos((0.6 + 0.4 * k) * TAU)
 			else:
@@ -1000,7 +1103,7 @@ func current_pose() -> Dictionary:
 		tumble = round(float(p["rot"]) / TAU) * TAU if flip_t < 0.0 else tumble
 	p["spring_k"] = 1.0 + 0.5 * air_k - 0.4 * clampf(1.0 - sq.y, 0.0, 1.0)
 	p["body_off"] = Vector2(0, bob)
-	p["lean"] = lean
+	p["lean"] = lean + sin(phase) * float(gt["ginga"]) * run_k * (1.0 - air_k)   # A48: ginga da passada (Solda gingando)
 	p["feet"] = feet
 	p["knee"] = knee
 	p["hf_abs"] = hf
@@ -1011,9 +1114,20 @@ func current_pose() -> Dictionary:
 	p["ant"] = ant + ant_extra + 0.12 * dmg_level
 	p["smear"] = [smear_from, ang, smear_a]
 	p["panel"] = panel[0]
+	# estado de movimento para os MECHAS (A34): passada, ar, pulo duplo, dash, parede, pouso
+	p["head_a"] = head_a
+	p["head_d"] = Vector2(0.0, head_dy)
+	p["mv"] = {"dist": walk_d, "phase": phase, "run": run_k, "air": air_k, "vy": vy, "flip": flip_t, "land": land_t, "wall": on_wall,
+		"dodge": (robot.dodge_t / maxf(robot.dodge_len, 0.01)) if robot != null and robot.get("dodge_t") != null and robot.dodge_t > 0.0 else 0.0,
+		"hurt": hurt_t, "t": t}
 	return p
 
 func _draw() -> void:
+	var _pf := Perf.t0()
+	_draw_perf()
+	Perf.add("draw_robos", _pf)
+
+func _draw_perf() -> void:
 	draw_robot(self, look(), current_pose())
 	_draw_tag()
 	# suor
@@ -1039,6 +1153,8 @@ func _draw_tag() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0 / maxf(absf(scale.x), 0.2) * sx, 1.0 / maxf(scale.y, 0.2)))
 	var meter: bool = (hanging or on_wall or not robot.is_on_floor()) and grip < 0.999
 	var top := float(Data.model_meta(model)["top"]) - ORIGIN.y
+	if robot.has_method("fx_flags") and String(robot.fx_flags().get("mecha", "")) != "":
+		top = minf(top, -138.0)   # pilotando um mecha (A29): a etiqueta vai acima da cabeça da máquina
 	var y := (top - 48.0) if meter else (top - 14.0)
 	var col: Color = Data.COLORS[color_idx % Data.COLORS.size()]
 	draw_colored_polygon(PackedVector2Array([Vector2(-9, y), Vector2(9, y), Vector2(0, y + 10)]), col)
@@ -1104,6 +1220,10 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	var sk := _sk(lk, mname)
 	var body := Data.tex("robo/corpo_%s%s_p%d" % [mname, sk, col_idx + 1])
 	if body == null or Data.robot_meta.is_empty():
+		return
+	var fxm: Dictionary = lk.get("fx", {})
+	if String(fxm.get("mecha", "")) != "" and Data.mecha_meta.get("mechas", {}).has(String(fxm["mecha"])):
+		_draw_mecha(ci, lk, pose, base, fxm, mname, col_idx)
 		return
 	if pose.has("rot"):   # mortal, giro do arremesso, esquiva no ar: gira em torno do meio do corpo
 		base = base * Transform2D(float(pose["rot"]), PIVOT) * Transform2D(0.0, -PIVOT)
@@ -1190,7 +1310,11 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			ci.draw_texture_rect(Data.tex("spells/" + kd[3]), Rect2(-kd[4] / 2.0, kd[4]), false)
 		ci.draw_set_transform_matrix(base * bx * Transform2D(float(kd[2]), anchor))
 		ci.draw_texture_rect(Data.tex("spells/" + kd[0]), Rect2(-kd[1] / 2.0, kd[1]), false)
-	if BACK_PROPS.has(sid0) and not armor and not sf.get("fading", false) and not (sid0 == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or float(sf.get("fire", -1.0)) >= 0.0)):
+	var moch_on: bool = sid0 in MECHA_CART and not armor and not sf.has("form") and not sf.get("fading", false) and not sf.has("mecha")
+	var moch_anc: Vector2 = (_v(sh[0]) + _v(hips[0])) / 2.0 + Vector2(-13, -4) + MOCH_OFF.get(mname, Vector2.ZERO)
+	if moch_on:   # A aprovada (2026-11-27): a cápsula do mecha vai nas COSTAS, como mochila (nada na mão)
+		_draw_mochila(ci, base * bx, sid0, moch_anc, 1.0, -0.12)
+	if BACK_PROPS.has(sid0) and not armor and not sf.get("fading", false) and not sf.get("defesa_ativa", false) and not (sid0 == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or float(sf.get("fire", -1.0)) >= 0.0)):
 		var bp: Array = BACK_PROPS[sid0]
 		ci.draw_set_transform_matrix(base * bx * Transform2D(float(bp[2]), _v(sh[0]) + Vector2(-12, 10)))
 		ci.draw_texture_rect(Data.tex("spells/" + bp[0]), Rect2(-bp[1] / 2.0, bp[1]), false)
@@ -1201,7 +1325,8 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if armor:   # costas da armadura (tanque + chaminé) atrás do corpo
 		_armor_piece(ci, base * bx, aspec["back"], asm, aw + Vector2(-5, 0), sf, asx)
 	# pernas + botas (grossura, dobra do joelho e bota de cada robô)
-	var foot := Data.tex("robo/pe")
+	var foot_sk: Texture2D = Data.tex("robo/pe_" + mname + sk) if sk != "" else null   # botina da skin (já pintada)
+	var foot: Texture2D = foot_sk if foot_sk != null else Data.tex("robo/pe")
 	var legw := float(g.get("leg_w", lw)) * (1.0 + 0.9 * asm)
 	var foot_s := float(g.get("foot_s", 1.0))
 	for i in 2:
@@ -1220,7 +1345,8 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 			ci.draw_circle(wc, 2.4, Color("#f2c84b"))
 		else:
 			ci.draw_set_transform_matrix(base * Transform2D(0.0, q * (0.72 + 0.2 * asm) * foot_s, 0.0, fp + Vector2(s * 1.5, 0.5)))
-			ci.draw_texture(foot, -Vector2(12, 7) * 4.0, limb.darkened(0.12) if i == 0 else limb)
+			var fmod: Color = (limb.darkened(0.12) if i == 0 else limb) if foot_sk == null else (Color(0.82, 0.82, 0.86) if i == 0 else Color.WHITE)
+			ci.draw_texture(foot, -Vector2(12, 7) * 4.0, fmod)
 	# jato do propulsor saindo dos pés (pulo duplo)
 	var jet := float(pose.get("jet", 0.0))
 	if jet > 0.01:
@@ -1234,13 +1360,23 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	_limb(ci, base, bx * _v(sh[0]), hb, limb.darkened(0.12), Vector2(0, 3), lw)
 	# corpo + rosto + antena (mola)
 	ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, q, 0.0, -ORIGIN))
-	ci.draw_texture(body, Vector2.ZERO)
+	# A48: tronco e cabeça separados — a cabeça gira em volta do pescoço com ATRASO (mola), como nas animações aprovadas
+	var tor_t: Texture2D = Data.tex("robo/tronco_%s%s_p%d" % [mname, sk, col_idx + 1])   # skin: as mesmas camadas (cabeça com mola)
+	var cab_t: Texture2D = Data.tex("robo/cabeca_%s%s_p%d" % [mname, sk, col_idx + 1])
+	var split: bool = tor_t != null and cab_t != null and g.has("neck")
+	ci.draw_texture(tor_t if split else body, Vector2.ZERO)
 	var dl: int = lk.get("dmg", 0)
 	if dl > 0:
 		var dtex := Data.tex("robo/dano%d_%s" % [dl, mname])
 		if dtex != null:
 			ci.draw_texture(dtex, Vector2.ZERO)
-	ci.draw_texture(Data.tex("robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
+	if split:
+		var nk := _v(g["neck"])
+		var ha: float = float(pose.get("head_a", 0.0))
+		var hd: Vector2 = pose.get("head_d", Vector2.ZERO)
+		ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, hd) * Transform2D(ha, nk) * Transform2D(0.0, q, 0.0, -nk - ORIGIN))
+		ci.draw_texture(cab_t, Vector2.ZERO)
+	ci.draw_texture(_tex_sk("robo/rosto_%s%s_%s" % [mname, sk, pose["expr"]], "robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
 	if dl >= 3:
 		# plaquinha solta pendurada por um parafuso, balançando
 		var hinge := (_v(sh[1]) + _v(hips[1])) / 2.0 + Vector2(-2, -4)
@@ -1248,12 +1384,35 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		ci.draw_rect(Rect2(-5, 0, 11, 14), limb.lightened(0.25))
 		ci.draw_rect(Rect2(-5, 11, 11, 3), limb)
 		ci.draw_circle(Vector2(0, 2), 1.8, Color("#c9d1d8"))
+	if moch_on:   # alça da mochila cruzando o peito
+		ci.draw_set_transform_matrix(base * bx)
+		var s0: Vector2 = _v(sh[0]) + Vector2(-1, -2)
+		var s1: Vector2 = (_v(sh[1]) + _v(hips[1])) / 2.0 + Vector2(2, 3)
+		var sc: Vector2 = s0.lerp(s1, 0.5) + Vector2(5, -5)
+		var pts := PackedVector2Array()
+		for i in 9:
+			var u := i / 8.0
+			pts.append(s0.lerp(sc, u).lerp(sc.lerp(s1, u), u))
+		ci.draw_polyline(pts, Color("#2b2b33"), 3.4, true)
+		ci.draw_circle(s1, 2.6, Color("#5d6672"))
+	var cap_n := int(sf.get("capacete_n", 0))
+	if cap_n > 0:   # DEFESA D05: capacete de aço por cima do capacete de obra (amassa a cada golpe)
+		var ctr := float(sf.get("capacete_tranco", 0.0))
+		var ctx: Texture2D = Data.tex("spells/d05_capacete%d" % clampi(3 - cap_n, 0, 2))
+		var eye2: Vector2 = (_v(g["eyes"][0]) + _v(g["eyes"][1])) / 2.0
+		if ctx != null:
+			ci.draw_set_transform_matrix(base * bx * Transform2D(sin(tnow_cap() * 70.0) * 0.12 * ctr, eye2 + Vector2(2, -24 + 4.0 * ctr)))
+			ci.draw_texture_rect(ctx, Rect2(-30, -20, 60, 30), false)
 	var ab := _v(g["antenna"])
-	ci.draw_set_transform_matrix(base * bx * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
-	ci.draw_texture(Data.tex("robo/antena_" + mname), Vector2.ZERO)
+	var hxf := Transform2D.IDENTITY
+	if split:
+		var nk2 := _v(g["neck"])
+		hxf = Transform2D(0.0, pose.get("head_d", Vector2.ZERO)) * Transform2D(float(pose.get("head_a", 0.0)), nk2) * Transform2D(0.0, -nk2)
+	ci.draw_set_transform_matrix(base * bx * hxf * Transform2D(pose["ant"], ab) * Transform2D(0.0, q, 0.0, -ab - ORIGIN))
+	ci.draw_texture(_tex_sk("robo/antena_" + mname + sk, "robo/antena_" + mname), Vector2.ZERO)
 	var tnow := Time.get_ticks_msec() / 1000.0
 	if lk.get("hammer", true) and tool == "" and not armor:
-		var seis: bool = sf.get("spell", "") == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or (float(sf.get("fire", -1.0)) >= 0.0 and float(sf.get("fire", -1.0)) < 0.32))
+		var seis: bool = sf.get("spell", "") == "A04" and (float(sf.get("prep", -1.0)) >= 0.0 or (float(sf.get("fire", -1.0)) >= 0.0 and float(sf.get("fire", -1.0)) < 0.55))
 		if not seis:   # ferramenta nas mãos, na frente do corpo (na marretada sísmica a marreta gigante é de modes/spells.gd)
 			ci.draw_set_transform_matrix(base * Transform2D(ham_ang, hf))
 			var hcol := Color(0.58, 0.62, 0.72) if lk.get("ham_cd", false) else Color.WHITE
@@ -1278,7 +1437,7 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		else:
 			ci.draw_rect(Rect2(eye + drop - Vector2(13, 8), Vector2(26, 16)), Color("#2b3d4f") if win == "rect" else Color("#1d3a22"))
 		ci.draw_set_transform_matrix(base * bx * Transform2D(0.0, q, 0.0, -ORIGIN + (aw - eye_real) * asm + drop))   # rosto na vigia
-		ci.draw_texture(Data.tex("robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
+		ci.draw_texture(_tex_sk("robo/rosto_%s%s_%s" % [mname, sk, pose["expr"]], "robo/rosto_%s_%s" % [mname, pose["expr"]]), Vector2.ZERO)
 		ci.draw_set_transform_matrix(base * bx)
 		var ring := Color(aspec["ring"])
 		match win:
@@ -1302,16 +1461,18 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		var bk := s0.lerp(h1, 0.55)
 		ci.draw_rect(Rect2(bk - Vector2(3.5, 3.5), Vector2(7, 7)), Color("#2a1a2e"))
 		ci.draw_rect(Rect2(bk - Vector2(2, 2), Vector2(4, 4)), Color("#f2c84b"))
-	if HAND_PROPS.has(sid0) and not armor and not sf.has("form") and not sf.get("flying_on", false) and not sf.get("fading", false) and float(sf.get("fire", -1.0)) < 0.0:
-		var hp: Array = HAND_PROPS[sid0] if not (sid0 == "E02" and sf.get("placed", false)) else ["s27_controle", Vector2(18, 24)]
+	if HAND_PROPS.has(sid0) and not armor and not sf.has("form") and not sf.get("flying_on", false) and not sf.get("fading", false) and (float(sf.get("fire", -1.0)) < 0.0 or (sid0 == "E02" and sf.get("placed", false))):
+		var hp: Array = HAND_PROPS[sid0] if not (sid0 == "E02" and sf.get("placed", false)) else ["s12_detonador", Vector2(19, 40)]   # lote 3: dinamite na mão; depois de jogar, o detonador de antena
 		ci.draw_set_transform_matrix(base * Transform2D(-0.4, hb + Vector2(-2, -4)))
 		ci.draw_texture_rect(Data.tex("spells/" + hp[0]), Rect2(-hp[1] / 2.0, hp[1]), false)
-	if sid0 == "A06" and not sf.get("fading", false):   # controle remoto do bate-estaca, luz piscando
-		ci.draw_set_transform_matrix(base * Transform2D(-0.2, hb + Vector2(-1, -6)))
-		ci.draw_rect(Rect2(-6, -9, 12, 18), Color("#2a1a2e"))
-		ci.draw_rect(Rect2(-4.5, -7.5, 9, 15), Color("#f2c84b"))
-		ci.draw_circle(Vector2(0, -2), 3.0, Color("#d94a3a") if fmod(tnow, 0.5) < 0.25 else Color("#7a2a20"))
-		ci.draw_line(Vector2(3, -9), Vector2(5, -16), Color("#2a1a2e"), 1.6, true)
+		if sid0 == "E02" and sf.get("placed", false):   # antena do detonador (desenhada aqui, no mesmo quadro) com luz piscando
+			var on_l: bool = fmod(tnow, 0.4) < 0.2
+			var base_a := Vector2(3.0, -14.0)
+			var tip_a := Vector2(8.0, -30.0)
+			ci.draw_line(base_a, tip_a, Color("#2a1a2e"), 2.4, true)
+			ci.draw_circle(tip_a, 3.6 if on_l else 2.2, Color(1.0, 0.25, 0.2) if on_l else Color("#5a2a20"))
+			if on_l:
+				ci.draw_circle(tip_a, 8.0, Color(1.0, 0.3, 0.2, 0.3))
 	if sid0 == "C04" and not sf.get("fading", false):   # faísquinhas roxas orbitando a mão
 		ci.draw_set_transform_matrix(base)
 		for k in 3:
@@ -1324,8 +1485,11 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 		var sz: Vector2 = spec[1]
 		var dsz := Vector2(tx.get_width(), tx.get_height()) / 2.0   # tamanho de design
 		var grip: Vector2 = spec[2] * sz / dsz
-		ci.draw_set_transform_matrix(base * Transform2D(float(pose.get("tool_ang", 0.0)), hf))
+		var txf := base * Transform2D(float(pose.get("tool_ang", 0.0)), hf)
+		ci.draw_set_transform_matrix(txf)
 		ci.draw_texture_rect(tx, Rect2(-grip, sz), false)
+		# bico desenhado neste quadro (mundo): tiros e feixes saem exatamente daqui (modes/spells.gd muzzle)
+		ci.set_meta("bico", [tool, ci.get_global_transform() * (txf * (spec[3] * sz / dsz - grip)), Engine.get_process_frames()])
 		if tool == "F31":   # broca girando: sulcos correndo do colar até a ponta
 			var tn := Time.get_ticks_msec() / 1000.0
 			var sc2 := sz.x / dsz.x
@@ -1348,6 +1512,11 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	var gl := float(pose.get("glint", 0.0))
 	if gl > 0.0:
 		var head := hf + Vector2(sin(ham_ang), -cos(ham_ang)) * reach
+		var chg := float(pose.get("charge", 0.0))
+		if chg > 0.0:   # A47: aura da carga na cabeça da marreta + anel que fecha quando enche
+			ci.draw_set_transform_matrix(base)
+			ci.draw_circle(head, 10.0 + 16.0 * chg, Color(1.0, 0.7, 0.25, 0.25 + 0.3 * chg))
+			ci.draw_arc(head, 26.0, -PI / 2.0, -PI / 2.0 + TAU * chg, 24, Color(1.0, 0.85, 0.3, 0.9), 3.0, true)
 		ci.draw_set_transform_matrix(base * Transform2D(Time.get_ticks_msec() / 200.0, head))
 		var st := Data.tex("cenario/brilho")
 		var sz := 10.0 + 18.0 * gl
@@ -1357,14 +1526,500 @@ static func draw_robot(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base :=
 	if gd > 0.0:
 		ci.draw_set_transform_matrix(base)
 		ci.draw_arc(PIVOT, 46.0, 0, TAU, 32, Color(1, 1, 1, 0.45 * gd), 3.0, true)
-	var hand := Data.tex("robo/mao")
+	var hand_sk: Texture2D = Data.tex("robo/mao_" + mname + sk) if sk != "" else null   # luva da skin
+	var hand: Texture2D = hand_sk if hand_sk != null else Data.tex("robo/mao")
 	for p in [hb, hf]:
 		ci.draw_set_transform_matrix(base * Transform2D(0.0, hand_q, 0.0, p))
 		ci.draw_texture(hand, -Vector2(8, 8) * 4.0)
 	ci.draw_set_transform_matrix(base)
 
+static func tnow_cap() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+## DEFESA D01: caminho da mão ao cravar o contrapeso (u 0..1): das costas → por cima da cabeça → crava atrás, baixo
+const ANCORA_CRAVA_S := 0.42
+static func ancora_mao(u: float) -> Vector2:
+	if u < 0.55:
+		var k := _smooth(u / 0.55)
+		return Vector2(-12, -38).lerp(Vector2(-2, -96), k)
+	var k2 := _smooth((u - 0.55) / 0.45)
+	return Vector2(-2, -96).lerp(Vector2(-30, -10), k2)
+
+## MOCHILA DO MECHA (proposta A aprovada 2026-11-27, substitui o cartucho na mão + holograma): a cápsula do mecha vai
+## presa nas COSTAS com uma alça no peito; o núcleo pulsa. Arte: art/src/robos/mecha_porte.py --jogo (spells/mochila_T0x).
+const MOCH_OFF := {"britadeira": Vector2(-3, 9)}   # a betoneira da Brita cobre as costas: mochila mais baixa e recuada
+const MECHA_CART := ["T01", "T02", "T03", "T04", "T05", "T06", "T07"]
+
+static func _draw_mochila(ci: CanvasItem, xf: Transform2D, id: String, at: Vector2, k := 1.0, rot := 0.0) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var mt: Texture2D = Data.tex("spells/mochila_" + id)
+	if mt == null:
+		return
+	var sc := 0.135 * k
+	ci.draw_set_transform_matrix(xf * Transform2D(rot, Vector2(sc, sc), 0.0, at))
+	ci.draw_texture(mt, -Vector2(192, 352))
+	ci.draw_circle(Vector2(0, -20), 70.0 + 22.0 * sin(now * 6.0), Color(1, 0.95, 0.75, 0.22))
+	ci.draw_set_transform_matrix(xf)
+
 ## Placa da Armadura Fornalha (T01): arte de design 150x130 em escala 0,48 (o robô "vira" a fornalha), vigia (75,50) em `at`.
 ## Montagem: cai de cima e assenta; nos últimos instantes pisca avisando que vai desmontar.
+## ---------------------------------------------------------------- ARMADURAS-MECHA (A29/A34): o robô PILOTA um mecha
+## Peças de art/src/robos/armaduras_export.py (mesma caixa e origem; pés em 0,0; unidades do desenho). O mecha é um
+## ESQUELETO: pelve/tronco (B), pernas coxa→canela→pé e braço de trás braço→antebraço resolvidos por cinemática
+## inversa (o pé PLANTA no chão durante o apoio: não escorrega), cabeça com atraso, braço-arma girando no ombro.
+## Cada mecha tem um jeito próprio (MECHA_ESTILO) de ficar parado, andar/correr, pular, pousar, dar pulo duplo, dash e
+## golpear (MECHA_GOLPES: antecipação → impacto → continuação → volta).
+const MECHA_CHEGADA := {   # grupo: [início, fim, de onde vem dx, dy, giro em graus] (tempo da montagem 0.3→1.2)
+	"perna_b": [0.40, 0.62, -160, 120, -90], "perna_f": [0.44, 0.66, 160, 120, 90], "tronco": [0.52, 0.76, 0, -260, 25],
+	"cabine": [0.58, 0.82, 0, -60, 0], "peito": [0.62, 0.84, 0, -200, -20], "braco_b": [0.70, 0.90, -220, -40, -140],
+	"ombro_b": [0.74, 0.94, -200, -160, -120], "arma": [0.80, 1.0, 260, -30, 160], "ombro_f": [0.84, 1.04, 220, -170, 140],
+	"costas": [0.88, 1.08, -120, -240, -60], "cabeca": [0.98, 1.16, 0, -300, 200]}
+const MECHA_GRUPO := {"coxa_b": "perna_b", "canela_b": "perna_b", "pe_b": "perna_b", "coxa_f": "perna_f", "canela_f": "perna_f",
+	"pe_f": "perna_f", "braco_b_sup": "braco_b", "braco_b_inf": "braco_b"}
+const MECHA_MIRA := ["T01", "T04", "T06"]
+## Escala de jogo do mecha (A32): ~2 blocos de altura; a colisão continua a do robô.
+const MECHA_ESCALA := 0.74
+
+static func mecha_px() -> float:
+	return float(Data.mecha_meta.get("px", 0.84)) * MECHA_ESCALA
+
+## Jeito de cada mecha. ciclo = px andados por ciclo (2 passos); duty = fração do ciclo com o pé no chão; passo_h =
+## altura do pé no passo; queda = afunda ao pisar; quica = sobe no voo da corrida; incl = inclina correndo; ginga =
+## balança de lado; agacha = joelho dobrado parado; braco = balanço do braço de trás; cab = atraso da cabeça (graus).
+const MECHA_ESTILO := {
+	"T01": {"tipo": "pesado", "ciclo": 120.0, "duty": 0.62, "passo_h": 9.0, "queda": 6.0, "quica": 3.0, "incl": 6.0, "ginga": 5.0, "agacha": 3.0, "braco": 8.0, "cab": 6.0, "resp": 1.8},
+	"T02": {"tipo": "mecanico", "ciclo": 150.0, "duty": 0.55, "passo_h": 14.0, "queda": 2.0, "quica": 2.0, "incl": 3.0, "ginga": 0.0, "agacha": 1.5, "braco": 5.0, "cab": 2.0, "resp": 0.8},
+	"T03": {"tipo": "gorila", "ciclo": 130.0, "duty": 0.6, "passo_h": 8.0, "queda": 7.0, "quica": 4.0, "incl": 14.0, "ginga": 4.0, "agacha": 4.0, "braco": 0.0, "cab": 7.0, "resp": 2.2},
+	"T04": {"tipo": "voo", "ciclo": 160.0, "duty": 0.5, "passo_h": 6.0, "queda": 0.0, "quica": 0.0, "incl": 16.0, "ginga": 0.0, "agacha": 0.0, "braco": 6.0, "cab": 4.0, "resp": 2.5},
+	"T05": {"tipo": "corredor", "ciclo": 190.0, "duty": 0.42, "passo_h": 20.0, "queda": 3.0, "quica": 6.0, "incl": 13.0, "ginga": 2.0, "agacha": 6.0, "braco": 16.0, "cab": 4.0, "resp": 1.2},
+	"T06": {"tipo": "corcunda", "ciclo": 95.0, "duty": 0.55, "passo_h": 7.0, "queda": 3.0, "quica": 2.0, "incl": 16.0, "ginga": 3.0, "agacha": 5.0, "braco": 9.0, "cab": 8.0, "resp": 1.5},
+	# A36 Corredor: passada enorme e rápida, pouco tempo no chão, quica muito, inclinado como velocista
+	"T07": {"tipo": "velocista", "ciclo": 260.0, "duty": 0.34, "passo_h": 26.0, "queda": 2.0, "quica": 10.0, "incl": 20.0, "ginga": 1.5, "agacha": 7.0, "braco": 22.0, "cab": 5.0, "resp": 2.0}}
+
+## Golpes: [antecipação, impacto]. bx/by = corpo (unidades), br = giro do corpo, ar/ax = giro/avanço do braço-arma,
+## hbx/hby = mão de trás, ffx/ffy = pé da frente, fbx = pé de trás, cr = cabeça (graus).
+const MECHA_GOLPES := {
+	"pesado_rapido": [{"bx": -6, "br": -8, "ar": -40, "ax": -16, "hbx": 6, "cr": -5}, {"bx": 10, "br": 10, "ar": 14, "ax": 30, "hbx": -12, "ffx": 10, "cr": 6}],
+	"pesado_pesado": [{"by": -8, "br": -12, "ar": -70, "hby": -24, "ffx": 6, "ffy": -30, "cr": -8}, {"by": 12, "br": 8, "ar": 24, "hby": 8, "ffx": 12, "cr": 8}],
+	"mecanico_rapido": [{"bx": -8, "br": -4, "ax": -20}, {"bx": 14, "br": 8, "ax": 46, "ffx": 14}],
+	"mecanico_pesado": [{"by": -8, "br": -14, "ar": -125}, {"by": 10, "br": 16, "ar": 38, "ax": 16, "ffx": 16}],
+	"gorila_rapido": [{"bx": -6, "br": -6, "ar": -30, "ax": -12, "hbx": -16}, {"bx": 12, "br": 12, "ar": 10, "ax": 26, "hbx": 70, "hby": -34, "ffx": 12}],
+	"gorila_pesado": [{"by": -18, "br": -16, "ar": -150, "hbx": 30, "hby": -100, "cr": -10}, {"by": 14, "br": 26, "ar": 66, "hbx": 70, "hby": 24, "ffx": 10}],
+	"corredor_rapido": [{"bx": -6, "br": -5, "ax": -18}, {"bx": 16, "br": 10, "ax": 42, "ffx": 16}],
+	"corredor_pesado": [{"bx": -14, "by": 6, "br": -14, "ax": -26, "ar": -10, "ffx": -6}, {"bx": 30, "by": 4, "br": 18, "ax": 52, "ffx": 28, "fbx": -10}],
+	"corcunda_rapido": [{"bx": -4, "br": -10, "ar": -28, "ax": -10}, {"bx": 10, "br": 8, "ar": 6, "ax": 30, "ffx": 10}],
+	"corcunda_pesado": [{"by": -14, "br": -20, "ar": -115, "hbx": -10, "hby": -74, "cr": -14}, {"by": 6, "br": 14, "ar": 42, "hbx": -30, "hby": 20, "cr": 10}],
+	"velocista_rapido": [{"bx": -4, "br": -6, "ffx": -8, "ffy": 0}, {"bx": 12, "br": 6, "ffx": 26, "ffy": -44, "ax": 14, "cr": 6}],   # joelhada-relâmpago
+	"velocista_pesado": [{"bx": -12, "by": 8, "br": -10, "ffx": -10, "fbx": -6}, {"bx": 34, "by": 30, "br": -18, "ffx": 46, "ffy": -10, "fbx": -24, "ar": -30, "cr": 10}],   # voadora deslizante
+	"voo_rapido": [{"bx": -8, "br": -8, "ar": -22, "ax": -14}, {"bx": 16, "br": 12, "ax": 46}],
+	"voo_pesado": [{"by": 6, "br": -16, "ar": 60, "ax": -10}, {"by": -14, "br": -10, "ar": -85, "ax": 30}]}
+
+static func _ease_back(u: float) -> float:
+	var s := 1.9
+	u -= 1.0
+	return u * u * ((s + 1.0) * u + s) + 1.0
+
+static func _smooth(u: float) -> float:
+	u = clampf(u, 0.0, 1.0)
+	return u * u * (3.0 - 2.0 * u)
+
+static func _jv(j) -> Vector2:
+	return Vector2(float(j[0]), float(j[1]))
+
+## Cinemática inversa de 2 ossos: raiz a, alvo c, comprimentos l1/l2, lado da dobra sgn. Devolve [junta do meio, ponta].
+static func _ik2(a: Vector2, c: Vector2, l1: float, l2: float, sgn: float) -> Array:
+	var v := c - a
+	var d := clampf(v.length(), absf(l1 - l2) + 0.01, l1 + l2 - 0.01)
+	var dir := v.normalized() if v.length() > 0.001 else Vector2.DOWN
+	var c2 := a + dir * d
+	var x := (l1 * l1 - l2 * l2 + d * d) / (2.0 * d)
+	var h := sqrt(maxf(l1 * l1 - x * x, 0.0))
+	return [a + dir * x + Vector2(-dir.y, dir.x) * h * sgn, c2]
+
+static func _dobra(a: Vector2, b: Vector2, c: Vector2) -> float:
+	return 1.0 if (b - a).cross(c - a) < 0.0 else -1.0
+
+## Transformação de um osso: o segmento p0→q0 do desenho vai para p1→q1 (gira em volta da junta).
+static func _osso(p0: Vector2, q0: Vector2, p1: Vector2, q1: Vector2) -> Transform2D:
+	var ang := (q1 - p1).angle() - (q0 - p0).angle()
+	return Transform2D(0.0, p1) * Transform2D(ang, Vector2.ZERO) * Transform2D(0.0, -p0)
+
+static func _golpe(st: Dictionary, fx: Dictionary) -> Dictionary:
+	var ak := String(fx.get("matk", ""))
+	if ak == "":
+		return {}
+	var key := String(st["tipo"]) + "_" + ("pesado" if ak == "pesado" else "rapido")
+	if not MECHA_GOLPES.has(key):
+		return {}
+	var kf: Array = MECHA_GOLPES[key]
+	var at := float(fx.get("matk_t", 0.0))
+	var pre := maxf(float(fx.get("matk_pre", 0.1)), 0.01)
+	var tot := maxf(float(fx.get("matk_tot", 0.3)), pre + 0.1)
+	var out := {}
+	var ant: Dictionary = kf[0]
+	var hit: Dictionary = kf[1]
+	for k in ["bx", "by", "br", "ar", "ax", "hbx", "hby", "ffx", "ffy", "fbx", "cr"]:
+		var va := float(ant.get(k, 0.0))
+		var vh := float(hit.get(k, 0.0))
+		var v := 0.0
+		if at < pre:   # antecipação: vai juntando força (devagar no começo)
+			v = va * _smooth(at / pre)
+		elif at < pre + 0.07:   # impacto: rápido, passa um pouco do ponto
+			v = lerpf(va, vh, _ease_back((at - pre) / 0.07))
+		else:   # continuação e volta com mola amortecida
+			var u := clampf((at - pre - 0.07) / (tot - pre - 0.07), 0.0, 1.0)
+			v = vh * (1.0 - _smooth(u)) * (1.0 + 0.12 * sin(u * 9.0) * (1.0 - u))
+		out[k] = v
+	return out
+
+static func _draw_mecha(ci: CanvasItem, lk: Dictionary, pose: Dictionary, base: Transform2D, fx: Dictionary, mname: String, col_idx: int) -> void:
+	var mid := String(fx["mecha"])
+	var M: Dictionary = Data.mecha_meta
+	var m: Dictionary = M["mechas"][mid]
+	if not m.has("juntas"):
+		return
+	var px := mecha_px()
+	var cx: Array = M["caixa"]
+	var box := Rect2(float(cx[0]), float(cx[1]), float(cx[2]), float(cx[3]))
+	var J: Dictionary = m["juntas"]
+	var st: Dictionary = MECHA_ESTILO.get(mid, MECHA_ESTILO["T01"])
+	var tipo := String(st["tipo"])
+	var a := clampf(float(fx.get("assemble", 1.0)), 0.0, 1.0)
+	var tt := lerpf(0.3, 1.2, a)
+	var mv: Dictionary = pose.get("mv", {})
+	var now := float(mv.get("t", Time.get_ticks_msec() / 1000.0))
+	var dist := float(mv.get("dist", 0.0))
+	var run := clampf(float(mv.get("run", 0.0)), 0.0, 1.0)
+	var air := clampf(float(mv.get("air", 0.0)), 0.0, 1.0)
+	var vyy := float(mv.get("vy", 0.0))
+	var flip := float(mv.get("flip", -1.0))
+	var dge := float(mv.get("dodge", 0.0))
+	var land := clampf(float(mv.get("land", 0.0)) / 0.28, 0.0, 1.0)
+	var hurt := clampf(float(mv.get("hurt", 0.0)) / 0.24, 0.0, 1.0)
+	var ground := 1.0 - air
+	var w := clampf(run * 1.4, 0.0, 1.0) * ground
+	var g := _golpe(st, fx)
+	if a < 0.32:   # ATIVAÇÃO: o robô crava o cartucho no peito (clarão) e as peças explodem para fora
+		var ua := a / 0.32
+		var lk2 := lk.duplicate()
+		lk2["fx"] = {}
+		draw_robot(ci, lk2, pose, base)
+		var mp := Vector2(-16, -36).lerp(Vector2(-2, -92), _smooth(ua * 2.0)).lerp(Vector2(2, -46), _smooth(ua * 2.0 - 1.0))
+		_draw_mochila(ci, base, mid, mp, 1.0 + 0.4 * ua, lerpf(-0.12, TAU, _smooth(ua)))
+		if ua > 0.55:
+			var f2 := (ua - 0.55) / 0.45
+			ci.draw_set_transform_matrix(base)
+			ci.draw_circle(Vector2(2, -50), 20.0 + 90.0 * f2, Color(1, 1, 1, 0.85 * (1.0 - f2 * 0.6)))
+			ci.draw_arc(Vector2(2, -50), 30.0 + 140.0 * f2, 0, TAU, 32, Color(1, 0.9, 0.5, 1.0 - f2), 8.0, true)
+	var U := base * Transform2D(0.0, Vector2(px, px), 0.0, Vector2.ZERO)
+	var blink := Color(1.6, 1.5, 1.4) if float(fx.get("armor_end", 0.0)) > 0.0 and fmod(now, 0.16) < 0.08 else Color.WHITE
+	# ---------------- juntas do desenho (repouso)
+	var hip0 := _jv(J["quadril"])
+	var lb: Dictionary = J["perna_b"]
+	var lf: Dictionary = J["perna_f"]
+	var ab_: Dictionary = J["braco_b"]
+	var sh0 := _jv(m["ombro"])
+	var head0 := _jv(J.get("cabeca", [10, -130]))
+	# ---------------- corpo (pelve/tronco): respiração, passada, ar, pouso, golpe, dash, dano
+	var ph := dist / float(st["ciclo"])   # ciclos andados
+	var bx := 0.0
+	var by := 0.0
+	var br := 0.0
+	var cr := 0.0
+	by += sin(now * float(st["resp"]) * 2.0) * 1.2 * (1.0 - w) * ground + float(st["agacha"]) * ground
+	# passada: afunda ao pisar, sobe no "voo" da corrida, inclina e ginga
+	var u0 := fposmod(ph, 1.0)
+	var pulse := 0.0
+	for off in [0.0, 0.5]:
+		var uu := fposmod(ph + off, 1.0)
+		if uu < 0.22:
+			pulse = maxf(pulse, 1.0 - uu / 0.22)
+	by += (float(st["queda"]) * pulse - float(st["quica"]) * absf(sin(TAU * u0)) * (1.0 - pulse)) * w
+	br += deg_to_rad(float(st["incl"])) * w + deg_to_rad(float(st["ginga"])) * sin(TAU * u0) * w
+	cr += deg_to_rad(float(st["cab"])) * sin(TAU * u0 * 2.0 - 1.2) * w
+	if tipo == "voo" and ground > 0.5:   # Jato paira: não pisa
+		by += -6.0 + sin(now * 4.0) * 2.0
+		br = deg_to_rad(float(st["incl"])) * run
+	if air > 0.05:
+		br += deg_to_rad(clampf(vyy / 45.0, -12.0, 14.0)) * air
+	by += 9.0 * land
+	br += deg_to_rad(5.0) * land
+	if hurt > 0.0:
+		br -= deg_to_rad(14.0) * hurt
+		cr -= deg_to_rad(14.0) * hurt
+		bx -= 6.0 * hurt
+	if not g.is_empty():
+		bx += g["bx"]
+		by += g["by"]
+		br += deg_to_rad(g["br"])
+		cr += deg_to_rad(g["cr"])
+	# pulo duplo (flip 0..1) e dash (dge 1..0): cada tipo do seu jeito
+	var spin := 0.0
+	var sq := Vector2.ONE
+	var tuck := sin(clampf(flip, 0.0, 1.0) * PI) if flip >= 0.0 else 0.0
+	if flip >= 0.0:
+		match tipo:
+			"corredor", "velocista":
+				spin = -TAU * _smooth(flip)
+			"corcunda":
+				spin = TAU * _smooth(flip)
+			"mecanico":
+				sq = Vector2(1.0 - 0.1 * tuck, 1.0 + 0.18 * tuck)
+			"voo":
+				sq = Vector2(0.9, 1.15).lerp(Vector2.ONE, flip)
+			_:
+				sq = Vector2(1.0 + 0.14 * tuck, 1.0 - 0.18 * tuck)
+	if dge > 0.0:
+		var dl := {"pesado": 26.0, "mecanico": 14.0, "gorila": 34.0, "corredor": 22.0, "velocista": 26.0, "corcunda": 18.0, "voo": 40.0}
+		br += deg_to_rad(float(dl.get(tipo, 20.0))) * _smooth(dge * 1.4)
+		by += (6.0 if tipo == "gorila" else 2.0) * dge
+	# habilidade em uso: postura firme (fogo, raio) ou disparada (dash da broca)
+	var fire_k := float(fx.get("flame", 0.0))
+	if fire_k > 0.05 or fx.get("arc", false):
+		by += 4.0
+		br -= deg_to_rad(6.0)
+		bx += sin(now * 70.0) * 1.2
+	var drill_dash: bool = fx.get("drill_dash", false)
+	if drill_dash:
+		br += deg_to_rad(22.0)
+		by += 3.0
+	if fx.get("arrancada", false):   # A36: ARRANCADA, deitado para a frente como velocista na largada
+		br += deg_to_rad(16.0)
+		by += 4.0 + sin(now * 40.0) * 1.5
+	var cen := Vector2(0.0, -60.0)
+	var G := Transform2D.IDENTITY
+	if spin != 0.0 or sq != Vector2.ONE:
+		G = Transform2D(spin, cen) * Transform2D(0.0, sq, 0.0, Vector2.ZERO) * Transform2D(0.0, -cen)
+	U = U * G
+	var B := Transform2D(0.0, hip0 + Vector2(bx, by)) * Transform2D(br, Vector2.ZERO) * Transform2D(0.0, -hip0)
+	# ---------------- pernas: alvo do tornozelo (passada plantada, ar, pulo duplo, dash, golpe)
+	var feet := {}
+	for side in ["b", "f"]:
+		var L: Dictionary = lb if side == "b" else lf
+		var h0 := _jv(L["quadril"])
+		var k0 := _jv(L["joelho"])
+		var a0 := _jv(L["tornozelo"])
+		var l1 := h0.distance_to(k0)
+		var l2 := k0.distance_to(a0)
+		var hipw: Vector2 = B * h0
+		var reach := l1 + l2
+		var off := 0.0 if side == "f" else 0.5
+		var uu := fposmod(ph + off, 1.0)
+		# passo: tamanho limitado pelo alcance da perna; o pé anda para trás exatamente com o chão no apoio
+		var hh := absf(a0.y - h0.y)
+		var max_s := 2.0 * sqrt(maxf(reach * reach * 0.94 - hh * hh * 0.7, 1.0))
+		var S := minf(float(st["duty"]) * float(st["ciclo"]) / px, max_s)
+		var de := S * px / float(st["ciclo"])
+		var fxo := 0.0
+		var fyo := 0.0
+		var frot := 0.0
+		if uu < de:
+			fxo = S * 0.5 - (uu / de) * S
+			if uu > de * 0.8:
+				frot = -0.25 * (uu / de - 0.8) / 0.2   # empurra com o calcanhar subindo
+		else:
+			var s := (uu - de) / (1.0 - de)
+			fxo = -S * 0.5 + _smooth(s) * S
+			fyo = -float(st["passo_h"]) * sin(PI * s)
+			frot = 0.35 * sin(PI * s) * (1.0 if s > 0.5 else -0.6)
+		fxo *= w
+		fyo *= w
+		frot *= w
+		if tipo == "voo" and ground > 0.5:   # pernas soltas, balançando como pêndulo
+			fxo = -6.0 * run + sin(now * 3.0 + off * 3.0) * 2.0
+			fyo = -4.0
+			frot = 0.2
+		var tgt := a0 + Vector2(fxo + (bx * 0.3 if side == "f" else 0.0), fyo)
+		if air > 0.05:   # no ar: sobe estendido, encolhe no alto, abre para pousar
+			var t_up := clampf(-vyy / 600.0, 0.0, 1.0)
+			var t_dn := clampf(vyy / 600.0, 0.0, 1.0)
+			var apex := 1.0 - maxf(t_up, t_dn)
+			var sgn_s := 1.0 if side == "f" else -1.0
+			var air_t := Vector2(-6.0 * t_up + 6.0 * t_dn + 5.0 * sgn_s, -16.0 * apex - 2.0 * t_up)
+			tgt = tgt.lerp((B * h0) + (a0 - h0) + air_t + Vector2(0, -float(st["agacha"])), air)
+			frot = lerpf(frot, 0.3 * apex - 0.25 * t_up, air)
+		if tuck > 0.0:
+			tgt += Vector2(4.0 if side == "f" else -2.0, -18.0 * tuck)
+		if dge > 0.0:
+			var dd := _smooth(dge * 1.4)
+			tgt += Vector2((14.0 if side == "f" else -22.0) * dd, (-6.0 if side == "f" else 0.0) * dd)
+		if not g.is_empty():
+			if side == "f":
+				tgt += Vector2(g["ffx"], g["ffy"])
+			else:
+				tgt += Vector2(g["fbx"], 0.0)
+		if fire_k > 0.05 or fx.get("arc", false) or drill_dash:   # firma as pernas (base larga)
+			tgt.x += (10.0 if side == "f" else -10.0)
+		var sol := _ik2(hipw, tgt, l1, l2, _dobra(h0, k0, a0))
+		feet[side] = [h0, k0, a0, hipw, sol[0], sol[1], frot]
+	# ---------------- braço de trás: balança com a passada (ou anda apoiado nos nós dos dedos: gorila)
+	var s0 := _jv(ab_["ombro"])
+	var e0 := _jv(ab_["cotovelo"])
+	var hnd0 := _jv(ab_["mao"])
+	var la1 := s0.distance_to(e0)
+	var la2 := e0.distance_to(hnd0)
+	var sw: Vector2 = B * s0
+	var htgt: Vector2 = B * hnd0
+	if tipo == "gorila":
+		var ua := fposmod(ph + 0.25, 1.0)
+		var Sa := 26.0
+		if ua < 0.55:
+			htgt = hnd0 + Vector2((Sa * 0.5 - ua / 0.55 * Sa) * w, 0.0)
+		else:
+			var sa := (ua - 0.55) / 0.45
+			htgt = hnd0 + Vector2((-Sa * 0.5 + _smooth(sa) * Sa) * w, -12.0 * sin(PI * sa) * w)
+		htgt += Vector2(bx, by * 0.5)
+	else:
+		htgt += Vector2(-float(st["braco"]) * sin(TAU * u0) * w, 0.0)
+	if air > 0.05:
+		htgt += Vector2(-6.0, -10.0 * clampf(-vyy / 600.0, 0.0, 1.0) - 4.0) * air
+	if tuck > 0.0:
+		htgt += (Vector2(10.0, -70.0) if tipo == "gorila" else Vector2(-8.0, -10.0)) * tuck
+	if dge > 0.0:
+		htgt += (Vector2(40.0, 6.0) if tipo == "gorila" else Vector2(10.0, -14.0)) * _smooth(dge * 1.4)
+	if hurt > 0.0:
+		htgt += Vector2(-10.0, -18.0) * hurt
+	if not g.is_empty():
+		htgt += Vector2(g["hbx"], g["hby"])
+	var arm := _ik2(sw, htgt, la1, la2, _dobra(s0, e0, hnd0))
+	# braço-arma: mira + balanço + golpe + recuo da habilidade
+	var aim := float(fx.get("aim_a", 0.0)) if mid in MECHA_MIRA else 0.0
+	var a_rot := aim + deg_to_rad(4.0) * sin(TAU * u0 + PI) * w
+	var a_dx := 0.0
+	if not g.is_empty():
+		a_rot += deg_to_rad(g["ar"])
+		a_dx += g["ax"]
+	if fire_k > 0.05:
+		a_dx -= 3.0 + sin(now * 60.0) * 1.5
+	if dge > 0.0 and tipo in ["mecanico", "corredor", "velocista"]:
+		a_rot = lerpf(a_rot, 0.0, dge)
+		a_dx += 12.0 * dge
+	# ---------------- fundo: raios da montagem, rastro do dash, propulsores
+	ci.draw_set_transform_matrix(U)
+	if a < 1.0:
+		var ck: Array = m["cockpit"]
+		var c := Vector2(float(ck[0]), float(ck[1]) - 20.0)
+		var op := 0.55 * sin(a * PI)
+		for k in 12:
+			var ang := deg_to_rad(now * 90.0 + k * 30.0)
+			ci.draw_colored_polygon(PackedVector2Array([c, c + Vector2.from_angle(ang) * 240.0, c + Vector2.from_angle(ang + 0.18) * 240.0]), Color(1, 0.95, 0.7, op * 0.5))
+		ci.draw_circle(c, 80.0 + 60.0 * a, Color(1, 0.97, 0.85, op))
+	if dge > 0.05:
+		var dcol := Color(0.55, 0.85, 1.0) if tipo in ["corcunda", "voo"] else (Color(1.0, 0.7, 0.35) if tipo == "pesado" else Color(0.85, 0.92, 1.0))
+		for k in 3:
+			ci.draw_rect(Rect2(-70.0 - k * 36.0, -150.0 + k * 8.0, 74.0, 150.0 - k * 14.0), Color(dcol, 0.2 * dge * (1.0 - k * 0.3)))
+		for k in 7:
+			var yy := -150.0 + k * 22.0
+			var x0 := -60.0 - fmod(k * 37.0 + now * 900.0, 70.0)
+			ci.draw_line(Vector2(x0, yy), Vector2(x0 - 50.0 - k * 6.0, yy), Color(1, 1, 1, 0.75 * dge), 4.0, true)
+		if tipo == "corcunda":
+			for k in 3:
+				var y2 := -40.0 - k * 36.0
+				ci.draw_polyline(PackedVector2Array([Vector2(-150, y2), Vector2(-110, y2 - 8), Vector2(-80, y2 + 6), Vector2(-40, y2 - 4)]), Color(0.8, 0.97, 1.0, 0.9 * dge), 3.0, true)
+	var jet := 0.0
+	if flip >= 0.0:
+		jet = 1.0 - clampf(flip, 0.0, 1.0)
+	if tipo == "voo":
+		jet = maxf(jet, 0.35 + 0.55 * maxf(run, air))
+	if jet > 0.02:
+		var fl := 0.8 + 0.2 * sin(now * 50.0)
+		for side in ["b", "f"]:
+			var an: Vector2 = feet[side][5]
+			var L2 := (60.0 if tipo != "voo" else 46.0) * jet * fl
+			ci.draw_colored_polygon(PackedVector2Array([an + Vector2(-11, 10), an + Vector2(11, 10), an + Vector2(0, 10 + L2)]), Color(1.0, 0.58, 0.18, 0.92))
+			ci.draw_colored_polygon(PackedVector2Array([an + Vector2(-5, 10), an + Vector2(5, 10), an + Vector2(0, 10 + L2 * 0.55)]), Color(1.0, 0.97, 0.75, 0.95))
+	if tipo == "corcunda" and flip >= 0.0:   # anel elétrico do giro
+		ci.draw_arc(cen, 70.0 + 30.0 * tuck, 0, TAU, 32, Color(0.7, 0.95, 1.0, 0.8 * tuck), 4.0, true)
+	# ---------------- peças
+	var parts_xf := {}
+	for side in ["b", "f"]:
+		var F: Array = feet[side]
+		parts_xf["coxa_" + side] = _osso(F[0], F[1], F[3], F[4])
+		parts_xf["canela_" + side] = _osso(F[1], F[2], F[4], F[5])
+		parts_xf["pe_" + side] = Transform2D(0.0, F[5]) * Transform2D(float(F[6]), Vector2.ZERO) * Transform2D(0.0, -F[2])
+	parts_xf["braco_b_sup"] = _osso(s0, e0, sw, arm[0])
+	parts_xf["braco_b_inf"] = _osso(e0, hnd0, arm[0], arm[1])
+	for p in ["costas", "tronco", "cabine", "peito", "ombro_b", "ombro_f"]:
+		parts_xf[p] = B
+	parts_xf["cabeca"] = B * Transform2D(cr, head0) * Transform2D(0.0, -head0)
+	parts_xf["arma"] = B * Transform2D(0.0, Vector2(a_dx, 0.0)) * Transform2D(a_rot, sh0) * Transform2D(0.0, -sh0)
+	var mod := blink
+	if dge > 0.0 and tipo == "corcunda":   # piscada elétrica: fica meio transparente e azulado
+		mod = Color(0.75, 0.95, 1.2, 1.0 - 0.45 * sin(dge * PI))
+	for p in M["pecas"]:
+		if not (p in m["tem"]) or not parts_xf.has(p):
+			continue
+		var tx: Texture2D = Data.tex("mecha/%s_%s%s" % [mid, p, ("_p%d" % (col_idx + 1)) if p == "tronco" else ""])
+		if tx == null:
+			continue
+		var xf: Transform2D = parts_xf[p]
+		var grp := String(MECHA_GRUPO.get(p, p))
+		var al := 1.0
+		if MECHA_CHEGADA.has(grp):   # transformação: o grupo chega voando e encaixa
+			var ch: Array = MECHA_CHEGADA[grp]
+			var u := clampf((tt - float(ch[0])) / (float(ch[1]) - float(ch[0])), 0.0, 1.0)
+			if u <= 0.0:
+				continue
+			var k := 1.0 - _ease_back(u)
+			var piv := _jv(m["pivos"].get(p, [0, -60]))
+			xf = Transform2D(0.0, Vector2(float(ch[2]), float(ch[3])) * k) * Transform2D(deg_to_rad(float(ch[4])) * k, piv) * Transform2D(0.0, -piv) * xf
+			al = clampf(u * 4.0, 0.0, 1.0)
+		ci.draw_set_transform_matrix(U * xf)
+		ci.draw_texture_rect(tx, box, false, Color(mod, mod.a * al))
+		if p == "cabine" and al >= 0.99:
+			_mecha_piloto(ci, U * B, m, mname, col_idx, lk, pose)
+	# ---------------- frente: poeira dos passos, vapor, faíscas, olho acendendo
+	ci.draw_set_transform_matrix(U)
+	if w > 0.3 and tipo != "voo":
+		for side in ["b", "f"]:
+			var uu2 := fposmod(ph + (0.0 if side == "f" else 0.5), 1.0)
+			if uu2 < 0.16:
+				var k2 := 1.0 - uu2 / 0.16
+				var an2: Vector2 = feet[side][5]
+				for q in 3:
+					ci.draw_circle(an2 + Vector2(-16.0 + q * 16.0 - (1.0 - k2) * 10.0, 6.0 - (1.0 - k2) * 6.0), (5.0 + q * 2.0) * (1.4 if tipo in ["pesado", "gorila"] else 0.9) * (0.5 + k2), Color(0.86, 0.79, 0.67, 0.6 * k2))
+	if tipo == "pesado":   # vapor saindo da chaminé, mais forte correndo
+		for q in 3:
+			var uq := fposmod(now * (0.8 + w) + q * 0.33, 1.0)
+			var cs: Vector2 = B * Vector2(-44.0, -150.0)
+			ci.draw_circle(cs + Vector2(-14.0 * uq - 20.0 * w * uq, -40.0 * uq), 5.0 + 12.0 * uq, Color(0.55, 0.55, 0.58, 0.45 * (1.0 - uq)))
+	if tipo == "corcunda" and fmod(now, 0.5) < 0.12:   # faísca solta da bobina
+		var cs2: Vector2 = B * Vector2(-50.0, -186.0)
+		ci.draw_polyline(PackedVector2Array([cs2, cs2 + Vector2(10, -8), cs2 + Vector2(4, -16), cs2 + Vector2(14, -24)]), Color(0.85, 0.98, 1.0, 0.9), 2.0, true)
+	if tipo == "mecanico" and w > 0.3:   # chiado hidráulico nos joelhos
+		var kn: Vector2 = feet["f"][4]
+		var uq2 := fposmod(now * 3.0, 1.0)
+		ci.draw_circle(kn + Vector2(-8.0 - 10.0 * uq2, -4.0 * uq2), 3.0 + 4.0 * uq2, Color(1, 1, 1, 0.5 * (1.0 - uq2)))
+	if a < 1.0 and a > 0.85:
+		var ol: Array = m["olho"]
+		var e := (a - 0.85) / 0.15
+		ci.draw_circle(B * Vector2(float(ol[0]), float(ol[1])), 6.0 + 26.0 * e, Color(1, 0.25, 0.2, 0.55 * (1.0 - e)))
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+
+static func _mecha_piloto(ci: CanvasItem, U: Transform2D, m: Dictionary, mname: String, col_idx: int, lk: Dictionary, pose: Dictionary) -> void:
+	var ck: Array = m["cockpit"]
+	var w := float(ck[2])
+	var h := float(ck[3])
+	var dst := Rect2(float(ck[0]) - w / 2.0, float(ck[1]) - h / 2.0, w, h)
+	var g: Dictionary = Data.robot_meta["modelos"][mname]
+	var eye: Vector2 = (_v(g["eyes"][0]) + _v(g["eyes"][1])) / 2.0 + ORIGIN
+	var top := float(g["top"])
+	var hh := maxf(eye.y + 14.0 - top, 24.0)
+	var src128 := Rect2(eye.x - hh * 0.62, top - 2.0, hh * 1.24, hh * 0.98)
+	ci.draw_set_transform_matrix(U)
+	var sk := _sk(lk, mname)
+	var body := Data.tex("robo/corpo_%s%s_p%d" % [mname, sk, col_idx + 1])
+	var kq := float(body.get_width()) / 128.0
+	ci.draw_texture_rect_region(body, dst, Rect2(src128.position * kq, src128.size * kq))
+	var ex := String(pose.get("expr", "normal"))
+	var face := Data.tex("robo/rosto_%s_%s" % [mname, ex])
+	if face == null:
+		face = Data.tex("robo/rosto_%s_normal" % mname)
+	if face != null:
+		var kf := float(face.get_width()) / 128.0
+		ci.draw_texture_rect_region(face, dst, Rect2(src128.position * kf, src128.size * kf))
+	ci.draw_rect(Rect2(dst.position + Vector2(3, 3), Vector2(w * 0.4, 2.5)), Color(1, 1, 1, 0.6))   # brilho do vidro
+
 static func _armor_piece(ci: CanvasItem, xf: Transform2D, name: String, asm: float, at: Vector2, sf: Dictionary, sx := 1.0) -> void:
 	var drop := Vector2(0, -(1.0 - asm) * 30.0)
 	var mod := Color(1, 1, 1, asm)
@@ -1379,6 +2034,10 @@ static func _sk(lk: Dictionary, mname: String) -> String:
 	if k == "" or Data.tex("robo/corpo_%s_%s_p1" % [mname, k]) == null:
 		return ""
 	return "_" + k
+
+static func _tex_sk(com_skin: String, padrao: String) -> Texture2D:
+	var t: Texture2D = Data.tex(com_skin)
+	return t if t != null else Data.tex(padrao)
 
 static func _v(a: Array) -> Vector2:
 	return Vector2(float(a[0]), float(a[1])) - ORIGIN

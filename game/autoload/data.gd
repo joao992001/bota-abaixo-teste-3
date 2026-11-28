@@ -6,7 +6,7 @@ const TEXT_COLORS := [Color("#3a6cc0"), Color("#3c9a46"), Color("#e0508f"), Colo
 ## 5 robôs (elenco 2026-11-24, art/src/robos/elenco.py): cada um com a própria ferramenta e golpes desenhados à parte,
 ## mas a hitbox e os números de jogo são os mesmos. Ordem = art/out/game/robo/modelos.json.
 const MODELS := ["marretao", "picareta", "chave", "britadeira", "pa"]
-const MODEL_NAMES := ["Marretão", "Picareta", "Chave", "Britadeira", "Pá"]
+const MODEL_NAMES := ["Marretão", "Guindaste", "Solda", "Brita", "Escavadeira"]
 const COLOR_NAMES := ["Azul", "Verde", "Rosa", "Amarelo"]
 const DANGER := Color("#d42035")
 const INK := Color("#2a1a2e")
@@ -16,6 +16,7 @@ const DANCAS := ["pulinho", "marreteiro", "pião", "robozinho"]
 
 var ctrl: Dictionary
 var root_dir := ""
+var mecha_meta := {}   # art/out/game/mecha/mechas.json: peças, pivôs, ombro, ponta da arma, cockpit de cada armadura-mecha (A29)
 var robot_meta := {}   # art/out/game/robo/modelos.json: quadris, ombros, mãos, topo, membros, voz e dança por modelo
 
 func _ready() -> void:
@@ -23,6 +24,8 @@ func _ready() -> void:
 	ctrl = read_json("data/controller.json")
 	if FileAccess.file_exists("res://assets/robo/modelos.json"):
 		robot_meta = JSON.parse_string(FileAccess.get_file_as_string("res://assets/robo/modelos.json"))
+	if FileAccess.file_exists("res://assets/mecha/mechas.json"):
+		mecha_meta = JSON.parse_string(FileAccess.get_file_as_string("res://assets/mecha/mechas.json"))
 	var t0 := Time.get_ticks_msec()
 	var n := preload_all()
 	print("Bota-Abaixo: %d imagens carregadas em %d ms" % [n, Time.get_ticks_msec() - t0])
@@ -54,6 +57,8 @@ func preload_all(dir := "res://assets") -> int:
 	if d == null:
 		return 0
 	for sub in d.get_directories():
+		if dir == "res://assets" and sub == "temas":
+			continue   # fundos 4K dos temas antigos (~400 MB de vídeo): carregam só quando um mapa usa (avaliação 2026-11-26, FPS)
 		n += preload_all(dir.path_join(sub))
 	var seen := {}
 	for f in d.get_files():

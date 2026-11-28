@@ -24,7 +24,10 @@ var atk_t := 0.0              # tempo desde o começo do golpe
 var atk_hit := false          # o impacto já aconteceu (uma vez por golpe, no fim do preparo)
 var atk_landed := false       # o impacto pegou alguém
 var atk_cd := 0.0
-var atk_dir := "frente"        # golpe rápido: "frente", "cima", "baixo" (no ar), "corrida"
+var atk_dir := "frente"        # golpe rápido: "frente", "cima", "baixo" (no ar), "corrida"; pesado: "frente", "cima", "baixo"
+var heavy_charge := 0.0        # A47: segundos de carga do golpe pesado (segurando)
+var hit_mult := 1.0            # A47: multiplicador do golpe que está saindo (carga/crítico), lido por take_hit do alvo
+var crash_cd := 0.0            # A47: arremessado contra parede/pouso forte racha a obra (1x a cada 0,4 s)
 var combo_i := 0              # sequência de golpes rápidos: 0, 1, 2 (o 3º arremessa)
 var combo_t := 0.0            # janela para encadear o próximo golpe
 var heavy_cd := 0.0           # recarga só da marretada pesada (o golpe rápido segue livre)
@@ -50,6 +53,9 @@ var spin := 0.0
 var wall_sliding := false
 var stun_t := 0.0            # atordoado: ignora o controle (pisão na cabeça, marretada)
 var spell_speed := 1.0         # multiplicador de corrida de spells/transformações (modes/spells.gd)
+var agua_grav := 1.0           # ÁGUA (modes/agua.gd, Fase 2): alagado = gravidade menor (pulo flutua),
+var agua_queda := 1.0          # queda máxima menor e golpe recebido joga mais longe; 1 fora d'água
+var agua_empurra := 1.0
 var env_slow := 1.0            # mecanismos da fase (concreto fresco, água): corrida e pulo mais fracos; volta a 1 sozinho
 var spell_push := 1.0          # multiplicador de empurrão recebido (armadura resiste)
 var caught := false           # Fuga: foi pego pela tela ou pela lama (esse sai de vez)
@@ -60,7 +66,8 @@ var grip := 1.0               # aderência na parede/borda (1 = cheia); gasta se
 var wall_side := 0            # lado da parede em que está escorregando (desenho)
 var frozen_t := 0.0           # congelado (A03 Canhão Criogênico): preso no gelo; agitar o direcional quebra mais rápido
 var size_k := 1.0             # T07 Minirobô: tamanho (a hitbox acompanha o desenho)
-var spell_hit := 1.0          # força dos golpes DESTE robô nos outros (minirobô empurra menos)
+var spell_hit := 1.0          # força dos golpes DESTE robô nos outros
+var spell_jump := 1.0         # pulo de spells/transformações (T07 mecha Corredor, A36)
 var spell_fly := false        # T04 jetpack ligado: sem gravidade (o jetpack controla a subida)
 var spell_form := ""          # transformação que muda o movimento ("bola" = T03 rola com inércia)
 var body_cs: CollisionShape2D
@@ -68,6 +75,10 @@ var hammer_out := false       # A07: a marreta está voando (sem marretada pesad
 var spell_lock := false       # mirando/viajando (C04 Teleporte): ignora movimento, pulo e golpes
 var god := false              # Laboratório: invencível (não leva golpe)
 var push_vx := 0.0            # empurrão externo deste quadro (ímã); zera a cada quadro
+var mola_t := 0.0            # D03 Para-choque de Mola: quem bate é rebatido (golpe não passa)
+var capacete_n := 0           # D05 Capacete de Aço: proteções restantes (cada golpe/tiro gasta 1, sem dano nem empurrão)
+var poeira_t := 0.0          # D04 Cortina de Poeira: intocável (golpe e tiro passam direto); não ataca
+var ancora_t := 0.0          # D01 Âncora de Contrapeso: ninguém empurra (golpe, vento, ímã, onda, gancho); anda devagar, não pula
 var fall_reason := ""
 var last_hit := 99.0
 var stomp_immune := 0.0
@@ -130,17 +141,26 @@ func f(key: String) -> float:
 	return float(c[key])
 
 func _physics_process(dt: float) -> void:
+	var _pf := Perf.t0()
+	_physics_process_perf(dt)
+	Perf.add("fisica_robos", _pf)
+
+func _physics_process_perf(dt: float) -> void:
 	if main.paused:
 		return
 	if not alive:
 		_dead_fall(dt)
 		return
 	if not active or finished:
+		var _qvisual1 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual1)
 		return
 	if hitstop > 0.0:
 		hitstop -= dt
+		var _qvisual2 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual2)
 		return
 	var ix := _ix()
 	var on_floor := is_on_floor()
@@ -172,33 +192,47 @@ func _physics_process(dt: float) -> void:
 	last_hit += dt
 	if climb_t >= 0.0:
 		_climb_update(dt)
+		var _qvisual3 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual3)
 		return
 	if forced_t > 0.0:
 		forced_t -= dt
 		hanging = false
 		velocity = forced_vel
 		own_vx = forced_vel.x
+		var _qmover1 := Perf.t0()
 		move_and_slide()
+		Perf.add("sub_rob_mover", _qmover1)
 		if forced_t <= 0.0 and forced_vel.y < -100.0:
 			velocity.y = forced_vel.y * 0.4
 		was_on_floor = is_on_floor()
+		var _qcontatos1 := Perf.t0()
 		main.check_contacts(self)
+		Perf.add("sub_rob_contatos", _qcontatos1)
+		var _qvisual4 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual4)
 		return
 	if hanging:
 		_hang_update(dt)
+		var _qvisual5 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual5)
 		return
 	if dodge_t > 0.0:
 		_dodge_update(dt)
+		var _qvisual6 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual6)
 		return
 	if spell_form == "bola":
 		_ball_update(dt, ix, on_floor)
 		return
 	if _pressed("item") and main.demo.spells != null:
-		main.demo.spells.press(self)   # botão de especial (spell equipada / troca segurando sobre a caixa)
+		var _qengenhoca1 := Perf.t0()
+		main.demo.spells.press(self)
+		Perf.add("sub_rob_engenhoca", _qengenhoca1)
 	# timers
 	coyote = maxf(coyote - dt, 0.0)
 	buffer = maxf(buffer - dt, 0.0)
@@ -214,7 +248,7 @@ func _physics_process(dt: float) -> void:
 		ext_vx = floor_piece.belt_vx(self, ix)
 	ext_vx += push_vx
 	push_vx = 0.0
-	if main.events != null and main.events.wind != 0.0 and hanging == false:
+	if main.events != null and main.events.wind != 0.0 and hanging == false and invuln <= 0.0:   # voltando (protegido): o vento não empurra
 		ext_vx += main.events.wind * (0.55 if on_floor else 1.2)   # evento Ventania (no chão segura mais)
 	# horizontal
 	if wall_lock <= 0.0:
@@ -265,12 +299,14 @@ func _physics_process(dt: float) -> void:
 		var g := f("gravity")
 		if main.events != null:
 			g *= main.events.gravity_mult   # evento Gravidade Baixa
+		g *= float(get_meta("grav_cena", 1.0))   # transição de cena: queda lenta e legível só de quem ainda está caindo
+		g *= agua_grav
 		if not spring and _held("jump") and absf(velocity.y) < f("half_grav_threshold"):
 			g *= 0.5
 		velocity.y += g * dt
 	if spring and velocity.y >= 0.0:
 		spring = false
-	var max_fall := f("fast_max_fall") if _held("down") else f("max_fall")
+	var max_fall: float = (f("fast_max_fall") if _held("down") else f("max_fall")) * agua_queda
 	wall_sliding = wall_dir != 0 and int(signf(ix)) == wall_dir and velocity.y > 0.0 and grip > 0.0
 	wall_side = wall_dir if wall_sliding else 0
 	if main.mode == "demolicao":
@@ -293,9 +329,11 @@ func _physics_process(dt: float) -> void:
 	# golpes e esquiva
 	if _pressed("dodge") and _can_dodge(on_floor):
 		_start_dodge(on_floor)
+		var _qvisual7 := Perf.t0()
 		vis.tick(self, dt)
+		Perf.add("sub_rob_visual", _qvisual7)
 		return
-	if atk == "" and atk_cd <= 0.0:
+	if atk == "" and atk_cd <= 0.0 and poeira_t <= 0.0:   # D04: dentro da poeira não ataca
 		if _pressed("heavy"):
 			if heavy_cd <= 0.0 and not hammer_out:
 				_start_attack("pesado")
@@ -309,12 +347,27 @@ func _physics_process(dt: float) -> void:
 		atk = ""
 		_pick_quick(on_floor)
 	if atk != "":
+		var _qgolpe1 := Perf.t0()
 		_attack_update(dt, on_floor)
+		Perf.add("sub_rob_golpe", _qgolpe1)
 	# mover
 	land_v = velocity.y
+	if ancora_t > 0.0:   # D01: preso ao contrapeso — só o próprio passo (devagar), nada de fora move
+		ext_vx = 0.0
+		var vmax := f("max_run") * spell_speed
+		own_vx = clampf(own_vx, -vmax, vmax)
+		if on_floor:
+			velocity.y = maxf(velocity.y, 0.0)
 	velocity.x = own_vx + ext_vx
 	_corner_correction(dt)
+	var vx_pre := velocity.x
+	crash_cd = maxf(crash_cd - dt, 0.0)
+	var _qmover2 := Perf.t0()
 	move_and_slide()
+	Perf.add("sub_rob_mover", _qmover2)
+	if is_on_wall() and (stun_t > 0.0 or recover_t > 0.0) and absf(vx_pre) > 620.0 and crash_cd <= 0.0 and main.mode == "demolicao":
+		crash_cd = 0.4   # A47: ARREMESSADO contra parede/bloco: racha
+		main.demo.luta_quebra(self, position + Vector2(signf(vx_pre) * 30.0, -36.0), 2 if absf(vx_pre) > 1000.0 else 1)
 	if is_on_wall():
 		var n := get_wall_normal()
 		if signf(own_vx) == -signf(n.x):
@@ -336,8 +389,12 @@ func _physics_process(dt: float) -> void:
 		_on_landed()
 	if floor_piece != null and is_instance_valid(floor_piece):
 		floor_piece.on_stand(self)
+	var _qcontatos2 := Perf.t0()
 	main.check_contacts(self)
+	Perf.add("sub_rob_contatos", _qcontatos2)
+	var _qvisual8 := Perf.t0()
 	vis.tick(self, dt)
+	Perf.add("sub_rob_visual", _qvisual8)
 
 func _held(a: String) -> bool:
 	return stun_t <= 0.0 and not spell_lock and PlayerInput.held(pid, a)
@@ -349,7 +406,7 @@ func _ix() -> float:
 	return 0.0 if stun_t > 0.0 or spell_lock else PlayerInput.axis_x(pid)
 
 func _jump_speed() -> float:
-	var js := float(c["jump_speed"])
+	var js := float(c["jump_speed"]) * spell_jump
 	return js * (0.55 + 0.45 * env_slow)
 
 ## T03 Bola de Demolição (revista 2026-11-25: "só vai para a frente, difícil de controlar, não pula"): ainda rola com
@@ -520,34 +577,61 @@ func _climb_update(dt: float) -> void:
 ## Retorna false se não pegou (invulnerável ou capacete).
 const ROBOT_HITS := ["rapido", "pesado", "martelao", "marretada", "combo", "combo_final", "cima", "baixo", "corrida",
 	"spell_punho", "spell_gelo", "spell_fogo", "spell_explosao",
-	"spell_laser", "spell_sismo", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
+	"spell_laser", "spell_sismo", "spell_cratera", "spell_rebite", "spell_estaca", "spell_bumerangue", "spell_mola",
 	"spell_gancho", "spell_carga", "spell_viga",
-	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda"]
+	"spell_bola", "spell_empilhadeira", "spell_broca", "spell_solda", "spell_broca_dash", "spell_arrancada", "spell_raio1", "spell_raio2", "spell_raio3", "mecha_leve", "mecha_pesado"]
+
+const LEVES := ["rapido", "combo", "combo_final", "cima", "baixo", "corrida"]
 
 func take_hit(dir: int, kind: String, by := -1) -> bool:
 	if invuln > 0.0 or god:
 		return false
+	if poeira_t > 0.0:   # D04: passa direto
+		return false
+	if mola_t > 0.0 and by >= 0 and by != pid:   # D03: rebate quem bateu
+		if main.demo.spells != null:
+			main.demo.spells.bumper_rebate(self, by)
+		return false
+	if capacete_n > 0 and main.demo.spells != null:   # D05: o capacete de aço absorve
+		main.demo.spells.helmet_absorb(self, by)
+		return false
 	if guard_t > 0.0 and by >= 0 and by != pid and kind in ROBOT_HITS:
 		_dodged()
 		return false
+	if atk == "pesado" and not atk_hit and heavy_charge > 0.0 and kind in LEVES:   # A47: carregando = armadura contra o leve
+		var am0: Dictionary = main.demo.cfg["amassometro"]
+		dmg += float(am0[kind]["dano"]) * 0.5
+		main.float_text(position + Vector2(0, -100), "+%d%%" % maxi(int(float(am0[kind]["dano"]) * 0.5), 1), main.dmg_color(dmg))
+		main.float_text(position + Vector2(0, -150), "ARMADURA!", Color("#ffd23a"))
+		vis.hurt(0.2, dir)
+		return true
 	last_hit = 0.0
 	last_cause = {"marretada": "marretada", "martelao": "marretada", "explosao": "explosão", "bola": "bola",
 		"spell_punho": "punho pneumático", "spell_gelo": "canhão criogênico", "spell_fogo": "armadura fornalha",
-		"spell_explosao": "fornalha explodiu", "spell_laser": "laser de corte", "spell_sismo": "marreta sísmica",
+		"spell_explosao": "fornalha explodiu", "spell_laser": "laser de corte", "spell_sismo": "marreta sísmica", "spell_cratera": "cratera da marreta sísmica",
 		"spell_rebite": "rebite", "spell_estaca": "bate-estaca", "spell_bumerangue": "marreta-bumerangue",
 		"spell_mola": "canhão de molas", "spell_gancho": "gancho", "spell_carga": "carga de demolição", "spell_viga": "viga do guindaste",
-		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda",
+		"spell_bola": "bola de demolição", "spell_empilhadeira": "empilhadeira", "spell_broca": "broca", "spell_solda": "solda", "spell_broca_dash": "dash da broca", "spell_raio1": "para-raios", "spell_raio2": "para-raios", "spell_raio3": "para-raios", "mecha_leve": "golpe de mecha", "mecha_pesado": "golpe pesado de mecha",
 		"evento_entulho": "entulho", "evento_rebite": "chuva de rebites", "evento_viga": "viga do cabo rompido", "evento_carga": "carga do guindaste",
-		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
+		"mec_tubo": "tubo rolando", "mec_serra": "serra de bancada", "mec_estaca": "bate-estaca", "mec_conteiner": "contêiner que despencou", "mec_gancho": "contêiner no gancho", "mec_caixas": "caixas da rede de carga", "mec_tubarao": "tubarão", "mec_vagonete": "vagonete", "mec_choque": "choque"}.get(kind, kind)
 	last_attacker = by
 	hanging = false
 	var am: Dictionary = main.demo.cfg["amassometro"]
 	var k: Dictionary = am[kind]
-	dmg += float(k["dano"])
+	# modo mecha (A33): quem está no mecha recebe menos dano/empurrão; quem ataca de mecha causa mais
+	var sp_m = main.demo.spells if main.demo != null else null
+	var mv: Dictionary = sp_m.mecha_cfg(self) if sp_m != null else {}
+	var ma: Dictionary = sp_m.mecha_cfg(main.robots[by]) if sp_m != null and by >= 0 and by < main.robots.size() and by != pid else {}
+	var hm: float = main.robots[by].hit_mult if by >= 0 and by < main.robots.size() and by != pid else 1.0
+	var dano := float(k["dano"]) * float(mv.get("recebe", 1.0)) * float(ma.get("causa", 1.0)) * hm
+	dmg += dano
 	var kx := minf(float(k["kx"]) + dmg * float(k["kx_por"]), float(am["max_kx"]))
 	var ky := float(k["ky"]) + dmg * float(k["ky_por"])
-	kx *= spell_push   # armadura: empurrão bem menor
-	ky *= spell_push
+	var push := float(mv.get("empurrao", spell_push)) * float(ma.get("causa", 1.0)) * hm
+	if ancora_t > 0.0:
+		push = 0.0   # D01 Âncora: o dano conta, o empurrão não
+	kx *= push   # armadura/mecha: empurrão bem menor
+	ky *= push
 	if by >= 0 and by < main.robots.size():
 		kx *= main.robots[by].spell_hit   # minirobô bate mais fraco
 		ky *= main.robots[by].spell_hit
@@ -562,7 +646,9 @@ func take_hit(dir: int, kind: String, by := -1) -> bool:
 		ky *= 0.7
 	var ar: Dictionary = c["arremesso"]
 	var stun := minf(float(ar["sem_controle_base"]) + dmg * float(ar["sem_controle_por"]), float(ar["sem_controle_max"]))
-	main.float_text(position + Vector2(0, -100), "+%d%%" % int(k["dano"]), main.dmg_color(dmg))
+	if ancora_t > 0.0:
+		stun = minf(stun, 0.12)   # ancorado: só o tranco, segue no controle
+	main.float_text(position + Vector2(0, -100), "+%d%%" % maxi(int(round(dano)), 1), main.dmg_color(dmg))
 	_apply_knock(dir, kx, ky, stun)
 	vis.hurt(clampf((kx + ky) / 1400.0, 0.25, 1.0), dir)
 	PlayerInput.vibrate(pid, 0.35 + dmg / 300.0, 0.15 + dmg / 250.0, 0.12 + minf(dmg, 150.0) / 1000.0)
@@ -577,8 +663,8 @@ func knock(dir: int, vx: float, vy: float, stun: float) -> void:
 	_apply_knock(dir, vx, vy, stun)
 
 func _apply_knock(dir: int, vx: float, vy: float, stun: float) -> void:
-	own_vx = dir * vx
-	velocity.y = -vy
+	own_vx = dir * vx * agua_empurra   # alagado: o golpe joga longe
+	velocity.y = -vy * agua_empurra
 	var_jump = 0.0   # sem "ai!" a cada golpe (barulho demais); a pancada já diz que acertou
 	stun_t = maxf(stun_t, stun)
 	recover_len = float(c["arremesso"]["retorno_s"])
@@ -702,6 +788,7 @@ func finish() -> void:
 func _start_attack(kind: String) -> void:
 	atk = kind
 	atk_t = 0.0
+	heavy_charge = 0.0
 	atk_hit = false
 	atk_landed = false
 	hammer_anim = _atk_total()
@@ -724,6 +811,8 @@ func _pick_quick(on_floor: bool) -> void:
 		atk_dir = "frente"
 	if atk_dir == "frente":
 		combo_i = (combo_i + 1) % 3 if combo_t > 0.0 else 0
+		if on_floor:   # A47: avanço curto até o rival (acertar fica fácil)
+			own_vx = facing * maxf(own_vx * facing, float(c["ataque_rapido"]["avanco_px_s"]))
 	else:
 		combo_i = 0
 	combo_t = 0.0
@@ -740,7 +829,15 @@ func _atk_total() -> float:
 func _attack_update(dt: float, on_floor: bool) -> void:
 	atk_t += dt
 	var ac := _atk_cfg()
+	# A47: segurando o pesado, o preparo fica no ponto alto e CARREGA (até carga_max_s)
+	if atk == "pesado" and not atk_hit and atk_t >= float(ac["preparo"]) * 0.85 and _held("heavy") and heavy_charge < float(ac["carga_max_s"]):
+		heavy_charge += dt
+		atk_t = float(ac["preparo"]) * 0.85
+		hammer_anim = _atk_total()
+		return
 	if not atk_hit and atk_t >= float(ac["preparo"]):
+		if atk == "pesado":   # direção escolhida na hora do golpe
+			atk_dir = "cima" if PlayerInput.held(pid, "up") else ("baixo" if (not on_floor and PlayerInput.held(pid, "down")) else "frente")
 		atk_hit = true
 		atk_landed = main.try_attack(self, atk)
 		if atk == "pesado" and on_floor:
@@ -827,6 +924,9 @@ func _dodged() -> void:
 func _on_landed() -> void:
 	air_dodge = 1
 	var hard := clampf((land_v - 300.0) / 900.0, 0.0, 1.0)
+	if land_v > 1050.0 and (stun_t > 0.0 or recover_t > 0.0) and crash_cd <= 0.0 and main.mode == "demolicao":
+		crash_cd = 0.4   # A47: POUSO forte de quem foi arremessado racha o chão
+		main.demo.luta_quebra(self, position + Vector2(0, 10), 1)
 	if hard > 0.5 and (stun_t > 0.0 or recover_t > 0.0):   # só quem foi ARREMESSADO e bate no chão; pouso comum é mudo
 		Audio.play("ba_aterrissa_pesada", 1.0, -4.0)
 	vis.land(hard, stun_t > 0.0 or recover_t > 0.0)
