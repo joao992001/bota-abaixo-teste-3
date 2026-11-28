@@ -44,9 +44,15 @@ Este quadro é o que permite outro chat continuar EXATAMENTE de onde o anterior 
   - [x] 1. Cena 1: prancha `art/out/fase2/lapida_cena1.png` (fonte `f2_lapida1.py`: onda 5 quadros, contêiner 4, gancho 3, tábua) — ENVIADA, aguardando aprovação
   - [x] 2. Cena 1 no jogo: sprites `onda_0..4`, `cai_0..3`, `alvo_zebra`, `moitao`, tábuas `tabua_boa` (via `f2_jogo.py` ← `f2_lapida1.py`); `_draw_onda/_draw_conteiner/_draw_gancho` trocados; `--so=m1,m2,m3` ok; captura `art/out/fase2/uso/cena1.png`
   - [x] 2b. Vídeo da cena 1 no jogo: `out/videos/cargueiro_cena1_perigos.mp4` (gravado com `--cargueiro-video=DIR --video-cena=1|2|3`, quadros PNG → ffmpeg 30 fps)
+  - [ ] 2c. **REFAZER a cena 1 no padrão novo** (usuário reprovou o vídeo: "onda desconecta do mar, sem impacto no personagem,
+    contêiner/queda ruins, plataformas já não agradam"). Manual novo `docs/manuais/animacao.md` (5 batidas + revisão em vídeo lento).
+    - [x] M3 onda procedural `game/modes/mec_onda.gd` (sai do mar, encurva, bate, lâmina varre, escoa; robô arremessado) → `out/videos/cargueiro_onda_v2(_lento).mp4` ENVIADO, aguardando opinião
+    - [ ] M1 contêiner (sai do navio/gancho, cai acelerando, achata, quica, poeira/lascas, robô esmagado/arremessado)
+    - [ ] M2 gancho (pêndulo com cabo, antecipação puxando, pancada com hitstop)
+    - [ ] perguntar ao usuário o que não agrada nas plataformas (tábuas/contêineres do palco)
   - [ ] 3. Cena 2a: prancha M4 maré, M5 boia, M6 rede, M10 tubarão → aprovação → jogo
   - [ ] 4. Cena 2b: prancha M7 racha, M8 lustre (corrente partindo), M9 concha (valva inteira), M11 gêiser → aprovação → jogo
-- **Próximo passo exato:** passo 3 — prancha da cena 2a (`art/src/cenarios/f2_lapida2.py` → `art/out/fase2/lapida_cena2a.png`):
+- **Próximo passo exato:** passo 2c — M1 contêiner no padrão novo (`game/modes/mec_conteiner.gd`): sai da PILHA do navio no fundo (amarras estalam, balança, escorrega), cai girando e acelerando, achata+quica, poeira/lascas, robô esmagado/arremessado; vídeo `--video-so=conteiner_cai --video-passo=1`. Depois M2. (Antigo: passo 3 — prancha da cena 2a (`art/src/cenarios/f2_lapida2.py` → `art/out/fase2/lapida_cena2a.png`):
   M4 maré (subida com espuma na linha, setas), M5 boia (rangendo/virando, respingo), M6 rede (rasgando, caixas caindo), M10 tubarão
   (redesenho completo: corpo, barbatana na água, salto, mordida, tonto). Mesmo método: quadros desenhados em funções reaproveitáveis.
 - Decisões pendentes do usuário: aprovar cada prancha.

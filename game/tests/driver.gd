@@ -6712,7 +6712,7 @@ func m3_test() -> void:
 	var dmg0: float = r0.dmg
 	var x0: float = r0.position.x
 	var w := 0
-	while s.get("fase", "") != "" and w < 200:
+	while s.get("fase", "") != "" and w < 320:
 		await frames(1)
 		w += 1
 	check(main.demo.agua.molhado.has(r0) and float(main.demo.agua.molhado[r0]) > 0.0, "a onda deixa molhado (lento)")
@@ -7267,9 +7267,18 @@ func cargueiro_video(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	get_window().size = Vector2i(1920, 1080)
 	var cena := 1
+	var so := ""      # --video-so=onda_balsa: só um perigo
+	var passo := 2    # --video-passo=1: grava os 60 quadros/s (para a câmera lenta)
+	var uma := false  # --video-uma: só a primeira repetição (onda: só uma balsa)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--video-cena="):
 			cena = int(a.substr(13))
+		elif a.begins_with("--video-so="):
+			so = a.substr(11)
+		elif a.begins_with("--video-passo="):
+			passo = int(a.substr(14))
+		elif a.begins_with("--video-uma"):
+			uma = true
 	await _cargueiro_partida()
 	main.hud.visible = false
 	for r in main.robots:
@@ -7287,8 +7296,8 @@ func cargueiro_video(dir: String) -> void:
 		i["s"]["t"] = -9999.0
 	var n := [0]
 	var grava := func(seg: float) -> void:
-		for f in int(seg * 30.0):
-			await frames(2)
+		for f in int(seg * 60.0 / passo):
+			await frames(passo)
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(dir + "/%04d.png" % n[0])
 			n[0] += 1
@@ -7296,6 +7305,8 @@ func cargueiro_video(dir: String) -> void:
 	for i in mc.list:
 		var tp := String(i["tipo"])
 		var d: Dictionary = i["d"]
+		if so != "" and tp != so:
+			continue
 		match tp:
 			"conteiner_cai":
 				i["s"]["t"] = float(d["ciclo_s"]) - 0.02
@@ -7306,10 +7317,21 @@ func cargueiro_video(dir: String) -> void:
 				await grava.call(float(d["aviso_s"]) + float(d["balanco_s"]) + 0.6)
 				i["s"]["t"] = -9999.0
 			"onda_balsa":
-				for qual in [1, 0]:
+				for qual in ([1] if uma else [1, 0]):
+					var b: Array = d["balsas"][1 - qual]   # robôs na balsa que vai levar a onda (sentem o golpe)
+					var xs := [float(b[0]) + 1.5, float(b[0]) + 4.5] if float(b[3]) > 0.0 else [float(b[1]) - 1.5, float(b[1]) - 4.5]
+					for ri in 2:
+						var r = main.robots[ri]
+						r.invuln = 0.0
+						r.velocity = Vector2.ZERO
+						r.own_vx = 0.0
+						r.position = Vector2(float(xs[ri]) * 64.0, 6.0 * 64.0)
+					await grava.call(0.5)
 					i["s"]["qual"] = qual
 					i["s"]["t"] = float(d["ciclo_s"]) - 0.02
-					await grava.call(float(d["aviso_s"]) + float(d["onda_s"]) + 0.8)
+					await grava.call(float(d["aviso_s"]) + float(d.get("quebra_s", 0.0)) + float(d["onda_s"]) + float(d.get("escoa_s", 0.0)) + 1.2)
+					for r in main.robots:
+						r.invuln = 9999.0
 				i["s"]["t"] = -9999.0
 	main.hud.visible = true
 	print("video: ", n[0], " quadros")

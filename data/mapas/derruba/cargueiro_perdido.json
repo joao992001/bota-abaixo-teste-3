@@ -105,13 +105,17 @@
      ],
      "ciclo_s": 7.5,
      "fase_s": 5.0,
-     "aviso_s": 1.0,
-     "onda_s": 0.7,
+     "aviso_s": 1.2,
+     "quebra_s": 0.4,
+     "onda_s": 0.85,
+     "escoa_s": 0.6,
+     "mar_px": 990,
      "altura_t": 2.2,
      "empurrao": [
       420,
       260
-     ]
+     ],
+     "correnteza": 260
     }
    ],
    "rota_moderada": "destrocos",

@@ -10,6 +10,7 @@ extends Node2D
 const T := 64.0
 const Kit := preload("res://ui/kit.gd")
 const INK := Color("#2a1a2e")
+const OndaFx := preload("res://modes/mec_onda.gd")
 var main: Node
 var frente: Node2D            # desenho por cima do palco (onda M3)
 var list: Array = []          # instâncias {tipo, etapa, d (dados do data), s (estado)}
@@ -117,8 +118,8 @@ func zonas_perigo() -> Array:
 					out.append((inst["s"]["alvo_r"] as Rect2).grow(96.0))
 			"onda_balsa":   # a balsa da vez durante o aviso e a onda
 				var s3: Dictionary = inst["s"]
-				if String(s3.get("fase", "")) != "":
-					out.append(_onda_area(inst, int(s3["qual"])))
+				if String(s3.get("fase", "")) != "" and s3.has("fx"):
+					out.append(s3["fx"].area(main.level.etapa_rect(inst["etapa"]).position))
 			"gancho_balanca":   # todo o arco que o contêiner varre
 				var g: Dictionary = _gancho_geo(inst)
 				var pv: Vector2 = g["pivo"]
@@ -632,38 +633,18 @@ func _onda_area(inst: Dictionary, qual: int) -> Rect2:
 func _onda_balsa(inst: Dictionary, dt: float) -> void:
 	var d: Dictionary = inst["d"]
 	var s: Dictionary = inst["s"]
-	var fase := String(s.get("fase", ""))
-	if fase == "" and float(s["t"]) >= float(d["ciclo_s"]):
+	if not s.has("fx"):
+		var fx0 = OndaFx.new()
+		fx0.setup(self, d)
+		s["fx"] = fx0
+	var fx = s["fx"]
+	if String(s.get("fase", "")) == "" and float(s["t"]) >= float(d["ciclo_s"]):
 		s["t"] = 0.0
 		s["qual"] = (int(s.get("qual", 1)) + 1) % (d["balsas"] as Array).size()
-		s["fase"] = "aviso"
-		s["k"] = 0.0
-		s["hit"] = {}
+		fx.comecar(int(s["qual"]), main.level.etapa_rect(inst["etapa"]).position)
 		Audio.play("soprador", 0.6, -6.0)   # o mar puxando
-	elif fase == "aviso":
-		s["k"] = float(s["k"]) + dt / float(d["aviso_s"])
-		if float(s["k"]) >= 1.0:
-			s["fase"] = "onda"
-			s["k"] = 0.0
-			Audio.play("explosao", 1.6, -10.0)   # estouro da onda
-			main.shake(3.0)
-	elif fase == "onda":
-		s["k"] = float(s["k"]) + dt / float(d["onda_s"])
-		var a := _onda_area(inst, int(s["qual"]))
-		var lado := float((d["balsas"] as Array)[int(s["qual"])][3])
-		var frente := a.position.x + a.size.x * float(s["k"]) if lado < 0.0 else a.end.x - a.size.x * float(s["k"])
-		var varrida := Rect2(minf(frente, a.position.x if lado < 0.0 else a.end.x), a.position.y, absf(frente - (a.position.x if lado < 0.0 else a.end.x)), a.size.y)
-		for r in _robots():
-			if s["hit"].has(r.pid) or not r.rect().intersects(varrida):
-				continue
-			s["hit"][r.pid] = true
-			var e: Array = d["empurrao"]
-			r.knock(int(-lado), float(e[0]), float(e[1]), 0.15)   # para dentro da balsa (longe do mar)
-			var ag = main.demo.agua
-			if ag != null and is_instance_valid(ag):
-				ag.molhar(r)
-		if float(s["k"]) >= 1.0:
-			s["fase"] = ""
+	fx.update(dt)
+	s["fase"] = fx.fase
 
 func _draw_frente() -> void:
 	for inst in list:
@@ -672,36 +653,11 @@ func _draw_frente() -> void:
 		elif _on(inst) and String(inst["tipo"]) == "tubarao":
 			_draw_tub_frente(inst, frente)
 
-## Onda lapidada (prancha `art/out/fase2/lapida_cena1.png`): 5 quadros em papel e giz — 0 incha · 1 cresce (aviso) ·
-## 2 quebra · 3 varre · 4 recua (onda). O sprite vem do mar pela DIREITA; espelha quando o mar está à esquerda.
+## Onda: desenho procedural em mec_onda.gd (parede que sai do mar, lâmina, cascatas, gotas).
 func _draw_onda(inst: Dictionary, ci: CanvasItem) -> void:
-	var s: Dictionary = inst["s"]
-	var fase := String(s.get("fase", ""))
-	if fase == "":
-		return
-	var d: Dictionary = inst["d"]
-	var a := _onda_area(inst, int(s["qual"]))
-	var lado := float((d["balsas"] as Array)[int(s["qual"])][3])
-	var k := float(s["k"])
-	var q := 0
-	if fase == "aviso":
-		q = 0 if k < 0.55 else 1
-	else:
-		q = 2 if k < 0.3 else (3 if k < 0.78 else 4)
-	var tx: Texture2D = Data.tex("cargueiro/onda_%d" % q)
-	if tx == null:
-		return
-	var sc := a.size.x / 448.0
-	var base := a.end.y + 40.0 if q <= 2 else a.end.y + 12.0   # quadros 0–2 nascem no mar; 3–4 correm no convés
-	var hy := 300.0 * sc * (0.78 if q <= 2 else 0.8)
-	var r := Rect2(a.position.x, base - hy, a.size.x, hy)
-	var treme := sin(t * 40.0) * 3.0 if fase == "aviso" and k > 0.8 else 0.0
-	if lado < 0.0:   # mar à esquerda: espelha
-		ci.draw_set_transform(Vector2(r.position.x + r.size.x + treme, r.position.y), 0.0, Vector2(-1, 1))
-		ci.draw_texture_rect(tx, Rect2(Vector2.ZERO, r.size), false)
-		ci.draw_set_transform(Vector2.ZERO)
-	else:
-		ci.draw_texture_rect(tx, Rect2(r.position + Vector2(treme, 0), r.size), false)
+	var fx = inst["s"].get("fx")
+	if fx != null and fx.ativa():
+		fx.draw(ci)
 
 ## M4 Maré (Fase 2, Destroços): baixa → SETA + som (aviso_s) → sobe (sobe_s) até a linha da maré alta e fica (alta_s) →
 ## desce. Mexe no `topo` da zona de água da cena (agua.gd: quem fica abaixo dela está ALAGADO); bote e jangada (peças
